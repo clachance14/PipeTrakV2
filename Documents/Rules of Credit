@@ -1,0 +1,358 @@
+PipeTrak MVP – Rules of Credit (ROC) & Workflow Specification
+Version: 2.0 (Clarified for Implementation)
+Date: October 2025
+Owner: Product Team
+Audience: Engineering & QA
+Purpose: Define the MVP crediting rules, workflows, and edge-case handling for component tracking in PipeTrak.
+
+-----
+
+1. Context & Vision
+
+PipeTrak replaces paper and Excel progress tracking for piping projects (<$20M brownfield). Our MVP must:
+
+- Slash admin time for foremen (updates in seconds).
+- Provide PMs trustworthy, real-time test package readiness.
+- Capture welder attribution at the moment of production.
+- Ensure ROC crediting is consistent, auditable, and aligned with field reality.
+- Prevent drawing duplicates via normalization + similarity detection.
+
+The ROC (Rules of Credit) is the backbone: progress is distributed across milestones per component type, ensuring accuracy when rolling up to packages, systems, and projects.
+
+-----
+
+2. Component Tracking Model
+
+2.1 General Principles
+
+Every component has a component_id (UUID).
+
+ROC weights must always total 100% per component type.
+
+Milestones are type-specific; UI only shows relevant ones.
+
+No hard deletes — all removals are soft (is_retired=true) with audit logs.
+
+Warn & Log, never block: out-of-sequence updates are allowed but flagged to Needs Review.
+
+Versioned templates: Store progress_template_id on component at creation. Changing weights = new version; no retro re-calc.
+
+2.2 Workflow Types
+
+milestone_discrete → Checkbox (yes/no). Example: Spools, Supports.
+
+milestone_quantity → Quantity entry (ft, sq ft). Example: Insulation, Paint.
+
+milestone_partial → % entry (0–100). Example: Fabricate/Install/Erect/Connect/Support steps for Threaded Pipe/Tubing.
+
+2.3 Component Identity (Class-A vs Class-B)
+
+Class-A (strict unique key):
+  - Spool: (project_id, spool_id)
+  - Field Weld: (project_id, weld_number_norm)
+  - Instrument: (project_id, instrument_tag_norm)
+  Duplicate on import → reject entire file.
+
+Class-B (quantity-based, group → instantiate):
+  - Support: (project_id, drawing_norm, commodity_code?, size)
+  - Valve: (project_id, drawing_norm, commodity_code?, size)
+  - Fitting/Flange: (project_id, drawing_norm, commodity_code?, size, rating?, face_type?)
+  Import delta (count change) → enqueue Needs Review: Delta Quantity (approve = add/remove instances).
+  Each instance stored as deterministic UUID: uuidv5("{group_key}|{seq}").
+
+Instance numbering:
+  - Sequential per group (1..N).
+  - No renumbering on retire: gaps are allowed.
+  - UI shows "seq #k of N" for Class-B items.
+
+-----
+
+3. ROC Matrix (MVP)
+
+Component Type | Workflow Type | Milestone Set | Milestones & Weights | Notes
+---------------|---------------|---------------|---------------------|------
+Spool | milestone_discrete | Full (modified) | Receive 5%, Erect 40%, Connect 40%, Punch 5%, Test 5%, Restore 5% | Support credit removed (tracked separately). TOTAL = 100%.
+Threaded Pipe/Tubing | hybrid (partial + discrete) | Custom | ⚠️ PENDING CONFIRMATION: Fabricate %, Install %, Erect %, Connect %, Support % (partials), Punch, Test, Restore (discrete). Suggested: Fabricate 16%, Install 16%, Erect 16%, Connect 16%, Support 16%, Punch 5%, Test 10%, Restore 5%. TOTAL = 100%. | Only type with % milestones. Guardrails: 0–100% per partial; Needs Review if jump >30%.
+Support | milestone_discrete | Reduced | Receive 10%, Install 60%, Punch 10%, Test 15%, Restore 5% | Size from import; group-instantiated. TOTAL = 100%.
+Valve | milestone_discrete | Reduced | Receive 10%, Install 60%, Punch 10%, Test 15%, Restore 5% | Group-imported, instantiated as discrete. TOTAL = 100%.
+Fitting | milestone_discrete | Reduced | Receive 10%, Install 60%, Punch 10%, Test 15%, Restore 5% | Same as valve; grouped by commodity/size. TOTAL = 100%.
+Flange | milestone_discrete | Reduced | Receive 10%, Install 60%, Punch 10%, Test 15%, Restore 5% | Grouped by commodity/size/rating/face type. TOTAL = 100%.
+Instrument | milestone_discrete | Reduced | Receive 10%, Install 60%, Punch 10%, Test 15%, Restore 5% | Includes transmitters, gauges, analyzers. TOTAL = 100%.
+Field Weld | milestone_discrete | Reduced | Fit-Up 10%, Weld Made 60%, Punch 10%, Test 15%, Restore 5% | Weld Made requires Welder + Stencil entry. TOTAL = 100%.
+Insulation | milestone_quantity | Two-step | Insulate 60%, Metal Out 40% | Measured by sq ft/lf. TOTAL = 100%. ⚠️ NEEDS CLARIFICATION: Identity key.
+Paint | milestone_quantity | Two-step | Primer 40%, Finish 60% | Weather-dependent. TOTAL = 100%. ⚠️ NEEDS CLARIFICATION: Identity key.
+
+OUT OF SCOPE (not tracked in MVP):
+  - Gaskets (too granular)
+  - Generic "Piping by Footage" (legacy method; replaced by Spools or Threaded Pipe/Tubing)
+  - Equipment components (pumps, vessels, exchangers)
+
+-----
+
+4. Import Rules
+
+4.1 General
+
+Imports are fail-fast: entire file rejected if any row fails validation.
+
+Required: every component must have a Drawing. If missing → reject file.
+
+If drawing doesn't exist → auto-create (see §7 Drawing Management).
+
+Staging + single commit: all rows validated in staging; single atomic commit on success.
+
+Row-level errors: downloadable CSV with (row, field, reason).
+
+4.2 Component Identity Keys
+
+Spool (Class-A): project_id + spool_id (from import). Duplicate → reject file.
+
+Field Weld (Class-A): project_id + weld_number_norm. Duplicate → reject file.
+  - Drawing is metadata. If same weld_number with different drawing → import succeeds, enqueue Needs Review: Drawing Change (approve updates drawing_id; reject ignores).
+
+Instrument (Class-A): project_id + instrument_tag_norm. Duplicate → reject file.
+
+Supports (Class-B): (drawing_no, commodity_code?, size) group → instantiate N supports.
+  - Required: size. If missing → row error (fail file).
+  - Import delta (count change) → enqueue Needs Review: Delta Quantity (approve = add/remove instances).
+
+Valves (Class-B): (drawing_no, commodity_code?, size) group → instantiate N discrete components.
+  - Required: size. If missing → row error (fail file).
+
+Fittings/Flanges (Class-B): (drawing_no, commodity_code?, size, rating?, face_type?) group → instantiate N discrete components.
+  - Required: size. Recommended: rating, face_type (for flanges).
+  - If missing required field → row error (fail file).
+
+Instruments (Class-A if tagged): (project_id, instrument_tag_norm). Duplicate → reject file.
+
+Insulation/Paint: ⚠️ NEEDS CLARIFICATION.
+  - Suggested: (project_id, drawing_norm, area_id?) or (project_id, drawing_norm, segment_id?).
+  - Import as quantity components with total_quantity (unit).
+
+4.3 Duplicates
+
+Class-A (Spools, Welds, Instruments):
+  - Same ID on import → reject entire file.
+  - Field Welds: Same weld_number with different drawing → import succeeds, enqueue Needs Review: Drawing Change.
+
+Class-B (Supports, Valves, Fittings, Flanges):
+  - Compare counts from previous import.
+  - If Δ detected → enqueue Needs Review: Delta Quantity (approve = add/remove instances).
+  - Instances stored with deterministic UUID: uuidv5("{group_key}|{seq}").
+
+4.4 Weld Logs
+
+Field weld import = QC-provided Weld Log.
+
+Welder name/stencil blank on import. Must be filled at Weld Made (see §6 Welder Management).
+
+Drawing is metadata (field weld can move between drawings). If drawing changes on import → enqueue Needs Review: Drawing Change.
+
+-----
+
+5. Guardrails & Business Rules
+
+Out-of-Sequence: Allowed, logged, flagged to Needs Review: OUT_OF_SEQUENCE.
+
+Rollback: Any milestone can be rolled back; creates audit entry + Needs Review: ROLLBACK + in-app notification.
+
+Jump Limits: For % milestones (Threaded Pipe Fabricate/Install/Erect/Connect/Support), flag Needs Review if single jump >30%.
+
+Dependencies (Warn & Log):
+  - Spools: Receive → Erect → Connect → (Punch/Test/Restore any order; Test before Restore recommended).
+  - Field Welds: Fit-Up → Weld Made → (Punch/Test/Restore).
+  - Insulation/Paint: warn if before pipe Test/Restore.
+
+Versioned ROC templates: Store roc_template_id on component at creation; never retroactively recalc old weights.
+
+Needs Review coalescing: Daily per group_key for DELTA_QUANTITY (avoid spam).
+
+-----
+
+6. Welder Management
+
+Welder directory:
+  - Table: welders(id, project_id, name, stencil_norm, status enum('unverified','verified'), created_by, created_at, verified_by?, verified_at?)
+  - Unique constraint: (project_id, stencil_norm)
+
+Stencil normalization: UPPER(TRIM(stencil)), regex [A-Z0-9-]{2,12} (configurable).
+
+Workflow:
+  - Foreman adds welder at Weld Made (name + stencil) → status=unverified, immediately usable.
+  - QC reviews/verifies → status=verified.
+  - If unverified welder used >N times (e.g., 5) → auto-enqueue Needs Review: VERIFY_WELDER.
+  - QC can merge duplicate welders (if same person, multiple stencils).
+
+At Weld Made:
+  - Modal with typeahead from welder directory.
+  - If new welder → add to directory as unverified.
+  - Save welder + milestone event atomically (transaction).
+  - Progress updates by 60% (Weld Made weight).
+
+-----
+
+7. Drawing Management
+
+Auto-creation: Drawings auto-created on component import if drawing_no_norm doesn't exist.
+
+Normalization algorithm:
+  - Convert to UPPERCASE.
+  - Trim whitespace.
+  - Collapse consecutive separators (-, _, /) to single.
+  - Strip leading zeros in numeric segments (configurable per project).
+  - Store both drawing_no_raw (as imported) and drawing_no_norm (for uniqueness).
+  - Unique constraint: (project_id, drawing_no_norm).
+
+Similar drawing detection:
+  - For brand-new drawing_no_norm, compute similarity score vs existing drawings (prefix match, token overlap, Levenshtein distance).
+  - If score above threshold (e.g., >85%), enqueue Needs Review: SIMILAR_DRAWING with top 3 matches.
+  - Import proceeds (component attached to staging drawing).
+  - Resolution: Approve = confirm new drawing; Reject = merge into suggested drawing.
+  - Auto-attach after 48h if unresolved.
+
+Drawing properties: id (UUID), project_id, drawing_no_raw, drawing_no_norm, title (optional), rev (optional), created_at, is_retired.
+
+Deletion: Soft delete only (is_retired=true). Impacts: components linked to retired drawing flagged for review.
+
+-----
+
+8. State & Audit
+
+Every action (update, rollback, import, resolve review) must log:
+  - User, timestamp, component_id, action_type, old_value, new_value, reason.
+
+Needs Review categories (6 types):
+  1. OUT_OF_SEQUENCE: Milestone completed before prerequisite (warn & log, never block).
+  2. ROLLBACK: Milestone uncompleted after being marked complete.
+  3. DELTA_QUANTITY: Class-B import count change (add/remove instances).
+  4. DRAWING_CHANGE: Field weld imported with different drawing (metadata correction).
+  5. SIMILAR_DRAWING: New drawing_no_norm matches existing (similarity detection).
+  6. VERIFY_WELDER: Unverified welder used >N times (auto-flagged for QC review).
+
+Who resolves: Any Member (desktop only). All resolutions audited (resolver, timestamp, note).
+
+Coalescing: Daily per group_key for DELTA_QUANTITY (avoid spam).
+
+UI: Age badges (24h amber, 48h red). Email digests deferred to post-MVP.
+
+Conflict resolution: Last-write-wins. Conflict logged in audit + flagged as Needs Review: OUT_OF_SEQUENCE or custom.
+
+-----
+
+9. UX Requirements
+
+Bulk Updates:
+  - Select components → choose milestone → apply.
+  - Compatibility (intersection logic): Only show milestones shared across all selected component types.
+  - If no shared milestones → show message: "No shared milestones for selected items."
+  - Guardrails: Single-row updates → one-tap + 2-second undo window. Bulk >10 items → confirmation modal.
+  - Summary after bulk: "Updated X, skipped Y, flagged Z for review."
+
+Feedback:
+  - Instant status update (<30s sync across users).
+  - Needs Review badge where applicable (age-based: 24h amber, 48h red).
+
+Explainability: Hover or drilldown shows:
+  - Completed milestones + weights.
+  - Remaining milestones.
+  - Template version in use.
+
+Field Welds: At "Weld Made," user must input Welder + Stencil (modal with typeahead) before saving.
+
+Component rows (instances-as-rows):
+  - Columns: Type, Drawing, seq (if Class-B), Commodity Code, Size, Spec, Rating/Face Type, Area, System, Test Package, Milestones (toggle buttons), %, last_updated_by, last_updated_at.
+  - Show instance "seq #k of N" for Class-B items (supports, valves, fittings, flanges).
+  - Virtualized table: Smooth performance with 10k+ rows.
+  - Keyboard navigation: J/K (or arrows) to move row focus.
+
+Retired components: Hidden by default; toggle "Show retired" to display.
+
+-----
+
+10. Non-Functional Requirements
+
+Performance:
+  - p90 of user actions <1s, p95 <2s.
+  - Bulk 25–50 components <10s (cap at 90s).
+  - Imports: handle 1k rows in <60s; 10k rows <5m.
+  - Readiness views (≈1k rows) <2s.
+  - Real-time sync ≤30s across users.
+
+Scalability: Support projects with ≥1M components; 50 concurrent foremen.
+
+Security:
+  - Supabase RLS enforced at project/org level.
+  - Roles: Admin (full access), Member (capability flags: can_update_milestones, can_import_weld_log, can_manage_welders, can_resolve_reviews, can_view_dashboards).
+
+Accessibility: WCAG AA compliance for web app; mobile-first UI.
+
+Error handling:
+  - Validation (import/milestone): Show row/field; fail-fast imports.
+  - Permission: Show role/capability missing.
+  - Network: Sticky "Work Not Saved" + Retry All button. Retry queue (≤50 actions; dropped on app close).
+  - Conflict/overwrite: Last-write-wins; log as Needs Review: Conflict.
+
+-----
+
+11. ⚠️ NEEDS CLARIFICATION (For Future Sprints)
+
+1. Threaded Pipe & Tubing ROC weights: Confirm exact percentages so TOTAL = 100.
+   Suggested: Fabricate 16%, Install 16%, Erect 16%, Connect 16%, Support 16%, Punch 5%, Test 10%, Restore 5%.
+
+2. Insulation & Paint identity keys:
+   - Key structure: (project_id, drawing_norm, area_id?) or (project_id, drawing_norm, segment_id?)?
+   - Import format (CSV columns)?
+   - Total quantity tracking (unit)?
+
+3. Weld repair workflow:
+   - How is new weld number generated (e.g., original-R1, original-R2)?
+   - Link to original weld in DB (repair lineage)?
+   - Same drawing or new drawing?
+
+4. Test Package creation:
+   - UI workflow: Modal form fields (name, description, target_date)?
+   - Import format: CSV columns (package_id, name, description, target_date)?
+   - Can components be reassigned between packages? If yes, audit trail?
+
+5. Area/System creation:
+   - UI workflow: Modal form or inline edit?
+   - Import format?
+
+6. Drawing similarity threshold:
+   - Confirm 85% threshold or make configurable per project?
+   - Algorithms: prefix match weight, token overlap weight, Levenshtein weight?
+
+7. Welder verification auto-flag threshold:
+   - Confirm N=5 uses or make configurable?
+
+-----
+
+12. Open Decisions / Future Enhancements
+
+- Equipment components (pumps, vessels, exchangers) → future phase.
+- Project-specific ROC overrides → Phase 2.
+- Welder certification tracking (expiry, renewal) → Phase 2.
+- Photo attachments (x-ray, test reports) → Phase 2.
+- Weighted rollups by manhour/material → Phase 2 (MVP uses simple averages).
+- Email/SMS notifications → Phase 2 (in-app only for MVP).
+- Exports (CSV, PDF) → Phase 2.
+- Dashboard metrics for PMs (beyond package readiness) → Phase 2.
+- Offline mode → Phase 2 (online-only for MVP).
+
+-----
+
+Summary
+
+PipeTrak MVP ROC delivers:
+- 10 component types with type-specific ROC workflows (discrete, quantity, hybrid partial).
+- Weighted progress calculation (component %) with simple averages for drawing/project %.
+- Class-A strict identity (reject duplicates) vs Class-B quantity-based (delta review).
+- Drawing auto-creation with normalization + similarity detection (prevent duplicates).
+- Welder directory with verification workflow (unverified → verified, auto-flag for QC).
+- 6 Needs Review types (out-of-sequence, rollback, delta quantity, drawing change, similar drawing, verify welder).
+- Bulk updates with intersection logic (shared milestones only) + 2s undo + confirmation for >10 items.
+- Real-time sync (≤30s) with performance SLAs (p90 <1s, 1M components, 50 users).
+- Audit trail (immutable, retained as long as project active).
+- Instances-as-rows UI with virtualized table (10k+ rows, smooth scrolling, keyboard nav).
+
+This ROC spec is implementation-ready pending confirmation on Threaded Pipe weights and clarification on Insulation/Paint identity keys.

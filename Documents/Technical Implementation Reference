@@ -1,0 +1,351 @@
+PipeTrak MVP – Technical Implementation Reference
+Version: 2.0 (Clarified for Implementation)
+Date: October 2025
+Purpose: Quick reference for engineering team; see Business Logic, ROC, Problem Analysis, and User Stories for comprehensive context.
+
+-----
+
+0) High-Level: What's In / Out
+
+IN (MVP):
+
+- Spools (discrete, 6 milestones)
+- Supports / Valves / Fittings / Flanges (group-import → discrete instances)
+- Instruments (tagged → discrete)
+- Field Welds (discrete; Fit-Up → Weld Made → …; weighted)
+- Threaded Pipe & Tubing (hybrid: partial % + discrete, see §3)
+- Insulation, Paint (quantity, two-step)
+- One-tap milestone updates (+ Undo for single, confirm for bulk>10)
+- Needs Review queue (out-of-sequence, rollbacks, deltas, drawing change)
+- Drawing auto-create on import (+ "similar drawing" review)
+- Weighted ROC with versioned templates
+
+OUT (MVP):
+
+- Gaskets (not tracked)
+- Generic "Piping by Footage" (legacy) — replaced by Spools or Threaded Pipe/Tubing
+- Offline mode
+- Emails/SMS notifications (in-app only)
+- Hard deletes (soft-retire only)
+
+Related: Business Logic §3, §16; ROC §3; User Stories summary
+
+-----
+
+1) Roles & Permissions
+
+System roles: Admin, Member
+
+Member capability flags:
+  - can_update_milestones (Foreman)
+  - can_import_weld_log, can_manage_welders (QC)
+  - can_resolve_reviews, can_view_dashboards (PM)
+
+MVP rule: Any Member can resolve Needs Review (desktop only). All resolutions are audited.
+
+Related: Business Logic §1; ROC §10; User Stories #11
+
+-----
+
+2) Data Hierarchy & Entities
+
+Authoritative hierarchy: Project → Drawing → Component
+
+Metadata dimensions (not lineage): Area, System, Test Package
+  - Managed via dictionaries (Admin/QC/PM).
+  - Do not auto-create from component import.
+
+Drawings: auto-created on import if missing (with normalization & "similar" detection).
+
+Test Packages: entity exists; components link to one package (MVP). Created via UI or package import (not component import).
+
+Tables (sketch):
+
+projects(id, name)
+
+drawings(id, project_id, drawing_no_raw, drawing_no_norm, title?, rev?)
+  -- unique(project_id, drawing_no_norm)
+
+components(
+  id, project_id, drawing_id, component_type,
+  -- identity attrs per type (e.g., weld_number, spool_id, tag, group_key, seq)
+  area_id?, system_id?, test_package_id?,
+  current_milestone, progress_template_id, percent_complete_cached?,
+  last_updated_by, last_updated_at,
+  is_retired boolean default false, retire_reason?
+)
+
+needs_review(id, project_id, type, payload_json, status, created_by, created_at,
+  resolved_by?, resolved_at?, resolution_note?)
+
+progress_templates(id, component_type, version, weights_json, workflow_type)
+
+welders(id, project_id, name, stencil, status enum('unverified','verified'),
+  created_by, created_at, verified_by?, verified_at?)
+  -- unique(project_id, UPPER(TRIM(stencil)))
+
+Related: Business Logic §2; ROC §2
+
+-----
+
+3) ROC & Workflows (final)
+
+Spool (discrete, "Full modified")
+  Milestones (weights): Receive 5, Erect 40, Connect 40, Punch 5, Test 5, Restore 5 (TOTAL 100)
+  Note: Support credit removed; Supports tracked separately.
+
+Threaded Pipe / Tubing (hybrid)
+  Partial % milestones: Fabricate %, Install %, Erect %, Connect %, Support % → weights provided by ROC template (ensure TOTAL with discrete = 100)
+  Discrete milestones: Punch 5, Test 10, Restore 5 (example—use template)
+  Guardrails: 0–100%; rollback logged; Needs Review if jump >30% in one entry.
+  ⚠️ Action: Confirm final weights in progress_templates so totals = 100. (E.g., partials sum to 80, discretes sum to 20.)
+
+Supports / Valves / Fittings / Flanges (discrete, "Reduced")
+  Milestones: Receive 10, Install 60, Punch 10, Test 15, Restore 5 (TOTAL 100)
+
+Instruments (discrete, "Reduced")
+  Same as above; tagged identity.
+
+Field Welds (discrete, weld-specific labels)
+  Milestones (weights): Fit-Up 10, Weld Made 60, Punch 10, Test 15, Restore 5 (TOTAL 100)
+  At "Weld Made": require welder_name + stencil (modal). Event + milestone saved atomically.
+
+Insulation (quantity, two-step)
+  Insulate 60, Metal Out 40
+
+Paint (quantity, two-step)
+  Primer 40, Finish 60
+
+Versioning: Store progress_template_id on component at creation. Changing weights = new template version; no retro re-calc.
+
+Related: Business Logic §3, §4; ROC §3; User Stories #1
+
+-----
+
+4) Identity & Import Keys
+
+Spool (Class-A strict): key = (project_id, spool_id)
+  Duplicate → reject file.
+
+Field Weld (Class-A strict): key = (project_id, weld_number_norm)
+  Drawing is metadata. If same weld_number with different drawing → import succeeds and enqueue Needs Review: Drawing Change (approve updates drawing; reject ignores).
+
+Instrument (Class-A strict): key = (project_id, instrument_tag_norm)
+  Duplicate → reject file.
+
+Group types (Class-B, quantity-based → instantiate instances):
+  Support: (project_id, drawing_norm, commodity_code?, size)
+  Valve: (project_id, drawing_norm, commodity_code?, size)
+  Fitting/Flange: (project_id, drawing_norm, commodity_code?, size, rating?, face_type?)
+
+  Required per type: size for supports/valves; rating/face_type recommended for flanges.
+  If a key attribute is missing → row error (fail file).
+  Import deltas update planned count via Needs Review: Delta (add/remove instances).
+  Each instance is a row in components with deterministic id = uuidv5("{group_key}|{seq}").
+  No renumbering on archive; gaps are allowed.
+
+Insulation / Paint: import as quantity components keyed by (project_id, drawing_norm, area? or segment id?) with total_quantity (unit). (Use whatever minimal identity you define; ensure consistency.)
+
+Imports: All-or-nothing; downloadable error report; staging + single commit.
+
+Related: Business Logic §2, §6; ROC §2.3, §4; User Stories #7
+
+-----
+
+5) Drawing Handling
+
+Auto-create drawings on import if missing (normalize first).
+
+Normalization: uppercase, trim, collapse separators, configurable "strip leading zeros" in numeric segments; store raw and norm.
+
+Similar drawing detection: for brand-new norm, compute simple similarity (prefix/token/Levenshtein). If above threshold, enqueue Needs Review: Similar Drawing with top 3 matches. Import proceeds (attach to staging drawing until resolved or auto-attach after 48h).
+
+Related: Business Logic §11; ROC §7; User Stories #14, #20
+
+-----
+
+6) Welder Management
+
+Directory: welders table with name, stencil, status.
+
+Stencil required on create; normalized (UPPER/TRIM, [A-Z0-9-]{2,12} by default).
+
+Foreman: can add (status=unverified) and use immediately.
+
+QC: verifies/merges. If an unverified welder is used >N times → auto Needs Review: Verify Welder.
+
+At Weld Made: welder modal requires name + stencil; suggest from directory (typeahead).
+
+Related: Business Logic §12; ROC §6; User Stories #4, #15
+
+-----
+
+7) Needs Review (types & rules)
+
+Types: OUT_OF_SEQUENCE, ROLLBACK, DELTA_QUANTITY, DRAWING_CHANGE, SIMILAR_DRAWING, VERIFY_WELDER
+
+Who can resolve: any Member (desktop).
+
+Audit: record resolver, timestamp, note.
+
+Coalescing: Daily per group_key for DELTA_QUANTITY.
+
+UI: age badges (24h amber, 48h red). (Email digests later.)
+
+Related: Business Logic §8; ROC §8; User Stories #2, #5
+
+-----
+
+8) Bulk Updates & Compatibility
+
+Selection: filter → select rows → choose milestone.
+
+Shown actions: only the intersection of milestones across selected rows.
+
+If none in common → show message: "No shared milestones for selected items."
+
+Guardrails:
+  - Single-row updates → one-tap + 2s Undo.
+  - Bulk >10 → confirmation modal.
+  - Summary after bulk: updated / skipped / flagged.
+
+Related: Business Logic §7; ROC §9; User Stories #3, #16, #17
+
+-----
+
+9) Dependencies & Sequencing
+
+Warn & Log, never block.
+
+Out-of-sequence updates save and create OUT_OF_SEQUENCE review.
+
+Suggested dependencies:
+  - Spools: Receive → Erect → Connect → (Punch/Test/Restore any order; Test before Restore recommended)
+  - Field Welds: Fit-Up → Weld Made → (Punch/Test/Restore)
+  - Insulation/Paint: warn if before pipe Test/Restore.
+
+Related: Business Logic §8; ROC §5; User Stories #2
+
+-----
+
+10) UI — Components Table (instances-as-rows)
+
+Row fields: Type, Drawing, seq (if Class-B), Commodity, Size, Rating/Face, Milestone(s), %, Package, last_updated_by/at, chips for Area/System (if set).
+
+Sort default: drawing → type → seq.
+
+Virtualized (smooth with 10k+ rows).
+
+Navigation: keyboard J/K (or arrows) moves row focus.
+
+Retired: hidden by default; toggle "Show retired".
+
+Related: Business Logic §5; ROC §9; User Stories #18, #19
+
+-----
+
+11) Performance, Scale, and Error Handling
+
+Perf targets:
+  - p90 action <1s; p95 <2s
+  - Bulk 25–50 rows <10s (cap 90s)
+  - Readiness views (≈1k rows) <2s
+  - Realtime sync ≤30s
+  - Imports: 1k rows <60s; 10k <5m
+
+Scale targets:
+  - ≥1M components/project; 50 concurrent foremen
+
+Error taxonomy:
+  - Validation (import/milestone) → show row/field; fail-fast imports
+  - Permission → show role/capability missing
+  - Network → sticky "Work Not Saved" + Retry All (session queue ≤50; dropped on app close)
+  - Conflict/overwrite → last-write-wins; log Conflict into Needs Review
+
+Related: Business Logic §15; ROC §10; User Stories #8, #12, #13
+
+-----
+
+12) Open Inputs for Weights (Threaded Pipe/Tubing)
+
+You stated: partial % milestones for Fabricate, Install, Erect, Connect, Support and discrete Punch, Test, Restore.
+
+⚠️ Action: Provide the exact weights so TOTAL = 100.
+
+Example: Partials sum to 80 (16% each), Punch 5, Test 10, Restore 5.
+
+Related: Business Logic §3 ⚠️, §17; ROC §3 ⚠️, §11
+
+-----
+
+13) Quick Acceptance Snippets
+
+Bulk mixed types:
+  Given user selects Spools + Valves, when opening bulk actions, then only Punch/Test/Restore appear (shared); if none shared, show "No shared milestones…".
+
+Weld Made:
+  Given foreman taps Weld Made, when modal submits with welder name + stencil, then milestone + weld_event save atomically; percent updates by 60%.
+
+Drawing change on weld:
+  Given weld_number exists under different drawing in import, when processed, then enqueue DRAWING_CHANGE review; on approve, update components.drawing_id and log DRAWING_CHANGED {old→new}.
+
+Delta quantity:
+  Given supports (drawing+commodity+size) count increases by +3 in import, then create DELTA_QUANTITY review proposing 3 new instances (seq append); on approve, create rows.
+
+Related: User Stories #3, #4, #7, #14
+
+-----
+
+14) ⚠️ NEEDS CLARIFICATION (For Future Sprints)
+
+1. Threaded Pipe & Tubing ROC weights: Confirm exact percentages so TOTAL = 100.
+   Suggested: Fabricate 16%, Install 16%, Erect 16%, Connect 16%, Support 16%, Punch 5%, Test 10%, Restore 5%.
+
+2. Test Package UI workflow:
+   - Form fields for creation (name, description, target_date)?
+   - Import CSV format (columns)?
+   - Can components be reassigned between packages? If yes, audit trail?
+
+3. Insulation & Paint identity keys:
+   - Key structure: (project_id, drawing_norm, area_id?) or (project_id, drawing_norm, segment_id?)?
+   - Import format (CSV columns)?
+   - Total quantity tracking (unit: sq ft, lf)?
+
+4. Weld repair workflow:
+   - How is new weld number generated (e.g., original-R1, original-R2)?
+   - Link to original weld in DB (repair lineage)?
+   - Same drawing or new drawing?
+
+5. Area & System creation:
+   - UI workflow: Modal form or inline edit?
+   - Import format (CSV)?
+
+6. Drawing similarity threshold:
+   - Confirm 85% threshold or make configurable per project?
+   - Algorithm weights: prefix match, token overlap, Levenshtein?
+
+7. Welder verification auto-flag threshold:
+   - Confirm N=5 uses or make configurable?
+
+Related: See all documents §17 (Business Logic), §6 (Problem Analysis), §11 (ROC), Stories #21-26 (User Stories)
+
+-----
+
+Summary
+
+This Technical Implementation Reference provides quick lookup for engineers implementing PipeTrak MVP. It consolidates:
+- 10 component types with type-specific ROC workflows (discrete, quantity, hybrid partial)
+- Class-A strict identity vs Class-B quantity-based (delta review)
+- Drawing auto-creation with normalization + similarity detection
+- Welder directory with verification workflow (unverified → verified)
+- 6 Needs Review types with resolution workflow
+- Bulk updates with intersection logic + 2s undo + confirmation for >10 items
+- Real-time sync (≤30s) with performance SLAs (p90 <1s, 1M components, 50 users)
+
+For comprehensive context, see:
+- Business Logic: Detailed business rules, entity relationships, complete workflows
+- Rules of Credit (ROC): Milestone weights, edge cases, non-functional requirements
+- Problem Analysis: User pain points, pilot plan, success metrics
+- User Stories: Acceptance criteria, testable behaviors
+
+This spec is implementation-ready pending confirmation on Threaded Pipe weights and clarification on Test Package/Insulation/Paint details.

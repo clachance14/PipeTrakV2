@@ -1,0 +1,239 @@
+PipeTrak MVP – Problem-First Analysis & Pilot Plan
+Version: 2.0 (Clarified for Implementation)
+Date: October 2025
+Approach: Problem-First, grounded in user pains & field realities
+
+-----
+
+1. Problem Analysis
+
+Who feels the pain
+
+Foremen: Spend ~15–20 min/day scribbling updates on paper trackers. If they miss a day, updates pile up, creating backlog and frustration.
+
+Project Controls: Must re-key all those updates into Excel. With multiple foremen, effort compounds → hours of wasted admin.
+
+Project Managers: Don't trust Excel rollups; they lag behind reality. Test package readiness is murky until too late.
+
+QC/Inspectors: Weld lineage and accountability often unclear; back-and-forth over who welded what.
+
+Core problems
+
+Status friction at scale – updating is slow, manual, and duplicated.
+
+Lagging visibility – PMs can't see real-time progress or package readiness.
+
+Trust gaps – no clear audit of who did what/when.
+
+Import fragility – Excel file prep can derail onboarding; duplicates and drift.
+
+Disputes on welds/test packages – missing attribution, unclear readiness.
+
+Drawing mismatches – typos and variations cause duplicate entries or lost components.
+
+Jobs to be Done
+
+Foremen: "Mark work complete in seconds, without paper or spreadsheets."
+
+PMs: "See real-time package progress, so I can push for turnover earlier."
+
+QC: "Capture welder attribution at the moment of production."
+
+Project Controls: "Import cleanly, with errors pinpointed, so I don't corrupt the baseline."
+
+-----
+
+2. Solution Validation
+
+Why MVP solution fits
+
+Type-aware milestones (ROC): Button toggles remove cognitive load, enforce consistent steps. Weighted progress (not simple average) gives accurate rollups.
+
+Warn & Log dependencies: Keeps flexibility (reality first) but flags out-of-sequence actions for review.
+
+Bulk updates with intersection logic: Foremen update entire test packages in one go, with type-aware milestones. Only show shared milestones to avoid confusion.
+
+Audit + 6 Needs Review types: Every rollback, out-of-sequence, drawing change, delta, similar drawing, and welder verification is traceable and actionable.
+
+Weld capture: Welder name + stencil required at Weld Made → accountability without over-engineering. Unverified welders auto-flagged for QC review after N uses.
+
+Drawing normalization + similarity detection: Auto-create drawings on import with smart normalization. Flag similar drawings (e.g., typos, variations) to prevent duplicates.
+
+Imports: One rigid template; fail-fast validation with specific row-level errors; entire file must be reuploaded clean. Class-A strict (reject duplicates), Class-B quantity-based (delta review).
+
+Real-time refresh: Updates propagate within 30s (foreman → PM → client confidence).
+
+Package grouping: Progress can be tracked by Test Package, the most client-visible milestone for turnover.
+
+Instances-as-rows: Virtualized table with 10k+ row performance. No paging, smooth scrolling, keyboard navigation.
+
+Why not alternatives
+
+Excel/SharePoint: Too fragile, manual, lagging. No real-time sync, no audit trail, no welder capture.
+
+Heavy AWP suites: Overkill for brownfield <$20M projects; require 3D models + months of setup. High licensing costs.
+
+Custom Access/PowerApps: Brittle, siloed, non-scalable. Performance degrades with scale. No mobile-first UX.
+
+Risks mitigated
+
+Performance: Virtualized lists + backend optimization keep UI responsive with 1M components. p90 <1s, p95 <2s.
+
+Imports: Fail-fast + row-level error pinpointing avoids partial corruption. Staging + single commit ensures atomicity.
+
+Weighting: Weighted ROC (not simple average) for component %. Simple average for drawing/project % OK for MVP. Future upgrade to manhour-based weighting possible.
+
+Offline mode: Not needed; coverage is reliable enough on active job sites. Show "Work Not Saved" warning if connection drops; retry queue (≤50 actions).
+
+Drawing mismatches: Normalization + similarity detection prevents duplicates and flags typos for review.
+
+Welder attribution: Unverified welders usable immediately (foreman adds in field), QC verifies later. Auto-flag for review after N uses.
+
+-----
+
+3. Impact Assessment
+
+North Star Metric
+
+Trusted, real-time package readiness.
+
+Candidate NSM: % of active components updated within last 48 hours (per project).
+
+Secondary: Admin time saved (foreman + project controls) per day.
+
+Success metrics
+
+Foremen admin cut: 15–20 min/day → ≤3 min/day.
+
+Project controls admin cut: Zero re-keying from paper → direct digital updates only.
+
+Real-time sync: Updates visible across users in ≤30s.
+
+Test Package visibility: PMs can identify packages ≥80% complete instantly (package readiness view).
+
+Audit trust: 100% of rollbacks & out-of-sequence completions logged + cleared in Needs Review.
+
+Adoption: Foremen WAU/MAU ≥ 60%.
+
+Import reliability: ≥95% of imports succeed on first attempt (fail-fast errors guide corrections).
+
+Drawing accuracy: ≥90% of similar drawing flags correctly identify duplicates/typos.
+
+Welder accountability: 100% of Weld Made events capture welder name + stencil.
+
+Performance: p90 action time <1s; p95 <2s.
+
+What changes for users
+
+Foremen: No paper printouts, no waiting for Excel rollups. Updates happen in the moment (mobile-first). 2-second undo for mistakes. Bulk update entire packages in <10s.
+
+PMs: Can reallocate crews earlier based on package readiness → faster turnover. Real-time visibility replaces lag-prone Excel. Needs Review queue surfaces issues proactively.
+
+QC: Weld attribution captured live, reducing back-and-forth later. Unverified welders auto-flagged for review. Welder directory prevents duplicate entries.
+
+Project Controls: Import errors pinpointed by row/field; no partial corruption. Drawing normalization + similarity detection prevents duplicate drawings.
+
+-----
+
+4. Pilot Plan (30–45 days)
+
+Scope: 1 active project, 3 foremen + 1 PM + 1 QC.
+
+Week 1–2: Setup & Onboarding
+
+Import project baseline via rigid Excel template (components + welds).
+Validate clean import (fail-fast with row-level errors).
+Create Test Packages (via UI or import).
+Train foremen on mobile bulk updates + weld capture.
+Train QC on welder verification + Needs Review resolution.
+Train PM on package readiness view + Needs Review queue.
+
+Week 3–4: Run & Measure
+
+Foremen use PipeTrak daily instead of paper.
+PM uses Test Package readiness view for turnover calls.
+QC verifies welders + resolves Needs Review items.
+
+Track metrics:
+  - Time-to-update: Foreman bulk action ≤90s for 25 components.
+  - Sync latency: % of updates visible in ≤30s.
+  - NSM: % of components touched within 48h.
+  - Needs Review backlog: Cleared ≤48h.
+  - Import success rate: % on first attempt.
+  - Drawing flags: % of similar drawing alerts correctly identify duplicates.
+  - Welder capture: % of Weld Made events with welder attribution.
+  - Performance: p90/p95 action times.
+
+Week 5: Evaluate
+
+Compare admin time before/after (foreman + project controls).
+Sample 3 test packages: compare PipeTrak % complete vs client walkdown → must be within 5%.
+PM feedback: Is this "better than Excel"? (goal: yes based on real-time + package visibility).
+Review Needs Review resolution times (goal: ≤48h median).
+Identify UX friction points for post-MVP iteration.
+
+⚠️ NEEDS CLARIFICATION: Go/No-Go Criteria
+
+Success thresholds:
+  - Admin time reduced by ≥50% (foreman + project controls)?
+  - NSM ≥60% (components updated within 48h)?
+  - Package accuracy within 5% of walkdown?
+  - PM satisfaction score ≥4/5?
+
+Failure handling:
+  - If adoption <40%, investigate UX friction (interviews + session recordings).
+  - If performance p95 >3s, optimize backend queries + frontend virtualization.
+  - If import success <80%, simplify template or add validation hints.
+  - Rollback plan: Continue Excel alongside PipeTrak for 1–2 more weeks; iterate.
+
+-----
+
+5. MVP Guardrails
+
+No offline – online-only, but show "Work Not Saved" if dropped. Retry queue (≤50 actions; dropped on app close).
+
+Imports – one template per component type, fail-fast, reupload required. Row-level errors downloadable.
+
+Rollups – weighted ROC for component %, simple averages for drawing/project %.
+
+Weld Made – Welder Name + Stencil required (modal with typeahead). Unverified welders usable immediately.
+
+Dependencies – Warn & Log, never block.
+
+Notifications – Weld Made + Rollback only (in-app).
+
+Performance – p90 <1s, p95 <2s; 1M components/project; 50 concurrent foremen.
+
+Drawing normalization – UPPERCASE, trim, collapse separators, strip leading zeros (configurable).
+
+Similar drawing detection – Flag if >85% similarity; auto-attach after 48h if unresolved.
+
+Needs Review – 6 types (out-of-sequence, rollback, delta quantity, drawing change, similar drawing, verify welder). Age badges (24h amber, 48h red). Any Member can resolve (desktop only).
+
+Bulk updates – Intersection logic (only shared milestones). Confirmation for >10 items. 2s undo for single updates.
+
+-----
+
+6. ⚠️ NEEDS CLARIFICATION (For Future Sprints)
+
+1. Pilot go/no-go decision criteria:
+   - Specific success thresholds (admin time %, NSM %, accuracy %, satisfaction score)?
+   - Failure handling protocol (iterate vs rollback)?
+   - Stakeholder sign-off process?
+
+2. Weld repair workflow:
+   - How is new weld number generated (original-R1, original-R2)?
+   - Link to original weld in DB (repair lineage)?
+   - Same drawing or new drawing?
+
+3. Post-pilot iteration plan:
+   - UX friction identification method (interviews, session recordings, analytics)?
+   - Timeline for addressing feedback (sprint cadence)?
+
+4. Scale testing beyond pilot:
+   - When to test with multiple concurrent projects?
+   - Stress test scenarios (10k+ component imports, 50+ concurrent users)?
+
+-----
+
+✅ This makes MVP lean but field-trustworthy: real-time updates + test package visibility + welder accountability + drawing normalization = killer features. Admin burden gets slashed, and PMs get client-facing credibility.

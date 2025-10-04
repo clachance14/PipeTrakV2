@@ -1,0 +1,424 @@
+📋 PipeTrak MVP – User Stories
+Version: 2.0 (Clarified for Implementation)
+Date: October 2025
+
+-----
+
+CORE WORKFLOW STORIES
+
+1. Type-Aware Milestone Toggles
+
+User Story:
+As a Foreman, I want one-tap milestone buttons that enforce the correct sequence for each component type, so I can update progress quickly without worrying about rules.
+
+Acceptance Criteria:
+- Given a component type (e.g., Spool), when I view the component row, then I see only the relevant milestones for that type (Receive, Erect, Connect, Punch, Test, Restore).
+- Given a milestone button, when I tap it, then it toggles green (complete) immediately with <1s latency.
+- Given a single-row update, when I tap a milestone, then I have a 2-second undo window to revert the change.
+- Given a completed milestone, when I view the component %, then it updates by the correct weight (e.g., Spool Erect = +40%).
+
+Related: Business Logic §3, ROC §3
+
+-----
+
+2. Dependency "Warn & Log"
+
+User Story:
+As a PM/QC, I want out-of-sequence actions to save but be flagged for review, so field work is never blocked and I still have traceability.
+
+Acceptance Criteria:
+- Given a dependency violation (e.g., Test before Install), when a foreman marks Test complete, then the update saves successfully.
+- And a Needs Review entry is created with type=OUT_OF_SEQUENCE.
+- And the component row shows a Needs Review badge (amber if <24h, red if >24h).
+- Given a Needs Review entry, when I (as PM/QC) resolve it on desktop, then I can add a resolution note and mark it resolved.
+- And the resolution is logged in the audit trail with my user ID + timestamp.
+
+Related: Business Logic §8, ROC §5
+
+-----
+
+3. Flexible Bulk Updates (by Type, Filter, or Package)
+
+User Story:
+As a Foreman, I want to bulk-apply milestone updates across a selected group of components (by type, filter, or package), so I can clear a stack of updates fast without repetitive clicks.
+
+Acceptance Criteria:
+- Given I have selected 25 components (Spools + Valves), when I choose "Mark milestone complete," then I see only the shared milestones (Punch, Test, Restore).
+- Given no shared milestones exist, when I try to bulk update, then I see the message: "No shared milestones for selected items."
+- Given I select >10 components, when I apply a milestone, then I see a confirmation modal: "Mark [milestone] complete for X components?"
+- Given the bulk update succeeds, when I view the summary, then I see "Updated X, skipped Y, flagged Z for review."
+- Given a bulk update of 25 components, when I apply it, then the operation completes in <10s.
+
+Related: Business Logic §7, ROC §9
+
+-----
+
+4. Weld Capture at "Weld Made"
+
+User Story:
+As a QC, I want welder name + stencil captured at the moment of Weld Made, so accountability is never ambiguous later.
+
+Acceptance Criteria:
+- Given a field weld, when I tap "Weld Made," then a modal appears requiring Welder Name + Stencil.
+- And the modal shows typeahead suggestions from the welder directory.
+- Given I enter a new welder, when I save, then the welder is added to the directory with status=unverified.
+- And the Weld Made milestone + welder event are saved atomically (transaction).
+- And the component % updates by 60% (Weld Made weight).
+- Given an unverified welder is used >5 times, when the threshold is reached, then a Needs Review: VERIFY_WELDER entry is auto-created.
+- Given I am QC, when I verify a welder, then the welder status changes to verified.
+
+Related: Business Logic §10, §12; ROC §6
+
+-----
+
+5. Needs Review Queue + Audit Trail
+
+User Story:
+As a PM, I want a queue of rollbacks and out-of-sequence actions, so I can resolve issues quickly and maintain trust in the data.
+
+Acceptance Criteria:
+- Given Needs Review entries exist, when I view the queue, then I see entries grouped by type (OUT_OF_SEQUENCE, ROLLBACK, DELTA_QUANTITY, DRAWING_CHANGE, SIMILAR_DRAWING, VERIFY_WELDER).
+- And each entry shows age badges (amber if <24h, red if >24h).
+- Given I resolve an entry, when I add a note and mark resolved, then the resolution is logged in the audit trail (resolver, timestamp, note).
+- Given a DELTA_QUANTITY entry for the same group_key, when multiple occur in one day, then they are coalesced into a single entry (avoid spam).
+- Given I am on desktop, when I resolve a Needs Review entry, then I can approve or reject the proposed change.
+- And the audit trail records the action (e.g., "Approve delta: add 3 supports").
+
+Related: Business Logic §8, ROC §8
+
+-----
+
+6. Test Package Readiness Dashboard
+
+User Story:
+As a PM, I want package-level percent complete and blockers surfaced, so I can identify near-ready packages and push for turnover earlier.
+
+Acceptance Criteria:
+- Given test packages exist, when I view the package readiness view, then I see package name, % complete (avg of linked components), component count, and blocker count (Needs Review items).
+- Given a package is ≥80% complete, when I filter by "Near Ready," then it appears at the top of the list.
+- Given I click a package, when the package details open, then I see all linked components grouped by drawing/area/system.
+- And I can expand drawings to see individual component rows with milestones.
+
+Related: Business Logic §13, Problem Analysis §3
+
+-----
+
+7. Rigid Import Pipeline (Fail-Fast + Row Errors)
+
+User Story:
+As Project Controls, I want a single Excel template with strict validation and row-level errors, so onboarding is clean and doesn't corrupt the database.
+
+Acceptance Criteria:
+- Given an import file, when I upload it, then the system validates all rows in staging (no database changes until valid).
+- Given a validation error, when the import fails, then I see a downloadable CSV with (row, field, reason).
+- And the import is rejected entirely (fail-fast, no partials).
+- Given duplicate Class-A components (Spools, Welds, Instruments), when I import, then the file is rejected with specific row errors.
+- Given Class-B component count changes (Supports, Valves), when I import, then a Needs Review: DELTA_QUANTITY entry is created (approve = add/remove instances).
+- Given a new drawing, when I import, then the drawing is auto-created with normalization (UPPERCASE, trim, collapse separators, strip leading zeros).
+- Given a similar drawing (>85% match), when I import, then a Needs Review: SIMILAR_DRAWING entry is created with top 3 matches.
+
+Related: Business Logic §6, ROC §4, §7
+
+-----
+
+8. Real-Time Sync & Presence
+
+User Story:
+As a PM, I want updates to appear across devices within seconds, so I can make decisions based on real-time reality in the field.
+
+Acceptance Criteria:
+- Given a foreman updates a component on mobile, when I refresh on desktop, then I see the update within 30s.
+- Given real-time sync is active, when I view a component row, then I see last_updated_by + last_updated_at.
+- Given sync latency, when I track performance, then ≥90% of updates appear in ≤30s.
+
+Related: Business Logic §15, Problem Analysis §2
+
+-----
+
+9. Minimal Notifications (Weld Made + Rollback Only)
+
+User Story:
+As a PM/QC, I want alerts only for high-signal events, so I'm informed without being spammed.
+
+Acceptance Criteria:
+- Given a field weld Weld Made milestone is completed, when the event occurs, then I receive an in-app notification (bell icon).
+- Given a milestone is rolled back, when the rollback occurs, then I receive an in-app notification.
+- And a Needs Review: ROLLBACK entry is created.
+- Given other milestones (Receive, Erect, Install, etc.), when they are completed, then no notification is sent.
+
+Related: Business Logic §9
+
+-----
+
+10. Global Search & Quick Jump
+
+User Story:
+As a Foreman/PM, I want to type a few characters and jump straight to a drawing, package, or component, so I never waste time hunting through menus.
+
+Acceptance Criteria:
+- Given I type in the global search, when I enter 2+ characters, then I see typeahead results (first 50) showing component ID, type, drawing, area, system, test package, % complete.
+- Given search results, when I click a result, then the UI expands the relevant drawing and scrolls to the component row.
+- Given I type a drawing number, when I search, then I see all components on that drawing in the results.
+
+Related: Business Logic §5
+
+-----
+
+11. Role-Based Access & Audit
+
+User Story:
+As an Admin, I want roles and permissions enforced with full audit logging, so the system maintains accountability and trust.
+
+Acceptance Criteria:
+- Given I am a Member with can_update_milestones capability (Foreman), when I view a component, then I can update milestones.
+- Given I am a Member with can_import_weld_log capability (QC), when I import a weld log, then the import succeeds.
+- Given I am a Member with can_resolve_reviews capability (PM), when I view Needs Review, then I can resolve entries (desktop only).
+- Given any action (update, rollback, import, resolve), when it occurs, then it is logged in the audit trail (user, timestamp, component_id, action_type, old_value, new_value, reason).
+- Given I am a standard Member without capabilities, when I try to import or resolve reviews, then I see a permission error.
+
+Related: Business Logic §1, ROC §10
+
+-----
+
+12. Connectivity Status & Save Guard
+
+User Story:
+As a Foreman, I want a clear indicator when work isn't saved due to network issues, so I can retry and avoid losing updates.
+
+Acceptance Criteria:
+- Given I lose network connectivity, when I try to update a milestone, then I see a sticky "Work Not Saved" warning.
+- And the update is added to a retry queue (max 50 actions).
+- Given connectivity is restored, when I click "Retry All," then the queued updates are saved.
+- Given I close the app, when the retry queue has unsaved actions, then the queue is dropped (no persistence).
+
+Related: Business Logic §15, ROC §10
+
+-----
+
+13. Performance Telemetry (Internal)
+
+User Story:
+As the Product Team, I want usage and performance metrics (p50/p90/p95 action times, sync lag), so I can validate that MVP meets the promised speed and reliability.
+
+Acceptance Criteria:
+- Given user actions, when I view telemetry, then I see p50/p90/p95 latency for milestone updates, bulk updates, imports, and search.
+- And I see real-time sync latency (time from foreman update to PM visibility).
+- And I see component count per project + concurrent user count.
+- Given performance SLAs, when I track metrics, then p90 <1s, p95 <2s for milestone updates.
+- And bulk updates (25–50 components) complete in <10s.
+
+Related: Business Logic §15, ROC §10
+
+-----
+
+NEW STORIES (Version 2.0 Additions)
+
+14. Drawing Similarity Detection
+
+User Story:
+As Project Controls, I want automatic detection of similar drawing numbers, so I can prevent duplicates caused by typos or variations.
+
+Acceptance Criteria:
+- Given I import a component with a new drawing number, when the drawing_no_norm is brand new, then the system computes similarity vs existing drawings (prefix match, token overlap, Levenshtein distance).
+- Given the similarity score is >85%, when the import proceeds, then a Needs Review: SIMILAR_DRAWING entry is created with top 3 matches.
+- And the component is attached to a staging drawing until resolved.
+- Given I review the similar drawing alert, when I approve, then the new drawing is confirmed. When I reject, then the component is merged into the suggested drawing.
+- Given a similar drawing alert is unresolved for 48h, when the timeout occurs, then the component is auto-attached to the new drawing.
+
+Related: Business Logic §11, ROC §7
+
+-----
+
+15. Welder Directory & Verification
+
+User Story:
+As a QC, I want a welder directory with verification workflow, so I can manage welder accountability and merge duplicates.
+
+Acceptance Criteria:
+- Given a foreman adds a welder at Weld Made, when the welder is new, then it is added to the directory with status=unverified.
+- And the welder is immediately usable (no blocking).
+- Given an unverified welder is used >5 times, when the threshold is reached, then a Needs Review: VERIFY_WELDER entry is auto-created.
+- Given I am QC, when I review the welder, then I can verify (status=verified) or merge with an existing welder (if duplicate).
+- Given I merge welders, when the merge occurs, then all weld events are reassigned to the primary welder.
+- And the merge is logged in the audit trail.
+
+Related: Business Logic §12, ROC §6
+
+-----
+
+16. Undo for Single Updates (2s Window)
+
+User Story:
+As a Foreman, I want a quick undo for single milestone updates, so I can fix mistakes without creating rollback alerts.
+
+Acceptance Criteria:
+- Given I update a single milestone, when the update succeeds, then I see an "Undo" button for 2 seconds.
+- Given I click "Undo" within 2s, when the action occurs, then the milestone is reverted.
+- And no audit entry or Needs Review entry is created (silent revert).
+- Given the 2s window expires, when I try to undo, then the button disappears.
+- And I must use rollback (which creates a Needs Review entry).
+
+Related: Business Logic §3, §7
+
+-----
+
+17. Bulk Confirmation for >10 Items
+
+User Story:
+As a Foreman, I want confirmation before bulk-updating >10 components, so I don't accidentally apply changes to the wrong group.
+
+Acceptance Criteria:
+- Given I select >10 components, when I choose a milestone to apply, then I see a confirmation modal: "Mark [milestone] complete for X components?"
+- And the modal shows the milestone name + component count.
+- Given I confirm, when the update proceeds, then I see a summary: "Updated X, skipped Y, flagged Z for review."
+- Given I select ≤10 components, when I apply a milestone, then no confirmation modal appears (immediate update).
+
+Related: Business Logic §7, ROC §9
+
+-----
+
+18. Instances-as-Rows UI (Class-B Components)
+
+User Story:
+As a Foreman/PM, I want each instance of a Class-B component (supports, valves, fittings, flanges) to appear as a separate row, so I can track progress per instance.
+
+Acceptance Criteria:
+- Given a Class-B component group (e.g., 5 supports), when I expand the drawing, then I see 5 separate rows (seq #1 of 5, seq #2 of 5, ...).
+- Given each instance row, when I view it, then I see the same milestones as other instances in the group.
+- Given I update an instance, when the update succeeds, then only that instance's % changes.
+- And the drawing % is recalculated as the average of all components (including all instances).
+
+Related: Business Logic §2, §5; ROC §2.3
+
+-----
+
+19. Virtualized Table for Performance
+
+User Story:
+As a PM, I want smooth scrolling and fast rendering even with 10k+ component rows, so I can navigate large projects without lag.
+
+Acceptance Criteria:
+- Given a project with 10k components, when I view the components table, then the UI renders in <2s.
+- And scrolling is smooth (no janky frame drops).
+- Given I scroll rapidly, when the table updates, then only visible rows are rendered (virtualization).
+- Given keyboard navigation (J/K or arrows), when I move focus, then the table scrolls to keep the focused row in view.
+
+Related: Business Logic §5, ROC §9
+
+-----
+
+20. Drawing Auto-Creation with Normalization
+
+User Story:
+As Project Controls, I want drawings to be auto-created on import with smart normalization, so variations like "P-001" and "P-0001" are treated as the same drawing.
+
+Acceptance Criteria:
+- Given I import a component with drawing "P-001", when the import proceeds, then the drawing is created with drawing_no_raw="P-001" and drawing_no_norm="P-001" (after normalization).
+- Given I later import "P-0001", when the normalization occurs, then drawing_no_norm="P-001" (leading zeros stripped).
+- And the component is attached to the existing drawing (no duplicate).
+- Given normalization rules, when applied, then UPPERCASE + trim + collapse separators + strip leading zeros (configurable).
+
+Related: Business Logic §11, ROC §7
+
+-----
+
+STORIES PENDING CLARIFICATION (Future Sprints)
+
+21. Test Package Creation & Management
+
+User Story:
+As a PM/QC, I want to create test packages via UI or import, so I can group components for turnover tracking.
+
+⚠️ NEEDS CLARIFICATION:
+- UI workflow: Modal form fields (name, description, target_date)?
+- Import format: CSV columns (package_id, name, description, target_date)?
+- Can components be reassigned between packages? If yes, audit trail?
+
+Related: Business Logic §13
+
+-----
+
+22. Insulation & Paint Tracking
+
+User Story:
+As a Foreman, I want to track insulation and paint quantities by drawing/area, so I can update progress for these quantity-based components.
+
+⚠️ NEEDS CLARIFICATION:
+- Identity key: (project_id, drawing_norm, area_id?) or (project_id, drawing_norm, segment_id?)?
+- Import format (CSV columns)?
+- Total quantity tracking (unit: sq ft, lf)?
+
+Related: Business Logic §3, ROC §3
+
+-----
+
+23. Weld Repair Workflow
+
+User Story:
+As a QC, I want to create repair welds linked to the original weld, so I can track repair lineage.
+
+⚠️ NEEDS CLARIFICATION:
+- How is new weld number generated (e.g., original-R1, original-R2)?
+- Link to original weld in DB (repair lineage)?
+- Same drawing or new drawing?
+
+Related: Business Logic §10
+
+-----
+
+24. Area & System Dictionary Management
+
+User Story:
+As a PM/QC, I want to create and manage areas and systems, so I can organize components by spatial/functional groups.
+
+⚠️ NEEDS CLARIFICATION:
+- UI workflow: Modal form or inline edit?
+- Import format?
+- Can components be reassigned? Audit trail?
+
+Related: Business Logic §14
+
+-----
+
+25. Pilot Go/No-Go Decision
+
+User Story:
+As the Product Team, I want clear go/no-go criteria for the pilot, so I can decide whether to iterate or scale.
+
+⚠️ NEEDS CLARIFICATION:
+- Success thresholds: Admin time reduced by ≥50%? NSM ≥60%? Package accuracy within 5%? PM satisfaction ≥4/5?
+- Failure handling protocol: Iterate vs rollback?
+- Stakeholder sign-off process?
+
+Related: Problem Analysis §4
+
+-----
+
+26. Organization & Project Setup
+
+User Story:
+As an Admin, I want to create organizations and projects, and invite users, so I can onboard new clients.
+
+⚠️ NEEDS CLARIFICATION:
+- User invitation flow: Email invite + accept link?
+- Org creation: Admin-only or self-service?
+- Project creation: Who can create (Admin only or PM)?
+
+Related: Business Logic §1
+
+-----
+
+SUMMARY
+
+PipeTrak MVP User Stories deliver:
+- 20 implementation-ready stories covering core workflows (milestones, bulk updates, welds, imports, search, audit).
+- 6 new stories (v2.0) for drawing similarity, welder verification, undo, bulk confirmation, instances-as-rows, virtualization.
+- 6 stories pending clarification (test packages, insulation/paint, weld repair, area/system, pilot criteria, org setup).
+
+All stories include acceptance criteria with technical details (performance targets, UI behavior, audit requirements).
+
+Next steps:
+1. Confirm Threaded Pipe weights (Business Logic §3, ROC §3).
+2. Clarify Test Package UI workflow (Business Logic §13).
+3. Clarify Insulation/Paint identity keys (Business Logic §3, ROC §3).
+4. Prioritize stories for Sprint 1 (suggest: Stories 1–7, 14–17, 20).

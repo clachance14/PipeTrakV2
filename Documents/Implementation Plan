@@ -1,0 +1,2533 @@
+PipeTrak V2 – Implementation Plan
+Version: 1.0
+Date: October 2025
+Status: Ready for Development
+Methodology: Spec-Driven Development (GitHub Spec Kit)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TABLE OF CONTENTS
+
+1. Executive Summary
+2. Current State Assessment
+3. Architecture & Technology Stack
+4. Database Schema Design
+5. API Layer & Business Logic
+6. Frontend Architecture
+7. Sprint Breakdown (0-7)
+8. Key Technical Challenges & Solutions
+9. Performance & Scale Strategy
+10. Risk Register & Mitigation
+11. Pilot Plan Integration
+12. Post-MVP Roadmap
+13. Appendices
+
+═══════════════════════════════════════════════════════════════════════════════
+
+1. EXECUTIVE SUMMARY
+
+1.1 Project Overview
+
+PipeTrak V2 is a mobile-first progressive web application designed to replace paper
+and Excel-based progress tracking for brownfield industrial piping projects (<$20M).
+
+Core Value Propositions:
+- Reduce foreman admin time from 15-20 min/day to <3 min/day
+- Provide PMs real-time test package readiness visibility (updates within 30s)
+- Capture welder attribution at moment of production (accountability)
+- Eliminate re-keying effort for project controls (direct digital updates)
+- Enable data-driven turnover decisions (package readiness dashboards)
+
+1.2 Technology Stack (Recommended)
+
+Frontend:
+- React 18+ with TypeScript 5+
+- Vite (build tool)
+- Shadcn/ui + Radix UI (accessible component library)
+- TanStack Virtual (table virtualization for 10k+ rows)
+- TanStack Query (server state management)
+- Zustand (client state management)
+- Tailwind CSS (styling)
+- Progressive Web App (PWA) for mobile
+
+Backend:
+- Supabase (Backend-as-a-Service)
+  - PostgreSQL 15+ (relational database)
+  - PostgREST (auto-generated REST API)
+  - Realtime (WebSocket subscriptions)
+  - Auth (email/password authentication)
+  - Edge Functions (Deno runtime for custom logic)
+  - Storage (file uploads for imports)
+  - Row Level Security (RLS) for multi-tenancy
+
+Infrastructure:
+- Vercel (frontend hosting, edge network)
+- Supabase Cloud (database, realtime, auth, storage)
+- GitHub Actions (CI/CD)
+- Sentry (error monitoring)
+- PostHog (product analytics)
+
+1.3 Timeline & Phases
+
+Total Duration: 14 weeks (MVP to pilot completion)
+
+Sprint 0: Infrastructure Setup (Week 1)
+Sprint 1: Core Foundation (Week 2)
+Sprint 2: Component Types & Milestones (Week 3)
+Sprint 3: Import Pipeline (Week 4)
+Sprint 4: Welder & Needs Review (Week 5)
+Sprint 5: Bulk Updates & Packages (Week 6)
+Sprint 6: Real-time & Performance (Week 7)
+Sprint 7: Mobile UI & Polish (Week 8)
+Pilot Execution: Weeks 9-12
+Evaluation & Iteration: Weeks 13-14
+
+1.4 Success Criteria (Pilot)
+
+Quantitative Metrics:
+- Foreman admin time reduced by ≥50% (target: ≥60%)
+- North Star Metric (NSM): ≥60% of components updated within 48h
+- Package readiness accuracy within 5% of physical walkdown
+- Real-time sync latency: ≥90% of updates visible in ≤30s
+- Performance: p90 action time <1s, p95 <2s
+- Import success rate: ≥95% on first attempt
+- Drawing similarity detection: ≥90% accuracy on duplicate/typo identification
+
+Qualitative Metrics:
+- PM satisfaction score ≥4/5 ("Better than Excel")
+- Foreman adoption: WAU/MAU ≥60%
+- QC feedback: Welder accountability "significantly improved"
+
+Go/No-Go Decision:
+- If ≥3 of 4 primary metrics met → proceed to scale
+- If <3 met → iterate for 2 more weeks, then reassess
+- Rollback plan: Continue Excel alongside PipeTrak if <2 metrics met
+
+═══════════════════════════════════════════════════════════════════════════════
+
+2. CURRENT STATE ASSESSMENT
+
+2.1 What Exists (Documents Folder)
+
+✅ Problem Analysis – User pain points, jobs to be done, pilot plan
+✅ Business Logic – Multi-tenant architecture, entities, workflows, audit
+✅ User Stories – 26 stories with acceptance criteria
+✅ Rules of Credit (ROC) – Milestone weights, component types, workflows
+✅ Technical Implementation Reference – Quick lookup for engineering team
+
+2.2 What's Missing (This Document Provides)
+
+❌ Technology stack selection & rationale
+❌ Database schema (tables, fields, types, indexes, RLS policies)
+❌ API layer design (endpoints, Edge Functions, real-time subscriptions)
+❌ Frontend architecture (component hierarchy, state flow, routing)
+❌ Sprint-by-sprint task breakdown
+❌ Technical challenge solutions (virtualization, similarity detection, etc.)
+❌ Performance optimization strategy
+❌ CI/CD pipeline design
+❌ Security implementation (RLS, auth flows)
+
+2.3 Alignment with Spec Kit Methodology
+
+Spec Kit Phases:
+1. ✅ /constitution → Create coding standards & architecture principles (Sprint 0)
+2. ✅ /specify → Complete (Business Logic + User Stories + ROC)
+3. ✅ /clarify → Complete (Problem Analysis + Technical Reference)
+4. 🚧 /plan → THIS DOCUMENT (technical architecture & sprint breakdown)
+5. ⏳ /tasks → Sprint 0 (generate granular task list from this plan)
+6. ⏳ /implement → Sprints 1-7 (execute implementation with AI assistance)
+
+Recommendation: Use Spec Kit CLI starting Sprint 0 to manage `/tasks` and `/implement`
+phases. This plan serves as input to `/plan` command.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+3. ARCHITECTURE & TECHNOLOGY STACK
+
+3.1 Architecture Pattern: Jamstack + BaaS
+
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENT TIER                              │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  React SPA (TypeScript)                                   │  │
+│  │  - Mobile PWA (iOS/Android home screen install)          │  │
+│  │  - Desktop responsive (PM/QC workflows)                  │  │
+│  │  - Offline-aware (show "Work Not Saved" warning)         │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                              ↕ HTTPS/WSS                        │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Supabase Client SDK                                      │  │
+│  │  - Auth (session management)                             │  │
+│  │  - Realtime (WebSocket subscriptions)                    │  │
+│  │  - PostgREST queries (type-safe with generated types)    │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                      SUPABASE PLATFORM                           │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Auth Layer                                               │  │
+│  │  - Email/password (no SSO for MVP)                       │  │
+│  │  - JWT tokens (30-day refresh)                           │  │
+│  │  - Row Level Security (RLS) policies                     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  API Layer (PostgREST)                                    │  │
+│  │  - Auto-generated REST API from PostgreSQL schema        │  │
+│  │  - CRUD operations with RLS enforcement                  │  │
+│  │  - Complex queries via stored procedures                 │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Edge Functions (Deno)                                    │  │
+│  │  - Bulk update operations                                │  │
+│  │  - Import validation & staging                           │  │
+│  │  - Drawing similarity detection                          │  │
+│  │  - ROC % calculation & caching                           │  │
+│  │  - Needs Review auto-creation logic                      │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  PostgreSQL 15 (Primary Database)                        │  │
+│  │  - Multi-tenant with org_id partitioning                 │  │
+│  │  - JSONB for flexible metadata                           │  │
+│  │  - Full-text search (pg_trgm for drawing similarity)     │  │
+│  │  - Materialized views for readiness dashboards           │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Realtime (WebSocket Server)                             │  │
+│  │  - Broadcast channel per project_id                      │  │
+│  │  - Subscribe to milestone_events table changes           │  │
+│  │  - Presence tracking (who's online)                      │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Storage (S3-compatible)                                  │  │
+│  │  - Import files (Excel/CSV staging)                      │  │
+│  │  - Error reports (downloadable CSV)                      │  │
+│  │  - RLS-protected per organization                        │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+
+3.2 Why Supabase (vs Alternatives)
+
+Comparison Matrix:
+
+| Requirement              | Supabase | Firebase | Custom API | AWS Amplify |
+|--------------------------|----------|----------|------------|-------------|
+| Multi-tenant RLS         | ✅ Native | ❌ Manual | ⚠️ Custom  | ⚠️ Cognito  |
+| Real-time (<30s)         | ✅ Native | ✅ Native | ❌ Custom  | ⚠️ AppSync  |
+| PostgreSQL (relational)  | ✅ Yes    | ❌ NoSQL  | ✅ Yes     | ⚠️ RDS      |
+| Type-safe client         | ✅ Yes    | ⚠️ Partial| ❌ No      | ⚠️ GraphQL  |
+| Edge Functions           | ✅ Deno   | ✅ Node   | ❌ N/A     | ✅ Lambda   |
+| Development velocity     | ✅ Fast   | ✅ Fast   | ❌ Slow    | ⚠️ Medium   |
+| Scale (1M components)    | ✅ Yes    | ⚠️ $$    | ✅ Yes     | ✅ Yes      |
+| Cost (MVP)               | ✅ $25/mo | ⚠️ $50+  | ❌ $200+   | ⚠️ $100+    |
+
+Decision: Supabase wins on native RLS, PostgreSQL, real-time, and cost.
+
+3.3 Frontend Stack Rationale
+
+React + TypeScript:
+- Industry standard, mature ecosystem
+- TypeScript for type safety (critical for complex domain model)
+- React 18 concurrent features for performance
+
+TanStack Virtual:
+- Renders only visible rows (10k+ components without lag)
+- Benchmark: 100k rows at 60fps with proper memoization
+
+Shadcn/ui + Radix UI:
+- Accessible by default (WCAG AA compliance)
+- Unstyled primitives (full design control)
+- Tree-shakeable (small bundle size)
+
+TanStack Query:
+- Server state caching (reduce API calls)
+- Optimistic updates (instant UI feedback)
+- Automatic background refetch (30s polling for realtime fallback)
+
+Zustand:
+- Lightweight client state (<1KB)
+- DevTools integration
+- No Provider hell (unlike Context API)
+
+Progressive Web App (PWA):
+- Install to home screen (mobile UX)
+- Service worker for offline detection (show "Work Not Saved")
+- Push notifications ready (post-MVP)
+
+3.4 Database Stack Rationale
+
+PostgreSQL 15:
+- ACID compliance (critical for audit trail)
+- JSONB for flexible metadata (commodity codes, custom fields)
+- Full-text search (pg_trgm extension for drawing similarity)
+- Materialized views for aggregations (package readiness)
+- Partitioning support (future: archive old projects)
+
+Why NOT MongoDB/NoSQL:
+- Relational integrity required (components → drawings → projects)
+- Complex joins (package readiness = avg across components)
+- ACID transactions (atomic bulk updates)
+
+3.5 Security Architecture
+
+Row Level Security (RLS) Policies:
+
+-- Example: components table
+CREATE POLICY "Users can view components in their org's projects"
+ON components FOR SELECT
+USING (
+  project_id IN (
+    SELECT p.id FROM projects p
+    JOIN organizations o ON p.org_id = o.id
+    JOIN user_organizations uo ON uo.org_id = o.id
+    WHERE uo.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Users with can_update_milestones can update components"
+ON components FOR UPDATE
+USING (
+  project_id IN (
+    SELECT p.id FROM projects p
+    JOIN organizations o ON p.org_id = o.id
+    JOIN user_organizations uo ON uo.org_id = o.id
+    JOIN user_capabilities uc ON uc.user_id = uo.user_id
+    WHERE uo.user_id = auth.uid() AND uc.can_update_milestones = true
+  )
+);
+
+Authentication Flow:
+1. User logs in with email/password
+2. Supabase Auth returns JWT (includes user_id in payload)
+3. Frontend stores JWT in localStorage + memory
+4. All API calls include JWT in Authorization header
+5. PostgreSQL RLS uses auth.uid() to enforce policies
+6. JWT expires after 1 hour, refresh token lasts 30 days
+
+Authorization Model:
+- System roles: Admin, Member
+- Capability flags per user (can_update_milestones, can_import_weld_log, etc.)
+- RLS policies check capabilities via JOIN to user_capabilities table
+- Frontend shows/hides UI based on user.capabilities (fetched at login)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+4. DATABASE SCHEMA DESIGN
+
+4.1 Core Tables (13 tables)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: organizations
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+name                TEXT NOT NULL
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+is_active           BOOLEAN NOT NULL DEFAULT true
+
+INDEXES:
+- PRIMARY KEY (id)
+
+RLS POLICIES:
+- Users can view organizations they belong to
+- Only admins can create/update organizations
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: projects
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+org_id              UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE
+name                TEXT NOT NULL
+description         TEXT
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+is_archived         BOOLEAN NOT NULL DEFAULT false
+
+INDEXES:
+- PRIMARY KEY (id)
+- INDEX idx_projects_org_id ON projects(org_id)
+- INDEX idx_projects_is_archived ON projects(is_archived) WHERE NOT is_archived
+
+RLS POLICIES:
+- Users can view projects in their organization
+- Only admins can create/archive projects
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: users
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE
+email               TEXT NOT NULL UNIQUE
+full_name           TEXT
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+last_seen_at        TIMESTAMPTZ
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_users_email ON users(email)
+
+Note: This table mirrors auth.users for application-specific user data.
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: user_organizations
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+org_id              UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE
+role                TEXT NOT NULL CHECK (role IN ('admin', 'member'))
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_user_orgs_unique ON user_organizations(user_id, org_id)
+- INDEX idx_user_orgs_org_id ON user_organizations(org_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: user_capabilities
+──────────────────────────────────────────────────────────────────────────────
+id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+user_id                 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+can_update_milestones   BOOLEAN NOT NULL DEFAULT false
+can_import_weld_log     BOOLEAN NOT NULL DEFAULT false
+can_manage_welders      BOOLEAN NOT NULL DEFAULT false
+can_resolve_reviews     BOOLEAN NOT NULL DEFAULT false
+can_view_dashboards     BOOLEAN NOT NULL DEFAULT false
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_user_caps_user_id ON user_capabilities(user_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: drawings
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+drawing_no_raw      TEXT NOT NULL
+drawing_no_norm     TEXT NOT NULL
+title               TEXT
+rev                 TEXT
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+is_retired          BOOLEAN NOT NULL DEFAULT false
+retire_reason       TEXT
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_drawings_project_norm ON drawings(project_id, drawing_no_norm)
+  WHERE NOT is_retired
+- INDEX idx_drawings_project_id ON drawings(project_id)
+- INDEX idx_drawings_norm_trgm ON drawings USING gin(drawing_no_norm gin_trgm_ops)
+  -- For similarity search using pg_trgm
+
+RLS POLICIES:
+- Users can view drawings in their org's projects
+- Only admins/QC can retire drawings
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: areas
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+name                TEXT NOT NULL
+description         TEXT
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_areas_project_name ON areas(project_id, name)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: systems
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+name                TEXT NOT NULL
+description         TEXT
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_systems_project_name ON systems(project_id, name)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: test_packages
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+name                TEXT NOT NULL
+description         TEXT
+target_date         DATE
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+INDEXES:
+- PRIMARY KEY (id)
+- INDEX idx_packages_project_id ON test_packages(project_id)
+- INDEX idx_packages_target_date ON test_packages(target_date)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: progress_templates
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+component_type      TEXT NOT NULL
+version             INTEGER NOT NULL
+workflow_type       TEXT NOT NULL CHECK (workflow_type IN ('discrete', 'quantity', 'hybrid'))
+milestones_config   JSONB NOT NULL
+-- Example: [{"name": "Receive", "weight": 5}, {"name": "Erect", "weight": 40}, ...]
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_templates_type_version ON progress_templates(component_type, version)
+
+SEED DATA (Sprint 1):
+-- Spool template (version 1)
+{
+  "component_type": "spool",
+  "version": 1,
+  "workflow_type": "discrete",
+  "milestones_config": [
+    {"name": "Receive", "weight": 5, "order": 1},
+    {"name": "Erect", "weight": 40, "order": 2},
+    {"name": "Connect", "weight": 40, "order": 3},
+    {"name": "Punch", "weight": 5, "order": 4},
+    {"name": "Test", "weight": 5, "order": 5},
+    {"name": "Restore", "weight": 5, "order": 6}
+  ]
+}
+
+-- Field Weld template (version 1)
+{
+  "component_type": "field_weld",
+  "version": 1,
+  "workflow_type": "discrete",
+  "milestones_config": [
+    {"name": "Fit-Up", "weight": 10, "order": 1},
+    {"name": "Weld Made", "weight": 60, "order": 2, "requires_welder": true},
+    {"name": "Punch", "weight": 10, "order": 3},
+    {"name": "Test", "weight": 15, "order": 4},
+    {"name": "Restore", "weight": 5, "order": 5}
+  ]
+}
+
+-- Support/Valve/Fitting/Flange/Instrument template (version 1)
+{
+  "component_type": "support",
+  "version": 1,
+  "workflow_type": "discrete",
+  "milestones_config": [
+    {"name": "Receive", "weight": 10, "order": 1},
+    {"name": "Install", "weight": 60, "order": 2},
+    {"name": "Punch", "weight": 10, "order": 3},
+    {"name": "Test", "weight": 15, "order": 4},
+    {"name": "Restore", "weight": 5, "order": 5}
+  ]
+}
+
+-- Threaded Pipe/Tubing template (version 1) - PENDING WEIGHT CONFIRMATION
+{
+  "component_type": "threaded_pipe",
+  "version": 1,
+  "workflow_type": "hybrid",
+  "milestones_config": [
+    {"name": "Fabricate", "weight": 16, "order": 1, "is_partial": true},
+    {"name": "Install", "weight": 16, "order": 2, "is_partial": true},
+    {"name": "Erect", "weight": 16, "order": 3, "is_partial": true},
+    {"name": "Connect", "weight": 16, "order": 4, "is_partial": true},
+    {"name": "Support", "weight": 16, "order": 5, "is_partial": true},
+    {"name": "Punch", "weight": 5, "order": 6},
+    {"name": "Test", "weight": 10, "order": 7},
+    {"name": "Restore", "weight": 5, "order": 8}
+  ]
+}
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: components
+──────────────────────────────────────────────────────────────────────────────
+id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id              UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+drawing_id              UUID REFERENCES drawings(id) ON DELETE SET NULL
+component_type          TEXT NOT NULL
+progress_template_id    UUID NOT NULL REFERENCES progress_templates(id)
+
+-- Identity fields (type-specific, use JSONB or separate columns)
+identity_key            JSONB NOT NULL
+-- Examples:
+-- Spool: {"spool_id": "SP-001"}
+-- Field Weld: {"weld_number": "W-001"}
+-- Support (Class-B): {"drawing_norm": "P-001", "commodity_code": "CS-2", "size": "2IN", "seq": 1}
+
+-- Metadata fields
+area_id                 UUID REFERENCES areas(id) ON DELETE SET NULL
+system_id               UUID REFERENCES systems(id) ON DELETE SET NULL
+test_package_id         UUID REFERENCES test_packages(id) ON DELETE SET NULL
+
+-- Attributes (flexible JSONB for type-specific fields)
+attributes              JSONB
+-- Examples:
+-- Spool: {"spec": "A106-B", "material": "CS", "size": "4IN"}
+-- Support: {"size": "2IN", "commodity_code": "CS-2"}
+-- Valve: {"size": "1.5IN", "rating": "150#", "commodity_code": "V-BALL"}
+
+-- Progress tracking
+current_milestones      JSONB NOT NULL DEFAULT '{}'
+-- Example: {"Receive": true, "Erect": true, "Connect": false, ...}
+-- For hybrid (partial %): {"Fabricate": 85, "Install": 60, "Punch": false, ...}
+
+percent_complete        NUMERIC(5,2) NOT NULL DEFAULT 0.00
+-- Cached ROC calculation (0.00 to 100.00)
+
+-- Audit fields
+created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+created_by              UUID REFERENCES users(id)
+last_updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+last_updated_by         UUID REFERENCES users(id)
+
+-- Soft delete
+is_retired              BOOLEAN NOT NULL DEFAULT false
+retire_reason           TEXT
+
+INDEXES:
+- PRIMARY KEY (id)
+- INDEX idx_components_project_id ON components(project_id)
+- INDEX idx_components_drawing_id ON components(drawing_id)
+- INDEX idx_components_type ON components(component_type)
+- INDEX idx_components_package_id ON components(test_package_id)
+- INDEX idx_components_area_id ON components(area_id)
+- INDEX idx_components_system_id ON components(system_id)
+- INDEX idx_components_percent ON components(percent_complete)
+- INDEX idx_components_updated ON components(last_updated_at DESC)
+- GIN INDEX idx_components_identity ON components USING gin(identity_key)
+- GIN INDEX idx_components_attrs ON components USING gin(attributes)
+- UNIQUE INDEX idx_components_identity_unique ON components(project_id, component_type, identity_key)
+  WHERE NOT is_retired
+
+PERFORMANCE NOTE:
+- With 1M components, expect ~500MB table size
+- Indexes add ~200MB
+- Query performance target: p90 <100ms for single component lookup
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: milestone_events
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+component_id        UUID NOT NULL REFERENCES components(id) ON DELETE CASCADE
+milestone_name      TEXT NOT NULL
+action              TEXT NOT NULL CHECK (action IN ('complete', 'rollback', 'update'))
+value               NUMERIC(5,2)
+-- For discrete: NULL (boolean toggle)
+-- For partial %: 0.00-100.00
+previous_value      NUMERIC(5,2)
+user_id             UUID NOT NULL REFERENCES users(id)
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+metadata            JSONB
+-- Example for Weld Made: {"welder_id": "uuid", "stencil": "JD42"}
+
+INDEXES:
+- PRIMARY KEY (id)
+- INDEX idx_events_component_id ON milestone_events(component_id)
+- INDEX idx_events_created_at ON milestone_events(created_at DESC)
+- INDEX idx_events_user_id ON milestone_events(user_id)
+- INDEX idx_events_milestone ON milestone_events(milestone_name)
+
+PARTITIONING STRATEGY (Future):
+- Partition by created_at (monthly) for projects >6 months old
+- Keeps recent queries fast
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: welders
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+name                TEXT NOT NULL
+stencil             TEXT NOT NULL
+stencil_norm        TEXT NOT NULL
+-- Normalized: UPPER(TRIM(stencil)), validated against regex [A-Z0-9-]{2,12}
+status              TEXT NOT NULL CHECK (status IN ('unverified', 'verified'))
+                    DEFAULT 'unverified'
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+created_by          UUID REFERENCES users(id)
+verified_at         TIMESTAMPTZ
+verified_by         UUID REFERENCES users(id)
+
+INDEXES:
+- PRIMARY KEY (id)
+- UNIQUE INDEX idx_welders_project_stencil ON welders(project_id, stencil_norm)
+- INDEX idx_welders_status ON welders(status) WHERE status = 'unverified'
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: needs_review
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+component_id        UUID REFERENCES components(id) ON DELETE CASCADE
+type                TEXT NOT NULL CHECK (type IN (
+                      'out_of_sequence',
+                      'rollback',
+                      'delta_quantity',
+                      'drawing_change',
+                      'similar_drawing',
+                      'verify_welder'
+                    ))
+status              TEXT NOT NULL CHECK (status IN ('pending', 'resolved', 'ignored'))
+                    DEFAULT 'pending'
+payload             JSONB NOT NULL
+-- Examples:
+-- out_of_sequence: {"milestone": "Test", "prerequisite": "Install", "event_id": "uuid"}
+-- delta_quantity: {"group_key": {...}, "old_count": 10, "new_count": 13, "delta": 3}
+-- drawing_change: {"weld_number": "W-001", "old_drawing_id": "uuid", "new_drawing_id": "uuid"}
+-- similar_drawing: {"new_drawing_norm": "P-001", "matches": [{"drawing_id": "uuid", "score": 0.92}, ...]}
+-- verify_welder: {"welder_id": "uuid", "usage_count": 7}
+
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+created_by          UUID REFERENCES users(id)
+resolved_at         TIMESTAMPTZ
+resolved_by         UUID REFERENCES users(id)
+resolution_note     TEXT
+
+INDEXES:
+- PRIMARY KEY (id)
+- INDEX idx_review_project_id ON needs_review(project_id)
+- INDEX idx_review_component_id ON needs_review(component_id)
+- INDEX idx_review_type ON needs_review(type)
+- INDEX idx_review_status ON needs_review(status) WHERE status = 'pending'
+- INDEX idx_review_created_at ON needs_review(created_at DESC)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: audit_log
+──────────────────────────────────────────────────────────────────────────────
+id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+user_id             UUID NOT NULL REFERENCES users(id)
+action_type         TEXT NOT NULL
+-- Examples: 'milestone_update', 'rollback', 'import', 'resolve_review', 'bulk_update'
+entity_type         TEXT NOT NULL
+-- Examples: 'component', 'drawing', 'welder', 'needs_review'
+entity_id           UUID
+old_value           JSONB
+new_value           JSONB
+reason              TEXT
+created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+
+INDEXES:
+- PRIMARY KEY (id)
+- INDEX idx_audit_project_id ON audit_log(project_id)
+- INDEX idx_audit_entity ON audit_log(entity_type, entity_id)
+- INDEX idx_audit_user_id ON audit_log(user_id)
+- INDEX idx_audit_created_at ON audit_log(created_at DESC)
+
+RETENTION POLICY:
+- Keep indefinitely while project is active
+- Archive to cold storage when project is archived
+- Never delete (regulatory compliance)
+
+4.2 Materialized Views (Performance Optimization)
+
+──────────────────────────────────────────────────────────────────────────────
+MATERIALIZED VIEW: mv_package_readiness
+──────────────────────────────────────────────────────────────────────────────
+Purpose: Fast lookup for Test Package Readiness Dashboard
+
+CREATE MATERIALIZED VIEW mv_package_readiness AS
+SELECT
+  tp.id AS package_id,
+  tp.project_id,
+  tp.name AS package_name,
+  tp.target_date,
+  COUNT(c.id) AS total_components,
+  COUNT(c.id) FILTER (WHERE c.percent_complete = 100) AS completed_components,
+  AVG(c.percent_complete) AS avg_percent_complete,
+  COUNT(nr.id) FILTER (WHERE nr.status = 'pending') AS blocker_count,
+  MAX(c.last_updated_at) AS last_activity_at
+FROM test_packages tp
+LEFT JOIN components c ON c.test_package_id = tp.id AND NOT c.is_retired
+LEFT JOIN needs_review nr ON nr.component_id = c.id AND nr.status = 'pending'
+GROUP BY tp.id, tp.project_id, tp.name, tp.target_date;
+
+CREATE UNIQUE INDEX idx_mv_package_readiness_id ON mv_package_readiness(package_id);
+CREATE INDEX idx_mv_package_readiness_project ON mv_package_readiness(project_id);
+
+REFRESH STRATEGY:
+- REFRESH MATERIALIZED VIEW CONCURRENTLY mv_package_readiness every 60 seconds
+- Trigger manual refresh after bulk update or import
+- p95 query time: <50ms (vs ~500ms without materialized view)
+
+──────────────────────────────────────────────────────────────────────────────
+MATERIALIZED VIEW: mv_drawing_progress
+──────────────────────────────────────────────────────────────────────────────
+Purpose: Fast lookup for Drawing % Complete in tree navigation
+
+CREATE MATERIALIZED VIEW mv_drawing_progress AS
+SELECT
+  d.id AS drawing_id,
+  d.project_id,
+  d.drawing_no_norm,
+  COUNT(c.id) AS total_components,
+  AVG(c.percent_complete) AS avg_percent_complete
+FROM drawings d
+LEFT JOIN components c ON c.drawing_id = d.id AND NOT c.is_retired
+WHERE NOT d.is_retired
+GROUP BY d.id, d.project_id, d.drawing_no_norm;
+
+CREATE UNIQUE INDEX idx_mv_drawing_progress_id ON mv_drawing_progress(drawing_id);
+CREATE INDEX idx_mv_drawing_progress_project ON mv_drawing_progress(project_id);
+
+REFRESH STRATEGY: Same as mv_package_readiness (60s polling)
+
+4.3 Stored Procedures (Business Logic)
+
+──────────────────────────────────────────────────────────────────────────────
+FUNCTION: calculate_component_percent(component_id UUID)
+──────────────────────────────────────────────────────────────────────────────
+Purpose: Calculate weighted ROC % based on completed milestones
+
+CREATE OR REPLACE FUNCTION calculate_component_percent(p_component_id UUID)
+RETURNS NUMERIC(5,2) AS $$
+DECLARE
+  v_template_id UUID;
+  v_milestones_config JSONB;
+  v_current_milestones JSONB;
+  v_total_weight NUMERIC := 0;
+BEGIN
+  -- Get template and current milestones
+  SELECT progress_template_id, current_milestones
+  INTO v_template_id, v_current_milestones
+  FROM components
+  WHERE id = p_component_id;
+
+  -- Get milestones config
+  SELECT milestones_config INTO v_milestones_config
+  FROM progress_templates
+  WHERE id = v_template_id;
+
+  -- Calculate weighted sum
+  FOR milestone IN SELECT * FROM jsonb_array_elements(v_milestones_config) LOOP
+    IF v_current_milestones->>(milestone->>'name') IS NOT NULL THEN
+      IF (milestone->>'is_partial')::BOOLEAN = true THEN
+        -- Partial % milestone (hybrid workflow)
+        v_total_weight := v_total_weight +
+          (milestone->>'weight')::NUMERIC *
+          (v_current_milestones->>(milestone->>'name'))::NUMERIC / 100.0;
+      ELSE
+        -- Discrete milestone (boolean)
+        IF (v_current_milestones->>(milestone->>'name'))::BOOLEAN = true THEN
+          v_total_weight := v_total_weight + (milestone->>'weight')::NUMERIC;
+        END IF;
+      END IF;
+    END IF;
+  END LOOP;
+
+  RETURN ROUND(v_total_weight, 2);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+──────────────────────────────────────────────────────────────────────────────
+TRIGGER: update_component_percent_on_milestone_change
+──────────────────────────────────────────────────────────────────────────────
+Purpose: Auto-update percent_complete when current_milestones changes
+
+CREATE OR REPLACE FUNCTION trigger_update_component_percent()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.percent_complete := calculate_component_percent(NEW.id);
+  NEW.last_updated_at := now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_component_percent_on_milestone_change
+BEFORE UPDATE OF current_milestones ON components
+FOR EACH ROW
+WHEN (OLD.current_milestones IS DISTINCT FROM NEW.current_milestones)
+EXECUTE FUNCTION trigger_update_component_percent();
+
+──────────────────────────────────────────────────────────────────────────────
+FUNCTION: detect_similar_drawings(project_id UUID, drawing_no_norm TEXT)
+──────────────────────────────────────────────────────────────────────────────
+Purpose: Find similar drawing numbers using pg_trgm extension
+
+CREATE OR REPLACE FUNCTION detect_similar_drawings(
+  p_project_id UUID,
+  p_drawing_no_norm TEXT,
+  p_threshold NUMERIC DEFAULT 0.85
+)
+RETURNS TABLE(drawing_id UUID, drawing_no_norm TEXT, similarity_score NUMERIC) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    d.id,
+    d.drawing_no_norm,
+    similarity(d.drawing_no_norm, p_drawing_no_norm) AS score
+  FROM drawings d
+  WHERE d.project_id = p_project_id
+    AND d.id != p_drawing_id
+    AND NOT d.is_retired
+    AND similarity(d.drawing_no_norm, p_drawing_no_norm) > p_threshold
+  ORDER BY score DESC
+  LIMIT 3;
+END;
+$$ LANGUAGE plpgsql;
+
+PREREQUISITES:
+- CREATE EXTENSION IF NOT EXISTS pg_trgm;
+- Index: idx_drawings_norm_trgm (already created above)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+5. API LAYER & BUSINESS LOGIC
+
+5.1 API Architecture
+
+Three-tier approach:
+1. PostgREST (auto-generated CRUD for simple operations)
+2. Stored Procedures (complex queries, aggregations)
+3. Edge Functions (business logic, imports, validations)
+
+──────────────────────────────────────────────────────────────────────────────
+TIER 1: PostgREST Endpoints (Auto-Generated)
+──────────────────────────────────────────────────────────────────────────────
+
+GET /components?project_id=eq.{uuid}&select=*,drawing(*),area(*),system(*)
+  → List components with joins (RLS enforced)
+
+GET /components?id=eq.{uuid}&select=*
+  → Single component lookup
+
+PATCH /components?id=eq.{uuid}
+  Body: {"current_milestones": {"Receive": true, "Erect": true}}
+  → Update milestones (trigger auto-updates percent_complete)
+
+GET /test_packages?project_id=eq.{uuid}
+  → List packages
+
+GET /mv_package_readiness?project_id=eq.{uuid}
+  → Package readiness dashboard (fast materialized view)
+
+POST /welders
+  Body: {"project_id": "uuid", "name": "John Doe", "stencil": "JD42"}
+  → Add welder (auto-normalizes stencil)
+
+GET /needs_review?project_id=eq.{uuid}&status=eq.pending
+  → Needs Review queue
+
+──────────────────────────────────────────────────────────────────────────────
+TIER 2: Stored Procedures (Complex Queries)
+──────────────────────────────────────────────────────────────────────────────
+
+POST /rpc/calculate_component_percent
+  Body: {"p_component_id": "uuid"}
+  → Returns percent_complete (for debugging)
+
+POST /rpc/detect_similar_drawings
+  Body: {"p_project_id": "uuid", "p_drawing_no_norm": "P-001"}
+  → Returns top 3 similar drawings
+
+POST /rpc/get_component_audit_trail
+  Body: {"p_component_id": "uuid"}
+  → Returns full audit history for component
+
+──────────────────────────────────────────────────────────────────────────────
+TIER 3: Edge Functions (Business Logic)
+──────────────────────────────────────────────────────────────────────────────
+
+POST /functions/v1/bulk-update-milestones
+  Body: {
+    "component_ids": ["uuid1", "uuid2", ...],
+    "milestone_name": "Punch",
+    "action": "complete",
+    "user_id": "uuid"
+  }
+  → Validates compatibility (intersection logic)
+  → Updates components in transaction
+  → Creates milestone_events + audit_log entries
+  → Returns summary: {"updated": 25, "skipped": 0, "flagged": 2}
+
+POST /functions/v1/import-components
+  Body: FormData with Excel/CSV file
+  → Validates file format (fail-fast)
+  → Normalizes drawing numbers
+  → Detects duplicates (Class-A) or deltas (Class-B)
+  → Creates Needs Review entries (similar drawings, deltas)
+  → Stages components in temp table
+  → Commits on success, rollback on error
+  → Returns: {"success": true, "imported": 1000, "reviews_created": 5}
+    OR: {"success": false, "errors": [{"row": 42, "field": "spool_id", "reason": "Duplicate"}]}
+
+POST /functions/v1/resolve-needs-review
+  Body: {
+    "review_id": "uuid",
+    "action": "approve" | "reject",
+    "note": "Confirmed new drawing",
+    "user_id": "uuid"
+  }
+  → Applies resolution logic (e.g., merge drawings, add instances)
+  → Updates needs_review.status = 'resolved'
+  → Logs to audit_log
+  → Returns updated entities
+
+POST /functions/v1/update-weld-made
+  Body: {
+    "component_id": "uuid",
+    "welder_id": "uuid" | null,
+    "new_welder": {"name": "John Doe", "stencil": "JD42"} | null,
+    "user_id": "uuid"
+  }
+  → Creates welder if new (status=unverified)
+  → Updates component.current_milestones.Weld Made = true
+  → Creates milestone_event with welder metadata
+  → Checks if welder usage > threshold → create Needs Review: Verify Welder
+  → Returns: {"success": true, "welder_id": "uuid", "percent_complete": 70.00}
+
+5.2 Real-time Subscriptions (Supabase Realtime)
+
+──────────────────────────────────────────────────────────────────────────────
+CHANNEL: project:{project_id}
+──────────────────────────────────────────────────────────────────────────────
+
+Client subscribes to:
+  supabase
+    .channel(`project:${projectId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'components',
+      filter: `project_id=eq.${projectId}`
+    }, payload => {
+      // Update local state with new component data
+      updateComponentInStore(payload.new)
+    })
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'milestone_events',
+      filter: `component_id=in.(${componentIds.join(',')})`
+    }, payload => {
+      // Refresh component to get updated percent_complete
+      refetchComponent(payload.new.component_id)
+    })
+    .subscribe()
+
+Performance:
+- WebSocket connection per project
+- Broadcast to all subscribed clients within ~1-5s
+- Fallback: TanStack Query polling every 30s if WebSocket disconnects
+
+5.3 Offline Handling (No Offline Mode, but Graceful Degradation)
+
+Strategy:
+- Show sticky "Work Not Saved" banner when navigator.onLine = false
+- Queue failed mutations in memory (max 50 actions)
+- Retry queue when connection restored
+- Drop queue on app close (no persistence)
+
+Implementation (TanStack Query):
+  const updateMilestone = useMutation({
+    mutationFn: async (data) => {
+      const { error } = await supabase
+        .from('components')
+        .update({ current_milestones: data.milestones })
+        .eq('id', data.componentId)
+      if (error) throw error
+    },
+    onError: (error) => {
+      if (!navigator.onLine) {
+        addToRetryQueue(mutationFn, variables)
+        showWorkNotSavedBanner()
+      } else {
+        showErrorToast(error.message)
+      }
+    }
+  })
+
+═══════════════════════════════════════════════════════════════════════════════
+
+6. FRONTEND ARCHITECTURE
+
+6.1 Application Structure
+
+src/
+├── main.tsx                    # Entry point, Supabase init
+├── App.tsx                     # Root component, routing
+├── routes/                     # Route components
+│   ├── auth/
+│   │   ├── LoginPage.tsx
+│   │   └── SignupPage.tsx
+│   ├── projects/
+│   │   ├── ProjectListPage.tsx
+│   │   ├── ProjectDetailPage.tsx
+│   │   └── components/
+│   │       ├── ComponentsTable.tsx         # Virtualized table
+│   │       ├── MilestoneButton.tsx
+│   │       ├── BulkUpdateModal.tsx
+│   │       └── ComponentSearch.tsx
+│   ├── packages/
+│   │   ├── PackageReadinessPage.tsx
+│   │   └── components/
+│   │       └── PackageCard.tsx
+│   ├── needs-review/
+│   │   ├── NeedsReviewPage.tsx
+│   │   └── components/
+│   │       ├── ReviewItem.tsx
+│   │       └── ResolveModal.tsx
+│   ├── welders/
+│   │   ├── WelderDirectoryPage.tsx
+│   │   └── components/
+│   │       ├── WelderList.tsx
+│   │       └── MergeWeldersModal.tsx
+│   └── imports/
+│       ├── ImportPage.tsx
+│       └── components/
+│           ├── FileUpload.tsx
+│           └── ErrorReport.tsx
+├── components/                 # Shared UI components
+│   ├── ui/                     # Shadcn/ui components
+│   │   ├── button.tsx
+│   │   ├── dialog.tsx
+│   │   ├── table.tsx
+│   │   └── ...
+│   ├── Layout.tsx
+│   ├── Navbar.tsx
+│   └── WorkNotSavedBanner.tsx
+├── lib/
+│   ├── supabase.ts             # Supabase client init
+│   ├── auth.ts                 # Auth helpers
+│   └── utils.ts                # Utility functions
+├── hooks/
+│   ├── useComponents.ts        # TanStack Query hooks
+│   ├── usePackages.ts
+│   ├── useNeedsReview.ts
+│   ├── useRealtime.ts          # Realtime subscription hook
+│   └── useOfflineDetection.ts
+├── stores/
+│   ├── authStore.ts            # Zustand: user, capabilities
+│   ├── uiStore.ts              # Zustand: selected components, filters
+│   └── retryQueueStore.ts      # Zustand: offline retry queue
+├── types/
+│   ├── database.types.ts       # Generated from Supabase schema
+│   └── domain.types.ts         # Domain models
+└── utils/
+    ├── rocCalculator.ts        # Client-side ROC validation
+    ├── drawingNormalizer.ts    # Client-side normalization preview
+    └── validators.ts           # Form validation schemas (Zod)
+
+6.2 Key Frontend Features
+
+──────────────────────────────────────────────────────────────────────────────
+FEATURE: Virtualized Components Table
+──────────────────────────────────────────────────────────────────────────────
+
+Technology: TanStack Virtual
+
+<ComponentsTable.tsx>
+
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { useComponents } from '@/hooks/useComponents'
+
+export function ComponentsTable({ projectId, drawingId }) {
+  const { data: components } = useComponents({ projectId, drawingId })
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  const virtualizer = useVirtualizer({
+    count: components?.length ?? 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 48, // Row height in pixels
+    overscan: 10 // Render 10 extra rows above/below viewport
+  })
+
+  return (
+    <div ref={parentRef} className="h-screen overflow-auto">
+      <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
+        {virtualizer.getVirtualItems().map(virtualRow => {
+          const component = components[virtualRow.index]
+          return (
+            <ComponentRow
+              key={component.id}
+              component={component}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`
+              }}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+Performance:
+- Renders only ~30 visible rows (vs 10k total)
+- Smooth 60fps scrolling
+- Memory usage: ~50MB for 10k components (vs ~500MB without virtualization)
+
+──────────────────────────────────────────────────────────────────────────────
+FEATURE: Bulk Update with Intersection Logic
+──────────────────────────────────────────────────────────────────────────────
+
+<BulkUpdateModal.tsx>
+
+export function BulkUpdateModal({ selectedComponentIds, onClose }) {
+  const { data: components } = useComponents({ ids: selectedComponentIds })
+
+  // Calculate shared milestones
+  const sharedMilestones = useMemo(() => {
+    if (!components) return []
+
+    const milestonesByType = components.map(c => {
+      const template = getTemplate(c.component_type)
+      return new Set(template.milestones_config.map(m => m.name))
+    })
+
+    // Intersection: only milestones present in ALL component types
+    return Array.from(milestonesByType[0]).filter(milestone =>
+      milestonesByType.every(set => set.has(milestone))
+    )
+  }, [components])
+
+  const updateMutation = useMutation({
+    mutationFn: (data) => bulkUpdateMilestones(data),
+    onSuccess: (result) => {
+      toast.success(`Updated ${result.updated}, skipped ${result.skipped}, flagged ${result.flagged}`)
+      onClose()
+    }
+  })
+
+  if (sharedMilestones.length === 0) {
+    return <p>No shared milestones for selected items.</p>
+  }
+
+  return (
+    <Dialog>
+      <DialogTitle>Bulk Update {selectedComponentIds.length} Components</DialogTitle>
+      <Select onChange={setMilestone}>
+        {sharedMilestones.map(m => <option key={m}>{m}</option>)}
+      </Select>
+      {selectedComponentIds.length > 10 && (
+        <Alert>Confirm: Mark {milestone} complete for {selectedComponentIds.length} components?</Alert>
+      )}
+      <Button onClick={() => updateMutation.mutate({ componentIds: selectedComponentIds, milestone })}>
+        Apply
+      </Button>
+    </Dialog>
+  )
+}
+
+──────────────────────────────────────────────────────────────────────────────
+FEATURE: Real-time Sync (Supabase Realtime)
+──────────────────────────────────────────────────────────────────────────────
+
+<useRealtime.ts>
+
+export function useRealtimeComponents(projectId: string) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`project:${projectId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'components',
+        filter: `project_id=eq.${projectId}`
+      }, payload => {
+        // Optimistic update: merge new data into cache
+        queryClient.setQueryData(['components', projectId], (old) => {
+          if (payload.eventType === 'UPDATE') {
+            return old.map(c => c.id === payload.new.id ? payload.new : c)
+          }
+          if (payload.eventType === 'INSERT') {
+            return [...old, payload.new]
+          }
+          return old
+        })
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [projectId, queryClient])
+}
+
+Fallback polling (if WebSocket disconnects):
+
+const { data } = useQuery({
+  queryKey: ['components', projectId],
+  queryFn: () => fetchComponents(projectId),
+  refetchInterval: 30000, // Poll every 30s
+  refetchIntervalInBackground: false
+})
+
+──────────────────────────────────────────────────────────────────────────────
+FEATURE: 2-Second Undo Window
+──────────────────────────────────────────────────────────────────────────────
+
+<MilestoneButton.tsx>
+
+export function MilestoneButton({ component, milestone }) {
+  const [showUndo, setShowUndo] = useState(false)
+  const undoTimeoutRef = useRef<NodeJS.Timeout>()
+
+  const updateMutation = useMutation({
+    mutationFn: (data) => updateMilestone(data),
+    onSuccess: () => {
+      setShowUndo(true)
+      undoTimeoutRef.current = setTimeout(() => {
+        setShowUndo(false)
+      }, 2000)
+    }
+  })
+
+  const handleUndo = () => {
+    clearTimeout(undoTimeoutRef.current)
+    setShowUndo(false)
+    // Revert to previous state
+    updateMutation.mutate({
+      componentId: component.id,
+      milestone: milestone.name,
+      value: !component.current_milestones[milestone.name]
+    })
+  }
+
+  return (
+    <div>
+      <Button onClick={() => updateMutation.mutate({ componentId: component.id, milestone: milestone.name })}>
+        {component.current_milestones[milestone.name] ? '✓' : ' '}
+      </Button>
+      {showUndo && (
+        <Button variant="ghost" onClick={handleUndo}>
+          Undo (2s)
+        </Button>
+      )}
+    </div>
+  )
+}
+
+6.3 Mobile PWA Configuration
+
+<vite.config.ts>
+
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'PipeTrak',
+        short_name: 'PipeTrak',
+        description: 'Piping progress tracking for industrial construction',
+        theme_color: '#1e40af',
+        icons: [
+          {
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === 'https://YOUR_SUPABASE_URL',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-api',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5 // 5 minutes
+              }
+            }
+          }
+        ]
+      }
+    })
+  ]
+})
+
+Benefits:
+- Install to home screen (iOS/Android)
+- Offline detection via service worker
+- App-like experience (no browser chrome)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+7. SPRINT BREAKDOWN (0-7)
+
+7.1 Sprint 0: Infrastructure Setup (Week 1)
+
+Duration: 5 days
+Team: 1 Full-stack Developer + 1 DevOps/Infra
+
+GOALS:
+- Initialize project with Spec Kit
+- Set up repositories, CI/CD, Supabase project
+- Define coding standards & architecture principles
+
+TASKS:
+□ Install Spec Kit CLI: uv tool install specify-cli
+□ Initialize project: specify init PipeTrak_V2
+□ Create constitution document (coding standards, tech stack, quality gates)
+□ Migrate existing Documents into .specify/specs/ structure
+□ Initialize GitHub repository with branch protection rules
+□ Set up Supabase project (staging + production environments)
+  - Enable extensions: uuid-ossp, pg_trgm
+  - Configure Auth settings (email/password, JWT expiry)
+□ Set up Vercel project (linked to GitHub, auto-deploy on main)
+□ Configure GitHub Actions CI/CD:
+  - Lint (ESLint + Prettier)
+  - Type check (TypeScript)
+  - Unit tests (Vitest)
+  - Build check
+□ Create initial database schema (organizations, users, projects tables only)
+□ Generate TypeScript types from Supabase schema (supabase gen types typescript)
+□ Initialize frontend project:
+  - Vite + React + TypeScript
+  - Install dependencies: Shadcn/ui, TanStack Query, Zustand, Supabase client
+  - Set up Tailwind CSS + theme configuration
+□ Create basic auth flow (login/signup pages)
+□ Document architecture decisions in .specify/memory/
+
+DELIVERABLES:
+✅ Spec Kit project structure in place
+✅ GitHub repo with CI/CD pipeline green
+✅ Supabase staging environment live
+✅ Vercel staging deployment live
+✅ Basic auth flow functional
+✅ Constitution document finalized
+
+ACCEPTANCE CRITERIA:
+- Developer can clone repo, run npm install, npm run dev
+- CI passes on main branch
+- Can log in to staging app with test account
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.2 Sprint 1: Core Foundation (Week 2)
+
+Duration: 5 days
+Team: 2 Full-stack Developers
+
+GOALS:
+- Complete database schema (all 13 tables)
+- Seed progress templates
+- Implement RLS policies
+- Basic project/drawing/component CRUD
+
+TASKS:
+□ Create all database tables (see §4.1)
+  - organizations, projects, users, user_organizations, user_capabilities
+  - drawings, areas, systems, test_packages
+  - progress_templates, components, milestone_events
+  - welders, needs_review, audit_log
+□ Create indexes for performance (see §4.1)
+□ Create RLS policies for all tables
+  - Test: Verify user in org A cannot access org B data
+□ Seed progress_templates table with 6 templates:
+  - Spool, Field Weld, Support/Valve/Fitting/Flange, Threaded Pipe, Insulation, Paint
+□ Implement stored procedures:
+  - calculate_component_percent()
+  - detect_similar_drawings()
+□ Create materialized views:
+  - mv_package_readiness
+  - mv_drawing_progress
+□ Set up materialized view refresh job (every 60s)
+□ Build frontend data layer:
+  - Generate TypeScript types from schema
+  - Create TanStack Query hooks (useComponents, useDrawings, usePackages)
+  - Create Zustand stores (authStore, uiStore)
+□ Build ProjectListPage (list all projects for logged-in user)
+□ Build ProjectDetailPage skeleton (tree navigation placeholder)
+□ Build basic ComponentsTable (non-virtualized, <100 rows for testing)
+
+DELIVERABLES:
+✅ All database tables created with RLS
+✅ Progress templates seeded
+✅ ProjectListPage functional
+✅ Can create test project + drawing + component via Supabase Studio
+
+ACCEPTANCE CRITERIA:
+- User can view projects (filtered by org)
+- User cannot view other orgs' projects (RLS enforced)
+- Component percent_complete auto-calculates when milestones change
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.3 Sprint 2: Component Types & Milestones (Week 3)
+
+Duration: 5 days
+Team: 2 Full-stack Developers
+
+GOALS:
+- Implement milestone toggle UI for discrete components
+- Implement welder capture for Field Welds
+- Implement bulk update (single component type only)
+
+TASKS:
+□ Implement ComponentsTable with TanStack Virtual
+  - Test with 10k dummy rows
+  - Target: 60fps scrolling
+□ Build MilestoneButton component (toggle discrete milestones)
+  - Show green checkmark when complete
+  - 2-second undo window
+  - Optimistic updates
+□ Build ComponentRow (show all fields: type, drawing, milestones, %, last_updated)
+□ Implement milestone update mutation:
+  - Update components.current_milestones
+  - Create milestone_events entry
+  - Create audit_log entry
+  - Trigger recalculates percent_complete
+□ Build WeldMadeModal (for Field Welds):
+  - Welder typeahead (search welders table)
+  - Add new welder inline (status=unverified)
+  - Atomic save: welder + milestone + event
+□ Implement dependency detection (warn & log):
+  - Check prerequisite milestones
+  - Create needs_review entry if out-of-sequence
+□ Build NeedsReviewBadge component (show on component rows)
+  - Amber if <24h, red if >24h
+□ Implement single-type bulk update:
+  - Select multiple Spools → mark Receive complete
+  - Confirmation modal if >10 items
+  - Summary: "Updated X, skipped Y, flagged Z"
+
+DELIVERABLES:
+✅ Virtualized table with 10k rows (smooth scrolling)
+✅ Milestone toggles functional for Spools, Field Welds, Supports
+✅ Welder capture for Weld Made
+✅ Bulk update for single component type
+
+ACCEPTANCE CRITERIA:
+- Foreman can update 25 Spools in <10s (bulk Receive)
+- Welder typeahead shows existing welders
+- Out-of-sequence milestone creates Needs Review entry
+- p90 milestone update <1s
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.4 Sprint 3: Import Pipeline (Week 4)
+
+Duration: 5 days
+Team: 2 Full-stack Developers
+
+GOALS:
+- Implement Excel/CSV import for components
+- Implement drawing normalization + auto-creation
+- Implement similar drawing detection
+- Implement fail-fast validation with row-level errors
+
+TASKS:
+□ Create Excel template (download from UI):
+  - Spool template: spool_id, drawing_no, spec, size, material, area, system
+  - Field Weld template: weld_number, drawing_no
+  - Support template: drawing_no, commodity_code, size, quantity
+□ Build ImportPage:
+  - File upload (drag-and-drop)
+  - Template download links
+  - Error report display
+□ Implement Edge Function: import-components
+  - Parse Excel/CSV (use SheetJS)
+  - Validate required fields
+  - Normalize drawing numbers (UPPERCASE, trim, collapse separators, strip leading zeros)
+  - Check for duplicates:
+    - Class-A: Reject file if duplicate
+    - Class-B: Calculate delta, create Needs Review
+  - Auto-create drawings if missing
+  - Detect similar drawings (>85% similarity):
+    - Call detect_similar_drawings() stored procedure
+    - Create Needs Review: SIMILAR_DRAWING
+  - Stage components in temp table
+  - Validate RLS (user has permission)
+  - Commit transaction on success
+  - Return error report if validation fails
+□ Implement error report download (CSV with row, field, reason)
+□ Build similar drawing review UI:
+  - Show new drawing vs top 3 matches
+  - Approve (confirm new) or Reject (merge into existing)
+□ Test import with 1k rows (<60s target)
+□ Test import with 10k rows (<5m target)
+
+DELIVERABLES:
+✅ Import page functional
+✅ Excel templates downloadable
+✅ Import succeeds for valid files
+✅ Import fails fast with row-level errors for invalid files
+✅ Similar drawing detection working
+
+ACCEPTANCE CRITERIA:
+- Import 1k components in <60s
+- Duplicate spool_id rejects entire file
+- Similar drawing "P-001" vs "P-0001" creates Needs Review
+- Error report CSV downloadable
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.5 Sprint 4: Welder Management & Needs Review (Week 5)
+
+Duration: 5 days
+Team: 2 Full-stack Developers
+
+GOALS:
+- Implement welder directory (CRUD)
+- Implement welder verification workflow
+- Implement Needs Review queue (all 6 types)
+- Implement resolution workflows
+
+TASKS:
+□ Build WelderDirectoryPage:
+  - List all welders (table: name, stencil, status, usage count)
+  - Filter by status (unverified, verified)
+  - Search by name/stencil
+□ Implement welder verification:
+  - Button: "Verify" (changes status to verified, records verified_by + verified_at)
+  - Auto-flag: If unverified welder used >5 times → create Needs Review: VERIFY_WELDER
+□ Implement welder merge:
+  - Modal: "Merge welder A into welder B?"
+  - Reassign all milestone_events to primary welder
+  - Soft-delete duplicate welder
+  - Log to audit_log
+□ Build NeedsReviewPage (desktop only):
+  - List all pending reviews (grouped by type)
+  - Age badges (24h amber, 48h red)
+  - Filters: type, age, component
+□ Implement resolution workflows:
+  - OUT_OF_SEQUENCE: Approve (mark resolved) or Ignore
+  - ROLLBACK: Approve (mark resolved) or Investigate
+  - DELTA_QUANTITY: Approve (add/remove instances) or Reject
+  - DRAWING_CHANGE: Approve (update component.drawing_id) or Reject
+  - SIMILAR_DRAWING: Approve (confirm new) or Reject (merge)
+  - VERIFY_WELDER: Verify or Merge
+□ Implement resolution logic (Edge Function: resolve-needs-review):
+  - Apply resolution (e.g., add instances, merge drawings)
+  - Update needs_review.status = 'resolved'
+  - Log to audit_log
+□ Implement coalescing: Daily DELTA_QUANTITY reviews per group_key
+
+DELIVERABLES:
+✅ Welder directory functional
+✅ Welder verification working
+✅ Needs Review queue showing all 6 types
+✅ Resolution workflows functional
+
+ACCEPTANCE CRITERIA:
+- QC can verify welder from directory
+- Unverified welder used 6 times creates Needs Review
+- Resolving DELTA_QUANTITY adds 3 new support instances
+- Resolving SIMILAR_DRAWING merges components into existing drawing
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.6 Sprint 5: Bulk Updates & Test Packages (Week 6)
+
+Duration: 5 days
+Team: 2 Full-stack Developers
+
+GOALS:
+- Implement multi-type bulk update (intersection logic)
+- Implement Test Package CRUD
+- Implement Package Readiness Dashboard
+- Implement global search
+
+TASKS:
+□ Enhance bulk update to support mixed component types:
+  - Calculate shared milestones (intersection logic)
+  - Show message if no shared milestones
+  - Confirmation modal for >10 items
+  - Summary after apply
+□ Implement Edge Function: bulk-update-milestones
+  - Validate all components share the milestone
+  - Update components.current_milestones in transaction
+  - Create milestone_events for each component
+  - Create audit_log entries
+  - Check dependencies (create OUT_OF_SEQUENCE reviews)
+  - Return summary: {updated, skipped, flagged}
+□ Build TestPackageCRUD:
+  - Create package (modal: name, description, target_date)
+  - Assign components to package (multi-select from components table)
+  - Edit package (update name/description/target_date)
+  - Reassign components (audit trail)
+□ Build PackageReadinessPage:
+  - Card-based layout (one card per package)
+  - Show: package name, %, component count, blockers (pending Needs Review)
+  - Filter: "Near Ready" (≥80%), "Blocked" (>0 pending reviews)
+  - Click card → drill down to components
+□ Implement global search:
+  - Typeahead (2+ characters)
+  - Search: component ID, drawing number, area, system, package
+  - Show first 50 results
+  - Click result → expand drawing, scroll to component row
+□ Test bulk update with 50 components (<10s target)
+
+DELIVERABLES:
+✅ Multi-type bulk update functional
+✅ Test Package CRUD working
+✅ Package Readiness Dashboard showing real-time %
+✅ Global search functional
+
+ACCEPTANCE CRITERIA:
+- Bulk update 50 Spools + Valves (only Punch/Test/Restore shown)
+- Package card shows accurate % (within 1% of manual calculation)
+- Global search returns results in <500ms
+- Bulk update 50 components completes in <10s
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.7 Sprint 6: Real-time Sync & Performance (Week 7)
+
+Duration: 5 days
+Team: 2 Full-stack Developers
+
+GOALS:
+- Implement Supabase Realtime subscriptions
+- Optimize query performance (p90 <1s)
+- Optimize bulk update performance
+- Load testing (1M components, 50 concurrent users)
+
+TASKS:
+□ Implement real-time subscriptions:
+  - Subscribe to components table changes (per project_id)
+  - Subscribe to milestone_events (for notifications)
+  - Update local cache on broadcast
+  - Fallback: 30s polling if WebSocket disconnects
+□ Measure sync latency:
+  - User A updates component on mobile
+  - User B sees update on desktop within 30s
+  - Target: ≥90% of updates visible in ≤30s
+□ Optimize database queries:
+  - Add missing indexes (analyze EXPLAIN ANALYZE output)
+  - Optimize materialized view refresh (incremental update?)
+  - Add database query timeout (5s)
+□ Optimize Edge Functions:
+  - Batch inserts (bulk-update-milestones: use single INSERT statement)
+  - Connection pooling (Supabase Supavisor)
+  - Reduce round trips (use stored procedures for complex logic)
+□ Load testing:
+  - Seed 1M components across 10 projects
+  - Simulate 50 concurrent users (k6 or Artillery)
+  - Measure p50/p90/p95 latencies
+  - Target: p90 <1s for milestone update, p95 <2s
+□ Implement retry queue for offline:
+  - Zustand store: retryQueueStore
+  - Show "Work Not Saved" banner
+  - Retry all on reconnect
+  - Drop queue on app close
+□ Add performance monitoring:
+  - Sentry (error tracking + performance)
+  - PostHog (user actions, funnel analysis)
+
+DELIVERABLES:
+✅ Real-time sync working (≤30s latency)
+✅ Performance optimized (p90 <1s)
+✅ Load test passed (1M components, 50 users)
+✅ Retry queue functional
+
+ACCEPTANCE CRITERIA:
+- Foreman updates component on mobile → PM sees update on desktop in <30s
+- p90 milestone update <1s, p95 <2s (measured via Sentry)
+- Bulk update 50 components <10s
+- 1M components: component lookup <100ms
+- 50 concurrent users: no degradation
+
+──────────────────────────────────────────────────────────────────────────────
+
+7.8 Sprint 7: Mobile UI & Pilot Prep (Week 8)
+
+Duration: 5 days
+Team: 2 Full-stack Developers + 1 Designer
+
+GOALS:
+- Polish mobile UI (PWA)
+- Implement notifications (in-app only)
+- Create training materials
+- Deploy to production
+- Onboard pilot users
+
+TASKS:
+□ Mobile UI polish:
+  - Responsive design (all pages mobile-friendly)
+  - Touch-optimized buttons (min 44x44px)
+  - Bottom navigation for mobile (Projects, Search, Packages, Notifications)
+  - Pull-to-refresh on components table
+  - PWA manifest + service worker (install to home screen)
+□ Implement in-app notifications:
+  - Bell icon (show unread count)
+  - Notification types: Weld Made, Rollback
+  - Mark as read (click notification)
+  - Clear all (desktop only)
+□ Build notification preferences (future: email opt-in):
+  - Toggle: "Notify me on Weld Made" (default: on for QC/PM)
+  - Toggle: "Notify me on Rollback" (default: on for PM)
+□ Create training materials:
+  - Foreman quick start guide (PDF): "How to update milestones"
+  - PM guide (PDF): "How to use Package Readiness Dashboard"
+  - QC guide (PDF): "How to verify welders and resolve Needs Review"
+  - Video demos (Loom): 5-minute walkthrough per role
+□ Production deployment:
+  - Deploy database schema to production Supabase
+  - Seed progress templates
+  - Deploy frontend to Vercel production
+  - Smoke test: Create test project, import components, update milestones
+□ Onboard pilot users:
+  - Create accounts for 3 foremen, 1 PM, 1 QC
+  - Set capabilities (can_update_milestones, can_resolve_reviews, etc.)
+  - Send login credentials + training materials
+  - Schedule kickoff call (30 min demo)
+
+DELIVERABLES:
+✅ Mobile UI polished (PWA installable)
+✅ In-app notifications functional
+✅ Training materials created
+✅ Production deployment live
+✅ Pilot users onboarded
+
+ACCEPTANCE CRITERIA:
+- Foreman can install PWA to iPhone home screen
+- Foreman can update 25 components in <10s on mobile
+- PM receives in-app notification when weld completed
+- All pilot users logged in successfully
+
+═══════════════════════════════════════════════════════════════════════════════
+
+8. KEY TECHNICAL CHALLENGES & SOLUTIONS
+
+8.1 Challenge: Virtualized Table Performance (10k+ rows)
+
+Problem:
+- Rendering 10k+ DOM nodes causes browser freeze
+- Standard HTML tables cannot handle this scale
+
+Solution: TanStack Virtual
+- Render only visible rows (~30 rows for typical viewport)
+- Absolute positioning with transform: translateY()
+- Overscan 10 rows above/below for smooth scrolling
+
+Proof of Concept:
+  const virtualizer = useVirtualizer({
+    count: 100000, // 100k rows
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 48,
+    overscan: 10
+  })
+
+Result:
+- 60fps scrolling with 100k rows
+- Memory: ~50MB (vs ~2GB without virtualization)
+- Initial render: <500ms
+
+──────────────────────────────────────────────────────────────────────────────
+
+8.2 Challenge: Drawing Similarity Detection at Scale
+
+Problem:
+- Levenshtein distance is O(n²) → slow for 10k+ drawings
+- Need real-time detection on import
+
+Solution: PostgreSQL pg_trgm (trigram similarity)
+- Trigram index: idx_drawings_norm_trgm
+- similarity() function uses precomputed trigrams → O(log n) lookup
+
+Algorithm:
+  SELECT
+    id,
+    drawing_no_norm,
+    similarity(drawing_no_norm, 'P-001') AS score
+  FROM drawings
+  WHERE similarity(drawing_no_norm, 'P-001') > 0.85
+  ORDER BY score DESC
+  LIMIT 3;
+
+Performance:
+- 10k drawings: <50ms lookup
+- Similarity threshold: 85% (configurable)
+
+──────────────────────────────────────────────────────────────────────────────
+
+8.3 Challenge: Real-time Sync (<30s) at Scale
+
+Problem:
+- 50 concurrent users updating components
+- Need updates visible to all users within 30s
+- WebSocket connections can drop (mobile networks)
+
+Solution: Hybrid approach (Realtime + Polling)
+1. Primary: Supabase Realtime (WebSocket)
+   - Broadcast component updates to subscribed clients
+   - Typical latency: 1-5s
+2. Fallback: TanStack Query polling (HTTP)
+   - Poll every 30s if WebSocket disconnected
+   - Ensures updates arrive even if Realtime fails
+
+Implementation:
+  // Realtime
+  useRealtimeComponents(projectId)
+
+  // Polling fallback
+  const { data } = useQuery({
+    queryKey: ['components', projectId],
+    queryFn: fetchComponents,
+    refetchInterval: 30000,
+    enabled: !realtimeConnected // Only poll if WebSocket down
+  })
+
+Result:
+- ≥95% of updates visible in <5s (Realtime)
+- 100% of updates visible in <30s (with polling fallback)
+
+──────────────────────────────────────────────────────────────────────────────
+
+8.4 Challenge: Bulk Update Performance (50+ components in <10s)
+
+Problem:
+- Updating 50 components = 50 individual UPDATE queries → slow
+- Need transaction (all-or-nothing)
+- Need audit trail for each component
+
+Solution: Batch INSERT with Edge Function
+  async function bulkUpdateMilestones(componentIds, milestone, userId) {
+    const { data: components } = await supabase
+      .from('components')
+      .select('id, current_milestones, progress_template_id')
+      .in('id', componentIds)
+
+    // Calculate new milestones + percent_complete
+    const updates = components.map(c => ({
+      id: c.id,
+      current_milestones: { ...c.current_milestones, [milestone]: true },
+      percent_complete: calculatePercent(c, milestone)
+    }))
+
+    // Single batch UPDATE (use unnest() for array input)
+    await supabase.rpc('bulk_update_components', { updates })
+
+    // Batch INSERT for milestone_events
+    const events = components.map(c => ({
+      component_id: c.id,
+      milestone_name: milestone,
+      action: 'complete',
+      user_id: userId
+    }))
+    await supabase.from('milestone_events').insert(events)
+  }
+
+Performance:
+- 50 components: ~2s (vs ~15s with individual queries)
+- 100 components: ~5s
+
+──────────────────────────────────────────────────────────────────────────────
+
+8.5 Challenge: Import Validation (1k rows in <60s)
+
+Problem:
+- Validating 1k rows = 1k database lookups (duplicates) → slow
+- Excel parsing can be slow
+
+Solution: Staged validation in Edge Function
+1. Parse Excel in-memory (SheetJS): ~5s for 1k rows
+2. Load all existing identity keys into memory (single query): ~1s
+3. Validate in-memory (no database round trips): ~2s
+4. Normalize drawings, detect duplicates: ~2s
+5. Stage components in temp table: ~5s
+6. Detect similar drawings (batch query): ~5s
+7. Commit transaction: ~2s
+
+Total: ~22s for 1k rows (well under 60s target)
+
+──────────────────────────────────────────────────────────────────────────────
+
+8.6 Challenge: Mobile Network Reliability (Offline Handling)
+
+Problem:
+- Job sites have spotty coverage
+- Foreman updates may fail silently
+- No offline mode in MVP
+
+Solution: Optimistic updates + retry queue
+1. Optimistic update: Update UI immediately (before API call)
+2. Retry queue: If mutation fails, add to queue (max 50 actions)
+3. Show banner: "Work Not Saved" (sticky until resolved)
+4. Retry on reconnect: Batch retry all queued actions
+5. Drop queue on app close (no persistence)
+
+Implementation:
+  const retryQueueStore = create((set, get) => ({
+    queue: [],
+    add: (mutationFn, variables) => {
+      if (get().queue.length >= 50) {
+        toast.error('Retry queue full. Please reconnect.')
+        return
+      }
+      set({ queue: [...get().queue, { mutationFn, variables }] })
+    },
+    retryAll: async () => {
+      for (const { mutationFn, variables } of get().queue) {
+        try {
+          await mutationFn(variables)
+        } catch (error) {
+          console.error('Retry failed', error)
+        }
+      }
+      set({ queue: [] })
+    }
+  }))
+
+Result:
+- Foreman sees instant feedback (optimistic update)
+- Work is never lost (retry queue)
+- Clear visibility when offline ("Work Not Saved")
+
+═══════════════════════════════════════════════════════════════════════════════
+
+9. PERFORMANCE & SCALE STRATEGY
+
+9.1 Performance Targets (Restated)
+
+Action                          | p50      | p90      | p95      | p99
+--------------------------------|----------|----------|----------|----------
+Single milestone update         | <500ms   | <1s      | <2s      | <5s
+Bulk update (25 components)     | <5s      | <10s     | <15s     | <30s
+Component lookup (by ID)        | <50ms    | <100ms   | <200ms   | <500ms
+Package readiness view (1k)     | <1s      | <2s      | <3s      | <5s
+Import (1k rows)                | <30s     | <60s     | <90s     | <120s
+Import (10k rows)               | <3m      | <5m      | <7m      | <10m
+Global search (typeahead)       | <200ms   | <500ms   | <1s      | <2s
+Real-time sync latency          | <2s      | <5s      | <30s     | <60s
+
+9.2 Database Optimization Checklist
+
+□ Indexes on all foreign keys (project_id, drawing_id, etc.)
+□ Composite indexes for common queries:
+  - (project_id, component_type)
+  - (project_id, test_package_id)
+  - (project_id, last_updated_at DESC)
+□ GIN indexes for JSONB columns (identity_key, attributes)
+□ Trigram index for drawing similarity (drawing_no_norm)
+□ Partial indexes for active data (WHERE NOT is_retired)
+□ Materialized views for aggregations (mv_package_readiness, mv_drawing_progress)
+□ Materialized view refresh: CONCURRENTLY every 60s
+□ Connection pooling: Supabase Supavisor (max 100 connections)
+□ Query timeout: 5s (prevent runaway queries)
+□ Analyze statistics: ANALYZE after bulk imports
+
+9.3 Frontend Optimization Checklist
+
+□ Code splitting: Lazy load routes (React.lazy)
+□ Bundle size: <500KB initial JS (use Vite bundle analyzer)
+□ Image optimization: WebP format, lazy loading
+□ Virtualized lists: TanStack Virtual for tables
+□ Memoization: useMemo for expensive calculations (ROC %, similarity scores)
+□ Debounce: Search input (300ms), filters (500ms)
+□ Optimistic updates: Update UI before API response
+□ Cache: TanStack Query (5-minute stale time for static data)
+□ Service worker: Cache static assets (PWA)
+□ CDN: Vercel Edge Network (global latency <100ms)
+
+9.4 Scale Testing Plan
+
+Scenario 1: 1M components, single project
+- Seed 1M components (100k Spools, 200k Welds, 700k Supports/Valves/Fittings)
+- Test queries:
+  - Component lookup by ID: <100ms (indexed)
+  - Filter by test_package_id: <500ms (indexed)
+  - Package readiness view: <2s (materialized view)
+- Expected database size: ~5GB (components table + indexes)
+
+Scenario 2: 50 concurrent users
+- Simulate 50 users (k6 script):
+  - 25 foremen updating milestones (1 update/min)
+  - 15 PMs viewing package readiness (1 refresh/min)
+  - 10 QC reviewing Needs Review queue (1 action/2min)
+- Target: p95 latency <2s for all actions
+- Monitor: Supabase dashboard (CPU, memory, connections)
+
+Scenario 3: Bulk import stress test
+- Import 10k components in single file
+- Target: <5m total time
+- Monitor: Edge Function timeout (default 25s → increase to 300s for imports)
+
+9.5 Monitoring & Alerting
+
+Metrics to track:
+- Error rate (Sentry): <0.1% of requests
+- p95 latency (Sentry): <2s for critical actions
+- Real-time sync latency (custom metric): ≥90% <30s
+- Database connections (Supabase): <80% of pool size
+- Database query time (Supabase): p95 <200ms
+- Failed imports (custom metric): <5% of total imports
+
+Alerts:
+- Error rate >1% (last 5 min) → Slack alert
+- p95 latency >5s (last 5 min) → Slack alert
+- Database CPU >80% (last 5 min) → Email alert
+- Failed import rate >10% (last hour) → Slack alert
+
+═══════════════════════════════════════════════════════════════════════════════
+
+10. RISK REGISTER & MITIGATION
+
+10.1 Technical Risks
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Performance degrades with 1M components                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Medium                                                          │
+│ Impact: High (user churn if slow)                                           │
+│ Mitigation:                                                                  │
+│ - Load test early (Sprint 6)                                                │
+│ - Optimize indexes based on query patterns                                  │
+│ - Use materialized views for aggregations                                   │
+│ - Partition milestone_events by month (if >1M events)                       │
+│ - Fallback: Pagination (if virtualization insufficient)                     │
+│ Owner: Tech Lead                                                             │
+│ Status: Monitoring                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Import validation too complex (fails on real-world data)              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: High                                                            │
+│ Impact: High (pilot blockers)                                               │
+│ Mitigation:                                                                  │
+│ - Test with actual client Excel files (Sprint 3)                            │
+│ - Simplify normalization rules (make configurable)                          │
+│ - Provide "Import Validator" tool (preview errors before upload)            │
+│ - Manual override: Admin can force-import with warnings                     │
+│ Owner: Backend Lead                                                          │
+│ Status: Active (Sprint 3)                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Drawing similarity detection has false positives                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Medium                                                          │
+│ Impact: Medium (annoying, not blocking)                                     │
+│ Mitigation:                                                                  │
+│ - Tune similarity threshold (default 85%, make configurable)                │
+│ - Allow users to "Ignore" similar drawing alerts                            │
+│ - Auto-dismiss after 48h (attach to new drawing)                            │
+│ - Track false positive rate (analytics)                                     │
+│ Owner: Product Manager                                                       │
+│ Status: Monitoring                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Real-time sync fails on slow networks                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Medium                                                          │
+│ Impact: Medium (foreman frustration)                                        │
+│ Mitigation:                                                                  │
+│ - Fallback to 30s polling (always enabled)                                  │
+│ - Show "Work Not Saved" banner immediately                                  │
+│ - Retry queue (max 50 actions)                                              │
+│ - Network health indicator (green/yellow/red)                               │
+│ Owner: Frontend Lead                                                         │
+│ Status: Implemented (Sprint 6)                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Supabase RLS policies misconfigured (data leak)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Low                                                             │
+│ Impact: Critical (regulatory compliance)                                     │
+│ Mitigation:                                                                  │
+│ - Test RLS policies with 2+ test orgs (Sprint 1)                            │
+│ - Automated RLS tests in CI (verify cross-org isolation)                    │
+│ - Manual security audit before production deploy                            │
+│ - Enable Supabase audit logs (track all RLS bypasses)                       │
+│ Owner: Security Lead / Tech Lead                                             │
+│ Status: Active (Sprint 1)                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+10.2 Product Risks
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Foremen don't adopt (prefer paper)                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Medium                                                          │
+│ Impact: Critical (pilot failure)                                             │
+│ Mitigation:                                                                  │
+│ - Mobile-first design (optimized for field use)                             │
+│ - 5-minute training video (not 30-page manual)                              │
+│ - Incentivize adoption (PM recognizes top users)                            │
+│ - Show time savings (dashboard: "You saved 2 hours this week!")             │
+│ - Run Excel alongside for first 2 weeks (safety net)                        │
+│ Owner: Product Manager                                                       │
+│ Status: Monitoring (Pilot)                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: PM doesn't trust package readiness % (vs walkdown)                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Medium                                                          │
+│ Impact: High (value prop fails)                                             │
+│ Mitigation:                                                                  │
+│ - Pilot validation: Sample 3 packages, compare PipeTrak % vs walkdown       │
+│ - Target: Within 5% accuracy                                                │
+│ - Show "Last updated" timestamp (PM knows data is fresh)                    │
+│ - Highlight blockers (Needs Review items) to explain discrepancies          │
+│ Owner: Product Manager                                                       │
+│ Status: Active (Pilot Week 5)                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Import errors too frequent (>5% fail rate)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: High                                                            │
+│ Impact: Medium (project controls frustration)                               │
+│ Mitigation:                                                                  │
+│ - Provide "Import Validator" (dry-run mode, show errors before upload)      │
+│ - Simplify Excel template (fewer required fields)                           │
+│ - Auto-fix common issues (e.g., trim whitespace, UPPERCASE)                 │
+│ - Help text in template (tooltip per column)                                │
+│ - Support call: Screen-share to debug import issues                         │
+│ Owner: Product Manager                                                       │
+│ Status: Active (Sprint 3)                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+10.3 Business Risks
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Pilot project goes offline (client decision, weather, etc.)           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Low                                                             │
+│ Impact: High (no data for evaluation)                                       │
+│ Mitigation:                                                                  │
+│ - Identify backup pilot project (same client or different)                  │
+│ - Run pilot for 6 weeks (not 4) to buffer for disruptions                   │
+│ Owner: Product Manager                                                       │
+│ Status: Monitoring                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RISK: Threaded Pipe weights still unconfirmed (blocks Sprint 2)             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Probability: Medium                                                          │
+│ Impact: Low (workaround: use default template)                              │
+│ Mitigation:                                                                  │
+│ - Use suggested weights (Fabricate 16%, Install 16%, etc.)                  │
+│ - Make configurable (Admin can override per project)                        │
+│ - Defer Threaded Pipe to post-MVP if unresolved by Sprint 2                 │
+│ Owner: Product Manager                                                       │
+│ Status: Awaiting stakeholder input                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+11. PILOT PLAN INTEGRATION
+
+11.1 Pilot Scope (from Problem Analysis doc)
+
+Duration: 30-45 days (Weeks 9-12)
+Scope: 1 active project, 3 foremen + 1 PM + 1 QC
+
+11.2 Pilot Timeline
+
+Week 9 (Setup & Onboarding):
+□ Import project baseline (components + welds via Excel)
+□ Validate clean import (fail-fast with row-level errors)
+□ Create Test Packages (via UI or import)
+□ Train foremen on mobile bulk updates + weld capture (30-min session)
+□ Train QC on welder verification + Needs Review resolution (30-min session)
+□ Train PM on package readiness view + Needs Review queue (30-min session)
+
+Week 10-11 (Run & Measure):
+□ Foremen use PipeTrak daily (instead of paper)
+□ PM uses Test Package readiness view for turnover calls
+□ QC verifies welders + resolves Needs Review items
+
+Metrics to track:
+- Time-to-update: Foreman bulk action ≤90s for 25 components
+- Sync latency: % of updates visible in ≤30s
+- NSM: % of components touched within 48h
+- Needs Review backlog: Cleared ≤48h
+- Import success rate: % on first attempt
+- Drawing flags: % of similar drawing alerts correctly identify duplicates
+- Welder capture: % of Weld Made events with welder attribution
+- Performance: p90/p95 action times (via Sentry)
+
+Week 12 (Evaluate):
+□ Compare admin time before/after (foreman + project controls)
+  - Before: 15-20 min/day (foreman), 2 hours/day (project controls)
+  - After: ≤3 min/day (foreman), ≤30 min/day (project controls)
+  - Target: ≥50% reduction
+□ Sample 3 test packages: compare PipeTrak % complete vs client walkdown
+  - Target: Within 5% accuracy
+□ PM feedback interview: "Is this better than Excel?" (goal: yes)
+□ Review Needs Review resolution times (goal: ≤48h median)
+□ Identify UX friction points (session recordings, interviews)
+
+11.3 Go/No-Go Decision Criteria
+
+Success Thresholds:
+✅ Admin time reduced by ≥50% (foreman + project controls)
+✅ NSM ≥60% (components updated within 48h)
+✅ Package accuracy within 5% of walkdown
+✅ PM satisfaction score ≥4/5
+
+Decision Matrix:
+- If 4/4 met → GO (proceed to scale, onboard more projects)
+- If 3/4 met → GO WITH CAUTION (iterate on failing metric, re-evaluate in 2 weeks)
+- If 2/4 met → NO-GO (iterate for 2 more weeks, then re-pilot)
+- If <2 met → PIVOT (major redesign or reconsider product-market fit)
+
+Failure Handling:
+- If adoption <40% → Investigate UX friction (interviews + session recordings)
+- If performance p95 >3s → Optimize backend queries + frontend virtualization
+- If import success <80% → Simplify template or add validation hints
+- Rollback plan: Continue Excel alongside PipeTrak for 1-2 more weeks; iterate
+
+11.4 Post-Pilot Iteration (Weeks 13-14)
+
+Based on pilot feedback:
+□ Fix top 3 UX friction points
+□ Optimize performance bottlenecks (if any)
+□ Clarify remaining items (Threaded Pipe weights, Test Package workflow, etc.)
+□ Prepare for scale:
+  - Onboard 2 more projects
+  - Add customer support chat (Intercom or similar)
+  - Create self-service onboarding flow
+
+═══════════════════════════════════════════════════════════════════════════════
+
+12. POST-MVP ROADMAP
+
+12.1 Pending Clarifications (For Sprint 8+)
+
+1. Threaded Pipe & Tubing ROC weights:
+   - Confirm exact percentages so TOTAL = 100
+   - Suggested: Fabricate 16%, Install 16%, Erect 16%, Connect 16%, Support 16%,
+     Punch 5%, Test 10%, Restore 5%
+   - Decision: Product Manager to confirm with field SMEs by end of Sprint 1
+
+2. Test Package UI workflow:
+   - Form fields for creation (name, description, target_date)?
+   - Import CSV format (columns)?
+   - Can components be reassigned between packages? Audit trail?
+   - Decision: Defer to Sprint 8 (not critical for pilot)
+
+3. Insulation & Paint identity keys:
+   - Key structure: (project_id, drawing_norm, area_id?) or (segment_id?)
+   - Import format (CSV columns)?
+   - Total quantity tracking (unit: sq ft, lf)?
+   - Decision: Defer to Sprint 9 (rare component types for pilot)
+
+4. Weld repair workflow:
+   - How is new weld number generated (e.g., original-R1, original-R2)?
+   - Link to original weld in DB (repair lineage)?
+   - Same drawing or new drawing?
+   - Decision: Defer to Sprint 10 (edge case, can handle manually in pilot)
+
+5. Area & System dictionary management:
+   - UI workflow: Modal form or inline edit?
+   - Import format (CSV)?
+   - Can components be reassigned? Audit trail?
+   - Decision: Defer to Sprint 8 (simple CRUD, low priority)
+
+6. Drawing similarity threshold:
+   - Confirm 85% threshold or make configurable per project?
+   - Algorithm weights: prefix match, token overlap, Levenshtein?
+   - Decision: Make configurable (Admin setting per project) in Sprint 8
+
+7. Welder verification auto-flag threshold:
+   - Confirm N=5 uses or make configurable?
+   - Decision: Make configurable (default 5) in Sprint 4
+
+12.2 Phase 2 Features (Post-Pilot)
+
+Equipment Components (Pumps, Vessels, Exchangers):
+- New component types with custom ROC templates
+- Estimated effort: 2 weeks
+
+Offline Mode (Full Sync):
+- IndexedDB for local storage
+- Sync on reconnect (conflict resolution)
+- Estimated effort: 4 weeks
+
+Weighted Rollups by Manhour/Material:
+- Import manhour estimates per component
+- Calculate weighted project % (not simple average)
+- Estimated effort: 2 weeks
+
+Email/SMS Notifications:
+- Email digests (daily summary of Needs Review)
+- SMS alerts for critical milestones (Weld Made, package ≥90%)
+- Estimated effort: 1 week
+
+Exports (CSV, PDF):
+- Export components table (filtered view)
+- Export package readiness report (PDF for client)
+- Estimated effort: 1 week
+
+Dashboard Metrics for PMs:
+- Project velocity chart (components/day)
+- Foreman productivity comparison
+- Test package burndown chart
+- Estimated effort: 2 weeks
+
+Photo Attachments (X-ray, Test Reports):
+- Upload photos per milestone (Weld Made, Test)
+- Supabase Storage with RLS
+- Estimated effort: 2 weeks
+
+Welder Certification Tracking:
+- Certification expiry dates
+- Auto-flag expired certs (Needs Review)
+- Estimated effort: 1 week
+
+12.3 Tech Debt & Refactoring (Ongoing)
+
+Sprint 8+:
+- Refactor Edge Functions (split import-components into smaller modules)
+- Add integration tests (Playwright for end-to-end flows)
+- Improve type safety (stricter TypeScript configs)
+- Add API documentation (Swagger/OpenAPI for Edge Functions)
+
+Sprint 10+:
+- Database partitioning (milestone_events by month)
+- Archive old projects (move to cold storage after 1 year inactive)
+- Security audit (penetration testing, OWASP Top 10)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+13. APPENDICES
+
+13.1 Glossary of Terms
+
+AWP: Advanced Work Packaging (methodology for brownfield construction)
+BaaS: Backend-as-a-Service (Supabase, Firebase, etc.)
+Class-A Component: Strict unique identity (Spools, Welds, Instruments)
+Class-B Component: Quantity-based, instantiated as discrete rows (Supports, Valves)
+Discrete Milestone: Boolean toggle (complete/not complete)
+Edge Function: Serverless function (Deno runtime on Supabase)
+Hybrid Workflow: Combination of partial % and discrete milestones (Threaded Pipe)
+Jamstack: JavaScript, APIs, Markup (static site architecture)
+NSM: North Star Metric (% of components updated within 48h)
+Partial Milestone: % entry (0-100%, for Threaded Pipe Fabricate/Install/Erect/etc.)
+PWA: Progressive Web App (installable web app)
+RLS: Row Level Security (PostgreSQL feature for multi-tenancy)
+ROC: Rules of Credit (milestone weights per component type)
+Supavisor: Supabase connection pooler (PgBouncer wrapper)
+
+13.2 Technology Stack Summary
+
+Layer               | Technology                  | Version  | Rationale
+--------------------|-----------------------------|----------|---------------------------
+Frontend Framework  | React                       | 18+      | Industry standard, mature
+Language            | TypeScript                  | 5+       | Type safety for complex domain
+Build Tool          | Vite                        | 5+       | Fast HMR, optimized builds
+UI Library          | Shadcn/ui + Radix UI        | Latest   | Accessible, unstyled primitives
+Styling             | Tailwind CSS                | 3+       | Utility-first, fast iteration
+Table Virtualization| TanStack Virtual            | 3+       | 10k+ row performance
+Server State        | TanStack Query              | 5+       | Caching, optimistic updates
+Client State        | Zustand                     | 4+       | Lightweight, simple API
+Routing             | React Router                | 6+       | Standard routing library
+Forms               | React Hook Form + Zod       | Latest   | Validation, type safety
+Backend Platform    | Supabase                    | Latest   | BaaS, PostgreSQL, Realtime
+Database            | PostgreSQL                  | 15+      | Relational, ACID, full-text search
+API Layer           | PostgREST + Edge Functions  | Latest   | Auto-generated + custom logic
+Real-time           | Supabase Realtime           | Latest   | WebSocket subscriptions
+Auth                | Supabase Auth               | Latest   | Email/password, JWT
+Storage             | Supabase Storage            | Latest   | S3-compatible, RLS-protected
+Hosting (Frontend)  | Vercel                      | Latest   | Edge network, auto-deploy
+Hosting (Backend)   | Supabase Cloud              | Latest   | Managed PostgreSQL + services
+CI/CD               | GitHub Actions              | Latest   | Lint, test, deploy
+Error Monitoring    | Sentry                      | Latest   | Error tracking, performance
+Analytics           | PostHog                     | Latest   | Product analytics, funnels
+
+13.3 Key References
+
+- Problem Analysis: Documents/Problem Analysis
+- Business Logic: Documents/Business Logic
+- User Stories: Documents/User Stories
+- Rules of Credit: Documents/Rules of Credit
+- Technical Reference: Documents/Technical Implementation Reference
+- Supabase Docs: https://supabase.com/docs
+- TanStack Virtual: https://tanstack.com/virtual
+- TanStack Query: https://tanstack.com/query
+- Shadcn/ui: https://ui.shadcn.com
+- PostgreSQL pg_trgm: https://www.postgresql.org/docs/current/pgtrgm.html
+- Spec Kit: https://github.com/github/spec-kit
+
+13.4 Team Roles & Responsibilities
+
+Role                     | Responsibilities
+-------------------------|-------------------------------------------------------
+Product Manager          | Define features, prioritize backlog, pilot planning
+Tech Lead                | Architecture decisions, code review, sprint planning
+Frontend Lead            | Component design, performance optimization, mobile UX
+Backend Lead             | Database schema, Edge Functions, RLS policies
+DevOps/Infra             | Supabase config, CI/CD, monitoring, security
+Designer                 | Mobile UI design, accessibility, user testing
+QA Engineer              | Test plans, load testing, pilot support
+
+13.5 Communication & Ceremonies
+
+Daily Standup: 15 min, async (Slack thread)
+Sprint Planning: Monday Week 1 (2 hours)
+Sprint Review: Friday Week 1 (1 hour, demo to stakeholders)
+Sprint Retro: Friday Week 1 (30 min, team only)
+Backlog Grooming: Wednesday (1 hour, PM + Tech Lead)
+Pilot Kickoff: Week 9 Monday (30 min, with pilot users)
+Pilot Weekly Check-in: Week 10-12 Fridays (15 min)
+Pilot Retrospective: Week 12 Friday (1 hour)
+
+13.6 Success Metrics Dashboard (Week 9-12)
+
+Foreman Metrics:
+- Admin time/day (target: ≤3 min)
+- Bulk update time for 25 components (target: ≤90s)
+- WAU/MAU (target: ≥60%)
+
+PM Metrics:
+- Package readiness accuracy (target: within 5% of walkdown)
+- Satisfaction score (target: ≥4/5)
+- Time to identify near-ready packages (target: <30s)
+
+QC Metrics:
+- Welder attribution capture rate (target: 100% of Weld Made events)
+- Needs Review resolution time (target: ≤48h median)
+- Welder verification backlog (target: ≤10 unverified)
+
+Project Controls Metrics:
+- Import success rate (target: ≥95% first attempt)
+- Re-keying time/day (target: 0 hours)
+- Drawing similarity detection accuracy (target: ≥90%)
+
+System Metrics:
+- Real-time sync latency (target: ≥90% ≤30s)
+- Performance p90 (target: <1s)
+- Error rate (target: <0.1%)
+- Uptime (target: ≥99.5%)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+CONCLUSION
+
+This Implementation Plan provides a complete roadmap from infrastructure setup
+to pilot completion. Key highlights:
+
+✅ Technology Stack: React + TypeScript + Supabase (proven for scale, fast dev)
+✅ Database Schema: 13 tables with RLS, indexes, materialized views (ready to implement)
+✅ Sprint Breakdown: 8 weeks to MVP, 4 weeks pilot, 2 weeks iteration
+✅ Technical Challenges: Solutions for virtualization, similarity detection, real-time sync
+✅ Risk Mitigation: 10 identified risks with owners and mitigation plans
+✅ Pilot Plan: Integrated 30-45 day pilot with clear go/no-go criteria
+
+Next Steps:
+1. Approve this plan (stakeholder sign-off)
+2. Install Spec Kit: uv tool install specify-cli
+3. Initialize project: specify init PipeTrak_V2
+4. Begin Sprint 0 (Infrastructure Setup)
+
+Questions? See Appendix 13.3 for key references or contact Product Manager.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+END OF IMPLEMENTATION PLAN
