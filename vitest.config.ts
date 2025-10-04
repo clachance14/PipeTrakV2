@@ -9,10 +9,46 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './tests/setup.ts',
     css: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/main.tsx',
+        'src/App.tsx',
+        'src/pages/**',
+        'src/types/**',
+        'src/lib/utils.ts',
+        'src/lib/supabase.ts',
+        'src/components/Layout.tsx',
+        'src/vite-env.d.ts',
+      ],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+        'src/lib/**': {
+          lines: 80,
+          functions: 80,
+          branches: 80,
+          statements: 80,
+        },
+        'src/components/**': {
+          lines: 60,
+          functions: 60,
+          branches: 60,
+          statements: 60,
+        },
+      },
+      skipFull: process.env.SKIP_COVERAGE === 'true',
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@/tests': path.resolve(__dirname, './tests'),
     },
   },
 })
