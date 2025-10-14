@@ -39,21 +39,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           name: string
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           name: string
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           name?: string
           updated_at?: string | null
@@ -95,48 +148,17 @@ export type Database = {
           },
         ]
       }
-      user_organizations: {
-        Row: {
-          created_at: string | null
-          organization_id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          organization_id: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          organization_id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_organizations_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_organizations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       users: {
         Row: {
           created_at: string | null
           email: string
           full_name: string | null
           id: string
+          is_super_admin: boolean
+          organization_id: string
+          role: string
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string | null
         }
         Insert: {
@@ -144,6 +166,11 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          is_super_admin?: boolean
+          organization_id: string
+          role: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -151,19 +178,51 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_super_admin?: boolean
+          organization_id?: string
+          role?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_org_role: {
+        Args: { org_uuid: string; user_uuid: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_super_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      user_is_org_member: {
+        Args: { org_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      invitation_status: "pending" | "accepted" | "revoked" | "expired"
+      user_role:
+        | "owner"
+        | "admin"
+        | "project_manager"
+        | "foreman"
+        | "qc_inspector"
+        | "welder"
+        | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -293,6 +352,17 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      invitation_status: ["pending", "accepted", "revoked", "expired"],
+      user_role: [
+        "owner",
+        "admin",
+        "project_manager",
+        "foreman",
+        "qc_inspector",
+        "welder",
+        "viewer",
+      ],
+    },
   },
 } as const

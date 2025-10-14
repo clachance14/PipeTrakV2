@@ -6,6 +6,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Industrial pipe tracking system for brownfield construction projects. React 18 + TypeScript SPA backed by Supabase.
 
+## Current Status
+
+**Last Updated**: 2025-10-05
+**Phase**: Sprint 0 → Sprint 1 Transition
+**Progress**: 6% (Sprint 0 of 14-week plan completed)
+
+### ✅ Sprint 0: Infrastructure Setup (94% Complete)
+- ✅ Supabase CLI configured, database schema deployed (4 tables with RLS)
+- ✅ GitHub Actions CI/CD pipeline operational (lint → type-check → test → build)
+- ✅ TypeScript types auto-generated from schema
+- ✅ Test suite implemented: AuthContext (3 tests), ProtectedRoute (2 tests) with ≥70% coverage
+- ✅ Constitution v1.0.0 ratified at `.specify/memory/constitution.md`
+- ❌ **Remaining**: Install MSW, migrate Documents to `.specify/specs/`
+
+**See**: `specs/001-do-you-see/` for detailed Sprint 0 execution (33/35 tasks)
+
+### ⏳ Next: Sprint 1 - Core Foundation (Week 2)
+Expand database from 4 to 13 tables, implement full RLS policies, seed progress templates.
+
+**See**: `Documents/implementation/PROJECT-STATUS.md` for full project status
+
 ## Development Commands
 
 ```bash
@@ -216,3 +237,55 @@ Required vars checked at Supabase client init (src/lib/supabase.ts:7-9). App wil
   - `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`
   - `noUncheckedIndexedAccess` (defensive array access)
 - Module resolution: "bundler" mode for Vite compatibility
+
+## User Registration & Team Onboarding (Feature 002)
+
+**Status**: Implementation Complete (TypeScript validation passed)
+
+### Features Implemented
+- User registration with organization creation
+- Email-based team invitations with 7-day expiry
+- Multi-organization support with context switching
+- Role-based access control (7 roles: owner, admin, project_manager, foreman, qc_inspector, welder, viewer)
+- Invitation acceptance flow (new users and existing users)
+
+### Key Components
+- **Auth Components**: RegistrationForm, OnboardingWizard
+- **Team Components**: InvitationForm, TeamList, RoleSelector, OrganizationSwitcher
+- **Pages**: Register, AcceptInvitation, TeamManagement
+
+### Custom Hooks
+- `useInvitations()` - Returns object with invitation queries and mutations
+  - `useInvitations({ organizationId, status, limit, offset })` - List invitations
+  - `createInvitationMutation` - Create new invitation
+  - `acceptInvitationMutation` - Accept invitation and join org
+  - `resendInvitationMutation` - Resend invitation email
+  - `revokeInvitationMutation` - Revoke pending invitation
+  - `useValidateToken(token)` - Validate invitation token
+
+- `useOrganization()` - Returns object with organization queries and mutations
+  - `useUserOrganizations()` - List user's organizations
+  - `useOrgMembers({ organizationId, role, search, limit, offset })` - List org members
+  - `updateMemberRoleMutation` - Change user's role
+  - `removeMemberMutation` - Remove user from org
+  - `leaveOrganizationMutation` - Leave organization with ownership transfer
+  - `switchOrganizationMutation` - Switch active organization
+
+### Database Schema (Sprint 0 + Feature 002)
+- `invitations` table with RLS policies
+- `user_organizations` table for multi-org membership
+- Triggers: prevent removing last owner
+- All tables use soft deletes with `deleted_at` column
+
+### Routing
+- `/register` - Public registration page
+- `/accept-invitation` - Public invitation acceptance (with token validation)
+- `/onboarding/wizard` - Protected 3-step onboarding
+- `/team` - Protected team management (owner/admin only)
+
+### Testing Notes
+- Jest/Vitest tests require jsdom environment
+- Radix UI components may have compatibility issues with jsdom (use `userEvent` carefully)
+- Mock hooks at the hook level, not the component level
+- Coverage targets: ≥70% overall, ≥80% for `src/lib/**`, ≥60% for `src/components/**`
+

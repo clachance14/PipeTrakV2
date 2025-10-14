@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Registration API Contract",
+  "description": "API contracts for user registration and organization creation (FR-001 through FR-007)",
+  "version": "1.0.0",
+  "endpoints": {
+    "register": {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "description": "Create new user account and organization (first user flow)",
+      "request": {
+        "type": "object",
+        "required": ["email", "password", "full_name", "organization_name", "accept_terms"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address (login identifier)",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Account password (minimum 6 characters per NFR-004)",
+            "example": "securepass123"
+          },
+          "full_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "User's full name",
+            "example": "John Doe"
+          },
+          "organization_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Organization name (non-unique per FR-007)",
+            "example": "Acme Construction Co."
+          },
+          "accept_terms": {
+            "type": "boolean",
+            "const": true,
+            "description": "Must be true to accept terms of service (FR-004)"
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "User and organization created successfully",
+          "type": "object",
+          "required": ["user", "organization", "session"],
+          "properties": {
+            "user": {
+              "type": "object",
+              "required": ["id", "email", "full_name"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "User ID (Supabase auth.users.id)"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "full_name": {
+                  "type": "string"
+                }
+              }
+            },
+            "organization": {
+              "type": "object",
+              "required": ["id", "name", "role"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "Organization ID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Organization name"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": ["owner"],
+                  "description": "User's role in organization (always 'owner' for first user per FR-005)"
+                }
+              }
+            },
+            "session": {
+              "type": "object",
+              "required": ["access_token", "refresh_token"],
+              "properties": {
+                "access_token": {
+                  "type": "string",
+                  "description": "JWT access token"
+                },
+                "refresh_token": {
+                  "type": "string",
+                  "description": "JWT refresh token"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Validation error",
+          "type": "object",
+          "required": ["error", "details"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "INVALID_EMAIL",
+                "EMAIL_ALREADY_REGISTERED",
+                "PASSWORD_TOO_SHORT",
+                "MISSING_REQUIRED_FIELD",
+                "TERMS_NOT_ACCEPTED"
+              ]
+            },
+            "details": {
+              "type": "string",
+              "description": "Human-readable error message"
+            }
+          }
+        },
+        "500": {
+          "description": "Server error (transaction rollback if organization/user creation fails)",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "const": "REGISTRATION_FAILED"
+            },
+            "details": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "check-email": {
+      "method": "POST",
+      "path": "/api/auth/check-email",
+      "description": "Check if email is already registered (FR-002 validation)",
+      "request": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Email availability check result",
+          "type": "object",
+          "required": ["available"],
+          "properties": {
+            "available": {
+              "type": "boolean",
+              "description": "true if email is available, false if already registered"
+            }
+          }
+        }
+      }
+    }
+  }
+}

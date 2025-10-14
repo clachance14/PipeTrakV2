@@ -1,0 +1,438 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Role Management API Contract",
+  "description": "API contracts for managing user roles and organization memberships (FR-008 through FR-018)",
+  "version": "1.0.0",
+  "endpoints": {
+    "update-user-role": {
+      "method": "PATCH",
+      "path": "/api/organizations/:org_id/members/:user_id/role",
+      "description": "Change user's role in organization (FR-006 scenario)",
+      "authorization": "Requires owner or admin role (FR-033 - prevent privilege escalation)",
+      "request": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["owner", "admin", "project_manager", "foreman", "qc_inspector", "welder", "viewer"],
+            "description": "New role to assign"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Role updated successfully",
+          "type": "object",
+          "required": ["success", "user"],
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "const": true
+            },
+            "user": {
+              "type": "object",
+              "required": ["id", "role"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "full_name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "description": "Updated role"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Validation error",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "CANNOT_REMOVE_LAST_OWNER",
+                "CANNOT_CHANGE_OWN_ROLE",
+                "INVALID_ROLE"
+              ]
+            },
+            "details": {
+              "type": "string"
+            }
+          }
+        },
+        "403": {
+          "description": "Authorization error (user not owner/admin)",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "const": "INSUFFICIENT_PERMISSIONS"
+            }
+          }
+        }
+      }
+    },
+    "remove-user": {
+      "method": "DELETE",
+      "path": "/api/organizations/:org_id/members/:user_id",
+      "description": "Remove user from organization (soft delete user_organizations record)",
+      "authorization": "Requires owner or admin role",
+      "request": null,
+      "responses": {
+        "200": {
+          "description": "User removed successfully",
+          "type": "object",
+          "required": ["success"],
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        },
+        "400": {
+          "description": "Cannot remove user",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "CANNOT_REMOVE_LAST_OWNER",
+                "TRANSFER_OWNERSHIP_REQUIRED"
+              ]
+            },
+            "details": {
+              "type": "string",
+              "description": "Guidance on transferring ownership (FR-038)"
+            }
+          }
+        }
+      }
+    },
+    "leave-organization": {
+      "method": "POST",
+      "path": "/api/organizations/:org_id/leave",
+      "description": "Current user leaves organization (FR-038, FR-039)",
+      "request": {
+        "type": "object",
+        "properties": {
+          "transfer_ownership_to": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID to transfer ownership to (required if current user is last owner)"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Successfully left organization",
+          "type": "object",
+          "required": ["success"],
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "const": true
+            },
+            "ownership_transferred": {
+              "type": "boolean",
+              "description": "true if ownership was transferred to another user"
+            }
+          }
+        },
+        "400": {
+          "description": "Cannot leave organization",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "TRANSFER_OWNERSHIP_REQUIRED",
+                "INVALID_TRANSFER_TARGET"
+              ]
+            },
+            "details": {
+              "type": "string"
+            },
+            "eligible_admins": {
+              "type": "array",
+              "description": "List of admins eligible for ownership transfer",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "full_name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "list-members": {
+      "method": "GET",
+      "path": "/api/organizations/:org_id/members",
+      "description": "List organization members with roles (NFR-003 pagination)",
+      "authorization": "Authenticated user in organization",
+      "request": {
+        "query_parameters": {
+          "role": {
+            "type": "string",
+            "enum": ["owner", "admin", "project_manager", "foreman", "qc_inspector", "welder", "viewer"],
+            "description": "Filter by role (optional)"
+          },
+          "search": {
+            "type": "string",
+            "description": "Search by name or email (NFR-003 basic search)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "List of members",
+          "type": "object",
+          "required": ["members", "total_count"],
+          "properties": {
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "email", "full_name", "role", "joined_at"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "full_name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "joined_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "user_organizations.created_at"
+                  }
+                }
+              }
+            },
+            "total_count": {
+              "type": "integer",
+              "description": "Total members matching filter"
+            }
+          }
+        }
+      }
+    },
+    "switch-organization": {
+      "method": "POST",
+      "path": "/api/auth/switch-organization",
+      "description": "Switch active organization context (FR-031, FR-032 - client-side operation)",
+      "request": {
+        "type": "object",
+        "required": ["organization_id"],
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Organization to switch to (must be in user's memberships)"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Organization switched successfully",
+          "type": "object",
+          "required": ["organization", "role"],
+          "properties": {
+            "organization": {
+              "type": "object",
+              "required": ["id", "name"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "role": {
+              "type": "string",
+              "description": "User's role in the switched organization"
+            }
+          }
+        },
+        "403": {
+          "description": "User not member of requested organization",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "const": "NOT_ORGANIZATION_MEMBER"
+            }
+          }
+        },
+        "404": {
+          "description": "Organization not found or soft-deleted"
+        }
+      }
+    },
+    "get-user-organizations": {
+      "method": "GET",
+      "path": "/api/auth/organizations",
+      "description": "Get all organizations user belongs to (for organization switcher)",
+      "request": null,
+      "responses": {
+        "200": {
+          "description": "List of user's organizations",
+          "type": "object",
+          "required": ["organizations"],
+          "properties": {
+            "organizations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "name", "role", "joined_at"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "User's role in this organization"
+                  },
+                  "joined_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "role_permissions": {
+    "description": "Permission matrix for role-based feature access (FR-011 through FR-017)",
+    "permissions": {
+      "billing": {
+        "owner": true,
+        "admin": false,
+        "project_manager": false,
+        "foreman": false,
+        "qc_inspector": false,
+        "welder": false,
+        "viewer": false
+      },
+      "manage_team": {
+        "owner": true,
+        "admin": true,
+        "project_manager": false,
+        "foreman": false,
+        "qc_inspector": false,
+        "welder": false,
+        "viewer": false
+      },
+      "create_projects": {
+        "owner": true,
+        "admin": true,
+        "project_manager": true,
+        "foreman": false,
+        "qc_inspector": false,
+        "welder": false,
+        "viewer": false
+      },
+      "edit_projects": {
+        "owner": true,
+        "admin": true,
+        "project_manager": true,
+        "foreman": false,
+        "qc_inspector": false,
+        "welder": false,
+        "viewer": false
+      },
+      "assign_work": {
+        "owner": true,
+        "admin": true,
+        "project_manager": true,
+        "foreman": true,
+        "qc_inspector": false,
+        "welder": false,
+        "viewer": false
+      },
+      "update_component_status": {
+        "owner": true,
+        "admin": true,
+        "project_manager": true,
+        "foreman": true,
+        "qc_inspector": false,
+        "welder": true,
+        "viewer": false
+      },
+      "approve_work": {
+        "owner": true,
+        "admin": true,
+        "project_manager": true,
+        "foreman": false,
+        "qc_inspector": true,
+        "welder": false,
+        "viewer": false
+      },
+      "view_all_projects": {
+        "owner": true,
+        "admin": true,
+        "project_manager": true,
+        "foreman": true,
+        "qc_inspector": true,
+        "welder": false,
+        "viewer": true
+      }
+    }
+  }
+}

@@ -1,0 +1,462 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Team Invitations API Contract",
+  "description": "API contracts for team invitation workflow (FR-019 through FR-028)",
+  "version": "1.0.0",
+  "endpoints": {
+    "create-invitation": {
+      "method": "POST",
+      "path": "/api/invitations",
+      "description": "Invite team member by email with assigned role (FR-019, FR-020)",
+      "authorization": "Requires owner or admin role (FR-019)",
+      "request": {
+        "type": "object",
+        "required": ["email", "role"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Invitee email address"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "admin", "project_manager", "foreman", "qc_inspector", "welder", "viewer"],
+            "description": "Role to assign upon acceptance (FR-020)"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Organization ID (optional - defaults to user's active org)"
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Invitation created and email sent",
+          "type": "object",
+          "required": ["invitation"],
+          "properties": {
+            "invitation": {
+              "type": "object",
+              "required": ["id", "email", "role", "expires_at", "invitation_link"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["pending"]
+                },
+                "expires_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Invitation expiration (7 days from creation per research.md)"
+                },
+                "invitation_link": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Full invitation URL for manual sharing (FR-041 fallback)",
+                  "example": "https://app.pipetrak.com/accept-invitation?token=abc123..."
+                }
+              }
+            },
+            "email_sent": {
+              "type": "boolean",
+              "description": "true if email sent successfully, false if failed (FR-041)"
+            }
+          }
+        },
+        "400": {
+          "description": "Validation error",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "INVALID_EMAIL",
+                "DUPLICATE_INVITATION",
+                "USER_ALREADY_MEMBER",
+                "INVALID_ROLE"
+              ]
+            },
+            "details": {
+              "type": "string"
+            }
+          }
+        },
+        "403": {
+          "description": "Authorization error (user not owner/admin)",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "const": "INSUFFICIENT_PERMISSIONS"
+            }
+          }
+        }
+      }
+    },
+    "accept-invitation": {
+      "method": "POST",
+      "path": "/api/invitations/accept",
+      "description": "Accept invitation and join organization (FR-026, FR-027)",
+      "request": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "description": "Invitation token from email link (32-byte base64url, NFR-005)"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Password for new user account (required only if user doesn't exist)"
+          },
+          "full_name": {
+            "type": "string",
+            "description": "Full name for new user account (required only if user doesn't exist)"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Invitation accepted successfully",
+          "type": "object",
+          "required": ["user", "organization", "role"],
+          "properties": {
+            "user": {
+              "type": "object",
+              "required": ["id", "email"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "is_new_user": {
+                  "type": "boolean",
+                  "description": "true if account just created, false if existing user"
+                }
+              }
+            },
+            "organization": {
+              "type": "object",
+              "required": ["id", "name"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "role": {
+              "type": "string",
+              "description": "Role assigned in organization"
+            },
+            "session": {
+              "type": "object",
+              "description": "Auth session (only for new users)",
+              "properties": {
+                "access_token": {
+                  "type": "string"
+                },
+                "refresh_token": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Validation error",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "INVALID_TOKEN",
+                "INVITATION_EXPIRED",
+                "INVITATION_REVOKED",
+                "INVITATION_ALREADY_ACCEPTED",
+                "PASSWORD_REQUIRED",
+                "FULL_NAME_REQUIRED"
+              ]
+            },
+            "details": {
+              "type": "string"
+            }
+          }
+        },
+        "404": {
+          "description": "Invitation not found",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "const": "INVITATION_NOT_FOUND"
+            }
+          }
+        }
+      }
+    },
+    "resend-invitation": {
+      "method": "POST",
+      "path": "/api/invitations/:id/resend",
+      "description": "Resend invitation email (FR-024)",
+      "authorization": "Requires owner or admin role",
+      "request": null,
+      "responses": {
+        "200": {
+          "description": "Invitation email resent",
+          "type": "object",
+          "required": ["success", "email_sent"],
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "const": true
+            },
+            "email_sent": {
+              "type": "boolean",
+              "description": "true if email sent successfully, false if failed (FR-041)"
+            },
+            "invitation_link": {
+              "type": "string",
+              "format": "uri",
+              "description": "Invitation URL for manual sharing if email failed"
+            }
+          }
+        },
+        "400": {
+          "description": "Invitation cannot be resent",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "INVITATION_ALREADY_ACCEPTED",
+                "INVITATION_REVOKED",
+                "INVITATION_EXPIRED"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "revoke-invitation": {
+      "method": "DELETE",
+      "path": "/api/invitations/:id",
+      "description": "Revoke pending invitation (FR-028)",
+      "authorization": "Requires owner or admin role",
+      "request": null,
+      "responses": {
+        "200": {
+          "description": "Invitation revoked successfully",
+          "type": "object",
+          "required": ["success"],
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        },
+        "400": {
+          "description": "Invitation cannot be revoked",
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "type": "string",
+              "enum": [
+                "INVITATION_ALREADY_ACCEPTED",
+                "INVITATION_ALREADY_REVOKED"
+              ]
+            }
+          }
+        },
+        "404": {
+          "description": "Invitation not found"
+        }
+      }
+    },
+    "list-invitations": {
+      "method": "GET",
+      "path": "/api/invitations",
+      "description": "List organization invitations (pending, accepted, revoked)",
+      "authorization": "Requires owner or admin role",
+      "request": {
+        "query_parameters": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "accepted", "revoked", "expired"],
+            "description": "Filter by invitation status (optional)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50,
+            "description": "Pagination limit (NFR-003 light pagination)"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Pagination offset"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "List of invitations",
+          "type": "object",
+          "required": ["invitations", "total_count"],
+          "properties": {
+            "invitations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "email", "role", "status", "created_at", "expires_at"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "invited_by": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "full_name": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "accepted_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            },
+            "total_count": {
+              "type": "integer",
+              "description": "Total invitations matching filter"
+            }
+          }
+        }
+      }
+    },
+    "validate-token": {
+      "method": "GET",
+      "path": "/api/invitations/validate",
+      "description": "Validate invitation token without accepting (for UI display)",
+      "request": {
+        "query_parameters": {
+          "token": {
+            "type": "string",
+            "required": true,
+            "description": "Invitation token to validate"
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Token is valid",
+          "type": "object",
+          "required": ["valid", "invitation"],
+          "properties": {
+            "valid": {
+              "type": "boolean",
+              "const": true
+            },
+            "invitation": {
+              "type": "object",
+              "required": ["organization_name", "role", "expires_at"],
+              "properties": {
+                "organization_name": {
+                  "type": "string",
+                  "description": "Organization name to display to invitee"
+                },
+                "role": {
+                  "type": "string",
+                  "description": "Role they will be assigned"
+                },
+                "expires_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "invited_by_name": {
+                  "type": "string",
+                  "description": "Full name of user who sent invitation"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Token is invalid",
+          "type": "object",
+          "required": ["valid", "error"],
+          "properties": {
+            "valid": {
+              "type": "boolean",
+              "const": false
+            },
+            "error": {
+              "type": "string",
+              "enum": [
+                "INVALID_TOKEN",
+                "INVITATION_EXPIRED",
+                "INVITATION_REVOKED",
+                "INVITATION_ALREADY_ACCEPTED"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

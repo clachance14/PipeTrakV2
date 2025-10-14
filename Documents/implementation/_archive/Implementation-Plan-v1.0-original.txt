@@ -20,7 +20,8 @@ TABLE OF CONTENTS
 10. Risk Register & Mitigation
 11. Pilot Plan Integration
 12. Post-MVP Roadmap
-13. Appendices
+13. Testing Standards & Strategy
+14. Appendices
 
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1393,21 +1394,46 @@ TASKS:
   - Vite + React + TypeScript
   - Install dependencies: Shadcn/ui, TanStack Query, Zustand, Supabase client
   - Set up Tailwind CSS + theme configuration
-□ Create basic auth flow (login/signup pages)
+□ Verify existing auth flow (AuthContext, ProtectedRoute already implemented)
 □ Document architecture decisions in .specify/memory/
+□ Configure test infrastructure:
+  - Set up Vitest coverage reporting (vitest --coverage)
+  - Configure test file organization (colocated .test.tsx pattern)
+  - Add test execution to CI pipeline (must pass before merge)
+  - Set coverage thresholds: 70% utils, 60% components, 80% business logic
+  - Install testing dependencies: @testing-library/user-event, MSW (Mock Service Worker)
+□ Create TDD workflow documentation:
+  - Add testing patterns to CLAUDE.md
+  - Create example: failing test → implementation → passing test
+  - Document mocking strategy (Supabase client, realtime)
+□ Write initial test suite for existing code:
+  - Test: AuthContext provides user session
+  - Test: ProtectedRoute redirects when unauthenticated
+  - Test: ProtectedRoute renders children when authenticated
 
 DELIVERABLES:
 ✅ Spec Kit project structure in place
-✅ GitHub repo with CI/CD pipeline green
+✅ GitHub repo with CI/CD pipeline green (including test execution)
 ✅ Supabase staging environment live
 ✅ Vercel staging deployment live
-✅ Basic auth flow functional
+✅ Auth flow functional (already exists, tests added)
 ✅ Constitution document finalized
+✅ Test infrastructure configured
+✅ Initial test suite passing
 
 ACCEPTANCE CRITERIA:
 - Developer can clone repo, run npm install, npm run dev
-- CI passes on main branch
+- CI passes on main branch (lint + type-check + tests + build)
+- npm test runs successfully with ≥70% coverage
 - Can log in to staging app with test account
+- Auth flow has test coverage (AuthContext, ProtectedRoute)
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: TypeScript strict mode enforced in tsconfig, no `as` assertions
+- ✅ II. Component-Driven: Test infrastructure supports component testing (Testing Library)
+- ✅ III. Testing Discipline: Tests written before implementation (initial auth tests)
+- ✅ IV. Supabase Integration: Client initialized with env validation, types generated
+- ✅ V. Specify Workflow: Project initialized with `.specify/` structure
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1422,15 +1448,33 @@ GOALS:
 - Implement RLS policies
 - Basic project/drawing/component CRUD
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Database Tests (MUST FAIL initially)**
+□ Write RLS policy integration tests:
+  - Test: User in org A cannot read org B projects (must fail until RLS created)
+  - Test: User in org A cannot read org B components
+  - Test: User without can_update_milestones cannot update components
+  - Test: User with can_update_milestones CAN update their org's components
+□ Write stored procedure tests:
+  - Test: calculate_component_percent() returns 0% when no milestones complete
+  - Test: calculate_component_percent() returns 50% when half complete (Spool: Receive+Erect)
+  - Test: calculate_component_percent() returns 100% when all complete
+  - Test: detect_similar_drawings('P-001') finds 'P-0001' with >85% similarity
+  - Test: detect_similar_drawings() excludes retired drawings
+□ Write component tests for data layer hooks:
+  - Test: useProjects() returns only current org's projects
+  - Test: useComponents() fetches components for given project
+  - Test: useDrawings() returns drawings filtered by project_id
+
+**Phase 2: Implement Database (Tests Should Now Pass)**
 □ Create all database tables (see §4.1)
   - organizations, projects, users, user_organizations, user_capabilities
   - drawings, areas, systems, test_packages
   - progress_templates, components, milestone_events
   - welders, needs_review, audit_log
 □ Create indexes for performance (see §4.1)
-□ Create RLS policies for all tables
-  - Test: Verify user in org A cannot access org B data
+□ Create RLS policies for all tables (run tests to verify)
 □ Seed progress_templates table with 6 templates:
   - Spool, Field Weld, Support/Valve/Fitting/Flange, Threaded Pipe, Insulation, Paint
 □ Implement stored procedures:
@@ -1440,6 +1484,18 @@ TASKS:
   - mv_package_readiness
   - mv_drawing_progress
 □ Set up materialized view refresh job (every 60s)
+
+**Phase 3: Write Frontend Component Tests (MUST FAIL initially)**
+□ Write component tests for ProjectListPage:
+  - Test: Renders project list for authenticated user
+  - Test: Shows empty state when no projects
+  - Test: Filters projects by organization
+□ Write component tests for ComponentsTable:
+  - Test: Renders component rows
+  - Test: Shows component fields (type, drawing, %, last_updated)
+  - Test: Handles empty state
+
+**Phase 4: Implement Frontend (Tests Should Now Pass)**
 □ Build frontend data layer:
   - Generate TypeScript types from schema
   - Create TanStack Query hooks (useComponents, useDrawings, usePackages)
@@ -1450,14 +1506,26 @@ TASKS:
 
 DELIVERABLES:
 ✅ All database tables created with RLS
+✅ RLS test suite passing (multi-tenant isolation verified)
+✅ Stored procedure tests passing
 ✅ Progress templates seeded
-✅ ProjectListPage functional
+✅ ProjectListPage functional with test coverage
 ✅ Can create test project + drawing + component via Supabase Studio
+✅ Test coverage ≥70% for new code
 
 ACCEPTANCE CRITERIA:
 - User can view projects (filtered by org)
-- User cannot view other orgs' projects (RLS enforced)
-- Component percent_complete auto-calculates when milestones change
+- User cannot view other orgs' projects (RLS enforced AND tested)
+- Component percent_complete auto-calculates when milestones change (tested)
+- All RLS integration tests pass in CI
+- Database has ≥80% test coverage for business logic
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: Database types auto-generated, path aliases used (`@/*`)
+- ✅ II. Component-Driven: React hooks (TanStack Query) used for server state
+- ✅ III. Testing Discipline: RLS tests written before policies, stored procedure tests before implementation
+- ✅ IV. Supabase Integration: RLS enabled on all tables, TanStack Query wraps all Supabase calls
+- ✅ V. Specify Workflow: Sprint follows TDD phases (write tests → implement)
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1471,7 +1539,50 @@ GOALS:
 - Implement welder capture for Field Welds
 - Implement bulk update (single component type only)
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Component Tests (MUST FAIL initially)**
+□ Write tests for MilestoneButton component:
+  - Test: Shows unchecked state when milestone not complete
+  - Test: Shows checked state (green checkmark) when milestone complete
+  - Test: Optimistic update shows checked immediately on click
+  - Test: 2-second undo window displays after toggle
+  - Test: Calls mutation with correct component_id and milestone name
+  - Test: Reverts optimistic update if mutation fails
+□ Write tests for WeldMadeModal component:
+  - Test: Welder typeahead filters welders by name as user types
+  - Test: Welder typeahead shows "Add new welder" option when no match
+  - Test: Can add new welder inline (status=unverified)
+  - Test: Saves welder + milestone + event atomically (single mutation)
+  - Test: Shows validation error if welder name empty
+□ Write tests for NeedsReviewBadge component:
+  - Test: Shows amber badge if created <24h ago
+  - Test: Shows red badge if created ≥24h ago
+  - Test: Displays reason text on hover
+□ Write tests for ComponentRow component:
+  - Test: Renders all fields (type, drawing, milestones, %, last_updated)
+  - Test: Shows NeedsReviewBadge when component has pending review
+  - Test: Milestone buttons disabled when user lacks can_update_milestones
+
+**Phase 2: Write Integration Tests (MUST FAIL initially)**
+□ Write integration tests for milestone update workflow:
+  - Test: Update creates milestone_events entry with correct timestamp
+  - Test: Update creates audit_log entry with user_id and action
+  - Test: Update recalculates percent_complete (verify calculation)
+  - Test: Out-of-sequence milestone creates needs_review entry (type: OUT_OF_SEQUENCE)
+  - Test: Prerequisite check: Cannot mark "Connect" complete before "Erect"
+□ Write integration tests for bulk update (single type):
+  - Test: Bulk update 25 Spools marks all Receive complete
+  - Test: Confirmation modal shows for >10 items
+  - Test: Returns summary {updated: 25, skipped: 0, flagged: 0}
+  - Test: Skips components that don't have the milestone in their template
+  - Test: Flags components with out-of-sequence dependencies
+□ Write performance tests for virtualized table:
+  - Test: 10k row table renders in <500ms
+  - Test: Scrolling maintains 60fps (no dropped frames)
+  - Test: Filtering 10k rows updates UI in <300ms
+
+**Phase 3: Implement Features (Tests Should Now Pass)**
 □ Implement ComponentsTable with TanStack Virtual
   - Test with 10k dummy rows
   - Target: 60fps scrolling
@@ -1504,12 +1615,22 @@ DELIVERABLES:
 ✅ Milestone toggles functional for Spools, Field Welds, Supports
 ✅ Welder capture for Weld Made
 ✅ Bulk update for single component type
+✅ Test coverage ≥60% for components, ≥70% for utilities
+✅ All integration tests passing
 
 ACCEPTANCE CRITERIA:
 - Foreman can update 25 Spools in <10s (bulk Receive)
 - Welder typeahead shows existing welders
-- Out-of-sequence milestone creates Needs Review entry
-- p90 milestone update <1s
+- Out-of-sequence milestone creates Needs Review entry (verified in tests)
+- p90 milestone update <1s (measured in performance tests)
+- All milestone and bulk update tests pass before feature merge
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: TypeScript strict mode passing, no unchecked array access
+- ✅ II. Component-Driven: MilestoneButton, WeldMadeModal follow shadcn/ui patterns (Radix primitives)
+- ✅ III. Testing Discipline: Component tests written before components, integration tests before workflows
+- ✅ IV. Supabase Integration: TanStack Query used for milestone mutations, optimistic updates
+- ✅ V. Specify Workflow: Features follow TDD workflow (Red-Green-Refactor)
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1524,7 +1645,44 @@ GOALS:
 - Implement similar drawing detection
 - Implement fail-fast validation with row-level errors
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Unit Tests for Normalization Logic (MUST FAIL initially)**
+□ Write unit tests for drawing normalization:
+  - Test: "P-001" normalizes to "P001"
+  - Test: " p-0001 " (with spaces) normalizes to "P001"
+  - Test: "P--0-0-1" (multiple separators) normalizes to "P001"
+  - Test: Preserves valid formats without leading zeros
+  - Test: Handles edge cases (null, empty string)
+
+**Phase 2: Write Integration Tests for Import Edge Function (MUST FAIL initially)**
+□ Write integration tests for import-components Edge Function:
+  - Test: Valid 100-row file imports successfully
+  - Test: Duplicate spool_id (Class-A) rejects entire file with error report
+  - Test: Missing required field returns row-level error (row 5, column "spool_id", reason "Required")
+  - Test: Invalid data type returns row-level error
+  - Test: Auto-creates missing drawings (verify drawing created in DB)
+  - Test: Similarity detection creates needs_review for "P-001" vs "P-0001"
+  - Test: Import creates audit_log entries for all new components
+  - Test: RLS enforcement: User in org A cannot import into org B project
+  - Test: Transaction rollback on validation failure (partial import rejected)
+□ Write performance tests for import:
+  - Test: 1k row import completes in <60s
+  - Test: 10k row import completes in <5min
+
+**Phase 3: Write Component Tests (MUST FAIL initially)**
+□ Write tests for ImportPage component:
+  - Test: File upload drag-and-drop triggers import
+  - Test: Template download links are functional
+  - Test: Error report displays row-level errors in table
+  - Test: Error report CSV downloadable
+  - Test: Shows progress indicator during import
+□ Write tests for similar drawing review UI:
+  - Test: Shows new drawing vs top 3 matches
+  - Test: Approve button confirms new drawing
+  - Test: Reject button merges into existing drawing
+
+**Phase 4: Implement Features (Tests Should Now Pass)**
 □ Create Excel template (download from UI):
   - Spool template: spool_id, drawing_no, spec, size, material, area, system
   - Field Weld template: weld_number, drawing_no
@@ -1552,8 +1710,6 @@ TASKS:
 □ Build similar drawing review UI:
   - Show new drawing vs top 3 matches
   - Approve (confirm new) or Reject (merge into existing)
-□ Test import with 1k rows (<60s target)
-□ Test import with 10k rows (<5m target)
 
 DELIVERABLES:
 ✅ Import page functional
@@ -1561,12 +1717,22 @@ DELIVERABLES:
 ✅ Import succeeds for valid files
 ✅ Import fails fast with row-level errors for invalid files
 ✅ Similar drawing detection working
+✅ Import edge function has ≥80% test coverage
+✅ All import integration tests passing
 
 ACCEPTANCE CRITERIA:
-- Import 1k components in <60s
-- Duplicate spool_id rejects entire file
-- Similar drawing "P-001" vs "P-0001" creates Needs Review
+- Import 1k components in <60s (verified in performance tests)
+- Duplicate spool_id rejects entire file (verified in tests)
+- Similar drawing "P-001" vs "P-0001" creates Needs Review (verified in tests)
 - Error report CSV downloadable
+- All import tests pass including performance benchmarks
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: Type-safe normalization functions, no `as` assertions
+- ✅ II. Component-Driven: ImportPage component composable, single responsibility
+- ✅ III. Testing Discipline: Unit tests for normalization, integration tests for Edge Function
+- ✅ IV. Supabase Integration: Import Edge Function uses RLS, transaction rollback on failure
+- ✅ V. Specify Workflow: Tests written before implementation (TDD phases 1-4)
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1581,7 +1747,46 @@ GOALS:
 - Implement Needs Review queue (all 6 types)
 - Implement resolution workflows
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Component Tests (MUST FAIL initially)**
+□ Write tests for WelderDirectoryPage:
+  - Test: Lists all welders for current org
+  - Test: Filters by status (unverified/verified)
+  - Test: Search by name/stencil filters results
+  - Test: Shows usage count (# of milestone_events)
+□ Write tests for NeedsReviewPage:
+  - Test: Groups reviews by type (6 groups)
+  - Test: Age badges show amber if <24h, red if ≥24h
+  - Test: Filters work (type, age, component)
+  - Test: Clicking review expands details
+
+**Phase 2: Write Integration Tests (MUST FAIL initially)**
+□ Write tests for welder verification workflow:
+  - Test: Verify button changes status to verified, records verified_by + verified_at
+  - Test: Unverified welder used 6 times creates VERIFY_WELDER needs_review
+  - Test: Auto-flag triggers only once per welder
+□ Write tests for welder merge:
+  - Test: Reassigns all milestone_events to primary welder
+  - Test: Soft-deletes duplicate welder (is_deleted=true)
+  - Test: Creates audit_log entry with action=MERGE_WELDER
+□ Write tests for resolution workflows (all 6 types):
+  - Test: OUT_OF_SEQUENCE approval marks resolved
+  - Test: ROLLBACK approval marks resolved
+  - Test: DELTA_QUANTITY approval adds 3 support instances
+  - Test: DRAWING_CHANGE approval updates component.drawing_id
+  - Test: SIMILAR_DRAWING rejection merges components into existing drawing
+  - Test: VERIFY_WELDER verification updates welder status
+□ Write tests for resolve-needs-review Edge Function:
+  - Test: Applies resolution logic correctly
+  - Test: Updates needs_review.status = 'resolved'
+  - Test: Creates audit_log entry for each resolution
+  - Test: RLS: User without can_resolve_reviews cannot resolve
+□ Write tests for coalescing logic:
+  - Test: Daily DELTA_QUANTITY reviews coalesce by group_key
+  - Test: Multiple deltas (+2, -1, +3) combine into single review
+
+**Phase 3: Implement Features (Tests Should Now Pass)**
 □ Build WelderDirectoryPage:
   - List all welders (table: name, stencil, status, usage count)
   - Filter by status (unverified, verified)
@@ -1616,12 +1821,22 @@ DELIVERABLES:
 ✅ Welder verification working
 ✅ Needs Review queue showing all 6 types
 ✅ Resolution workflows functional
+✅ Test coverage ≥70% for welder workflow
+✅ All needs_review resolution tests passing
 
 ACCEPTANCE CRITERIA:
-- QC can verify welder from directory
-- Unverified welder used 6 times creates Needs Review
-- Resolving DELTA_QUANTITY adds 3 new support instances
-- Resolving SIMILAR_DRAWING merges components into existing drawing
+- QC can verify welder from directory (verified in tests)
+- Unverified welder used 6 times creates Needs Review (verified in tests)
+- Resolving DELTA_QUANTITY adds 3 new support instances (verified in tests)
+- Resolving SIMILAR_DRAWING merges components into existing drawing (verified in tests)
+- All 6 resolution workflow tests pass
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: Welder types defined, strict typing for resolution workflows
+- ✅ II. Component-Driven: WelderDirectoryPage, NeedsReviewPage components follow patterns
+- ✅ III. Testing Discipline: Integration tests for all 6 resolution types written first
+- ✅ IV. Supabase Integration: resolve-needs-review Edge Function enforces RLS
+- ✅ V. Specify Workflow: TDD phases followed (tests → implementation)
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1636,7 +1851,45 @@ GOALS:
 - Implement Package Readiness Dashboard
 - Implement global search
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Integration Tests (MUST FAIL initially)**
+□ Write tests for multi-type bulk update:
+  - Test: Spools + Valves shows intersection (Punch/Test/Restore only)
+  - Test: No shared milestones shows error message
+  - Test: Confirmation modal shows for >10 items
+  - Test: Returns accurate summary {updated: 50, skipped: 0, flagged: 2}
+□ Write tests for bulk-update-milestones Edge Function:
+  - Test: Validates all components share milestone
+  - Test: Updates components.current_milestones in single transaction
+  - Test: Creates milestone_events for each component (batch insert)
+  - Test: Creates audit_log entries
+  - Test: Checks dependencies, creates OUT_OF_SEQUENCE reviews
+  - Test: Atomic rollback on any failure
+□ Write performance tests:
+  - Test: Bulk update 50 components completes in <10s
+  - Test: Edge function handles 100 components without timeout
+
+**Phase 2: Write Component Tests (MUST FAIL initially)**
+□ Write tests for TestPackageCRUD:
+  - Test: Create package modal saves with name, description, target_date
+  - Test: Assign components multi-select updates test_package_id
+  - Test: Edit package updates without data loss
+  - Test: Reassigning components creates audit_log entry
+□ Write tests for PackageReadinessPage:
+  - Test: Calculates % correctly (matches mv_package_readiness)
+  - Test: Shows blocker count (pending needs_review count)
+  - Test: Filter "Near Ready" shows only ≥80%
+  - Test: Filter "Blocked" shows packages with >0 pending reviews
+  - Test: Clicking card navigates to components view
+□ Write tests for global search:
+  - Test: Typeahead shows after 2+ characters typed
+  - Test: Searches component ID, drawing, area, system, package
+  - Test: Returns first 50 results
+  - Test: Clicking result expands drawing and scrolls to row
+  - Test: Returns results in <500ms (performance test)
+
+**Phase 3: Implement Features (Tests Should Now Pass)**
 □ Enhance bulk update to support mixed component types:
   - Calculate shared milestones (intersection logic)
   - Show message if no shared milestones
@@ -1664,19 +1917,27 @@ TASKS:
   - Search: component ID, drawing number, area, system, package
   - Show first 50 results
   - Click result → expand drawing, scroll to component row
-□ Test bulk update with 50 components (<10s target)
 
 DELIVERABLES:
 ✅ Multi-type bulk update functional
 ✅ Test Package CRUD working
 ✅ Package Readiness Dashboard showing real-time %
 ✅ Global search functional
+✅ Bulk update edge function ≥80% coverage
+✅ Package readiness calculations match materialized view (verified in tests)
 
 ACCEPTANCE CRITERIA:
-- Bulk update 50 Spools + Valves (only Punch/Test/Restore shown)
-- Package card shows accurate % (within 1% of manual calculation)
-- Global search returns results in <500ms
-- Bulk update 50 components completes in <10s
+- Bulk update 50 Spools + Valves shows only Punch/Test/Restore (verified in tests)
+- Package card shows accurate % within 1% of manual calculation (verified in tests)
+- Global search returns results in <500ms (verified in performance tests)
+- Bulk update 50 components completes in <10s (verified in performance tests)
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: Package types match database schema, intersection logic type-safe
+- ✅ II. Component-Driven: TestPackageCRUD, PackageReadinessPage follow shadcn/ui patterns
+- ✅ III. Testing Discipline: Integration tests for bulk update, performance tests for search
+- ✅ IV. Supabase Integration: Package queries use materialized view (mv_package_readiness)
+- ✅ V. Specify Workflow: Tests verify acceptance criteria before implementation
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1691,13 +1952,41 @@ GOALS:
 - Optimize bulk update performance
 - Load testing (1M components, 50 concurrent users)
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Integration Tests (MUST FAIL initially)**
+□ Write tests for real-time subscriptions:
+  - Test: Component update broadcasts to subscribed clients
+  - Test: Milestone_events subscription triggers notification
+  - Test: Local cache updates on broadcast
+  - Test: Fallback polling works when WebSocket disconnected
+  - Test: Reconnection resumes realtime subscription
+□ Write tests for retry queue:
+  - Test: Queues failed requests when offline
+  - Test: Shows "Work Not Saved" banner when queue not empty
+  - Test: Retries all queued requests on reconnect
+  - Test: Drops queue on app close
+  - Test: Max queue size (50 actions)
+
+**Phase 2: Write Performance Tests**
+□ Write load tests (k6 or Artillery scripts):
+  - Test: 1M components seeded across 10 projects
+  - Test: 50 concurrent users updating milestones simultaneously
+  - Test: p50/p90/p95 latencies for milestone update
+  - Test: Component lookup with 1M components <100ms
+  - Test: Bulk update 50 components <10s
+  - Test: No degradation under load (latency stable)
+□ Write sync latency tests:
+  - Test: User A updates component → User B sees update in ≤30s
+  - Test: ≥90% of updates visible in ≤30s (statistical measurement)
+
+**Phase 3: Optimization & Implementation**
 □ Implement real-time subscriptions:
   - Subscribe to components table changes (per project_id)
   - Subscribe to milestone_events (for notifications)
   - Update local cache on broadcast
   - Fallback: 30s polling if WebSocket disconnects
-□ Measure sync latency:
+□ Measure sync latency (run tests):
   - User A updates component on mobile
   - User B sees update on desktop within 30s
   - Target: ≥90% of updates visible in ≤30s
@@ -1709,7 +1998,7 @@ TASKS:
   - Batch inserts (bulk-update-milestones: use single INSERT statement)
   - Connection pooling (Supabase Supavisor)
   - Reduce round trips (use stored procedures for complex logic)
-□ Load testing:
+□ Run load testing:
   - Seed 1M components across 10 projects
   - Simulate 50 concurrent users (k6 or Artillery)
   - Measure p50/p90/p95 latencies
@@ -1728,13 +2017,21 @@ DELIVERABLES:
 ✅ Performance optimized (p90 <1s)
 ✅ Load test passed (1M components, 50 users)
 ✅ Retry queue functional
+✅ All realtime and performance tests passing
 
 ACCEPTANCE CRITERIA:
-- Foreman updates component on mobile → PM sees update on desktop in <30s
-- p90 milestone update <1s, p95 <2s (measured via Sentry)
-- Bulk update 50 components <10s
-- 1M components: component lookup <100ms
-- 50 concurrent users: no degradation
+- Foreman updates component on mobile → PM sees update on desktop in <30s (verified in tests)
+- p90 milestone update <1s, p95 <2s (measured via Sentry and load tests)
+- Bulk update 50 components <10s (verified in performance tests)
+- 1M components: component lookup <100ms (verified in load tests)
+- 50 concurrent users: no degradation (verified in load tests)
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: Realtime subscription types match Supabase generated types
+- ✅ II. Component-Driven: Retry queue uses Zustand for client state
+- ✅ III. Testing Discipline: Load tests verify performance targets, integration tests for realtime
+- ✅ IV. Supabase Integration: Realtime subscriptions clean up on unmount
+- ✅ V. Specify Workflow: Performance benchmarks validated before optimization
 
 ──────────────────────────────────────────────────────────────────────────────
 
@@ -1750,7 +2047,39 @@ GOALS:
 - Deploy to production
 - Onboard pilot users
 
-TASKS:
+TASKS (TDD ORDER - Tests First):
+
+**Phase 1: Write Component Tests (MUST FAIL initially)**
+□ Write tests for mobile UI:
+  - Test: Responsive design renders correctly on mobile viewport (375px, 768px)
+  - Test: Touch targets ≥44x44px (accessibility)
+  - Test: Bottom navigation works on mobile
+  - Test: Pull-to-refresh triggers refetch
+  - Test: PWA manifest valid (can be installed)
+□ Write tests for in-app notifications:
+  - Test: Weld Made event creates notification for QC/PM
+  - Test: Rollback event creates notification for PM
+  - Test: Bell icon shows unread count
+  - Test: Mark as read updates notification status
+  - Test: Clear all removes all notifications
+□ Write tests for notification preferences:
+  - Test: "Notify on Weld Made" toggle saves preference
+  - Test: Default preferences set correctly by role (QC/PM on, foreman off)
+  - Test: Disabled notification type does not create notification
+
+**Phase 2: Write E2E Tests (Playwright or Cypress)**
+□ Write E2E smoke tests for critical workflows:
+  - Test: Foreman workflow (login → bulk update 25 Spools → logout)
+  - Test: PM workflow (login → view package readiness → drill down → logout)
+  - Test: QC workflow (login → verify welder → resolve needs_review → logout)
+  - Test: Import workflow (login → upload Excel → verify components created → logout)
+□ Write cross-browser/device tests:
+  - Test: PWA install on iOS Safari
+  - Test: PWA install on Chrome Android
+  - Test: Touch interactions work on physical device
+  - Test: Offline detection (airplane mode shows banner)
+
+**Phase 3: Implement Features & Deploy**
 □ Mobile UI polish:
   - Responsive design (all pages mobile-friendly)
   - Touch-optimized buttons (min 44x44px)
@@ -1765,6 +2094,9 @@ TASKS:
 □ Build notification preferences (future: email opt-in):
   - Toggle: "Notify me on Weld Made" (default: on for QC/PM)
   - Toggle: "Notify me on Rollback" (default: on for PM)
+□ Run E2E tests on staging:
+  - All smoke tests pass on staging environment
+  - Cross-browser tests pass (iOS Safari, Chrome Android, desktop Chrome)
 □ Create training materials:
   - Foreman quick start guide (PDF): "How to update milestones"
   - PM guide (PDF): "How to use Package Readiness Dashboard"
@@ -1774,7 +2106,8 @@ TASKS:
   - Deploy database schema to production Supabase
   - Seed progress templates
   - Deploy frontend to Vercel production
-  - Smoke test: Create test project, import components, update milestones
+  - Run E2E smoke tests on production
+  - Manual smoke test: Create test project, import components, update milestones
 □ Onboard pilot users:
   - Create accounts for 3 foremen, 1 PM, 1 QC
   - Set capabilities (can_update_milestones, can_resolve_reviews, etc.)
@@ -1787,12 +2120,22 @@ DELIVERABLES:
 ✅ Training materials created
 ✅ Production deployment live
 ✅ Pilot users onboarded
+✅ E2E smoke tests passing on production
+✅ Mobile UI passes accessibility tests (WCAG AA)
 
 ACCEPTANCE CRITERIA:
-- Foreman can install PWA to iPhone home screen
-- Foreman can update 25 components in <10s on mobile
-- PM receives in-app notification when weld completed
+- Foreman can install PWA to iPhone home screen (verified in E2E tests)
+- Foreman can update 25 components in <10s on mobile (verified in E2E tests)
+- PM receives in-app notification when weld completed (verified in tests)
 - All pilot users logged in successfully
+- E2E smoke tests pass on production (all 3 workflows)
+
+CONSTITUTION COMPLIANCE (v1.0.0):
+- ✅ I. Type Safety First: PWA manifest types valid, notification types defined
+- ✅ II. Component-Driven: Mobile UI components responsive, touch targets ≥44px (accessible)
+- ✅ III. Testing Discipline: E2E tests for critical workflows, cross-browser tests
+- ✅ IV. Supabase Integration: Notifications use realtime subscriptions
+- ✅ V. Specify Workflow: Production deployment follows systematic testing (E2E on staging → production)
 
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2396,9 +2739,293 @@ Sprint 10+:
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-13. APPENDICES
+13. TESTING STANDARDS & STRATEGY
 
-13.1 Glossary of Terms
+13.1 Test Coverage Requirements
+
+PipeTrak V2 follows Constitution v1.0.0 Testing Discipline principles with minimum coverage thresholds:
+
+- **Utilities & Business Logic**: ≥80% coverage
+  - Drawing normalization functions
+  - ROC calculation logic
+  - Edge Functions (import-components, resolve-needs-review, bulk-update-milestones)
+  - Stored procedures (calculate_component_percent, detect_similar_drawings)
+- **Components**: ≥60% coverage
+  - React components (MilestoneButton, WeldMadeModal, etc.)
+  - Pages (ImportPage, PackageReadinessPage, etc.)
+- **Integration Tests**: 100% of user stories from spec.md
+  - All acceptance criteria must have corresponding integration tests
+  - All 6 needs_review resolution types
+
+13.2 Test Types & Tools
+
+| Test Type | Purpose | Tool | Location |
+|-----------|---------|------|----------|
+| Unit Tests | Pure functions, utilities | Vitest | Colocated: `*.test.ts` |
+| Component Tests | React components, UI | Vitest + Testing Library | Colocated: `*.test.tsx` |
+| Integration Tests | User workflows, API calls | Vitest + MSW | `tests/integration/` |
+| E2E Tests | Critical paths, smoke tests | Playwright | `tests/e2e/` |
+| Performance Tests | Load, stress, benchmarks | k6 or Artillery | `tests/performance/` |
+| RLS Tests | Multi-tenant isolation | Vitest | `tests/integration/rls/` |
+
+13.3 TDD Workflow (Red-Green-Refactor)
+
+**MANDATORY for all features developed via Specify workflow:**
+
+1. **Red**: Write failing test for feature
+   - Test must fail initially (verify failure)
+   - Test describes expected behavior
+   - Test is specific and measurable
+
+2. **Green**: Implement minimum code to pass
+   - Run test suite (verify passing)
+   - No premature optimization
+   - Focus on making test green
+
+3. **Refactor**: Improve code quality
+   - Maintain passing tests
+   - Remove duplication
+   - Improve readability
+
+**Commit Strategy**: Commit tests and implementation together (atomic commits).
+
+13.4 Test File Organization
+
+```
+src/
+├── components/
+│   ├── MilestoneButton.tsx
+│   ├── MilestoneButton.test.tsx      # Colocated component test
+│   └── ui/
+│       ├── button.tsx
+│       └── button.test.tsx
+├── lib/
+│   ├── normalize.ts
+│   └── normalize.test.ts             # Colocated unit test
+└── pages/
+    ├── ImportPage.tsx
+    └── ImportPage.test.tsx
+
+tests/
+├── integration/
+│   ├── rls/
+│   │   └── multi-tenant.test.ts     # RLS isolation tests
+│   ├── milestone-workflow.test.ts   # User workflow tests
+│   └── import-pipeline.test.ts
+├── e2e/
+│   ├── foreman-workflow.spec.ts     # E2E critical paths
+│   ├── pm-workflow.spec.ts
+│   └── qc-workflow.spec.ts
+└── performance/
+    ├── load-test.js                 # k6 load test scripts
+    └── bulk-update-benchmark.test.ts
+```
+
+13.5 Mocking Strategy
+
+**Supabase Client**:
+- Use MSW (Mock Service Worker) for integration tests
+- Mock PostgREST API responses
+- Example:
+  ```typescript
+  import { setupServer } from 'msw/node'
+  import { http, HttpResponse } from 'msw'
+
+  const server = setupServer(
+    http.get('https://project.supabase.co/rest/v1/components', () => {
+      return HttpResponse.json([{ id: '1', spool_id: 'SP-001' }])
+    })
+  )
+  ```
+
+**Edge Functions**:
+- Test locally via `supabase functions serve`
+- Integration tests call actual functions in local Supabase
+- Mock external APIs (e.g., email sending)
+
+**Realtime Subscriptions**:
+- Mock in component tests:
+  ```typescript
+  const mockSubscription = {
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn()
+  }
+  vi.spyOn(supabase, 'channel').mockReturnValue(mockSubscription)
+  ```
+
+**TanStack Query**:
+- Use `QueryClientProvider` with test `QueryClient`
+- Disable retries and caching for tests:
+  ```typescript
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, cacheTime: 0 } }
+  })
+  ```
+
+13.6 CI/CD Test Gates
+
+**GitHub Actions Pipeline** (`.github/workflows/test.yml`):
+
+```yaml
+name: Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npm run lint              # ESLint + Prettier
+      - run: npm run type-check        # tsc -b --noEmit
+      - run: npm test -- --coverage    # Vitest with coverage
+      - run: npm run build             # Vite build check
+
+      - name: Enforce coverage thresholds
+        run: |
+          # Fail if coverage drops below thresholds
+          npm test -- --coverage --coverage.thresholds.lines=70
+```
+
+**Pre-merge Requirements**:
+- ✅ All tests passing (unit + component + integration)
+- ✅ Type check passing (no TypeScript errors)
+- ✅ Lint passing (ESLint + Prettier)
+- ✅ Build succeeds (Vite production build)
+- ✅ Coverage meets minimums (70% overall, 80% business logic)
+
+**E2E Tests** (run on staging before production deploy):
+- Smoke tests for critical workflows (foreman, PM, QC)
+- Cross-browser tests (Chrome, Safari, Firefox)
+- Mobile device tests (iOS Safari, Chrome Android)
+
+13.7 Test Naming Conventions
+
+**Unit Tests**:
+```typescript
+describe('normalize Draw Number', () => {
+  it('converts "P-001" to "P001"', () => {
+    expect(normalizeDrawingNumber('P-001')).toBe('P001')
+  })
+
+  it('handles leading zeros: " p-0001 " → "P001"', () => {
+    expect(normalizeDrawingNumber(' p-0001 ')).toBe('P001')
+  })
+})
+```
+
+**Component Tests**:
+```typescript
+describe('MilestoneButton', () => {
+  it('shows unchecked state when milestone not complete', () => {
+    render(<MilestoneButton milestone="Receive" complete={false} />)
+    expect(screen.getByRole('button')).not.toHaveClass('checked')
+  })
+})
+```
+
+**Integration Tests**:
+```typescript
+describe('Milestone Update Workflow', () => {
+  it('creates milestone_events entry when component updated', async () => {
+    await updateMilestone(componentId, 'Receive')
+    const events = await supabase.from('milestone_events')
+      .select('*')
+      .eq('component_id', componentId)
+    expect(events.data).toHaveLength(1)
+  })
+})
+```
+
+**E2E Tests** (Gherkin-style):
+```typescript
+test('Foreman bulk updates 25 Spools', async ({ page }) => {
+  // Given: Foreman is logged in and viewing components
+  await page.goto('/login')
+  await page.fill('input[name="email"]', 'foreman@test.com')
+  await page.click('button[type="submit"]')
+
+  // When: Foreman selects 25 Spools and marks Receive complete
+  await page.click('[data-component-type="spool"]', { clickCount: 25 })
+  await page.click('button:has-text("Bulk Update")')
+  await page.click('[data-milestone="Receive"]')
+
+  // Then: All 25 components show Receive complete
+  const completeCount = await page.locator('.milestone-complete').count()
+  expect(completeCount).toBe(25)
+})
+```
+
+13.8 Performance Test Benchmarks
+
+| Scenario | Target | Test Method |
+|----------|--------|-------------|
+| Milestone update (single) | p90 <1s, p95 <2s | Sentry + load tests |
+| Bulk update (50 components) | <10s | Performance test |
+| Component lookup (1M components) | <100ms | Load test |
+| Import 1k components | <60s | Integration test |
+| Import 10k components | <5min | Integration test |
+| Global search | <500ms | Performance test |
+| Real-time sync latency | ≥90% <30s | Integration test |
+| 50 concurrent users | No degradation | Load test (k6) |
+
+13.9 Exception Handling Test Matrix
+
+| Scenario | Expected Behavior | Test |
+|----------|-------------------|------|
+| Offline (network disconnected) | Show "Work Not Saved" banner | Integration test |
+| RLS violation | Reject with 403, no data leak | RLS test |
+| Duplicate component ID | Reject entire import, row-level error | Integration test |
+| Out-of-sequence milestone | Create OUT_OF_SEQUENCE needs_review | Integration test |
+| Unverified welder used 6 times | Create VERIFY_WELDER needs_review | Integration test |
+| Supabase timeout (>5s) | Show error toast, retry queue | Integration test |
+
+13.10 Test Data Management
+
+**Seeding** (for local/staging):
+```bash
+# Seed test data via Supabase migrations
+supabase db reset  # Reset + run migrations + seed.sql
+```
+
+**Factories** (for tests):
+```typescript
+// Use factory pattern for test data
+export const createTestComponent = (overrides = {}) => ({
+  id: uuid(),
+  spool_id: 'SP-001',
+  drawing_id: uuid(),
+  project_id: uuid(),
+  percent_complete: 0,
+  ...overrides
+})
+```
+
+**Cleanup**:
+- After each test: `afterEach(() => cleanup())`  # React Testing Library
+- After integration tests: Truncate tables or use transactions
+
+13.11 Test Maintenance
+
+**When to Update Tests**:
+- ✅ Feature requirements change (update acceptance tests)
+- ✅ Bug found (add regression test before fix)
+- ✅ Refactoring (tests should still pass)
+- ❌ Implementation details change (don't test internals)
+
+**Test Smells to Avoid**:
+- ❌ Testing implementation details (internal state)
+- ❌ Brittle selectors (use `data-testid` or semantic queries)
+- ❌ Flaky tests (non-deterministic, timing-dependent)
+- ❌ Slow tests (mock external dependencies)
+- ❌ Unclear test names ("test 1", "it works")
+
+═══════════════════════════════════════════════════════════════════════════════
+
+14. APPENDICES
+
+14.1 Glossary of Terms
 
 AWP: Advanced Work Packaging (methodology for brownfield construction)
 BaaS: Backend-as-a-Service (Supabase, Firebase, etc.)
@@ -2415,7 +3042,7 @@ RLS: Row Level Security (PostgreSQL feature for multi-tenancy)
 ROC: Rules of Credit (milestone weights per component type)
 Supavisor: Supabase connection pooler (PgBouncer wrapper)
 
-13.2 Technology Stack Summary
+14.2 Technology Stack Summary
 
 Layer               | Technology                  | Version  | Rationale
 --------------------|-----------------------------|----------|---------------------------
@@ -2441,7 +3068,7 @@ CI/CD               | GitHub Actions              | Latest   | Lint, test, deplo
 Error Monitoring    | Sentry                      | Latest   | Error tracking, performance
 Analytics           | PostHog                     | Latest   | Product analytics, funnels
 
-13.3 Key References
+14.3 Key References
 
 - Problem Analysis: Documents/Problem Analysis
 - Business Logic: Documents/Business Logic
@@ -2455,7 +3082,7 @@ Analytics           | PostHog                     | Latest   | Product analytics
 - PostgreSQL pg_trgm: https://www.postgresql.org/docs/current/pgtrgm.html
 - Spec Kit: https://github.com/github/spec-kit
 
-13.4 Team Roles & Responsibilities
+14.4 Team Roles & Responsibilities
 
 Role                     | Responsibilities
 -------------------------|-------------------------------------------------------
@@ -2467,7 +3094,7 @@ DevOps/Infra             | Supabase config, CI/CD, monitoring, security
 Designer                 | Mobile UI design, accessibility, user testing
 QA Engineer              | Test plans, load testing, pilot support
 
-13.5 Communication & Ceremonies
+14.5 Communication & Ceremonies
 
 Daily Standup: 15 min, async (Slack thread)
 Sprint Planning: Monday Week 1 (2 hours)
@@ -2478,7 +3105,7 @@ Pilot Kickoff: Week 9 Monday (30 min, with pilot users)
 Pilot Weekly Check-in: Week 10-12 Fridays (15 min)
 Pilot Retrospective: Week 12 Friday (1 hour)
 
-13.6 Success Metrics Dashboard (Week 9-12)
+14.6 Success Metrics Dashboard (Week 9-12)
 
 Foreman Metrics:
 - Admin time/day (target: ≤3 min)
