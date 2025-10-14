@@ -1,0 +1,20 @@
+{
+  "backup_date": "2025-10-07",
+  "feature": "004-plan-the-single",
+  "purpose": "Pre-migration backup for single-org refactor",
+  "note": "Development environment with single user - can drop/recreate if needed",
+  "rollback_procedure": "Run: npx supabase db reset",
+  "current_state": {
+    "users_table": "Exists with 1 user (developer)",
+    "organizations_table": "Exists with 1 organization",
+    "user_organizations_table": "Exists with 1 row (user-org junction)",
+    "multi_org_users": 0,
+    "orphaned_users": 0
+  },
+  "migration_plan": {
+    "add_columns": ["organization_id UUID NOT NULL", "role TEXT NOT NULL"],
+    "migrate_data": "Copy from user_organizations to users",
+    "drop_table": "user_organizations",
+    "update_rls": "4+ policies to use direct relationship"
+  }
+}
