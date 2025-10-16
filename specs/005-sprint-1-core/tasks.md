@@ -404,8 +404,8 @@
 
 - [X] T032 Run production build and verify CI pipeline:
   - Run `npm run build` → ✅ Production build succeeds (dist created, 683KB gzipped)
-  - Ready to commit all Sprint 1 work
-  - **Status**: READY TO COMMIT
+  - Committed: `git commit 2e503dc` - 40 files changed, 10,794 insertions(+)
+  - **Status**: ✅ COMPLETE (Feature 005 committed to branch 006-mnt-c-plan)
 
 ---
 
