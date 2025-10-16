@@ -34,3 +34,14 @@ dist-ssr
 
 # Testing
 coverage
+
+# Build artifacts
+tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo
+
+# Test data files (not for version control)
+*.xlsx
+*.csv
+*cleanup*.sql
+*delete*.sql
+backup_pre_*.sql
