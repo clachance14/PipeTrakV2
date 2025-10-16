@@ -1,0 +1,225 @@
+/**
+ * TanStack Query hooks for components table (Feature 005)
+ * Provides CRUD operations + milestone updates with auto-calculation
+ */
+
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import type { Database } from '@/types/database.types';
+
+type Component = Database['public']['Tables']['components']['Row'];
+
+export type ComponentType =
+  | 'spool'
+  | 'field_weld'
+  | 'support'
+  | 'valve'
+  | 'fitting'
+  | 'flange'
+  | 'instrument'
+  | 'tubing'
+  | 'hose'
+  | 'misc_component'
+  | 'threaded_pipe';
+
+interface ComponentsFilters {
+  component_type?: ComponentType;
+  drawing_id?: string;
+  area_id?: string;
+  system_id?: string;
+  test_package_id?: string;
+  is_retired?: boolean;
+}
+
+/**
+ * Query components for a project with optional filters
+ */
+export function useComponents(
+  projectId: string,
+  filters?: ComponentsFilters
+): UseQueryResult<Component[], Error> {
+  return useQuery({
+    queryKey: ['projects', projectId, 'components', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('components')
+        .select('*')
+        .eq('project_id', projectId);
+
+      // Apply filters
+      if (filters?.component_type) {
+        query = query.eq('component_type', filters.component_type);
+      }
+      if (filters?.drawing_id) {
+        query = query.eq('drawing_id', filters.drawing_id);
+      }
+      if (filters?.area_id) {
+        query = query.eq('area_id', filters.area_id);
+      }
+      if (filters?.system_id) {
+        query = query.eq('system_id', filters.system_id);
+      }
+      if (filters?.test_package_id) {
+        query = query.eq('test_package_id', filters.test_package_id);
+      }
+      if (filters?.is_retired !== undefined) {
+        query = query.eq('is_retired', filters.is_retired);
+      }
+
+      query = query.order('last_updated_at', { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes (components change frequently)
+  });
+}
+
+/**
+ * Query single component with progress template
+ * Joins with progress_template to get milestones config
+ */
+export function useComponent(id: string): UseQueryResult<Component, Error> {
+  return useQuery({
+    queryKey: ['components', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('components')
+        .select(`
+          *,
+          progress_template:progress_templates(*)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+}
+
+/**
+ * Create a new component
+ * Validates identity_key structure via FR-041
+ * Sets current_milestones = {}, percent_complete = 0.00
+ */
+export function useCreateComponent(): UseMutationResult<
+  Component,
+  Error,
+  {
+    project_id: string;
+    component_type: ComponentType;
+    identity_key: Record<string, any>;
+    progress_template_id: string;
+    drawing_id?: string;
+    area_id?: string;
+    system_id?: string;
+    test_package_id?: string;
+    attributes?: Record<string, any>;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newComponent) => {
+      // Validate identity_key structure before inserting
+      const { data: isValid, error: validationError } = await supabase.rpc(
+        'validate_component_identity_key',
+        {
+          p_component_type: newComponent.component_type,
+          p_identity_key: newComponent.identity_key,
+        }
+      );
+
+      if (validationError) throw validationError;
+      if (!isValid) {
+        throw new Error(`Invalid identity_key structure for component type: ${newComponent.component_type}`);
+      }
+
+      const { data, error } = await supabase
+        .from('components')
+        .insert({
+          project_id: newComponent.project_id,
+          component_type: newComponent.component_type,
+          identity_key: newComponent.identity_key,
+          progress_template_id: newComponent.progress_template_id,
+          drawing_id: newComponent.drawing_id,
+          area_id: newComponent.area_id,
+          system_id: newComponent.system_id,
+          test_package_id: newComponent.test_package_id,
+          attributes: newComponent.attributes || {},
+          current_milestones: {},
+          percent_complete: 0.00,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate components list for this project
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'components'],
+      });
+    },
+  });
+}
+
+/**
+ * Update component milestones
+ * Triggers auto-recalculation of percent_complete via database trigger
+ * Creates milestone_event and audit_log entries
+ * Checks for out-of-sequence and creates needs_review if detected
+ *
+ * Requires can_update_milestones permission (enforced by RLS policy)
+ */
+export function useUpdateComponentMilestones(): UseMutationResult<
+  Component,
+  Error,
+  {
+    id: string;
+    current_milestones: Record<string, boolean | number>;
+    reason?: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, current_milestones }) => {
+      const { data, error } = await supabase
+        .from('components')
+        .update({
+          current_milestones,
+          last_updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate component cache
+      queryClient.invalidateQueries({
+        queryKey: ['components', data.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'components'],
+      });
+
+      // Invalidate milestone events
+      queryClient.invalidateQueries({
+        queryKey: ['components', data.id, 'milestone-events'],
+      });
+
+      // TODO: Create milestone_event and audit_log entries
+      // TODO: Check for out-of-sequence milestones and create needs_review
+      // These will be implemented when those hooks are available
+    },
+  });
+}

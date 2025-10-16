@@ -1,0 +1,99 @@
+/**
+ * TanStack Query hooks for test_packages table (Feature 005)
+ * Provides CRUD operations + materialized view access for package readiness dashboard
+ */
+
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import type { Database } from '@/types/database.types';
+
+type TestPackage = Database['public']['Tables']['test_packages']['Row'];
+
+interface PackageReadiness {
+  package_id: string | null;
+  project_id: string | null;
+  package_name: string | null;
+  target_date: string | null;
+  total_components: number | null;
+  completed_components: number | null;
+  avg_percent_complete: number | null;
+  blocker_count: number | null;
+  last_activity_at: string | null;
+}
+
+/**
+ * Query test packages for a project
+ */
+export function useTestPackages(projectId: string): UseQueryResult<TestPackage[], Error> {
+  return useQuery({
+    queryKey: ['projects', projectId, 'test-packages'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('test_packages')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('target_date', { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Query package readiness from materialized view
+ * Requires can_view_dashboards permission (enforced by RLS)
+ * Data refreshed every 60 seconds via pg_cron
+ */
+export function usePackageReadiness(packageId: string): UseQueryResult<PackageReadiness, Error> {
+  return useQuery({
+    queryKey: ['test-packages', packageId, 'readiness'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mv_package_readiness')
+        .select('*')
+        .eq('package_id', packageId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 60 * 1000, // 1 minute (matches materialized view refresh interval)
+  });
+}
+
+/**
+ * Create a new test package
+ */
+export function useCreateTestPackage(): UseMutationResult<
+  TestPackage,
+  Error,
+  {
+    project_id: string;
+    name: string;
+    description?: string;
+    target_date?: string; // ISO 8601 date
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newPackage) => {
+      const { data, error } = await supabase
+        .from('test_packages')
+        .insert(newPackage)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate test packages list for this project
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'test-packages'],
+      });
+    },
+  });
+}

@@ -1,6 +1,8 @@
-import { ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { ReactNode, useEffect } from 'react'
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useProject } from '@/contexts/ProjectContext'
+import { useProjects } from '@/hooks/useProjects'
 
 interface LayoutProps {
   children: ReactNode
@@ -9,10 +11,42 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const params = useParams()
+  const { selectedProjectId, setSelectedProjectId } = useProject()
+  const { data: projects, isLoading: projectsLoading } = useProjects()
+
+  // Auto-select first project if none selected and projects loaded
+  useEffect(() => {
+    if (!projectsLoading && projects && projects.length > 0 && !selectedProjectId) {
+      const firstProject = projects[0];
+      if (firstProject) {
+        setSelectedProjectId(firstProject.id);
+      }
+    }
+  }, [projects, projectsLoading, selectedProjectId, setSelectedProjectId]);
+
+  // Sync context with URL params (for project-specific routes)
+  useEffect(() => {
+    if (params.projectId && params.projectId !== selectedProjectId) {
+      setSelectedProjectId(params.projectId);
+    }
+  }, [params.projectId, selectedProjectId, setSelectedProjectId]);
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/login')
+  }
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProjectId = e.target.value;
+    setSelectedProjectId(newProjectId);
+
+    // If on a project-specific route, navigate to same route with new project ID
+    if (params.projectId) {
+      const newPath = location.pathname.replace(params.projectId, newProjectId);
+      navigate(newPath);
+    }
   }
 
   return (
@@ -27,9 +61,21 @@ export function Layout({ children }: LayoutProps) {
                 <div className="text-2xl font-bold">PipeTrak</div>
               </Link>
 
-              <select className="rounded-md bg-slate-700 px-4 py-2 text-sm text-white border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option>Refinery Unit 5 Expansion</option>
-                <option>Pipeline Project Alpha</option>
+              <select
+                value={selectedProjectId || ''}
+                onChange={handleProjectChange}
+                disabled={projectsLoading || !projects || projects.length === 0}
+                className="rounded-md bg-slate-700 px-4 py-2 text-sm text-white border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {projectsLoading && <option>Loading projects...</option>}
+                {!projectsLoading && (!projects || projects.length === 0) && (
+                  <option>No projects yet</option>
+                )}
+                {!projectsLoading && projects && projects.length > 0 && projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
               </select>
             </div>
 

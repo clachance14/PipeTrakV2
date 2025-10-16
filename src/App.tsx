@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ProjectProvider } from '@/contexts/ProjectContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { LoginPage } from '@/pages/LoginPage'
 import { Register } from '@/pages/Register'
@@ -11,11 +12,14 @@ import { AcceptInvitation } from '@/pages/AcceptInvitation'
 import { OnboardingWizard } from '@/components/auth/OnboardingWizard'
 import { TeamManagement } from '@/pages/TeamManagement'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { ProjectListPage } from '@/pages/ProjectListPage'
 import { ComponentsPage } from '@/pages/ComponentsPage'
 import { PackagesPage } from '@/pages/PackagesPage'
 import { NeedsReviewPage } from '@/pages/NeedsReviewPage'
 import { WeldersPage } from '@/pages/WeldersPage'
 import { ImportsPage } from '@/pages/ImportsPage'
+import { ComponentsTable } from '@/pages/ComponentsTable'
+import { DebugUserPage } from '@/pages/DebugUserPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
 
@@ -33,7 +37,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <ProjectProvider>
+            <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<Register />} />
@@ -71,6 +76,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <ProjectListPage />
                 </ProtectedRoute>
               }
             />
@@ -114,9 +127,26 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/projects/:projectId/components"
+              element={
+                <ProtectedRoute>
+                  <ComponentsTable />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/debug"
+              element={
+                <ProtectedRoute>
+                  <DebugUserPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster />
+          </ProjectProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
