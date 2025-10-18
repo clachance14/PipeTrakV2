@@ -1,65 +1,166 @@
-import { Layout } from '@/components/Layout'
+import { Layout } from '@/components/Layout';
+import { useState, useMemo } from 'react';
+import { useProject } from '@/contexts/ProjectContext';
+import { useWelders } from '@/hooks/useWelders';
+import { useWelderUsage } from '@/hooks/useWelderUsage';
+import { WelderTable, WelderRow } from '@/components/welders/WelderTable';
+import { AddWelderModal, WelderFormData } from '@/components/welders/AddWelderModal';
+import { VerifyWelderDialog } from '@/components/welders/VerifyWelderDialog';
+import { EmptyState } from '@/components/EmptyState';
+import { Wrench, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function WeldersPage() {
-  const welders = [
-    { id: '1', name: 'John Doe', stencil: 'JD-123', status: 'verified', weldCount: 45 },
-    { id: '2', name: 'Jane Smith', stencil: 'JS-456', status: 'verified', weldCount: 32 },
-    { id: '3', name: 'Mike Johnson', stencil: 'MJ-789', status: 'unverified', weldCount: 6 },
-    { id: '4', name: 'Sarah Williams', stencil: 'SW-012', status: 'unverified', weldCount: 3 },
-  ]
+  const { selectedProjectId } = useProject();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedWelder, setSelectedWelder] = useState<WelderRow | null>(null);
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
+
+  const { data: welders, isLoading, isError, error, refetch } = useWelders({
+    projectId: selectedProjectId || ''
+  });
+
+  const { data: welderUsage } = useWelderUsage(selectedProjectId || '');
+
+  // Transform data to WelderRow format
+  const welderRows = useMemo<WelderRow[]>(() => {
+    if (!welders) return [];
+
+    return welders.map(welder => ({
+      id: welder.id,
+      name: welder.name,
+      stencil: welder.stencil_norm || welder.stencil,
+      status: welder.status,
+      weldCount: welderUsage?.get(welder.id) || 0,
+      verifiedAt: welder.verified_at,
+      verifiedBy: welder.verified_by
+    }));
+  }, [welders, welderUsage]);
+
+  const handleAdd = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const handleSubmitAdd = async (data: WelderFormData) => {
+    // TODO: Implement add welder mutation when useWelders provides it
+    console.log('Adding welder:', data);
+    refetch();
+  };
+
+  const handleVerify = (id: string) => {
+    const welder = welderRows.find(w => w.id === id);
+    if (welder) {
+      setSelectedWelder(welder);
+      setIsVerifyDialogOpen(true);
+    }
+  };
+
+  const handleConfirmVerify = async () => {
+    // TODO: Implement verify welder mutation when useWelders provides it
+    console.log('Verifying welder:', selectedWelder?.id);
+    setIsVerifyDialogOpen(false);
+    setSelectedWelder(null);
+    refetch();
+  };
+
+  // No project selected
+  if (!selectedProjectId) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <EmptyState
+            icon={Wrench}
+            title="No Project Selected"
+            description="Please select a project from the dropdown to view welders."
+          />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Welder Directory</h1>
+            <p className="text-gray-600 mt-1">Manage welders and verification status</p>
+          </div>
+          <div className="bg-gray-100 rounded-lg animate-pulse h-96" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load welders</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {error?.message || 'An unexpected error occurred'}
+            </p>
+            <Button onClick={() => refetch()}>Retry</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Empty state
+  if (welderRows.length === 0) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Welder Directory</h1>
+            <p className="text-gray-600 mt-1">Manage welders and verification status</p>
+          </div>
+          <EmptyState
+            icon={Wrench}
+            title="No welders found"
+            description="Add your first welder to start tracking weld activities."
+            action={{ label: 'Add Welder', onClick: handleAdd }}
+          />
+          <AddWelderModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            onSubmit={handleSubmitAdd}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Welder Directory</h1>
-            <p className="text-gray-600 mt-1">Manage welders and verification status</p>
-          </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-            Add Welder
-          </button>
-        </div>
+        <WelderTable
+          welders={welderRows}
+          onVerify={handleVerify}
+          onAdd={handleAdd}
+        />
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stencil</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Weld Count</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {welders.map((welder) => (
-                <tr key={welder.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{welder.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{welder.stencil}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        welder.status === 'verified'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {welder.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{welder.weldCount}</td>
-                  <td className="px-6 py-4 text-right text-sm">
-                    {welder.status === 'unverified' && (
-                      <button className="text-blue-600 hover:text-blue-900">Verify</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AddWelderModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSubmit={handleSubmitAdd}
+        />
+
+        <VerifyWelderDialog
+          welder={selectedWelder}
+          isOpen={isVerifyDialogOpen}
+          onClose={() => {
+            setIsVerifyDialogOpen(false);
+            setSelectedWelder(null);
+          }}
+          onConfirm={handleConfirmVerify}
+        />
       </div>
     </Layout>
-  )
+  );
 }

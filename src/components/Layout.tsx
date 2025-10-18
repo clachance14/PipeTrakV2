@@ -3,6 +3,9 @@ import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useProjects } from '@/hooks/useProjects'
+import { useSidebarState } from '@/hooks/useSidebarState'
+import { Sidebar } from '@/components/Sidebar'
+import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
@@ -15,6 +18,7 @@ export function Layout({ children }: LayoutProps) {
   const params = useParams()
   const { selectedProjectId, setSelectedProjectId } = useProject()
   const { data: projects, isLoading: projectsLoading } = useProjects()
+  const [isCollapsed] = useSidebarState()
 
   // Auto-select first project if none selected and projects loaded
   useEffect(() => {
@@ -142,8 +146,18 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
+      {/* Sidebar */}
+      <Sidebar />
+
       {/* Main Content */}
-      <main>{children}</main>
+      <main
+        className={cn(
+          'transition-all duration-300 ease-in-out',
+          isCollapsed ? 'ml-16' : 'ml-64'
+        )}
+      >
+        {children}
+      </main>
     </div>
   )
 }
