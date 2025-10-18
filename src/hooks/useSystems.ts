@@ -63,3 +63,73 @@ export function useCreateSystem(): UseMutationResult<
     },
   });
 }
+
+/**
+ * Update an existing system
+ */
+export function useUpdateSystem(): UseMutationResult<
+  System,
+  Error,
+  {
+    id: string;
+    name?: string;
+    description?: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }) => {
+      const { data, error } = await supabase
+        .from('systems')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate systems list for this project
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'systems'],
+      });
+    },
+  });
+}
+
+/**
+ * Delete a system
+ * Sets component.system_id to NULL for any assigned components
+ */
+export function useDeleteSystem(): UseMutationResult<
+  void,
+  Error,
+  {
+    id: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from('systems')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidate all systems queries
+      queryClient.invalidateQueries({
+        queryKey: ['projects'],
+      });
+      // Also invalidate components since system_id may have changed
+      queryClient.invalidateQueries({
+        queryKey: ['components'],
+      });
+    },
+  });
+}

@@ -63,3 +63,73 @@ export function useCreateArea(): UseMutationResult<
     },
   });
 }
+
+/**
+ * Update an existing area
+ */
+export function useUpdateArea(): UseMutationResult<
+  Area,
+  Error,
+  {
+    id: string;
+    name?: string;
+    description?: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }) => {
+      const { data, error } = await supabase
+        .from('areas')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate areas list for this project
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'areas'],
+      });
+    },
+  });
+}
+
+/**
+ * Delete an area
+ * Sets component.area_id to NULL for any assigned components
+ */
+export function useDeleteArea(): UseMutationResult<
+  void,
+  Error,
+  {
+    id: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from('areas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate all areas queries
+      queryClient.invalidateQueries({
+        queryKey: ['projects'],
+      });
+      // Also invalidate components since area_id may have changed
+      queryClient.invalidateQueries({
+        queryKey: ['components'],
+      });
+    },
+  });
+}

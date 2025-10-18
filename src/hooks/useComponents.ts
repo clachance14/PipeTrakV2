@@ -29,6 +29,9 @@ interface ComponentsFilters {
   system_id?: string;
   test_package_id?: string;
   is_retired?: boolean;
+  progress_min?: number; // 0-100 filter by minimum % complete
+  progress_max?: number; // 0-100 filter by maximum % complete
+  search?: string; // Search identity key (partial match, case-insensitive)
 }
 
 /**
@@ -64,6 +67,16 @@ export function useComponents(
       }
       if (filters?.is_retired !== undefined) {
         query = query.eq('is_retired', filters.is_retired);
+      }
+      if (filters?.progress_min !== undefined) {
+        query = query.gte('percent_complete', filters.progress_min);
+      }
+      if (filters?.progress_max !== undefined) {
+        query = query.lte('percent_complete', filters.progress_max);
+      }
+      if (filters?.search) {
+        // Search in identity_key JSONB - cast to text for partial match
+        query = query.ilike('identity_key::text', `%${filters.search}%`);
       }
 
       query = query.order('last_updated_at', { ascending: false });

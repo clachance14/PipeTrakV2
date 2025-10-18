@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { ProjectProvider } from '@/contexts/ProjectContext'
+import { ProjectProvider, useProject } from '@/contexts/ProjectContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { LoginPage } from '@/pages/LoginPage'
 import { Register } from '@/pages/Register'
@@ -19,6 +19,8 @@ import { NeedsReviewPage } from '@/pages/NeedsReviewPage'
 import { WeldersPage } from '@/pages/WeldersPage'
 import { ImportsPage } from '@/pages/ImportsPage'
 import { ComponentsTable } from '@/pages/ComponentsTable'
+import { ProjectSetup } from '@/pages/ProjectSetup'
+import { DrawingsPage } from '@/pages/DrawingsPage'
 import { DebugUserPage } from '@/pages/DebugUserPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
@@ -88,10 +90,26 @@ function App() {
               }
             />
             <Route
+              path="/project-setup"
+              element={
+                <ProtectedRoute>
+                  <ProjectSetupWrapper />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/components"
               element={
                 <ProtectedRoute>
-                  <ComponentsPage />
+                  <ComponentsPageWrapper />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/drawings"
+              element={
+                <ProtectedRoute>
+                  <DrawingsPageWrapper />
                 </ProtectedRoute>
               }
             />
@@ -151,6 +169,32 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   )
+}
+
+// Wrapper components to inject projectId from context
+function ProjectSetupWrapper() {
+  const { selectedProjectId } = useProject()
+  if (!selectedProjectId) {
+    return <Navigate to="/projects" replace />
+  }
+  return <ProjectSetup projectId={selectedProjectId} />
+}
+
+function ComponentsPageWrapper() {
+  const { selectedProjectId } = useProject()
+  if (!selectedProjectId) {
+    return <Navigate to="/projects" replace />
+  }
+  // TODO: Get actual permission from usePermissions hook
+  return <ComponentsPage projectId={selectedProjectId} canUpdateMilestones={true} />
+}
+
+function DrawingsPageWrapper() {
+  const { selectedProjectId } = useProject()
+  if (!selectedProjectId) {
+    return <Navigate to="/projects" replace />
+  }
+  return <DrawingsPage projectId={selectedProjectId} />
 }
 
 export default App

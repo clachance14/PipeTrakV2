@@ -97,3 +97,74 @@ export function useCreateTestPackage(): UseMutationResult<
     },
   });
 }
+
+/**
+ * Update an existing test package
+ */
+export function useUpdateTestPackage(): UseMutationResult<
+  TestPackage,
+  Error,
+  {
+    id: string;
+    name?: string;
+    description?: string;
+    target_date?: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }) => {
+      const { data, error } = await supabase
+        .from('test_packages')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate test packages list for this project
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'test-packages'],
+      });
+    },
+  });
+}
+
+/**
+ * Delete a test package
+ * Sets component.test_package_id to NULL for any assigned components
+ */
+export function useDeleteTestPackage(): UseMutationResult<
+  void,
+  Error,
+  {
+    id: string;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from('test_packages')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidate all test packages queries
+      queryClient.invalidateQueries({
+        queryKey: ['projects'],
+      });
+      // Also invalidate components since test_package_id may have changed
+      queryClient.invalidateQueries({
+        queryKey: ['components'],
+      });
+    },
+  });
+}
