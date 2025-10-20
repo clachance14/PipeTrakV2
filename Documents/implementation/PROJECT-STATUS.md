@@ -1,8 +1,8 @@
 # PipeTrak V2 - Project Status
 
-**Last Updated**: 2025-10-17
-**Current Phase**: Features 007-008 Complete (Component Tracking + Authenticated Pages)
-**Overall Progress**: 60% (Sprint 0 + User Auth + Sprint 1 + Component Tracking + UI Foundation completed)
+**Last Updated**: 2025-10-19
+**Current Phase**: Feature 009 Complete (CSV Material Takeoff Import)
+**Overall Progress**: 65% (Sprint 0 + User Auth + Sprint 1 + Component Tracking + UI Foundation + CSV Import completed)
 
 ---
 
@@ -351,6 +351,80 @@
 **Pending**:
 - ⏸️ Manual validation (quickstart.md - 15 verification steps)
 - ⏸️ Resolve mutation implementation in useNeedsReview (currently console.log placeholder)
+
+### specs/009-sprint-3-material (CSV Material Takeoff Import)
+**Status**: ✅ Complete (100%)
+**Completed**: 2025-10-19
+**Tasks**: All tasks completed
+**Branch**: 009-sprint-3-material
+**Reference**: `specs/009-sprint-3-material/`
+
+**Implementation Progress**:
+- ✅ **CSV Upload & Validation**
+  - React-dropzone integration with drag-and-drop support
+  - File size validation (5MB max)
+  - Row count validation (10,000 rows max)
+  - Required columns validation (DRAWING, TYPE, QTY, CMDTY CODE)
+  - Component type validation (Valve, Instrument, Support, Pipe, Fitting, Flange)
+  - SIZE-aware duplicate detection
+
+- ✅ **Edge Function Processing**
+  - Supabase Edge Function deployed (`import-takeoff`)
+  - User authentication and permission checks (RLS)
+  - Drawing normalization matching database trigger exactly
+  - Auto-creation of drawings for new project imports
+  - Quantity explosion (QTY > 1 creates discrete components)
+  - SIZE-aware JSONB identity keys
+  - Progress template assignment by component type
+  - Batch inserts (1000 components per batch)
+  - Transaction safety (all-or-nothing imports)
+
+- ✅ **Database Updates**
+  - Migration 00016: Progress templates for Pipe, Fitting, Flange
+  - Migration 00017: Added 'pipe' component type validation
+  - Component types stored as lowercase in database
+
+- ✅ **Testing & Validation**
+  - Contract tests: drawing-normalization (11 tests), quantity-explosion (6 tests), validation (9 tests), auth (8 tests)
+  - All 34 utility tests passing
+  - Coverage ≥80% for `src/lib/csv/**`
+
+**Key Features Delivered**:
+- CSV Material Takeoff import workflow
+- SIZE-aware identity keys (distinguishes 2" valve from 1" valve)
+- Drawing normalization (UPPER + TRIM + collapse spaces, keeps hyphens/zeros)
+- Comprehensive error reporting with downloadable CSV
+- Real-time import progress feedback
+- Transaction safety ensures data integrity
+
+**Files Created**: 25+ files
+- Edge Function: `supabase/functions/import-takeoff/` (index.ts, parser.ts, validator.ts, transaction.ts)
+- Client utilities: `src/lib/csv/` (normalize-drawing.ts, normalize-size.ts, generate-identity-key.ts, explode-quantity.ts, diagnose-duplicates.ts)
+- Components: ImportPage, ImportProgress, ErrorReportDownload
+- Hooks: useImport (TanStack Query mutation)
+- Contract tests: 4 test files with 34 tests
+- Migrations: 00016, 00017
+
+**Performance Achievements**:
+- 78-row CSV → ~203 components in <5 seconds
+- Batch processing handles large imports efficiently
+- Single transaction ensures atomicity
+
+**Known Issues Resolved**:
+- ✅ Fixed duplicate detection false positives (added SIZE to identity keys)
+- ✅ Fixed drawing normalization mismatch (TypeScript now matches database trigger)
+- ✅ Fixed component type validation errors (converted to lowercase)
+- ✅ Added 'pipe' component type support (was missing from validation function)
+
+**Identity Key Structure** (Critical Implementation Detail):
+```json
+{
+  "drawing_norm": "P-001",
+  "commodity_code": "VBALU-001",
+  "size": "2",
+  "seq": 1
+}
+```
 
 ---
 

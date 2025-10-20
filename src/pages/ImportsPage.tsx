@@ -2,7 +2,8 @@ import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { EmptyState } from '@/components/EmptyState';
-import { Upload, AlertCircle, Download } from 'lucide-react';
+import { ImportPage } from '@/components/ImportPage';
+import { Upload, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function formatTimeAgo(timestamp: string): string {
@@ -88,78 +89,50 @@ export function ImportsPage() {
           <p className="text-gray-600 mt-1">Upload Excel/CSV files to import components</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-8">
-          <div className="max-w-2xl mx-auto">
-            {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-gray-400 transition-colors cursor-pointer">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-4 text-sm text-gray-600">
-                <span className="font-semibold text-blue-600 hover:text-blue-700">Click to upload</span> or drag and
-                drop
-              </p>
-              <p className="mt-1 text-xs text-gray-500">Excel (.xlsx) or CSV files up to 10MB</p>
-            </div>
+        <div className="bg-white rounded-lg shadow">
+          {/* Import Component */}
+          <ImportPage projectId={selectedProjectId} />
+        </div>
 
-            {/* Template Downloads */}
-            <div className="mt-8">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Download Templates</h3>
-              <div className="space-y-2">
-                <button className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
-                  <span className="text-sm text-gray-700">Spools Import Template</span>
-                  <Download className="h-5 w-5 text-gray-400" />
-                </button>
-                <button className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
-                  <span className="text-sm text-gray-700">Field Welds Import Template</span>
-                  <Download className="h-5 w-5 text-gray-400" />
-                </button>
-                <button className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
-                  <span className="text-sm text-gray-700">Valves/Fittings Import Template</span>
-                  <Download className="h-5 w-5 text-gray-400" />
-                </button>
-              </div>
+        {/* Recent Imports */}
+        <div className="mt-8 bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Imports</h3>
+          {!recentImports || recentImports.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-sm text-gray-500">No recent imports</p>
             </div>
+          ) : (
+            <div className="space-y-3">
+              {recentImports.map((entry) => {
+                const payload = entry.metadata as { filename?: string; count?: number; status?: string } | null;
+                const filename = payload?.filename || 'Unknown file';
+                const count = payload?.count || 0;
+                const status = payload?.status || 'success';
 
-            {/* Recent Imports */}
-            <div className="mt-8">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Imports</h3>
-              {!recentImports || recentImports.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-sm text-gray-500">No recent imports</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentImports.map((entry) => {
-                    const payload = entry.metadata as { filename?: string; count?: number; status?: string } | null;
-                    const filename = payload?.filename || 'Unknown file';
-                    const count = payload?.count || 0;
-                    const status = payload?.status || 'success';
-
-                    return (
-                      <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{filename}</p>
-                          <p className="text-xs text-gray-500">
-                            {count} component{count !== 1 ? 's' : ''} imported • {formatTimeAgo(entry.created_at)}
-                          </p>
-                        </div>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            status === 'success'
-                              ? 'bg-green-100 text-green-800'
-                              : status === 'partial'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                return (
+                  <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{filename}</p>
+                      <p className="text-xs text-gray-500">
+                        {count} component{count !== 1 ? 's' : ''} imported • {formatTimeAgo(entry.created_at)}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        status === 'success'
+                          ? 'bg-green-100 text-green-800'
+                          : status === 'partial'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </Layout>

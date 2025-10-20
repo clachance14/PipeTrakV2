@@ -21,6 +21,7 @@ import { ImportsPage } from '@/pages/ImportsPage'
 import { ComponentsTable } from '@/pages/ComponentsTable'
 import { ProjectSetup } from '@/pages/ProjectSetup'
 import { DrawingsPage } from '@/pages/DrawingsPage'
+import { DrawingComponentTablePage } from '@/pages/DrawingComponentTablePage'
 import { DebugUserPage } from '@/pages/DebugUserPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
@@ -154,6 +155,14 @@ function App() {
               }
             />
             <Route
+              path="/projects/:projectId/drawing-table"
+              element={
+                <ProtectedRoute>
+                  <DrawingComponentTablePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/debug"
               element={
                 <ProtectedRoute>
@@ -194,7 +203,8 @@ function DrawingsPageWrapper() {
   if (!selectedProjectId) {
     return <Navigate to="/projects" replace />
   }
-  return <DrawingsPage projectId={selectedProjectId} />
+  // Feature 010: Drawing-centered component progress table
+  return <DrawingComponentTablePage />
 }
 
 export default App

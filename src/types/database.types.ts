@@ -935,6 +935,7 @@ export type Database = {
       mv_drawing_progress: {
         Row: {
           avg_percent_complete: number | null
+          completed_components: number | null
           drawing_id: string | null
           drawing_no_norm: string | null
           project_id: string | null
@@ -1048,6 +1049,15 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      update_component_milestone: {
+        Args: {
+          p_component_id: string
+          p_milestone_name: string
+          p_new_value: number
+          p_user_id: string
+        }
+        Returns: Json
       }
       user_is_org_member: {
         Args: { org_uuid: string; user_uuid: string }
