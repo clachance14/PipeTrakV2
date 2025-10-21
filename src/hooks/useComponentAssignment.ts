@@ -80,3 +80,55 @@ export function useAssignComponents(): UseMutationResult<
     },
   });
 }
+
+interface ClearComponentAssignmentsParams {
+  component_id: string;
+}
+
+/**
+ * Clear all metadata assignments (area, system, test package) from a single component
+ * Sets all three fields to NULL
+ * Used when user wants to remove all assignments and let component re-inherit from drawing
+ * Requires can_manage_team permission (enforced by RLS)
+ */
+export function useClearComponentAssignments(): UseMutationResult<
+  Component,
+  Error,
+  ClearComponentAssignmentsParams
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ component_id }) => {
+      // Clear all three metadata fields to NULL
+      const { data, error } = await supabase
+        .from('components')
+        .update({
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', component_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Component not found');
+
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate components and drawings queries to refetch updated state
+      queryClient.invalidateQueries({
+        queryKey: ['components'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['drawings-with-progress'],
+      });
+
+      // Log success
+      console.log('Successfully cleared component assignments');
+    },
+  });
+}

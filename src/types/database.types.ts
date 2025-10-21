@@ -261,6 +261,7 @@ export type Database = {
       }
       drawings: {
         Row: {
+          area_id: string | null
           created_at: string
           drawing_no_norm: string
           drawing_no_raw: string
@@ -269,9 +270,12 @@ export type Database = {
           project_id: string
           retire_reason: string | null
           rev: string | null
+          system_id: string | null
+          test_package_id: string | null
           title: string | null
         }
         Insert: {
+          area_id?: string | null
           created_at?: string
           drawing_no_norm: string
           drawing_no_raw: string
@@ -280,9 +284,12 @@ export type Database = {
           project_id: string
           retire_reason?: string | null
           rev?: string | null
+          system_id?: string | null
+          test_package_id?: string | null
           title?: string | null
         }
         Update: {
+          area_id?: string | null
           created_at?: string
           drawing_no_norm?: string
           drawing_no_raw?: string
@@ -291,14 +298,44 @@ export type Database = {
           project_id?: string
           retire_reason?: string | null
           rev?: string | null
+          system_id?: string | null
+          test_package_id?: string | null
           title?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "test_packages"
             referencedColumns: ["id"]
           },
         ]
@@ -934,19 +971,50 @@ export type Database = {
     Views: {
       mv_drawing_progress: {
         Row: {
+          area_id: string | null
           avg_percent_complete: number | null
           completed_components: number | null
           drawing_id: string | null
           drawing_no_norm: string | null
           project_id: string | null
+          system_id: string | null
+          test_package_id: string | null
           total_components: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "test_packages"
             referencedColumns: ["id"]
           },
         ]
@@ -975,8 +1043,28 @@ export type Database = {
       }
     }
     Functions: {
+      assign_drawing_with_inheritance: {
+        Args: {
+          p_area_id?: string
+          p_drawing_id: string
+          p_system_id?: string
+          p_test_package_id?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
+      assign_drawings_bulk: {
+        Args: {
+          p_area_id?: string
+          p_drawing_ids: string[]
+          p_system_id?: string
+          p_test_package_id?: string
+          p_user_id?: string
+        }
+        Returns: Json[]
+      }
       calculate_component_percent: {
-        Args: { p_component_id: string }
+        Args: { p_current_milestones: Json; p_template_id: string }
         Returns: number
       }
       detect_similar_drawings: {

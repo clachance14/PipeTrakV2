@@ -8,6 +8,7 @@ import {
   Wrench,
   Upload,
   Users,
+  Settings,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -15,12 +16,19 @@ import { useSidebarState } from '@/hooks/useSidebarState';
 import { PermissionGate } from '@/components/PermissionGate';
 import { cn } from '@/lib/utils';
 
+type Permission =
+  | 'can_update_milestones'
+  | 'can_manage_team'
+  | 'can_view_dashboards'
+  | 'can_resolve_reviews'
+  | 'can_manage_welders';
+
 interface NavItem {
   path: string;
   label: string;
   icon: typeof LayoutDashboard;
   badge?: number;
-  permission?: string;
+  permission?: Permission;
 }
 
 export function Sidebar() {
@@ -35,6 +43,7 @@ export function Sidebar() {
     { path: '/needs-review', label: 'Needs Review', icon: AlertCircle },
     { path: '/welders', label: 'Welders', icon: Wrench },
     { path: '/imports', label: 'Imports', icon: Upload },
+    { path: '/metadata', label: 'Metadata', icon: Settings },
     { path: '/team', label: 'Team', icon: Users, permission: 'can_manage_team' }
   ];
 

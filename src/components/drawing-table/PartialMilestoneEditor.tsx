@@ -65,7 +65,7 @@ export function PartialMilestoneEditor({
             </div>
             <Slider
               value={[tempValue]}
-              onValueChange={(values) => setTempValue(values[0])}
+              onValueChange={(values) => setTempValue(values[0] ?? 0)}
               min={0}
               max={100}
               step={5}

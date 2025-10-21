@@ -43,7 +43,7 @@ export function useUpdateMilestone() {
 
       if (error) throw error
 
-      return data as MilestoneUpdateResponse
+      return data as unknown as MilestoneUpdateResponse
     },
 
     onMutate: async (payload) => {
@@ -67,7 +67,7 @@ export function useUpdateMilestone() {
       queryClient.setQueriesData<ComponentRow[]>(
         { queryKey: ['components'] },
         (old) => {
-          if (!old) return old
+          if (!old || !Array.isArray(old)) return old
 
           return old.map((component) =>
             component.id === payload.component_id
@@ -107,7 +107,7 @@ export function useUpdateMilestone() {
       queryClient.setQueriesData<ComponentRow[]>(
         { queryKey: ['components'] },
         (old) => {
-          if (!old) return old
+          if (!old || !Array.isArray(old)) return old
 
           return old.map((component) =>
             component.id === payload.component_id

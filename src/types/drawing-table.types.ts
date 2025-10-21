@@ -110,6 +110,14 @@ export interface DrawingRow {
   /** True if drawing is retired/archived */
   is_retired: boolean
 
+  // Metadata fields
+  /** Area metadata (optional) */
+  area: { id: string; name: string } | null
+  /** System metadata (optional) */
+  system: { id: string; name: string } | null
+  /** Test package metadata (optional) */
+  test_package: { id: string; name: string } | null
+
   // From mv_drawing_progress view
   /** Total count of components on this drawing */
   total_components: number
@@ -218,6 +226,23 @@ export type ValidationResult =
 export type StatusFilter = 'all' | 'not-started' | 'in-progress' | 'complete'
 
 /**
+ * Sort field options
+ */
+export type SortField =
+  | 'drawing_no_norm'
+  | 'title'
+  | 'area'
+  | 'system'
+  | 'test_package'
+  | 'avg_percent_complete'
+  | 'total_components'
+
+/**
+ * Sort direction options
+ */
+export type SortDirection = 'asc' | 'desc'
+
+/**
  * URL query parameters for the drawing table page
  */
 export interface DrawingTableURLParams {
@@ -227,6 +252,10 @@ export interface DrawingTableURLParams {
   search?: string
   /** Status filter */
   status?: StatusFilter
+  /** Sort field */
+  sort?: SortField
+  /** Sort direction */
+  dir?: SortDirection
 }
 
 // ============================================================================
@@ -266,6 +295,135 @@ export function isDiscreteMilestoneValue(value: unknown): value is boolean {
  */
 export function isPartialMilestoneValue(value: unknown): value is number {
   return typeof value === 'number' && value >= 0 && value <= 100
+}
+
+// ============================================================================
+// Drawing Assignment Types (Feature 011)
+// ============================================================================
+
+/**
+ * Payload for assigning metadata to a single drawing
+ * Used by useAssignDrawings hook
+ */
+export interface DrawingAssignmentPayload {
+  /** Target drawing UUID */
+  drawing_id: string
+  /** Area UUID (undefined = no change, null = clear, UUID = assign) */
+  area_id?: string | null
+  /** System UUID (undefined = no change, null = clear, UUID = assign) */
+  system_id?: string | null
+  /** Test package UUID (undefined = no change, null = clear, UUID = assign) */
+  test_package_id?: string | null
+  /** User performing the assignment */
+  user_id: string
+}
+
+/**
+ * Metadata value type for bulk assignment
+ * 'NO_CHANGE' preserves existing drawing value
+ */
+export type MetadataValue = 'NO_CHANGE' | string | null | undefined
+
+/**
+ * Payload for bulk assignment to multiple drawings
+ * Supports 'NO_CHANGE' sentinel to preserve existing values
+ */
+export interface BulkDrawingAssignmentPayload {
+  /** Array of drawing UUIDs (max 50) */
+  drawing_ids: string[]
+  /** Area assignment for all drawings */
+  area_id?: MetadataValue
+  /** System assignment for all drawings */
+  system_id?: MetadataValue
+  /** Test package assignment for all drawings */
+  test_package_id?: MetadataValue
+  /** User performing the assignment */
+  user_id: string
+}
+
+/**
+ * Response from assignment RPC functions
+ * Indicates what changed during assignment + inheritance
+ */
+export interface InheritanceSummary {
+  /** Whether the drawing was successfully updated */
+  drawing_updated: boolean
+  /** Count of components that inherited new values (were NULL before) */
+  components_inherited: number
+  /** Count of components that kept existing assignments (were not NULL) */
+  components_kept_existing: number
+}
+
+// ============================================================================
+// Selection State Types (Feature 011)
+// ============================================================================
+
+/**
+ * Client-side state for drawing selection
+ * Tracks which drawings are selected for bulk operations
+ */
+export interface SelectionState {
+  /** Set of selected drawing UUIDs */
+  selectedDrawingIds: Set<string>
+  /** Maximum allowed selections (constant: 50) */
+  maxSelections: 50
+}
+
+/**
+ * Actions for managing selection state
+ * Returned by useDrawingSelection hook
+ */
+export interface SelectionActions {
+  /** Toggle selection for a single drawing */
+  toggleDrawing(drawingId: string): void
+  /** Select all visible drawings (up to 50 max) */
+  selectAll(visibleDrawingIds: string[]): void
+  /** Clear all selections */
+  clearSelection(): void
+  /** Check if a drawing is selected */
+  isSelected(drawingId: string): boolean
+}
+
+// ============================================================================
+// Inheritance Badge Types (Feature 011)
+// ============================================================================
+
+/**
+ * Badge type indicating inheritance status
+ * - inherited: Component value matches drawing value (gray badge)
+ * - assigned: Component has manually assigned value (blue badge)
+ * - none: Component has no value (no badge, show "—")
+ */
+export type BadgeType = 'inherited' | 'assigned' | 'none'
+
+/**
+ * Inheritance indicator with source information
+ * Derived client-side by comparing component vs drawing values
+ */
+export interface InheritanceIndicator {
+  /** Badge type to display */
+  type: BadgeType
+  /** Drawing number (for inherited values tooltip) */
+  source?: string
+}
+
+// ============================================================================
+// Metadata Description Types (Feature 011)
+// ============================================================================
+
+/**
+ * Payload for updating metadata descriptions
+ * Used by useUpdateArea, useUpdateSystem, useUpdateTestPackage hooks
+ */
+export interface UpdateDescriptionPayload {
+  /** Type of metadata entity */
+  entity_type: 'area' | 'system' | 'test_package'
+  /** UUID of the entity to update */
+  entity_id: string
+  /** New description (null = clear, string = set, max 100 chars) */
+  description: string | null
+  /** User performing the update */
+  user_id: string
 }
 
 // ============================================================================

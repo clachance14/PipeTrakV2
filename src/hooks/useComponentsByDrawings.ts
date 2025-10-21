@@ -48,7 +48,7 @@ export function useComponentsByDrawings(drawingIds: string[]) {
           // Computed fields
           identityDisplay: formatIdentityKey(
             component.identity_key as any,
-            component.component_type
+            component.component_type as any
           ),
           canUpdate: true, // TODO: Get from permissions hook
         }))

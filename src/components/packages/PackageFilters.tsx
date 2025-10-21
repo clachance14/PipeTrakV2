@@ -9,8 +9,14 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { PackageFilters as PackageFiltersType } from '@/hooks/usePackageReadiness';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+
+// Define PackageFilters type locally since it's not exported from the hook
+interface PackageFiltersType {
+  search?: string;
+  status?: string;
+  sortBy?: string;
+}
 
 export interface PackageFiltersProps {
   onFilterChange: (filters: PackageFiltersType) => void;

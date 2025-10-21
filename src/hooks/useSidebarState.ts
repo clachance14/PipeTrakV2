@@ -4,7 +4,7 @@
  * Stores sidebar state in localStorage for persistence across sessions
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'sidebar-collapsed';
 

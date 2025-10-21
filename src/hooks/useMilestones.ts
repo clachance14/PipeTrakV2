@@ -100,16 +100,20 @@ export function useUpdateMilestone(): UseMutationResult<
       const { data: { user } } = await supabase.auth.getUser();
 
       // Create milestone event (audit trail)
+      // Convert boolean values to numbers for database (false=0, true=100)
+      const numericValue = typeof value === 'boolean' ? (value ? 100 : 0) : value;
+      const numericPrevValue = typeof previousValue === 'boolean' ? (previousValue ? 100 : 0) : previousValue;
+
       const { data: event, error: eventError} = await supabase
         .from('milestone_events')
         .insert({
           component_id,
           milestone_name,
           action,
-          value,
-          previous_value: previousValue ?? null,
+          value: numericValue,
+          previous_value: numericPrevValue ?? null,
           metadata: metadata || null,
-          user_id: user?.id || null,
+          user_id: user?.id || '',
         })
         .select()
         .single();

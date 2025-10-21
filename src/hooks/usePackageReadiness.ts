@@ -7,9 +7,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/database.types';
-
-type PackageReadinessRow = Database['public']['Views']['mv_package_readiness']['Row'];
 
 /**
  * Status color options for package cards

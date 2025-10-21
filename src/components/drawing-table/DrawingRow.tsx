@@ -1,4 +1,5 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Pencil } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import type { DrawingRow as DrawingRowType } from '@/types/drawing-table.types'
 
 export interface DrawingRowProps {
@@ -6,6 +7,14 @@ export interface DrawingRowProps {
   isExpanded: boolean
   onToggle: () => void
   style?: React.CSSProperties
+  /** Selection mode active */
+  selectionMode?: boolean
+  /** Whether this drawing is selected */
+  isSelected?: boolean
+  /** Callback when selection checkbox clicked */
+  onSelect?: (drawingId: string) => void
+  /** Callback when pencil icon clicked for inline edit */
+  onEditMetadata?: (drawing: DrawingRowType, field: 'area' | 'system' | 'package') => void
 }
 
 /**
@@ -20,35 +29,53 @@ export function DrawingRow({
   isExpanded,
   onToggle,
   style,
+  selectionMode = false,
+  isSelected = false,
+  onSelect,
+  onEditMetadata,
 }: DrawingRowProps) {
   const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-expanded={isExpanded}
-      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} drawing ${drawing.drawing_no_norm}`}
-      onClick={onToggle}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onToggle()
-        }
-      }}
       style={style}
-      className="flex items-center gap-4 px-5 py-3.5 bg-white border-l-[3px] border-blue-600 cursor-pointer hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md"
+      className="group flex items-center gap-4 px-5 py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md"
     >
-      {/* Expand icon */}
-      {drawing.total_components > 0 && (
-        <ChevronRight
-          className={`h-5 w-5 text-slate-500 transition-transform duration-200 ${
-            isExpanded ? 'rotate-90' : ''
-          }`}
+      {/* Selection checkbox (shown only in selection mode) */}
+      {selectionMode && onSelect && (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onSelect(drawing.id)}
+          aria-label={`Select drawing ${drawing.drawing_no_norm}`}
+          onClick={(e) => e.stopPropagation()}
         />
       )}
-      {drawing.total_components === 0 && <div className="w-5" />}
+
+      {/* Expand icon */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} drawing ${drawing.drawing_no_norm}`}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onToggle()
+          }
+        }}
+        className="cursor-pointer"
+      >
+        {drawing.total_components > 0 && (
+          <ChevronRight
+            className={`h-5 w-5 text-slate-500 transition-transform duration-200 ${
+              isExpanded ? 'rotate-90' : ''
+            }`}
+          />
+        )}
+        {drawing.total_components === 0 && <div className="w-5" />}
+      </div>
 
       {/* Drawing number */}
       <div className="min-w-[140px] font-semibold text-base text-slate-900">
@@ -58,6 +85,57 @@ export function DrawingRow({
       {/* Title */}
       <div className="flex-1 text-sm text-slate-600">
         {drawing.title || '—'}
+      </div>
+
+      {/* Area (with inline edit pencil) */}
+      <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600">
+        <span>{drawing.area?.name || '—'}</span>
+        {onEditMetadata && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEditMetadata(drawing, 'area')
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+            aria-label="Edit area"
+          >
+            <Pencil className="h-3.5 w-3.5 text-slate-500" />
+          </button>
+        )}
+      </div>
+
+      {/* System (with inline edit pencil) */}
+      <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600">
+        <span>{drawing.system?.name || '—'}</span>
+        {onEditMetadata && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEditMetadata(drawing, 'system')
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+            aria-label="Edit system"
+          >
+            <Pencil className="h-3.5 w-3.5 text-slate-500" />
+          </button>
+        )}
+      </div>
+
+      {/* Test Package (with inline edit pencil) */}
+      <div className="min-w-[120px] flex items-center gap-1.5 text-sm text-slate-600">
+        <span>{drawing.test_package?.name || '—'}</span>
+        {onEditMetadata && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEditMetadata(drawing, 'package')
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+            aria-label="Edit test package"
+          >
+            <Pencil className="h-3.5 w-3.5 text-slate-500" />
+          </button>
+        )}
       </div>
 
       {/* Progress summary */}

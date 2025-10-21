@@ -20,9 +20,9 @@ import { WeldersPage } from '@/pages/WeldersPage'
 import { ImportsPage } from '@/pages/ImportsPage'
 import { ComponentsTable } from '@/pages/ComponentsTable'
 import { ProjectSetup } from '@/pages/ProjectSetup'
-import { DrawingsPage } from '@/pages/DrawingsPage'
 import { DrawingComponentTablePage } from '@/pages/DrawingComponentTablePage'
 import { DebugUserPage } from '@/pages/DebugUserPage'
+import MetadataManagementPage from '@/pages/MetadataManagementPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
 
@@ -143,6 +143,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ImportsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/metadata"
+              element={
+                <ProtectedRoute>
+                  <MetadataManagementPage />
                 </ProtectedRoute>
               }
             />

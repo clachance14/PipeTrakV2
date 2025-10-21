@@ -9,7 +9,12 @@ import { ReactNode } from 'react';
 // Placeholder for usePermissions hook - will need to check if this exists
 // For now, we'll create a simple version that can be extended
 interface PermissionGateProps {
-  permission: 'can_update_milestones' | 'can_manage_team' | 'can_view_dashboards';
+  permission:
+    | 'can_update_milestones'
+    | 'can_manage_team'
+    | 'can_view_dashboards'
+    | 'can_resolve_reviews'
+    | 'can_manage_welders';
   children: ReactNode;
   fallback?: ReactNode;
 }
@@ -20,9 +25,9 @@ interface PermissionGateProps {
  * Note: This is client-side UX only - RLS enforces server-side security
  */
 export function PermissionGate({
-  permission,
+  permission: _permission,
   children,
-  fallback = null,
+  fallback: _fallback = null,
 }: PermissionGateProps) {
   // TODO: Integrate with actual usePermissions() hook from Sprint 1
   // For now, return children (permissive default for development)

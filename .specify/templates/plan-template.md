@@ -70,6 +70,7 @@
 - [ ] Multi-tenant isolation via organization_id in policies
 - [ ] TanStack Query wraps all Supabase calls
 - [ ] Auth via AuthContext (no direct supabase.auth in components)
+- [ ] Database migrations will use `npx supabase db push --linked` (remote-only)
 - [ ] Realtime subscriptions cleaned up on unmount (if applicable)
 
 ### V. Specify Workflow Compliance

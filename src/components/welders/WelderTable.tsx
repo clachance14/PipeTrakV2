@@ -1,7 +1,6 @@
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PermissionGate } from '@/components/PermissionGate';
-import { cn } from '@/lib/utils';
 
 export type WelderStatus = 'verified' | 'unverified';
 

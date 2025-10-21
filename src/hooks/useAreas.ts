@@ -121,7 +121,7 @@ export function useDeleteArea(): UseMutationResult<
 
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (_, _variables) => {
       // Invalidate all areas queries
       queryClient.invalidateQueries({
         queryKey: ['projects'],

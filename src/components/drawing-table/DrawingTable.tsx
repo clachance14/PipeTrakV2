@@ -3,16 +3,25 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { DrawingRow } from './DrawingRow'
 import { ComponentRow } from './ComponentRow'
 import { DrawingTableSkeleton } from './DrawingTableSkeleton'
-import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, MilestoneConfig } from '@/types/drawing-table.types'
+import { DrawingTableHeader } from './DrawingTableHeader'
+import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, MilestoneConfig, SortField, SortDirection } from '@/types/drawing-table.types'
 
 export interface DrawingTableProps {
   drawings: DrawingRowType[]
   expandedDrawingIds: Set<string>
   componentsMap: Map<string, ComponentRowType[]>
   visibleMilestones: MilestoneConfig[]
+  sortField: SortField
+  sortDirection: SortDirection
   onToggleDrawing: (drawingId: string) => void
   onMilestoneUpdate: (componentId: string, milestoneName: string, value: boolean | number) => void
+  onSort: (field: SortField, direction: SortDirection) => void
   loading?: boolean
+  // Feature 011: Selection mode props
+  selectionMode?: boolean
+  selectedDrawingIds?: Set<string>
+  onToggleSelection?: (drawingId: string) => void
+  onSelectAll?: () => void
 }
 
 type VirtualRow =
@@ -31,9 +40,16 @@ export function DrawingTable({
   expandedDrawingIds,
   componentsMap,
   visibleMilestones,
+  sortField,
+  sortDirection,
   onToggleDrawing,
   onMilestoneUpdate,
+  onSort,
   loading = false,
+  selectionMode = false,
+  selectedDrawingIds = new Set(),
+  onToggleSelection,
+  onSelectAll,
 }: DrawingTableProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -73,18 +89,29 @@ export function DrawingTable({
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="h-full overflow-auto"
-      style={{ contain: 'strict' }}
-    >
+    <div className="h-full flex flex-col">
+      {/* Table Header */}
+      <DrawingTableHeader
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSort={onSort}
+        selectionMode={selectionMode}
+        onSelectAll={onSelectAll}
+      />
+
+      {/* Virtualized Content */}
       <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
+        ref={parentRef}
+        className="flex-1 overflow-auto"
+        style={{ contain: 'strict' }}
       >
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const row = visibleRows[virtualRow.index]
           if (!row) return null
@@ -105,6 +132,9 @@ export function DrawingTable({
                   drawing={row.data}
                   isExpanded={expandedDrawingIds.has(row.data.id)}
                   onToggle={() => onToggleDrawing(row.data.id)}
+                  selectionMode={selectionMode}
+                  isSelected={selectedDrawingIds.has(row.data.id)}
+                  onSelect={onToggleSelection}
                 />
               </div>
             )
@@ -130,6 +160,7 @@ export function DrawingTable({
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

@@ -1,9 +1,9 @@
 <!--
   SYNC IMPACT REPORT
   ==================
-  Version Change: [TEMPLATE] → 1.0.0
+  Version Change: [TEMPLATE] → 1.0.0 → 1.0.1
 
-  Initial Ratification:
+  Initial Ratification (1.0.0):
   - 5 core principles established for PipeTrak V2
   - Type Safety First (I)
   - Component-Driven Development (II)
@@ -14,6 +14,11 @@
   Added Sections:
   - Security & Multi-tenancy (RLS enforcement)
   - Development Workflow (feature branch, TDD gates)
+
+  Version 1.0.1 (2025-10-21) - PATCH:
+  - Clarified Principle IV: Database migrations MUST use remote-only workflow
+  - Added: "Database migrations MUST be applied to remote via `npx supabase db push --linked` (no local Supabase instance)"
+  - Updated CLAUDE.md Supabase Setup section with remote-only commands
 
   Templates Requiring Updates:
   ✅ .specify/templates/plan-template.md - Constitution Check section references updated
@@ -70,6 +75,7 @@ All backend interactions MUST follow Supabase best practices:
 - Realtime subscriptions MUST clean up on component unmount
 - Auth state via `AuthContext` (do NOT access `supabase.auth` directly in components)
 - File uploads via Supabase Storage with RLS policies matching table access
+- Database migrations MUST be applied to remote via `npx supabase db push --linked` (no local Supabase instance)
 
 **Rationale**: Multi-project construction tracking requires tenant isolation. Supabase RLS enforces data boundaries at database level.
 
@@ -144,4 +150,4 @@ All non-trivial features MUST follow the Specify workflow:
 - Use `CLAUDE.md` in repository root for Claude Code development sessions
 - Constitution defines WHAT (principles), CLAUDE.md defines HOW (patterns and commands)
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-04 | **Last Amended**: 2025-10-04
+**Version**: 1.0.1 | **Ratified**: 2025-10-04 | **Last Amended**: 2025-10-21

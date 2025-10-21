@@ -41,20 +41,20 @@ export function useComponentsByDrawing(
         id: component.id,
         project_id: component.project_id,
         drawing_id: component.drawing_id,
-        component_type: component.component_type,
-        identity_key: component.identity_key,
-        current_milestones: component.current_milestones,
+        component_type: component.component_type as ComponentRow['component_type'],
+        identity_key: component.identity_key as unknown as ComponentRow['identity_key'],
+        current_milestones: component.current_milestones as unknown as ComponentRow['current_milestones'],
         percent_complete: component.percent_complete,
         created_at: component.created_at,
         last_updated_at: component.last_updated_at,
         last_updated_by: component.last_updated_by,
         is_retired: component.is_retired,
         // Joined template
-        template: component.progress_templates,
+        template: component.progress_templates as unknown as ComponentRow['template'],
         // Computed fields
         identityDisplay: formatIdentityKey(
-          component.identity_key,
-          component.component_type
+          component.identity_key as unknown as ComponentRow['identity_key'],
+          component.component_type as ComponentRow['component_type']
         ),
         canUpdate: true, // TODO: Get from permissions hook
       }))

@@ -15,10 +15,15 @@ export function useDrawingsWithProgress(projectId: string) {
   return useQuery({
     queryKey: ['drawings-with-progress', { project_id: projectId }],
     queryFn: async () => {
-      // Fetch drawings
+      // Fetch drawings with metadata joins
       const { data: drawingsData, error: drawingsError } = await supabase
         .from('drawings')
-        .select('*')
+        .select(`
+          *,
+          area:areas(id, name),
+          system:systems(id, name),
+          test_package:test_packages(id, name)
+        `)
         .eq('project_id', projectId)
         .eq('is_retired', false)
         .order('drawing_no_norm')
@@ -49,6 +54,9 @@ export function useDrawingsWithProgress(projectId: string) {
           title: drawing.title,
           rev: drawing.rev,
           is_retired: drawing.is_retired,
+          area: drawing.area || null,
+          system: drawing.system || null,
+          test_package: drawing.test_package || null,
           total_components: progress?.total_components || 0,
           completed_components: progress?.completed_components || 0,
           avg_percent_complete: progress?.avg_percent_complete || 0,

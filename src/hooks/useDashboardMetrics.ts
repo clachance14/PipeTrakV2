@@ -35,7 +35,7 @@ export interface DashboardMetrics {
  * Fake audit log implementation (audit_log table doesn't exist yet)
  * Returns empty array until audit_log is implemented
  */
-function useAuditLog(projectId: string): { data: ActivityItem[] } {
+function useAuditLog(_projectId: string): { data: ActivityItem[] } {
   return { data: [] };
 }
 
