@@ -64,6 +64,7 @@ export async function processImport(
   rows: CsvRow[]
 ): Promise<{
   success: boolean;
+  drawingsCreated: number;
   componentsCreated: number;
   rowsProcessed: number;
   rowsSkipped: number;
@@ -82,63 +83,79 @@ export async function processImport(
       }
     });
 
-    // Step 2: Insert ALL drawings (database trigger will set drawing_no_norm)
-    const drawingsToInsert = Array.from(drawingsMap.values()).map(rawDrawing => ({
-      drawing_no_raw: rawDrawing,
-      project_id: projectId,
-      is_retired: false
-      // Note: drawing_no_norm is NOT set here - database trigger handles it
-    }));
-
-    const { error: insertError } = await supabase
-      .from('drawings')
-      .insert(drawingsToInsert);
-
-    if (insertError) {
-      throw new Error(
-        `Failed to create drawings: ${insertError.message}. ` +
-        `This usually means drawings already exist in the database. ` +
-        `Please delete existing drawings for this project before importing.`
-      );
-    }
-
-    // Step 3: Fetch the drawings we just created (separate query for service role compatibility)
+    // Step 2: Check for existing drawings (idempotent import support)
     const drawingNorms = Array.from(drawingsMap.keys());
 
-    const { data: fetchedDrawings, error: fetchError } = await supabase
+    const { data: existingDrawings, error: existingError } = await supabase
+      .from('drawings')
+      .select('id, drawing_no_norm')
+      .eq('project_id', projectId)
+      .in('drawing_no_norm', drawingNorms);
+
+    if (existingError) {
+      throw new Error(`Failed to check existing drawings: ${existingError.message}`);
+    }
+
+    // Build set of existing normalized drawing names
+    const existingNorms = new Set(
+      (existingDrawings || []).map(d => d.drawing_no_norm)
+    );
+
+    // Filter to only NEW drawings that don't exist yet
+    const newDrawingsToInsert = Array.from(drawingsMap.entries())
+      .filter(([normalized]) => !existingNorms.has(normalized))
+      .map(([, rawDrawing]) => ({
+        drawing_no_raw: rawDrawing,
+        project_id: projectId,
+        is_retired: false
+        // Note: drawing_no_norm is NOT set here - database trigger handles it
+      }));
+
+    // Step 3: Insert only NEW drawings (skip existing)
+    let drawingsCreated = 0;
+    if (newDrawingsToInsert.length > 0) {
+      const { error: insertError } = await supabase
+        .from('drawings')
+        .insert(newDrawingsToInsert);
+
+      if (insertError) {
+        throw new Error(`Failed to create drawings: ${insertError.message}`);
+      }
+      drawingsCreated = newDrawingsToInsert.length;
+    }
+
+    // Step 4: Fetch ALL needed drawings (existing + newly created)
+    const { data: allDrawings, error: fetchError } = await supabase
       .from('drawings')
       .select('id, drawing_no_norm')
       .eq('project_id', projectId)
       .in('drawing_no_norm', drawingNorms);
 
     if (fetchError) {
-      throw new Error(`Failed to fetch created drawings: ${fetchError.message}`);
+      throw new Error(`Failed to fetch drawings: ${fetchError.message}`);
     }
 
-    // Debug what we got back
-    if (!fetchedDrawings || fetchedDrawings.length === 0) {
-      // Try fetching ALL drawings for this project (no filter)
-      const { data: allProjectDrawings } = await supabase
-        .from('drawings')
-        .select('id, drawing_no_norm, drawing_no_raw')
-        .eq('project_id', projectId);
-
-      const actualDrawingNorms = allProjectDrawings?.map(d => d.drawing_no_norm) || [];
-      const searchingFor = drawingNorms.slice(0, 5);
-      const actualValues = actualDrawingNorms.slice(0, 5);
-
+    if (!allDrawings || allDrawings.length === 0) {
       throw new Error(
-        `Drawing name mismatch! ` +
-        `We're searching for: [${searchingFor.join(', ')}] ` +
-        `But database has: [${actualValues.join(', ')}]. ` +
-        `Total: ${allProjectDrawings?.length || 0} drawings. ` +
-        `First raw drawing: ${allProjectDrawings?.[0]?.drawing_no_raw}`
+        `No drawings found after insert! Expected ${drawingNorms.length} drawings. ` +
+        `This indicates a normalization mismatch between TypeScript and database.`
       );
     }
 
-    // Step 4: Build map of drawing_no_norm -> id
+    // Verify we got all expected drawings
+    if (allDrawings.length !== drawingNorms.length) {
+      const foundNorms = new Set(allDrawings.map(d => d.drawing_no_norm));
+      const missing = drawingNorms.filter(n => !foundNorms.has(n));
+
+      throw new Error(
+        `Missing drawings after fetch! Expected ${drawingNorms.length}, got ${allDrawings.length}. ` +
+        `Missing: [${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}]`
+      );
+    }
+
+    // Step 5: Build map of drawing_no_norm -> id
     const drawingIdMap = new Map(
-      fetchedDrawings.map(d => [d.drawing_no_norm, d.id])
+      allDrawings.map(d => [d.drawing_no_norm, d.id])
     );
 
     // Fetch progress templates
@@ -240,6 +257,7 @@ export async function processImport(
 
     return {
       success: true,
+      drawingsCreated,
       componentsCreated: components.length,
       rowsProcessed: rows.length,
       rowsSkipped
@@ -247,6 +265,7 @@ export async function processImport(
   } catch (error) {
     return {
       success: false,
+      drawingsCreated: 0,
       componentsCreated: 0,
       rowsProcessed: 0,
       rowsSkipped: 0,
