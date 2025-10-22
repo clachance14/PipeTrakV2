@@ -174,33 +174,53 @@ export async function processImport(
       }
 
       const cmdtyCode = row['CMDTY CODE'];
-      const templateId = templateMap.get(row.TYPE.toLowerCase());
+      const typeLower = row.TYPE.toLowerCase();
+      const templateId = templateMap.get(typeLower);
 
-      // Create QTY discrete components with size-aware identity keys
-      for (let i = 1; i <= qty; i++) {
-        // identity_key must match database validation function schema
-        const identityKey = {
-          drawing_norm: normalized,
-          commodity_code: cmdtyCode,
-          size: normalizeSize(row.SIZE),
-          seq: i
-        };
+      // Base component object (shared fields)
+      const baseComponent = {
+        project_id: projectId,
+        component_type: typeLower, // Database expects lowercase component types
+        drawing_id: drawingId,
+        progress_template_id: templateId || null,
+        attributes: {
+          spec: row.SPEC || '',
+          description: row.DESCRIPTION || '',
+          size: row.SIZE || '',
+          cmdty_code: cmdtyCode,
+          comments: row.Comments || '',
+          original_qty: qty
+        }
+      };
 
+      // Generate type-specific identity keys
+      if (typeLower === 'spool') {
+        // Spool: unique component identified by spool_id only
         components.push({
-          project_id: projectId,
-          identity_key: identityKey,
-          component_type: row.TYPE.toLowerCase(), // Database expects lowercase component types
-          drawing_id: drawingId,
-          progress_template_id: templateId || null,
-          attributes: {
-            spec: row.SPEC || '',
-            description: row.DESCRIPTION || '',
-            size: row.SIZE || '',
-            cmdty_code: cmdtyCode,
-            comments: row.Comments || '',
-            original_qty: qty
-          }
+          ...baseComponent,
+          identity_key: { spool_id: cmdtyCode }
         });
+
+      } else if (typeLower === 'field_weld') {
+        // Field_Weld: unique component identified by weld_number only
+        components.push({
+          ...baseComponent,
+          identity_key: { weld_number: cmdtyCode }
+        });
+
+      } else {
+        // All other types: quantity explosion with drawing_norm/commodity_code/size/seq
+        for (let i = 1; i <= qty; i++) {
+          components.push({
+            ...baseComponent,
+            identity_key: {
+              drawing_norm: normalized,
+              commodity_code: cmdtyCode,
+              size: normalizeSize(row.SIZE),
+              seq: i
+            }
+          });
+        }
       }
     });
 
