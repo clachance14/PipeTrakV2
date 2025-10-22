@@ -21,6 +21,7 @@ import { ImportsPage } from '@/pages/ImportsPage'
 import { ComponentsTable } from '@/pages/ComponentsTable'
 import { ProjectSetup } from '@/pages/ProjectSetup'
 import { DrawingComponentTablePage } from '@/pages/DrawingComponentTablePage'
+import { PackageDetailPage } from '@/pages/PackageDetailPage'
 import { DebugUserPage } from '@/pages/DebugUserPage'
 import MetadataManagementPage from '@/pages/MetadataManagementPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
@@ -119,6 +120,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PackagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/packages/:packageId/components"
+              element={
+                <ProtectedRoute>
+                  <PackageDetailPage />
                 </ProtectedRoute>
               }
             />

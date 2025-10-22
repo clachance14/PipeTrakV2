@@ -25,7 +25,14 @@ export function useProgressTemplates() {
       const templatesMap = new Map<ComponentType, ProgressTemplate>()
 
       data.forEach((template) => {
-        templatesMap.set(template.component_type as ComponentType, template as ProgressTemplate)
+        const progressTemplate: ProgressTemplate = {
+          id: template.id,
+          component_type: template.component_type as ComponentType,
+          version: template.version,
+          workflow_type: template.workflow_type as 'discrete' | 'quantity' | 'hybrid',
+          milestones_config: template.milestones_config as any, // Json to MilestoneConfig[] conversion
+        }
+        templatesMap.set(progressTemplate.component_type, progressTemplate)
       })
 
       return templatesMap

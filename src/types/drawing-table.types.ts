@@ -302,27 +302,29 @@ export function isPartialMilestoneValue(value: unknown): value is number {
 // ============================================================================
 
 /**
+ * Metadata value type for assignment (single and bulk)
+ * 'NO_CHANGE' preserves existing drawing value
+ */
+export type MetadataValue = 'NO_CHANGE' | string | null | undefined
+
+/**
  * Payload for assigning metadata to a single drawing
  * Used by useAssignDrawings hook
+ *
+ * Migration 00027: Now supports 'NO_CHANGE' to prevent overwriting existing values
  */
 export interface DrawingAssignmentPayload {
   /** Target drawing UUID */
   drawing_id: string
-  /** Area UUID (undefined = no change, null = clear, UUID = assign) */
-  area_id?: string | null
-  /** System UUID (undefined = no change, null = clear, UUID = assign) */
-  system_id?: string | null
-  /** Test package UUID (undefined = no change, null = clear, UUID = assign) */
-  test_package_id?: string | null
+  /** Area assignment ('NO_CHANGE' = preserve, null/undefined = clear, UUID = assign) */
+  area_id?: MetadataValue
+  /** System assignment ('NO_CHANGE' = preserve, null/undefined = clear, UUID = assign) */
+  system_id?: MetadataValue
+  /** Test package assignment ('NO_CHANGE' = preserve, null/undefined = clear, UUID = assign) */
+  test_package_id?: MetadataValue
   /** User performing the assignment */
   user_id: string
 }
-
-/**
- * Metadata value type for bulk assignment
- * 'NO_CHANGE' preserves existing drawing value
- */
-export type MetadataValue = 'NO_CHANGE' | string | null | undefined
 
 /**
  * Payload for bulk assignment to multiple drawings

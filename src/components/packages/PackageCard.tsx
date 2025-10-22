@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { Package, AlertTriangle } from 'lucide-react';
+import { Package, AlertTriangle, Edit } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export interface PackageCardData {
   id: string;
   name: string;
+  description?: string | null;
   progress: number; // 0-100
   componentCount: number;
   blockerCount: number;
@@ -15,18 +17,29 @@ export interface PackageCardData {
 
 export interface PackageCardProps {
   package: PackageCardData;
+  onEdit?: () => void;
 }
 
 /**
  * Package card component displaying test package readiness
- * Shows progress, component count, blockers, and target date
- * Clicking navigates to components page filtered by this package
+ * Shows progress, component count, blockers, description, and target date
+ * Clicking navigates to package detail page
  */
-export function PackageCard({ package: pkg }: PackageCardProps) {
+export function PackageCard({ package: pkg, onEdit }: PackageCardProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`/components?package=${pkg.id}`);
+    navigate(`/packages/${pkg.id}/components`);
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit?.();
+  };
+
+  const truncateDescription = (text: string | null | undefined, maxLength: number) => {
+    if (!text) return null;
+    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
   };
 
   const borderColorClass = {
@@ -50,17 +63,37 @@ export function PackageCard({ package: pkg }: PackageCardProps) {
       onClick={handleClick}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-gray-600" />
-          <h3 className="font-semibold text-gray-900">{pkg.name}</h3>
-        </div>
-        {pkg.blockerCount > 0 && (
-          <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs font-medium">
-            <AlertTriangle className="h-3 w-3" />
-            {pkg.blockerCount} blocker{pkg.blockerCount > 1 ? 's' : ''}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Package className="h-5 w-5 text-gray-600 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900">{pkg.name}</h3>
+            {pkg.description && (
+              <p className="text-sm text-gray-500 truncate mt-0.5">
+                {truncateDescription(pkg.description, 60)}
+              </p>
+            )}
           </div>
-        )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          {onEdit && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={handleEdit}
+              aria-label="Edit package"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {pkg.blockerCount > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs font-medium">
+              <AlertTriangle className="h-3 w-3" />
+              {pkg.blockerCount}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Progress bar */}

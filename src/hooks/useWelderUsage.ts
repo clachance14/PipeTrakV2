@@ -4,12 +4,9 @@
  * Counts "Weld Made" milestone events by welder_id for usage statistics
  */
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/database.types';
-
-type MilestoneEvent = Database['public']['Tables']['milestone_events']['Row'];
 
 /**
  * Hook to count welder usage from milestone events
@@ -21,7 +18,7 @@ type MilestoneEvent = Database['public']['Tables']['milestone_events']['Row'];
  */
 export function useWelderUsage(
   projectId: string
-): UseQueryResult<Map<string, number>, Error> {
+) {
   const query = useQuery({
     queryKey: ['projects', projectId, 'welder-usage'],
     queryFn: async () => {
@@ -69,5 +66,5 @@ export function useWelderUsage(
   return {
     ...query,
     data: usageMap,
-  } as UseQueryResult<Map<string, number>, Error>;
+  };
 }

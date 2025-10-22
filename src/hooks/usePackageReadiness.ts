@@ -4,7 +4,7 @@
  * Queries mv_package_readiness materialized view and transforms to view models
  */
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -59,7 +59,7 @@ function getStatusColor(progress: number, blockerCount: number): StatusColor {
 export function usePackageReadiness(
   projectId: string,
   filters?: PackageReadinessFilters
-): UseQueryResult<PackageCard[], Error> {
+) {
   const query = useQuery({
     queryKey: ['projects', projectId, 'package-readiness', 'raw'],
     queryFn: async () => {
@@ -142,5 +142,5 @@ export function usePackageReadiness(
   return {
     ...query,
     data: processedData,
-  } as UseQueryResult<PackageCard[], Error>;
+  };
 }

@@ -6,7 +6,7 @@
  * Supports both single drawing and bulk assignment modes.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -61,18 +61,39 @@ export function DrawingAssignDialog({
   const assignDrawing = useAssignDrawing();
   const assignDrawingsBulk = useAssignDrawingsBulk();
 
-  const isBulkMode = drawingIds.length > 0;
+  // Single mode if drawing prop is provided, bulk mode if drawingIds provided
+  const isBulkMode = !drawing && drawingIds.length > 0;
+
+  // Store initial values to detect changes (only for single mode)
+  const initialAreaId = drawing?.area?.id || null;
+  const initialSystemId = drawing?.system?.id || null;
+  const initialTestPackageId = drawing?.test_package?.id || null;
 
   // Form state
   const [areaId, setAreaId] = useState<string | 'NO_CHANGE' | null>(
-    isBulkMode ? 'NO_CHANGE' : drawing?.area?.id || null
+    isBulkMode ? 'NO_CHANGE' : initialAreaId
   );
   const [systemId, setSystemId] = useState<string | 'NO_CHANGE' | null>(
-    isBulkMode ? 'NO_CHANGE' : drawing?.system?.id || null
+    isBulkMode ? 'NO_CHANGE' : initialSystemId
   );
   const [testPackageId, setTestPackageId] = useState<string | 'NO_CHANGE' | null>(
-    isBulkMode ? 'NO_CHANGE' : drawing?.test_package?.id || null
+    isBulkMode ? 'NO_CHANGE' : initialTestPackageId
   );
+
+  // Reset state when dialog opens or drawing changes
+  useEffect(() => {
+    if (open) {
+      if (isBulkMode) {
+        setAreaId('NO_CHANGE');
+        setSystemId('NO_CHANGE');
+        setTestPackageId('NO_CHANGE');
+      } else {
+        setAreaId(initialAreaId);
+        setSystemId(initialSystemId);
+        setTestPackageId(initialTestPackageId);
+      }
+    }
+  }, [open, isBulkMode, initialAreaId, initialSystemId, initialTestPackageId]);
 
   const handleSubmit = async () => {
     if (!user) {
@@ -109,12 +130,12 @@ export function DrawingAssignDialog({
           `${totalInherited} component(s) inherited metadata.`
         );
       } else if (drawing) {
-        // Single assignment
+        // Single assignment - send 'NO_CHANGE' for unchanged fields
         const result = await assignDrawing.mutateAsync({
           drawing_id: drawing.id,
-          area_id: areaId || undefined,
-          system_id: systemId || undefined,
-          test_package_id: testPackageId || undefined,
+          area_id: areaId === initialAreaId ? 'NO_CHANGE' : (areaId || undefined),
+          system_id: systemId === initialSystemId ? 'NO_CHANGE' : (systemId || undefined),
+          test_package_id: testPackageId === initialTestPackageId ? 'NO_CHANGE' : (testPackageId || undefined),
           user_id: user.id,
         });
 

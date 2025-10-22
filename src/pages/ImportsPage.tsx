@@ -104,7 +104,7 @@ export function ImportsPage() {
           ) : (
             <div className="space-y-3">
               {recentImports.map((entry) => {
-                const payload = entry.metadata as { filename?: string; count?: number; status?: string } | null;
+                const payload = entry.new_value as { filename?: string; count?: number; status?: string } | null;
                 const filename = payload?.filename || 'Unknown file';
                 const count = payload?.count || 0;
                 const status = payload?.status || 'success';
