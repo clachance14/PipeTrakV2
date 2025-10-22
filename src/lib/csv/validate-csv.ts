@@ -30,8 +30,8 @@ const REQUIRED_COLUMNS = ['DRAWING', 'TYPE', 'QTY', 'CMDTY CODE'];
 // Zod schema for CSV row validation
 const csvRowSchema = z.object({
   DRAWING: z.string().min(1, 'Required field missing'),
-  TYPE: z.enum(['Valve', 'Instrument', 'Support', 'Pipe', 'Fitting', 'Flange'], {
-    message: 'Invalid component type. Expected: Valve, Instrument, Support, Pipe, Fitting, Flange'
+  TYPE: z.enum(['Spool', 'Field_Weld', 'Valve', 'Instrument', 'Support', 'Pipe', 'Fitting', 'Flange', 'Tubing', 'Hose', 'Misc_Component', 'Threaded_Pipe'], {
+    message: 'Invalid component type. Expected: Spool, Field_Weld, Valve, Instrument, Support, Pipe, Fitting, Flange, Tubing, Hose, Misc_Component, Threaded_Pipe'
   }),
   QTY: z.coerce.number().int().min(0, 'Quantity must be ≥0'),
   'CMDTY CODE': z.string().min(1, 'Required field missing'),
