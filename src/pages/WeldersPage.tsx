@@ -16,9 +16,9 @@ export function WeldersPage() {
   const [selectedWelder, setSelectedWelder] = useState<WelderRow | null>(null);
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
 
-  const { data: welders, isLoading, isError, error, refetch } = useWelders({
-    projectId: selectedProjectId || ''
-  });
+  const { data: welders, isLoading, isError, error, refetch } = useWelders(
+    selectedProjectId || ''
+  );
 
   const { data: welderUsage } = useWelderUsage(selectedProjectId || '');
 
@@ -30,10 +30,10 @@ export function WeldersPage() {
       id: welder.id,
       name: welder.name,
       stencil: welder.stencil_norm || welder.stencil,
-      status: welder.status,
+      status: welder.status as WelderRow['status'],
       weldCount: welderUsage?.get(welder.id) || 0,
-      verifiedAt: welder.verified_at,
-      verifiedBy: welder.verified_by
+      verifiedAt: welder.verified_at ?? undefined,
+      verifiedBy: welder.verified_by ?? undefined
     }));
   }, [welders, welderUsage]);
 

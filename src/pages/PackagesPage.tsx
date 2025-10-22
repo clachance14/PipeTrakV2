@@ -1,20 +1,30 @@
 import { Layout } from '@/components/Layout';
 import { useState } from 'react';
 import { useProject } from '@/contexts/ProjectContext';
-import { usePackageReadiness, PackageFilters as PackageFiltersType } from '@/hooks/usePackageReadiness';
+import { usePackageReadiness } from '@/hooks/usePackages';
 import { PackageCard } from '@/components/packages/PackageCard';
-import { PackageFilters } from '@/components/packages/PackageFilters';
+import { PackageEditDialog } from '@/components/packages/PackageEditDialog';
 import { EmptyState } from '@/components/EmptyState';
-import { Package, AlertCircle } from 'lucide-react';
+import { Package, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { Package as PackageType } from '@/types/package.types';
 
 export function PackagesPage() {
   const { selectedProjectId } = useProject();
-  const [filters, setFilters] = useState<PackageFiltersType>({ status: 'all', sortBy: 'name' });
-  const { data: packages, isLoading, isError, error, refetch } = usePackageReadiness(
-    selectedProjectId || '',
-    filters
+
+  // Dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(null);
+
+  const { data: packagesData, isLoading, isError, error, refetch } = usePackageReadiness(
+    selectedProjectId || ''
   );
+
+  const handleEdit = (pkg: PackageType) => {
+    setSelectedPackage(pkg);
+    setEditDialogOpen(true);
+  };
 
   // No project selected
   if (!selectedProjectId) {
@@ -68,17 +78,52 @@ export function PackagesPage() {
     );
   }
 
+  // Transform data for cards
+  // Note: description field added in migration 00028
+  const packages = packagesData?.map((row) => {
+    const rowWithDescription = row as typeof row & { description?: string | null };
+    return {
+      id: row.package_id!,
+      name: row.package_name!,
+      description: rowWithDescription.description || null,
+      progress: row.avg_percent_complete ? Math.round(row.avg_percent_complete) : 0,
+      componentCount: Number(row.total_components),
+      blockerCount: Number(row.blocker_count),
+      targetDate: row.target_date || undefined,
+      statusColor: (Number(row.blocker_count) > 0
+        ? 'amber'
+        : row.avg_percent_complete === 100
+        ? 'green'
+        : 'blue') as 'green' | 'blue' | 'amber',
+      // Full package data for editing
+      packageData: {
+        id: row.package_id!,
+        project_id: row.project_id!,
+        name: row.package_name!,
+        description: rowWithDescription.description || null,
+        target_date: row.target_date,
+        created_at: '', // Not needed for edit
+      } as PackageType,
+    };
+  });
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Test Package Readiness</h1>
-          <p className="text-gray-600 mt-1">Track package completion and turnover readiness</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Test Package Readiness</h1>
+            <p className="text-gray-600 mt-1">Track package completion and turnover readiness</p>
+          </div>
+          {selectedProjectId && (
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Package
+            </Button>
+          )}
         </div>
 
-        <PackageFilters onFilterChange={setFilters} />
-
-        {packages.length === 0 ? (
+        {!packages || packages.length === 0 ? (
           <EmptyState
             icon={Package}
             title="No test packages found"
@@ -87,9 +132,34 @@ export function PackagesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {packages.map((pkg) => (
-              <PackageCard key={pkg.id} package={pkg} />
+              <PackageCard
+                key={pkg.id}
+                package={pkg}
+                onEdit={() => handleEdit(pkg.packageData)}
+              />
             ))}
           </div>
+        )}
+
+        {/* Create Package Dialog */}
+        {selectedProjectId && (
+          <PackageEditDialog
+            mode="create"
+            projectId={selectedProjectId}
+            open={createDialogOpen}
+            onOpenChange={setCreateDialogOpen}
+          />
+        )}
+
+        {/* Edit Package Dialog */}
+        {selectedProjectId && selectedPackage && (
+          <PackageEditDialog
+            mode="edit"
+            projectId={selectedProjectId}
+            package={selectedPackage}
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+          />
         )}
       </div>
     </Layout>

@@ -139,6 +139,15 @@ export function DrawingComponentTablePage() {
   // Apply filters and sorting
   const displayDrawings = filterAndSortDrawings(drawings || [])
 
+  // Feature 011: Get selected drawing for dialog (single-selection mode)
+  const selectedDrawing = useMemo(() => {
+    if (selectedDrawingIds.size === 1) {
+      const drawingId = Array.from(selectedDrawingIds)[0]
+      return drawings?.find(d => d.id === drawingId)
+    }
+    return undefined
+  }, [selectedDrawingIds, drawings])
+
   // Get visible drawing IDs for select all
   const visibleDrawingIds = useMemo(
     () => displayDrawings.map(d => d.id),
@@ -281,7 +290,10 @@ export function DrawingComponentTablePage() {
 
         {/* Feature 011: Drawing Assignment Dialog (T037) */}
         <DrawingAssignDialog
-          drawingIds={Array.from(selectedDrawingIds)}
+          // Single-selection mode: pass drawing prop to show current values
+          // Multi-selection mode: pass drawingIds for bulk assignment with 'No change' defaults
+          drawing={selectedDrawing}
+          drawingIds={selectedDrawing ? undefined : Array.from(selectedDrawingIds)}
           areas={areas}
           systems={systems}
           testPackages={testPackages}

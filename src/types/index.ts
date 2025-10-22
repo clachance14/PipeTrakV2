@@ -23,3 +23,6 @@ export type Project = {
 
 // Placeholder - will be replaced with Supabase generated types
 export type Database = Record<string, unknown>
+
+// Package types (Feature 012)
+export * from './package.types'

@@ -59,9 +59,7 @@ export const milestoneUpdateSchema = z.object({
     }).max(100, {
       message: 'Partial milestone value must be at most 100',
     }),
-  ], {
-    errorMap: () => ({ message: 'value must be a boolean or a number between 0-100' }),
-  }),
+  ]),
 
   /** User UUID performing the update */
   user_id: z.string().uuid({
@@ -84,7 +82,7 @@ export type MilestoneUpdateInput = z.infer<typeof milestoneUpdateSchema>
  */
 export const discreteMilestoneUpdateSchema = milestoneUpdateSchema.extend({
   value: z.boolean({
-    errorMap: () => ({ message: 'Discrete milestones must have a boolean value' }),
+    message: 'Discrete milestones must have a boolean value',
   }),
 })
 

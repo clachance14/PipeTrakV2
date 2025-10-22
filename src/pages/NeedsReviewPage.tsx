@@ -15,10 +15,16 @@ export function NeedsReviewPage() {
   const [selectedItem, setSelectedItem] = useState<ReviewItem | null>(null);
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
 
-  const { data: reviewItems, isLoading, isError, error, refetch } = useNeedsReview({
-    projectId: selectedProjectId || '',
-    ...filters
-  });
+  // Filter out 'all' type before passing to hook
+  const hookFilters = {
+    ...filters,
+    type: filters.type === 'all' ? undefined : filters.type,
+  };
+
+  const { data: reviewItems, isLoading, isError, error, refetch } = useNeedsReview(
+    selectedProjectId || '',
+    hookFilters
+  );
 
   // Transform data to ReviewItem format
   const transformedItems = useMemo<ReviewItem[]>(() => {
@@ -36,13 +42,16 @@ export function NeedsReviewPage() {
         ageColorClass = 'text-amber-600';
       }
 
+      const payload = (item.payload && typeof item.payload === 'object' && !Array.isArray(item.payload))
+        ? item.payload as Record<string, any>
+        : {};
       return {
         id: item.id,
-        type: item.type,
-        description: item.payload?.description || 'No description',
+        type: item.type as ReviewItem['type'],
+        description: payload.description || 'No description',
         ageInDays,
         ageColorClass,
-        payload: item.payload || {},
+        payload,
         createdAt: item.created_at
       };
     });

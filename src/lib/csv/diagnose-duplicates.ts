@@ -42,7 +42,8 @@ export function diagnoseCsvDuplicates(csvContent: string): DiagnosticResult {
   });
 
   if (parseResult.errors.length > 0) {
-    throw new Error(`CSV parsing failed: ${parseResult.errors[0].message}`);
+    const firstError = parseResult.errors[0];
+    throw new Error(`CSV parsing failed: ${firstError?.message || 'Unknown error'}`);
   }
 
   const rows = parseResult.data as any[];
@@ -77,10 +78,12 @@ export function diagnoseCsvDuplicates(csvContent: string): DiagnosticResult {
         description: row.DESCRIPTION || '',
       };
 
-      if (!identityKeyMap.has(identityKey)) {
-        identityKeyMap.set(identityKey, []);
+      const existingRows = identityKeyMap.get(identityKey);
+      if (!existingRows) {
+        identityKeyMap.set(identityKey, [rowInfo]);
+      } else {
+        existingRows.push(rowInfo);
       }
-      identityKeyMap.get(identityKey)!.push(rowInfo);
     }
   });
 

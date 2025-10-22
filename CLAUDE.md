@@ -89,16 +89,16 @@ supabase init
 supabase link --project-ref <your-project-ref>
 
 # Apply migrations to remote database
-npx supabase db push --linked
+supabase db push --linked
 
 # Generate TypeScript types from remote schema
-npx supabase gen types typescript --linked > src/types/database.types.ts
+supabase gen types typescript --linked > src/types/database.types.ts
 
 # Verify schema changes (if needed)
-npx supabase db diff --schema public --linked
+supabase db diff --schema public --linked
 ```
 
-**IMPORTANT**: This project uses **remote database only** (linked via Supabase CLI). Local Supabase (`supabase start`) is NOT used. All migrations MUST be applied using `npx supabase db push --linked`.
+**IMPORTANT**: This project uses **remote database only** (linked via Supabase CLI). Local Supabase (`supabase start`) is NOT used. All migrations MUST be applied using `supabase db push --linked`.
 
 **Database Schema** (Sprint 0):
 - 4 tables: `organizations`, `users`, `user_organizations`, `projects`

@@ -42,14 +42,19 @@ export function useAssignDrawing() {
     mutationFn: async (params: DrawingAssignmentPayload) => {
       const { data, error } = await supabase.rpc('assign_drawing_with_inheritance', {
         p_drawing_id: params.drawing_id,
-        p_area_id: params.area_id || null,
-        p_system_id: params.system_id || null,
-        p_test_package_id: params.test_package_id || null,
+        p_area_id: (params.area_id === undefined ? null : params.area_id) as any,
+        p_system_id: (params.system_id === undefined ? null : params.system_id) as any,
+        p_test_package_id: (params.test_package_id === undefined ? null : params.test_package_id) as any,
         p_user_id: params.user_id,
       });
 
       if (error) throw error;
-      return data as InheritanceSummary;
+
+      // Type guard for InheritanceSummary
+      if (data && typeof data === 'object' && !Array.isArray(data) && 'drawing_updated' in data) {
+        return data as unknown as InheritanceSummary;
+      }
+      throw new Error('Invalid response from assign_drawing_with_inheritance');
     },
 
     // Optimistic update: Show changes immediately
@@ -69,9 +74,10 @@ export function useAssignDrawing() {
 
           return {
             ...drawing,
-            area: params.area_id ? { id: params.area_id, name: '...' } : drawing.area,
-            system: params.system_id ? { id: params.system_id, name: '...' } : drawing.system,
-            test_package: params.test_package_id ? { id: params.test_package_id, name: '...' } : drawing.test_package,
+            // NO_CHANGE = keep existing, UUID = update, null/undefined = clear
+            area: params.area_id === 'NO_CHANGE' ? drawing.area : (params.area_id ? { id: params.area_id, name: '...' } : null),
+            system: params.system_id === 'NO_CHANGE' ? drawing.system : (params.system_id ? { id: params.system_id, name: '...' } : null),
+            test_package: params.test_package_id === 'NO_CHANGE' ? drawing.test_package : (params.test_package_id ? { id: params.test_package_id, name: '...' } : null),
           };
         });
       });
@@ -80,7 +86,7 @@ export function useAssignDrawing() {
     },
 
     // Rollback on error
-    onError: (err: Error, variables, context) => {
+    onError: (err: Error, _, context) => {
       if (context?.previousDrawings) {
         queryClient.setQueryData(['drawings-with-progress'], context.previousDrawings);
       }
@@ -133,14 +139,19 @@ export function useAssignDrawingsBulk() {
 
       const { data, error } = await supabase.rpc('assign_drawings_bulk', {
         p_drawing_ids: params.drawing_ids,
-        p_area_id: params.area_id || null,
-        p_system_id: params.system_id || null,
-        p_test_package_id: params.test_package_id || null,
+        p_area_id: (params.area_id === undefined ? null : params.area_id) as any,
+        p_system_id: (params.system_id === undefined ? null : params.system_id) as any,
+        p_test_package_id: (params.test_package_id === undefined ? null : params.test_package_id) as any,
         p_user_id: params.user_id,
       });
 
       if (error) throw error;
-      return data as InheritanceSummary[];
+
+      // Type guard for InheritanceSummary[]
+      if (Array.isArray(data) && data.every(item => item !== null && typeof item === 'object' && 'drawing_updated' in item)) {
+        return data as unknown as InheritanceSummary[];
+      }
+      throw new Error('Invalid response from assign_drawings_bulk');
     },
 
     // Optimistic update for all drawings
@@ -176,7 +187,7 @@ export function useAssignDrawingsBulk() {
     },
 
     // Rollback on error
-    onError: (err: Error, variables, context) => {
+    onError: (err: Error, _, context) => {
       if (context?.previousDrawings) {
         queryClient.setQueryData(['drawings-with-progress'], context.previousDrawings);
       }
