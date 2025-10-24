@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "papaparse": "https://esm.sh/papaparse@5.5.3",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}

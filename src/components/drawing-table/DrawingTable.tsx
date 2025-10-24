@@ -4,13 +4,12 @@ import { DrawingRow } from './DrawingRow'
 import { ComponentRow } from './ComponentRow'
 import { DrawingTableSkeleton } from './DrawingTableSkeleton'
 import { DrawingTableHeader } from './DrawingTableHeader'
-import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, MilestoneConfig, SortField, SortDirection } from '@/types/drawing-table.types'
+import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, SortField, SortDirection } from '@/types/drawing-table.types'
 
 export interface DrawingTableProps {
   drawings: DrawingRowType[]
   expandedDrawingIds: Set<string>
   componentsMap: Map<string, ComponentRowType[]>
-  visibleMilestones: MilestoneConfig[]
   sortField: SortField
   sortDirection: SortDirection
   onToggleDrawing: (drawingId: string) => void
@@ -39,7 +38,6 @@ export function DrawingTable({
   drawings,
   expandedDrawingIds,
   componentsMap,
-  visibleMilestones,
   sortField,
   sortDirection,
   onToggleDrawing,
@@ -154,7 +152,6 @@ export function DrawingTable({
             >
               <ComponentRow
                 component={row.data}
-                visibleMilestones={visibleMilestones}
                 onMilestoneUpdate={onMilestoneUpdate}
               />
             </div>
