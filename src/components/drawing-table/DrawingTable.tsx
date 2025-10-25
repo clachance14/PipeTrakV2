@@ -21,6 +21,8 @@ export interface DrawingTableProps {
   selectedDrawingIds?: Set<string>
   onToggleSelection?: (drawingId: string) => void
   onSelectAll?: () => void
+  // Feature 015: Mobile detection
+  isMobile?: boolean
 }
 
 type VirtualRow =
@@ -32,7 +34,8 @@ type VirtualRow =
  *
  * Uses @tanstack/react-virtual for efficient rendering of large lists.
  * Calculates visible rows by flattening drawings + expanded components.
- * Overscan: 10 rows for smooth scrolling.
+ * Overscan: 10 rows desktop, 5 rows mobile for smooth scrolling.
+ * Row height: Drawing 64px, Component 60px desktop | 64px mobile.
  */
 export function DrawingTable({
   drawings,
@@ -48,6 +51,7 @@ export function DrawingTable({
   selectedDrawingIds = new Set(),
   onToggleSelection,
   onSelectAll,
+  isMobile = false,
 }: DrawingTableProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -72,14 +76,17 @@ export function DrawingTable({
   }, [drawings, expandedDrawingIds, componentsMap])
 
   // Set up virtualizer
+  // Mobile: reduce overscan (10 → 5), increase component row height (60 → 64)
   const virtualizer = useVirtualizer({
     count: visibleRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => {
       const row = visibleRows[index]
-      return row?.type === 'drawing' ? 64 : 60 // Drawing: 64px, Component: 60px
+      // Drawing: always 64px
+      // Component: 60px desktop, 64px mobile (for touch targets)
+      return row?.type === 'drawing' ? 64 : (isMobile ? 64 : 60)
     },
-    overscan: 10,
+    overscan: isMobile ? 5 : 10,
   })
 
   if (loading) {
@@ -95,6 +102,7 @@ export function DrawingTable({
         onSort={onSort}
         selectionMode={selectionMode}
         onSelectAll={onSelectAll}
+        isMobile={isMobile}
       />
 
       {/* Virtualized Content */}
@@ -133,6 +141,7 @@ export function DrawingTable({
                   selectionMode={selectionMode}
                   isSelected={selectedDrawingIds.has(row.data.id)}
                   onSelect={onToggleSelection}
+                  isMobile={isMobile}
                 />
               </div>
             )

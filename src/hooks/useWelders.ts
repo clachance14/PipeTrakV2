@@ -1,148 +1,113 @@
 /**
- * TanStack Query hooks for welders table (Feature 005)
- * Provides welder registry + verification workflow
+ * useWelders Hook (Feature 014 - Field Weld QC)
+ * TanStack Query hooks for welder management
  */
 
-import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/database.types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
-type Welder = Database['public']['Tables']['welders']['Row'];
+interface Welder {
+  id: string
+  project_id: string
+  stencil: string
+  stencil_norm: string
+  name: string
+  status: 'unverified' | 'verified'
+  created_at: string
+  created_by: string | null
+  verified_at: string | null
+  verified_by: string | null
+}
 
-interface WeldersFilters {
-  status?: 'unverified' | 'verified';
+interface CreateWelderPayload {
+  project_id: string
+  stencil: string
+  name: string
 }
 
 /**
- * Query welders for a project with optional status filter
+ * Combined hook: Query welders list + create welder mutation
+ * Returns both query results and mutations in a single object
  */
-export function useWelders(
-  projectId: string,
-  filters?: WeldersFilters
-): UseQueryResult<Welder[], Error> {
-  return useQuery({
-    queryKey: ['projects', projectId, 'welders', filters],
-    queryFn: async () => {
-      let query = supabase
+export function useWelders({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient()
+
+  // Query: List welders for project
+  const query = useQuery({
+    queryKey: ['welders', { projectId }],
+    queryFn: async (): Promise<Welder[]> => {
+      const { data, error } = await supabase
         .from('welders')
         .select('*')
-        .eq('project_id', projectId);
+        .eq('project_id', projectId)
+        .order('stencil_norm', { ascending: true })
 
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
+      if (error) {
+        throw new Error(`Failed to fetch welders: ${error.message}`)
       }
 
-      query = query.order('name', { ascending: true });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data || [];
+      return data || []
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
 
-/**
- * Create a new welder
- * Auto-normalizes stencil_norm = UPPER(TRIM(stencil))
- * Validates stencil format via regex [A-Z0-9-]{2,12} (enforced by CHECK constraint)
- * Validates unique stencil_norm within project (enforced by idx_welders_project_stencil)
- * Sets status = 'unverified'
- */
-export function useCreateWelder(): UseMutationResult<
-  Welder,
-  Error,
-  {
-    project_id: string;
-    name: string;
-    stencil: string;
-  }
-> {
-  const queryClient = useQueryClient();
+  // Mutation: Create new welder
+  const createWelderMutation = useMutation({
+    mutationFn: async (payload: CreateWelderPayload): Promise<Welder> => {
+      // Validate stencil format
+      const stencilRegex = /^[A-Z0-9-]{2,12}$/
+      const stencilNorm = payload.stencil.toUpperCase().trim()
 
-  return useMutation({
-    mutationFn: async (newWelder) => {
-      const stencilNorm = newWelder.stencil.toUpperCase().trim();
-
-      // Validate stencil format (client-side validation, also enforced by database CHECK constraint)
-      const stencilRegex = /^[A-Z0-9-]{2,12}$/;
       if (!stencilRegex.test(stencilNorm)) {
-        throw new Error('Invalid stencil format. Must be 2-12 characters (A-Z, 0-9, -)');
+        throw new Error(
+          'Invalid stencil format. Must be 2-12 characters (A-Z, 0-9, hyphen)'
+        )
+      }
+
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('User not authenticated')
       }
 
       const { data, error } = await supabase
         .from('welders')
         .insert({
-          project_id: newWelder.project_id,
-          name: newWelder.name,
-          stencil: newWelder.stencil,
+          project_id: payload.project_id,
+          stencil: payload.stencil,
           stencil_norm: stencilNorm,
+          name: payload.name,
           status: 'unverified',
+          created_by: user.id,
         })
         .select()
-        .single();
+        .single()
 
       if (error) {
-        // Check for unique constraint violation
-        if (error.code === '23505') {
-          throw new Error(`Welder stencil "${stencilNorm}" already exists in this project`);
-        }
-        throw error;
+        throw new Error(`Failed to create welder: ${error.message}`)
       }
 
-      return data;
+      return data
     },
     onSuccess: (data) => {
-      // Invalidate welders list for this project
+      // Invalidate welders cache
       queryClient.invalidateQueries({
-        queryKey: ['projects', data.project_id, 'welders'],
-      });
-    },
-  });
-}
+        queryKey: ['welders', { projectId: data.project_id }],
+      })
 
-/**
- * Verify a welder
- * Requires can_manage_welders permission (enforced by RLS policy)
- * Sets status = 'verified', verified_at = now(), verified_by = auth.uid()
- */
-export function useVerifyWelder(): UseMutationResult<
-  Welder,
-  Error,
-  {
-    id: string;
+      toast.success(`Welder ${data.stencil} created successfully`)
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create welder: ${error.message}`)
+    },
+  })
+
+  // Return object with query properties spread + mutation
+  return {
+    ...query,
+    createWelderMutation,
   }
-> {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase
-        .from('welders')
-        .update({
-          status: 'verified',
-          verified_at: new Date().toISOString(),
-          verified_by: user.id,
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      // Invalidate welders list and single welder cache
-      queryClient.invalidateQueries({
-        queryKey: ['projects', data.project_id, 'welders'],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['welders', data.id],
-      });
-    },
-  });
 }

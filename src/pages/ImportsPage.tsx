@@ -3,6 +3,8 @@ import { useProject } from '@/contexts/ProjectContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { EmptyState } from '@/components/EmptyState';
 import { ImportPage } from '@/components/ImportPage';
+import { FieldWeldImportPage } from '@/components/import/FieldWeldImportPage';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -86,13 +88,27 @@ export function ImportsPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Import Data</h1>
-          <p className="text-gray-600 mt-1">Upload Excel/CSV files to import components</p>
+          <p className="text-gray-600 mt-1">Upload CSV files to import material takeoff or field welds</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          {/* Import Component */}
-          <ImportPage projectId={selectedProjectId} />
-        </div>
+        <Tabs defaultValue="components" className="bg-white rounded-lg shadow">
+          <TabsList className="grid w-full grid-cols-2 rounded-t-lg">
+            <TabsTrigger value="components">
+              Material Takeoff
+            </TabsTrigger>
+            <TabsTrigger value="field-welds">
+              Field Welds
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="components" className="p-0 m-0">
+            <ImportPage projectId={selectedProjectId} />
+          </TabsContent>
+
+          <TabsContent value="field-welds" className="p-6 m-0">
+            <FieldWeldImportPage projectId={selectedProjectId} />
+          </TabsContent>
+        </Tabs>
 
         {/* Recent Imports */}
         <div className="mt-8 bg-white rounded-lg shadow p-6">

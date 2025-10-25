@@ -1,0 +1,178 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - link "PipeTrak" [ref=e8] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e9]: PipeTrak
+          - combobox [ref=e10]:
+            - option "Test 2" [selected]
+            - option "Test"
+            - option "➕ Add New Project"
+        - generic [ref=e12]:
+          - textbox "Search components, drawings, packages..." [ref=e13]
+          - img [ref=e14]
+        - generic [ref=e16]:
+          - button [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+          - generic [ref=e21]:
+            - generic [ref=e23]: C
+            - button "Sign Out" [ref=e24] [cursor=pointer]
+    - generic [ref=e25]:
+      - button "Collapse sidebar" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+      - navigation [ref=e29]:
+        - link "Dashboard" [ref=e30] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e31]
+          - generic [ref=e36]: Dashboard
+        - link "Components" [ref=e37] [cursor=pointer]:
+          - /url: /components
+          - img [ref=e38]
+          - generic [ref=e41]: Components
+        - link "Drawings" [ref=e42] [cursor=pointer]:
+          - /url: /drawings
+          - img [ref=e43]
+          - generic [ref=e46]: Drawings
+        - link "Test Packages" [ref=e47] [cursor=pointer]:
+          - /url: /packages
+          - img [ref=e48]
+          - generic [ref=e52]: Test Packages
+        - link "Needs Review" [ref=e53] [cursor=pointer]:
+          - /url: /needs-review
+          - img [ref=e54]
+          - generic [ref=e56]: Needs Review
+        - link "Welders" [ref=e57] [cursor=pointer]:
+          - /url: /welders
+          - img [ref=e58]
+          - generic [ref=e60]: Welders
+        - link "Weld Log" [ref=e61] [cursor=pointer]:
+          - /url: /weld-log
+          - img [ref=e62]
+          - generic [ref=e66]: Weld Log
+        - link "Imports" [ref=e67] [cursor=pointer]:
+          - /url: /imports
+          - img [ref=e68]
+          - generic [ref=e71]: Imports
+        - link "Metadata" [ref=e72] [cursor=pointer]:
+          - /url: /metadata
+          - img [ref=e73]
+          - generic [ref=e76]: Metadata
+        - link "Team" [ref=e77] [cursor=pointer]:
+          - /url: /team
+          - img [ref=e78]
+          - generic [ref=e83]: Team
+    - main [ref=e84]:
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - heading "Component Progress" [level=1] [ref=e87]
+          - generic [ref=e88]:
+            - search [ref=e89]:
+              - img [ref=e90]
+              - textbox "Search drawings" [ref=e93]:
+                - /placeholder: Search by drawing number...
+            - combobox "Filter by status" [ref=e94] [cursor=pointer]:
+              - generic: All Drawings
+              - img [ref=e95]
+            - button "Collapse all drawings" [disabled]:
+              - img
+              - text: Collapse All
+            - button "Select Mode" [ref=e97] [cursor=pointer]:
+              - img
+              - text: Select Mode
+            - generic [ref=e98]: Showing 15 of 15 drawings
+        - generic [ref=e100]:
+          - generic [ref=e101]:
+            - button "Drawing, sorted ascending. Click to sort descending." [ref=e103] [cursor=pointer]:
+              - generic [ref=e104]: Drawing
+              - img [ref=e106]
+            - button "Area, not sorted. Click to sort ascending." [ref=e109] [cursor=pointer]:
+              - generic [ref=e110]: Area
+            - button "System, not sorted. Click to sort ascending." [ref=e112] [cursor=pointer]:
+              - generic [ref=e113]: System
+            - button "Progress, not sorted. Click to sort ascending." [ref=e115] [cursor=pointer]:
+              - generic [ref=e116]: Progress
+          - generic [ref=e118]:
+            - generic [ref=e120]:
+              - button "Expand drawing DRAIN-1" [ref=e121] [cursor=pointer]:
+                - img [ref=e122]
+              - generic [ref=e124]: DRAIN-1
+              - generic [ref=e126]: A1
+              - generic [ref=e128]: S1
+              - generic [ref=e129]: 0%
+            - generic [ref=e131]:
+              - button "Expand drawing DRAIN-2" [ref=e132] [cursor=pointer]:
+                - img [ref=e133]
+              - generic [ref=e135]: DRAIN-2
+              - generic [ref=e137]: A2
+              - generic [ref=e139]: S2
+              - generic [ref=e140]: 27%
+            - generic [ref=e142]:
+              - button "Expand drawing DRAIN-3" [ref=e143] [cursor=pointer]:
+                - img [ref=e144]
+              - generic [ref=e146]: DRAIN-3
+              - generic [ref=e148]: A2
+              - generic [ref=e150]: S2
+              - generic [ref=e151]: 0%
+            - generic [ref=e153]:
+              - button "Expand drawing DRAIN-4" [ref=e154] [cursor=pointer]:
+                - img [ref=e155]
+              - generic [ref=e157]: DRAIN-4
+              - generic [ref=e159]: A2
+              - generic [ref=e161]: S2
+              - generic [ref=e162]: 0%
+            - generic [ref=e164]:
+              - button "Expand drawing P-55501" [ref=e165] [cursor=pointer]:
+                - img [ref=e166]
+              - generic [ref=e168]: P-55501
+              - generic [ref=e170]: A2
+              - generic [ref=e172]: S2
+              - generic [ref=e173]: 6%
+            - generic [ref=e175]:
+              - button "Expand drawing P-55502" [ref=e176] [cursor=pointer]:
+                - img [ref=e177]
+              - generic [ref=e179]: P-55502
+              - generic [ref=e181]: A2
+              - generic [ref=e183]: S2
+              - generic [ref=e184]: 0%
+            - generic [ref=e186]:
+              - button "Expand drawing P-55504" [ref=e187] [cursor=pointer]:
+                - img [ref=e188]
+              - generic [ref=e190]: P-55504
+              - generic [ref=e192]: A3
+              - generic [ref=e194]: S1
+              - generic [ref=e195]: 0%
+            - generic [ref=e197]:
+              - button "Expand drawing PW-55401 1OF3" [ref=e198] [cursor=pointer]:
+                - img [ref=e199]
+              - generic [ref=e201]: PW-55401 1OF3
+              - generic [ref=e203]: A3
+              - generic [ref=e205]: S1
+              - generic [ref=e206]: 0%
+            - generic [ref=e208]:
+              - button "Expand drawing PW-55401 2OF3" [ref=e209] [cursor=pointer]:
+                - img [ref=e210]
+              - generic [ref=e212]: PW-55401 2OF3
+              - generic [ref=e214]: A3
+              - generic [ref=e216]: S1
+              - generic [ref=e217]: 0%
+            - generic [ref=e219]:
+              - button "Expand drawing PW-55401 3OF3" [ref=e220] [cursor=pointer]:
+                - img [ref=e221]
+              - generic [ref=e223]: PW-55401 3OF3
+              - generic [ref=e225]: A3
+              - generic [ref=e227]: S1
+              - generic [ref=e228]: 9%
+            - generic [ref=e230]:
+              - button "Expand drawing PW-55402" [ref=e231] [cursor=pointer]:
+                - img [ref=e232]
+              - generic [ref=e234]: PW-55402
+              - generic [ref=e236]: A4
+              - generic [ref=e238]: S3
+              - generic [ref=e239]: 0%
+  - region "Notifications alt+T"
+```

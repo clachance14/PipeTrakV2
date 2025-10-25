@@ -1,0 +1,103 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - link "PipeTrak" [ref=e8] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e9]: PipeTrak
+          - combobox [ref=e10]:
+            - option "Test 2" [selected]
+            - option "Test"
+            - option "➕ Add New Project"
+        - generic [ref=e12]:
+          - textbox "Search components, drawings, packages..." [ref=e13]
+          - img [ref=e14]
+        - generic [ref=e16]:
+          - button [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+          - generic [ref=e21]:
+            - generic [ref=e23]: C
+            - button "Sign Out" [ref=e24] [cursor=pointer]
+    - generic [ref=e25]:
+      - button "Collapse sidebar" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+      - navigation [ref=e29]:
+        - link "Dashboard" [ref=e30] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e31]
+          - generic [ref=e36]: Dashboard
+        - link "Components" [ref=e37] [cursor=pointer]:
+          - /url: /components
+          - img [ref=e38]
+          - generic [ref=e41]: Components
+        - link "Drawings" [ref=e42] [cursor=pointer]:
+          - /url: /drawings
+          - img [ref=e43]
+          - generic [ref=e46]: Drawings
+        - link "Test Packages" [ref=e47] [cursor=pointer]:
+          - /url: /packages
+          - img [ref=e48]
+          - generic [ref=e52]: Test Packages
+        - link "Needs Review" [ref=e53] [cursor=pointer]:
+          - /url: /needs-review
+          - img [ref=e54]
+          - generic [ref=e56]: Needs Review
+        - link "Welders" [ref=e57] [cursor=pointer]:
+          - /url: /welders
+          - img [ref=e58]
+          - generic [ref=e60]: Welders
+        - link "Weld Log" [ref=e61] [cursor=pointer]:
+          - /url: /weld-log
+          - img [ref=e62]
+          - generic [ref=e66]: Weld Log
+        - link "Imports" [ref=e67] [cursor=pointer]:
+          - /url: /imports
+          - img [ref=e68]
+          - generic [ref=e71]: Imports
+        - link "Metadata" [ref=e72] [cursor=pointer]:
+          - /url: /metadata
+          - img [ref=e73]
+          - generic [ref=e76]: Metadata
+        - link "Team" [ref=e77] [cursor=pointer]:
+          - /url: /team
+          - img [ref=e78]
+          - generic [ref=e83]: Team
+    - main [ref=e84]:
+      - generic [ref=e85]:
+        - navigation "Breadcrumb" [ref=e86]:
+          - list [ref=e87]:
+            - listitem [ref=e88]:
+              - link "Home" [ref=e89] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=e90]: /
+            - listitem [ref=e91]: Welders
+        - generic [ref=e92]:
+          - heading "Welder Management" [level=1] [ref=e93]
+          - paragraph [ref=e94]: Manage welders for this project. Add new welders and track their assignments.
+        - generic [ref=e95]:
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - img [ref=e98]
+              - textbox "Search by stencil or name..." [ref=e101]
+            - button "Add Welder" [ref=e102] [cursor=pointer]:
+              - img
+              - text: Add Welder
+          - table [ref=e104]:
+            - rowgroup [ref=e105]:
+              - row "Stencil ↑ Name" [ref=e106]:
+                - cell "Stencil ↑" [ref=e107] [cursor=pointer]:
+                  - generic [ref=e108]:
+                    - text: Stencil
+                    - generic [ref=e109]: ↑
+                - cell "Name" [ref=e110] [cursor=pointer]:
+                  - generic [ref=e111]: Name
+            - rowgroup [ref=e112]:
+              - row "L-73 Mark Lopez" [ref=e113] [cursor=pointer]:
+                - cell "L-73" [ref=e114]
+                - cell "Mark Lopez" [ref=e115]
+  - region "Notifications alt+T"
+```

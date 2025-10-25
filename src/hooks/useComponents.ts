@@ -46,7 +46,13 @@ export function useComponents(
     queryFn: async () => {
       let query = supabase
         .from('components')
-        .select('*')
+        .select(`
+          *,
+          drawings(drawing_no_norm),
+          areas(name),
+          systems(name),
+          test_packages(name)
+        `)
         .eq('project_id', projectId);
 
       // Apply filters
@@ -84,7 +90,17 @@ export function useComponents(
       const { data, error } = await query;
 
       if (error) throw error;
-      return data || [];
+
+      // Transform plural table names to singular property names for ComponentRow
+      const transformedData = (data || []).map((component: any) => ({
+        ...component,
+        drawing: component.drawings,
+        area: component.areas,
+        system: component.systems,
+        test_package: component.test_packages,
+      }));
+
+      return transformedData;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes (components change frequently)
   });

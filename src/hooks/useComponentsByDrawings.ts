@@ -1,6 +1,7 @@
 import { useQueries } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
+import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils'
 import type { ComponentRow } from '@/types/drawing-table.types'
 
 /**
@@ -46,10 +47,15 @@ export function useComponentsByDrawings(drawingIds: string[]) {
           // Joined template
           template: component.progress_templates as any,
           // Computed fields
-          identityDisplay: formatIdentityKey(
-            component.identity_key as any,
-            component.component_type as any
-          ),
+          identityDisplay: component.component_type === 'field_weld'
+            ? formatFieldWeldKey(
+                component.identity_key as any,
+                component.component_type as any
+              )
+            : formatIdentityKey(
+                component.identity_key as any,
+                component.component_type as any
+              ),
           canUpdate: true, // TODO: Get from permissions hook
         }))
 

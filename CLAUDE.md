@@ -106,6 +106,92 @@ supabase db diff --schema public --linked
 - Multi-tenant architecture via organization_id
 - See `supabase/migrations/00001_initial_schema.sql` for details
 
+**Querying the Remote Database**:
+
+The Supabase CLI does NOT have a `supabase db query` or `supabase db execute` command. To query data from the remote database, use one of these official approaches:
+
+1. **Supabase JavaScript Client** (Recommended for scripts):
+
+**For user-context queries** (respects RLS - returns only data user can access):
+```javascript
+// query_db.mjs
+import { createClient } from '@supabase/supabase-js'
+import { readFileSync } from 'fs'
+
+const envContent = readFileSync('.env', 'utf-8')
+let supabaseUrl = ''
+let supabaseAnonKey = ''
+
+envContent.split('\n').forEach(line => {
+  const trimmed = line.trim()
+  if (trimmed.startsWith('VITE_SUPABASE_URL=')) {
+    supabaseUrl = trimmed.substring('VITE_SUPABASE_URL='.length).trim()
+  }
+  if (trimmed.startsWith('VITE_SUPABASE_ANON_KEY=')) {
+    supabaseAnonKey = trimmed.substring('VITE_SUPABASE_ANON_KEY='.length).trim()
+  }
+})
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+const { data, error, count } = await supabase
+  .from('welders')
+  .select('*', { count: 'exact' })
+
+console.log('Count:', count)
+console.log('Data:', data)
+```
+
+**For admin queries** (bypasses RLS - sees ALL data):
+```javascript
+// query_admin.mjs
+import { createClient } from '@supabase/supabase-js'
+import { readFileSync } from 'fs'
+
+const envContent = readFileSync('.env', 'utf-8')
+let supabaseUrl = ''
+let supabaseServiceKey = ''
+
+envContent.split('\n').forEach(line => {
+  const trimmed = line.trim()
+  if (trimmed.startsWith('VITE_SUPABASE_URL=')) {
+    supabaseUrl = trimmed.substring('VITE_SUPABASE_URL='.length).trim()
+  }
+  if (trimmed.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) {
+    supabaseServiceKey = trimmed.substring('SUPABASE_SERVICE_ROLE_KEY='.length).trim()
+  }
+})
+
+// Service role bypasses RLS (use for debugging/admin tasks only)
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { persistSession: false, autoRefreshToken: false }
+})
+
+const { data, error, count } = await supabase
+  .from('welders')
+  .select('*', { count: 'exact' })
+
+console.log('Count:', count)  // Returns ALL rows, bypassing RLS
+console.log('Data:', data)
+```
+
+Run with: `node query_db.mjs` or `node query_admin.mjs` (from project root)
+
+**IMPORTANT**: Service role key bypasses ALL Row Level Security policies. Use only for:
+- Debugging database issues
+- Admin scripts/migrations
+- Validating RLS policies
+- NEVER expose service role key in client-side code
+
+2. **Supabase Dashboard** - Use the SQL Editor in the web UI at `https://supabase.com/dashboard/project/[PROJECT_REF]/editor`
+
+3. **psql** - Connect with PostgreSQL client using connection string from Supabase Dashboard → Settings → Database
+
+**Important Notes**:
+- The `src/lib/supabase.ts` file uses `import.meta.env` which is a Vite build-time construct (NOT available in Node.js)
+- For Node.js scripts, parse `.env` manually or use `dotenv` with CommonJS
+- Always run scripts from project root to access `node_modules`
+
 ### Path Aliases
 TypeScript, Vite, and Vitest all configured with `@/*` → `./src/*` alias:
 - Import as: `import { something } from '@/lib/utils'`

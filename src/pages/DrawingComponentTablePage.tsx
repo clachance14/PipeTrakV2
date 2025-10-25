@@ -21,6 +21,7 @@ import { useDrawingSelection } from '@/hooks/useDrawingSelection'
 import { useAreas } from '@/hooks/useAreas'
 import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
+import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { CheckSquare, Square } from 'lucide-react'
 
 /**
@@ -37,6 +38,9 @@ import { CheckSquare, Square } from 'lucide-react'
 export function DrawingComponentTablePage() {
   const { selectedProjectId } = useProject()
   const { user } = useAuth()
+
+  // Feature 015: Mobile detection
+  const isMobile = useMobileDetection()
 
   // Feature 011: Selection mode and dialog state
   const [selectionMode, setSelectionMode] = useState(false)
@@ -174,6 +178,7 @@ export function DrawingComponentTablePage() {
               onMilestoneUpdate={() => {}}
               onSort={() => {}}
               loading={true}
+              isMobile={isMobile}
             />
           </div>
         </div>
@@ -286,6 +291,7 @@ export function DrawingComponentTablePage() {
             selectedDrawingIds={selectedDrawingIds}
             onToggleSelection={toggleSelection}
             onSelectAll={() => selectAll(visibleDrawingIds)}
+            isMobile={isMobile}
           />
         </div>
 

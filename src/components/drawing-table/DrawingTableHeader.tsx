@@ -12,6 +12,8 @@ interface DrawingTableHeaderProps {
   allSelected?: boolean
   /** Callback when "Select All" checkbox clicked */
   onSelectAll?: () => void
+  /** Mobile viewport indicator (≤1024px) */
+  isMobile?: boolean
 }
 
 /**
@@ -27,9 +29,10 @@ export function DrawingTableHeader({
   selectionMode = false,
   allSelected = false,
   onSelectAll,
+  isMobile = false,
 }: DrawingTableHeaderProps) {
   return (
-    <div className="flex items-center gap-4 px-5 py-3 bg-slate-100 border-b border-slate-300 font-semibold text-sm text-slate-700 sticky top-0 z-10">
+    <div className={`flex items-center ${isMobile ? 'gap-2 px-3' : 'gap-4 px-5'} py-3 bg-slate-100 border-b border-slate-300 font-semibold text-sm text-slate-700 sticky top-0 z-10`}>
       {/* Select All checkbox (shown only in selection mode) */}
       {selectionMode && onSelectAll && (
         <Checkbox
@@ -53,16 +56,18 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Title */}
-      <div className="flex-1">
-        <SortableColumnHeader
-          label="Title"
-          field="title"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
-        />
-      </div>
+      {/* Title - Hidden on mobile */}
+      {!isMobile && (
+        <div className="flex-1">
+          <SortableColumnHeader
+            label="Title"
+            field="title"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
 
       {/* Area */}
       <div className="min-w-[100px]">
@@ -86,16 +91,18 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Test Package */}
-      <div className="min-w-[120px]">
-        <SortableColumnHeader
-          label="Test Package"
-          field="test_package"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
-        />
-      </div>
+      {/* Test Package - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[120px]">
+          <SortableColumnHeader
+            label="Test Package"
+            field="test_package"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
 
       {/* Progress */}
       <div className="min-w-[130px]">
@@ -108,16 +115,18 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Component Count */}
-      <div className="min-w-[90px] text-right">
-        <SortableColumnHeader
-          label="Items"
-          field="total_components"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
-        />
-      </div>
+      {/* Component Count - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[90px] text-right">
+          <SortableColumnHeader
+            label="Items"
+            field="total_components"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { ComponentsPage } from '@/pages/ComponentsPage'
 import { PackagesPage } from '@/pages/PackagesPage'
 import { NeedsReviewPage } from '@/pages/NeedsReviewPage'
 import { WeldersPage } from '@/pages/WeldersPage'
+import { WeldLogPage } from '@/pages/WeldLogPage'
 import { ImportsPage } from '@/pages/ImportsPage'
 import { ComponentsTable } from '@/pages/ComponentsTable'
 import { ProjectSetup } from '@/pages/ProjectSetup'
@@ -26,6 +27,7 @@ import { DebugUserPage } from '@/pages/DebugUserPage'
 import MetadataManagementPage from '@/pages/MetadataManagementPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
+import { CreateProjectPage } from '@/pages/CreateProjectPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,6 +94,14 @@ function App() {
               }
             />
             <Route
+              path="/projects/new"
+              element={
+                <ProtectedRoute>
+                  <CreateProjectPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/project-setup"
               element={
                 <ProtectedRoute>
@@ -144,6 +154,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <WeldersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/weld-log"
+              element={
+                <ProtectedRoute>
+                  <WeldLogPage />
                 </ProtectedRoute>
               }
             />
