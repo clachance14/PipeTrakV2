@@ -115,7 +115,7 @@ export function getCompletionLabel(percentComplete: number, status: WeldStatus):
  * Format identity key to display string
  * For field welds: "REPAIR-{id}" or "{weld_number}"
  */
-export function formatIdentityKey(identityKey: Record<string, unknown> | null, weldType: string): string {
+export function formatIdentityKey(identityKey: Record<string, unknown> | null, _weldType: string): string {
   if (!identityKey) return 'Unknown'
 
   // Check if it's a repair weld

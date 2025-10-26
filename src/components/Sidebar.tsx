@@ -33,7 +33,7 @@ interface NavItem {
 }
 
 export function Sidebar() {
-  const { isCollapsed, isMobileOpen, toggle, toggleMobile, setMobileOpen } = useSidebarStore();
+  const { isCollapsed, isMobileOpen, toggle, setMobileOpen } = useSidebarStore();
   const location = useLocation();
 
   const navItems: NavItem[] = [

@@ -34,14 +34,15 @@ export function useCreateRepairWeld() {
       let currentId: string | null = payload.original_field_weld_id
 
       while (currentId && depth < 10) {
-        const { data: weld, error: depthError } = await supabase
+        const result: { data: { original_weld_id: string | null } | null; error: any } = await supabase
           .from('field_welds')
           .select('original_weld_id')
           .eq('id', currentId)
           .single()
 
-        if (depthError) break // Orphaned repair or missing weld
-        currentId = weld.original_weld_id
+        if (result.error || !result.data) break // Orphaned repair or missing weld
+
+        currentId = result.data.original_weld_id
         depth++
       }
 
@@ -53,24 +54,28 @@ export function useCreateRepairWeld() {
 
       const { data: originalWeld, error: fetchError } = await supabase
         .from('field_welds')
-        .select('project_id, component_id')
+        .select('project_id, component_id, component:components!inner(progress_template_id)')
         .eq('id', payload.original_field_weld_id)
         .single()
 
-      if (fetchError) throw new Error('Failed to fetch original weld')
+      if (fetchError || !originalWeld) throw new Error('Failed to fetch original weld')
+
+      // Get the progress_template_id from the original component
+      const progressTemplateId = (originalWeld.component as any)?.progress_template_id
 
       const { data: component, error: componentError } = await supabase
         .from('components')
         .insert({
           project_id: originalWeld.project_id,
           drawing_id: payload.drawing_id,
-          type: 'field_weld',
+          component_type: 'field_weld',
+          progress_template_id: progressTemplateId,
           identity_key: {
             weld_id: 'REPAIR-' + payload.original_field_weld_id.substring(0, 8),
             repair_of: payload.original_field_weld_id,
           },
           percent_complete: 0,
-          progress_state: {},
+          current_milestones: {},
           created_by: user.id,
         })
         .select()

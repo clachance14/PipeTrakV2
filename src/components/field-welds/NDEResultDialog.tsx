@@ -54,7 +54,7 @@ export function NDEResultDialog({
   const [ndeType, setNdeType] = useState<string>('')
   const [ndeResult, setNdeResult] = useState<NDEResult | ''>('')
   const [ndeDate, setNdeDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split('T')[0]!
   )
   const [ndeNotes, setNdeNotes] = useState<string>('')
 
@@ -65,7 +65,7 @@ export function NDEResultDialog({
     if (open) {
       setNdeType('')
       setNdeResult('')
-      setNdeDate(new Date().toISOString().split('T')[0])
+      setNdeDate(new Date().toISOString().split('T')[0]!)
       setNdeNotes('')
     }
   }, [open])
@@ -97,9 +97,8 @@ export function NDEResultDialog({
     try {
       await recordNDEMutation.mutateAsync({
         field_weld_id: fieldWeldId,
-        component_id: componentId,
-        nde_type: ndeType,
-        nde_result: ndeResult,
+        nde_type: ndeType as 'RT' | 'UT' | 'PT' | 'MT',
+        nde_result: ndeResult as 'PASS' | 'FAIL' | 'PENDING',
         nde_date: ndeDate,
         nde_notes: ndeNotes.trim() || undefined,
       })

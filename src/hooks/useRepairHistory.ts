@@ -114,7 +114,7 @@ export function useRepairHistory(fieldWeldId: string | null) {
       const repairList = (repairs || []).map(mapWeldData)
 
       // Determine final status (last item in chain)
-      const lastWeld = repairList.length > 0 ? repairList[repairList.length - 1] : original
+      const lastWeld = repairList.length > 0 ? repairList[repairList.length - 1]! : original
       const finalStatus =
         lastWeld.status === 'accepted'
           ? 'accepted'

@@ -71,7 +71,7 @@ export function useRecordNDE() {
 
       return { ...payload, component_id: fieldWeld.component_id }
     },
-    onSuccess: (data, payload) => {
+    onSuccess: (_data, payload) => {
       // Invalidate caches
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
       queryClient.invalidateQueries({ queryKey: ['components'] })

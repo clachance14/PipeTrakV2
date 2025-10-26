@@ -80,7 +80,6 @@ export function WelderForm({ projectId, open, onOpenChange }: WelderFormProps) {
         project_id: projectId,
         stencil: stencil.trim(),
         name: name.trim(),
-        status: 'unverified',
       })
 
       toast.success('Welder created successfully', {

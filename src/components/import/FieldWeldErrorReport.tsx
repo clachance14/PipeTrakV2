@@ -3,7 +3,7 @@
  * Results modal showing import summary with downloadable error report
  */
 
-import { X, Download, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Download, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

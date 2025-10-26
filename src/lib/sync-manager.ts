@@ -12,8 +12,7 @@ import {
   incrementRetry,
   clearQueue,
   retryFailedUpdates,
-  type QueuedUpdate,
-  type OfflineQueue
+  type QueuedUpdate
 } from './offline-queue'
 
 export interface SyncResult {
@@ -129,18 +128,16 @@ async function syncSingleUpdate(update: QueuedUpdate, retryCount: number = 0): P
   }
 
   // Call Supabase RPC
-  const { data, error } = await supabase.rpc('update_component_milestone', {
+  const { error } = await supabase.rpc('update_component_milestone', {
     p_component_id: update.component_id,
     p_milestone_name: update.milestone_name,
-    p_new_value: update.value,
+    p_new_value: update.value as number,
     p_user_id: update.user_id
   })
 
   if (error) {
     throw error
   }
-
-  return data
 }
 
 /**

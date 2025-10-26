@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useFieldWeld } from '@/hooks/useFieldWeld'
 import { useAssignWelder } from '@/hooks/useAssignWelder'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatWeldType, formatNDEType, getStatusBadgeColor } from '@/lib/field-weld-utils'
 import { MilestoneCheckbox } from '../drawing-table/MilestoneCheckbox'
 import { WelderAssignDialog } from './WelderAssignDialog'
@@ -50,6 +51,7 @@ export function FieldWeldRow({
 
   const { data: fieldWeld, isLoading } = useFieldWeld({ componentId: component.id })
   const assignWelderMutation = useAssignWelder()
+  const { user } = useAuth()
 
   console.log('[FieldWeldRow] fieldWeld data:', fieldWeld, 'isLoading:', isLoading)
 
@@ -69,13 +71,14 @@ export function FieldWeldRow({
   }
 
   const handleConfirmWelderAssignment = async (welderId: string, dateWelded: string) => {
-    if (!fieldWeld) return
+    if (!fieldWeld || !user) return
 
     try {
       await assignWelderMutation.mutateAsync({
         field_weld_id: fieldWeld.id,
         welder_id: welderId,
         date_welded: dateWelded,
+        user_id: user.id,
       })
 
       setIsAssigningWelder(false)

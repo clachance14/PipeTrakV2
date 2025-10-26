@@ -57,7 +57,7 @@ export function MobilePartialMilestoneEditor({
           {/* Large draggable slider */}
           <Slider
             value={[localValue]}
-            onValueChange={([value]) => setLocalValue(value)}
+            onValueChange={([value]) => setLocalValue(value ?? 0)}
             max={100}
             step={1}
             className="w-4/5 h-12"

@@ -47,7 +47,7 @@ export function useWelders({ projectId }: { projectId: string }) {
         throw new Error(`Failed to fetch welders: ${error.message}`)
       }
 
-      return data || []
+      return (data || []) as Welder[]
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
   })
@@ -90,7 +90,7 @@ export function useWelders({ projectId }: { projectId: string }) {
         throw new Error(`Failed to create welder: ${error.message}`)
       }
 
-      return data
+      return data as Welder
     },
     onSuccess: (data) => {
       // Invalidate welders cache

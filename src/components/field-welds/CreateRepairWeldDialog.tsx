@@ -84,12 +84,13 @@ export function CreateRepairWeldDialog({
       await createRepairMutation.mutateAsync({
         original_field_weld_id: originalFieldWeldId,
         drawing_id: originalWeldData.drawingId,
-        project_id: originalWeldData.projectId,
-        weld_type: weldType,
-        weld_size: weldSize.trim() || undefined,
-        schedule: schedule.trim() || undefined,
-        base_metal: baseMetal.trim() || undefined,
-        spec: spec.trim() || undefined,
+        weld_specs: {
+          weld_type: weldType as 'BW' | 'SW' | 'FW' | 'TW',
+          weld_size: weldSize.trim() || undefined,
+          schedule: schedule.trim() || undefined,
+          base_metal: baseMetal.trim() || undefined,
+          spec: spec.trim() || undefined,
+        },
       })
 
       toast.success('Repair weld created successfully', {
