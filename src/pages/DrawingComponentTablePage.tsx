@@ -6,6 +6,7 @@ import { DrawingTable } from '@/components/drawing-table/DrawingTable'
 import { DrawingSearchInput } from '@/components/drawing-table/DrawingSearchInput'
 import { StatusFilterDropdown } from '@/components/drawing-table/StatusFilterDropdown'
 import { CollapseAllButton } from '@/components/drawing-table/CollapseAllButton'
+import { MobileFilterStack } from '@/components/drawing-table/MobileFilterStack'
 import { EmptyDrawingsState } from '@/components/drawing-table/EmptyDrawingsState'
 import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
 import { DrawingBulkActions } from '@/components/drawing-table/DrawingBulkActions'
@@ -226,43 +227,58 @@ export function DrawingComponentTablePage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-4">Component Progress</h1>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <DrawingSearchInput
-              value={searchTerm}
-              onChange={setSearch}
-              placeholder="Search by drawing number..."
+          {/* Filters - Mobile: vertical stack, Desktop: horizontal */}
+          {isMobile ? (
+            <MobileFilterStack
+              searchTerm={searchTerm}
+              onSearchChange={setSearch}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              onCollapseAll={collapseAll}
+              collapseAllDisabled={expandedDrawingIds.size === 0}
+              selectionMode={selectionMode}
+              onToggleSelectionMode={handleToggleSelectionMode}
+              showingCount={displayDrawings.length}
+              totalCount={drawings?.length || 0}
             />
-            <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
-            <CollapseAllButton
-              onClick={collapseAll}
-              disabled={expandedDrawingIds.size === 0}
-            />
+          ) : (
+            <div className="flex flex-wrap gap-4 items-center">
+              <DrawingSearchInput
+                value={searchTerm}
+                onChange={setSearch}
+                placeholder="Search by drawing number..."
+              />
+              <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
+              <CollapseAllButton
+                onClick={collapseAll}
+                disabled={expandedDrawingIds.size === 0}
+              />
 
-            {/* Feature 011: Selection Mode Toggle (T034) */}
-            <Button
-              variant={selectionMode ? 'default' : 'outline'}
-              size="sm"
-              onClick={handleToggleSelectionMode}
-              className="flex items-center gap-2"
-            >
-              {selectionMode ? (
-                <>
-                  <CheckSquare className="h-4 w-4" />
-                  Exit Select Mode
-                </>
-              ) : (
-                <>
-                  <Square className="h-4 w-4" />
-                  Select Mode
-                </>
-              )}
-            </Button>
+              {/* Feature 011: Selection Mode Toggle (T034) */}
+              <Button
+                variant={selectionMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleToggleSelectionMode}
+                className="flex items-center gap-2"
+              >
+                {selectionMode ? (
+                  <>
+                    <CheckSquare className="h-4 w-4" />
+                    Exit Select Mode
+                  </>
+                ) : (
+                  <>
+                    <Square className="h-4 w-4" />
+                    Select Mode
+                  </>
+                )}
+              </Button>
 
-            <div className="ml-auto text-sm text-slate-600">
-              Showing {displayDrawings.length} of {drawings?.length || 0} drawings
+              <div className="ml-auto text-sm text-slate-600">
+                Showing {displayDrawings.length} of {drawings?.length || 0} drawings
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Feature 011: Bulk Actions Toolbar (T036) */}

@@ -4,6 +4,7 @@ import { PartialMilestoneEditor } from './PartialMilestoneEditor'
 import { MobilePartialMilestoneEditor } from './MobilePartialMilestoneEditor'
 import { InheritanceBadge } from './InheritanceBadge'
 import { AssignedBadge } from './AssignedBadge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { getBadgeType } from '@/lib/metadata-inheritance'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
@@ -173,6 +174,116 @@ export function ComponentRow({
     )
   }
 
+  const getMobileMilestoneControl = (milestoneConfig: MilestoneConfig) => {
+    const currentValue = component.current_milestones[milestoneConfig.name]
+
+    // Partial milestone - show as compact button with percentage
+    if (milestoneConfig.is_partial) {
+      return (
+        <button
+          key={milestoneConfig.name}
+          onClick={() => handlePartialMilestoneClick(milestoneConfig)}
+          disabled={!component.canUpdate}
+          className="min-h-[36px] px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded hover:bg-slate-200 active:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {milestoneConfig.name}: {typeof currentValue === 'number' ? currentValue : 0}%
+        </button>
+      )
+    }
+
+    // Discrete milestone - checkbox above label (vertical stack)
+    return (
+      <label
+        key={milestoneConfig.name}
+        className="flex flex-col items-center gap-1.5 flex-1 min-w-0 py-1 cursor-pointer active:opacity-70"
+      >
+        <input
+          type="checkbox"
+          checked={currentValue === 1 || currentValue === true}
+          onChange={(e) => handleMilestoneChange(milestoneConfig.name, e.target.checked)}
+          disabled={!component.canUpdate}
+          aria-label={`${milestoneConfig.name} milestone`}
+          className="w-8 h-8 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+        />
+        <span className="text-xs text-slate-700 whitespace-nowrap select-none leading-tight font-medium text-center">
+          {milestoneConfig.name}
+        </span>
+      </label>
+    )
+  }
+
+  // Mobile card layout
+  if (isMobile) {
+    return (
+      <div
+        role="row"
+        style={style}
+        className="flex flex-col gap-2 px-4 py-3 ml-8 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100"
+      >
+        {/* Line 1: Component type + identity */}
+        <div className="flex items-baseline gap-2">
+          <span className="font-semibold text-base text-slate-900">
+            {formatComponentType(component.component_type)}:
+          </span>
+          <span className="font-mono text-sm text-slate-700">
+            {component.identityDisplay}
+          </span>
+        </div>
+
+        {/* Line 2: Milestone controls (evenly distributed across width) */}
+        <div className="flex items-start justify-between gap-1">
+          {component.template.milestones_config.map((milestone) =>
+            getMobileMilestoneControl(milestone)
+          )}
+        </div>
+
+        {/* Line 3: Metadata badges */}
+        <div className="flex flex-wrap gap-2 text-xs">
+          {area && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded">
+              <span className="text-slate-700">{area.name}</span>
+              {areaBadge === 'inherited' && drawing?.drawing_no_norm && (
+                <span className="text-blue-600">↓</span>
+              )}
+            </div>
+          )}
+          {system && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded">
+              <span className="text-slate-700">{system.name}</span>
+              {systemBadge === 'inherited' && drawing?.drawing_no_norm && (
+                <span className="text-green-600">↓</span>
+              )}
+            </div>
+          )}
+          {testPackage && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded">
+              <span className="text-slate-700">{testPackage.name}</span>
+              {packageBadge === 'inherited' && drawing?.drawing_no_norm && (
+                <span className="text-purple-600">↓</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile partial milestone editor modal */}
+        {editingMilestone && (
+          <MobilePartialMilestoneEditor
+            open={mobileModalOpen}
+            milestoneName={editingMilestone.name}
+            currentValue={
+              typeof component.current_milestones[editingMilestone.name] === 'number'
+                ? (component.current_milestones[editingMilestone.name] as number)
+                : 0
+            }
+            onSave={handleMobileSave}
+            onCancel={handleMobileCancel}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // Desktop table row layout
   return (
     <div
       role="row"
@@ -223,7 +334,7 @@ export function ComponentRow({
       </div>
 
       {/* Mobile partial milestone editor modal */}
-      {isMobile && editingMilestone && (
+      {editingMilestone && (
         <MobilePartialMilestoneEditor
           open={mobileModalOpen}
           milestoneName={editingMilestone.name}

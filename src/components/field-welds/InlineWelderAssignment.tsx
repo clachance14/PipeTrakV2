@@ -84,15 +84,6 @@ export function InlineWelderAssignment({
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{welder.stencil}</span>
                     <span className="text-slate-600">- {welder.name}</span>
-                    <span
-                      className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        welder.status === 'verified'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {welder.status === 'verified' ? 'Verified' : 'Unverified'}
-                    </span>
                   </div>
                 </SelectItem>
               ))

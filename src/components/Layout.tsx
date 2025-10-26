@@ -71,7 +71,7 @@ export function Layout({ children }: LayoutProps) {
               {/* Hamburger menu (mobile only) */}
               <button
                 onClick={toggleMobile}
-                className="md:hidden p-2 hover:bg-slate-700 rounded-md transition-colors"
+                className="md:hidden flex items-center justify-center min-h-[44px] min-w-[44px] hover:bg-slate-700 rounded-md transition-colors"
                 aria-label="Toggle menu"
               >
                 <svg

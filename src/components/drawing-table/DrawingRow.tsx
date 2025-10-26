@@ -46,7 +46,7 @@ export function DrawingRow({
   return (
     <div
       style={style}
-      className={`group flex items-center ${isMobile ? 'gap-2 px-3' : 'gap-4 px-5'} py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md`}
+      className={`group flex items-center ${isMobile ? 'gap-1 px-2' : 'gap-4 px-5'} py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md`}
     >
       {/* Selection checkbox (shown only in selection mode) */}
       {selectionMode && onSelect && (
@@ -71,7 +71,7 @@ export function DrawingRow({
             onToggle()
           }
         }}
-        className={`cursor-pointer flex items-center justify-center ${isMobile ? 'min-h-[44px] min-w-[44px]' : ''}`}
+        className={`cursor-pointer flex items-center justify-center ${isMobile ? 'min-h-[44px] min-w-[44px] flex-shrink-0' : ''}`}
       >
         {drawing.total_components > 0 && (
           <ChevronRight
@@ -84,7 +84,7 @@ export function DrawingRow({
       </div>
 
       {/* Drawing number */}
-      <div className={`${isMobile ? 'min-w-[100px]' : 'min-w-[140px]'} font-semibold text-base text-slate-900`}>
+      <div className={`${isMobile ? 'min-w-[70px] flex-shrink-0 text-xs' : 'min-w-[140px] text-base'} font-semibold text-slate-900 truncate`}>
         {drawing.drawing_no_norm}
       </div>
 
@@ -96,8 +96,8 @@ export function DrawingRow({
       )}
 
       {/* Area (with inline edit pencil) */}
-      <div className={`${isMobile ? 'min-w-[70px]' : 'min-w-[100px]'} flex items-center gap-1.5 text-sm text-slate-600`}>
-        <span>{drawing.area?.name || '—'}</span>
+      <div className={`${isMobile ? 'flex-1 text-xs' : 'min-w-[100px]'} flex items-center gap-1.5 text-sm text-slate-600 truncate`}>
+        <span className="truncate">{drawing.area?.name || '—'}</span>
         {!isMobile && onEditMetadata && (
           <button
             onClick={(e) => {
@@ -113,8 +113,8 @@ export function DrawingRow({
       </div>
 
       {/* System (with inline edit pencil) */}
-      <div className={`${isMobile ? 'min-w-[70px]' : 'min-w-[100px]'} flex items-center gap-1.5 text-sm text-slate-600`}>
-        <span>{drawing.system?.name || '—'}</span>
+      <div className={`${isMobile ? 'flex-1 text-xs' : 'min-w-[100px]'} flex items-center gap-1.5 text-sm text-slate-600 truncate`}>
+        <span className="truncate">{drawing.system?.name || '—'}</span>
         {!isMobile && onEditMetadata && (
           <button
             onClick={(e) => {
@@ -149,7 +149,7 @@ export function DrawingRow({
       )}
 
       {/* Progress summary */}
-      <div className={`${isMobile ? 'min-w-[60px]' : 'min-w-[130px]'} text-sm font-semibold text-slate-800`}>
+      <div className={`${isMobile ? 'min-w-[45px] flex-shrink-0 text-xs' : 'min-w-[130px] text-sm'} font-semibold text-slate-800 text-right`}>
         {progressSummary}
       </div>
 

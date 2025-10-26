@@ -26,7 +26,7 @@ export function StatusFilterDropdown({
 }: StatusFilterDropdownProps) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as StatusFilter)}>
-      <SelectTrigger className="w-[200px]" aria-label="Filter by status">
+      <SelectTrigger className="w-full md:w-[200px] min-h-[44px]" aria-label="Filter by status">
         <SelectValue placeholder="Filter by status" />
       </SelectTrigger>
       <SelectContent>

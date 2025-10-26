@@ -76,15 +76,19 @@ export function DrawingTable({
   }, [drawings, expandedDrawingIds, componentsMap])
 
   // Set up virtualizer
-  // Mobile: reduce overscan (10 → 5), increase component row height (60 → 64)
+  // Mobile: reduce overscan (10 → 5), increase component row height for milestone cards with wrapping
   const virtualizer = useVirtualizer({
     count: visibleRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => {
       const row = visibleRows[index]
-      // Drawing: always 64px
-      // Component: 60px desktop, 64px mobile (for touch targets)
-      return row?.type === 'drawing' ? 64 : (isMobile ? 64 : 60)
+      if (row?.type === 'drawing') {
+        return 64 // Drawing row: fixed 64px
+      }
+      // Component rows:
+      // Desktop: 60px (compact table row)
+      // Mobile: 150px (card with large vertical milestone layout: 32px checkbox + label + identity + metadata)
+      return isMobile ? 150 : 60
     },
     overscan: isMobile ? 5 : 10,
   })
