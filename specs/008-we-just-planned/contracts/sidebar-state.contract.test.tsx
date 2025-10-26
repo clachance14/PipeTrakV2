@@ -1,67 +1,103 @@
 /**
  * Contract Test: Sidebar State Persistence
  * Feature: 008-we-just-planned
- * Tests useSidebarState hook with localStorage
- * This test MUST FAIL initially (TDD Red phase)
+ * Tests useSidebarStore (Zustand) with localStorage persistence
+ * Updated to use Zustand instead of custom hook
  */
 
 import React from 'react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSidebarState } from '@/hooks/useSidebarState';
+import { useSidebarStore } from '@/stores/useSidebarStore';
 
-describe('useSidebarState Contract', () => {
+describe('useSidebarStore Contract', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
   });
 
-  it('should return tuple [isCollapsed, setIsCollapsed]', () => {
-    const { result } = renderHook(() => useSidebarState());
+  afterEach(() => {
+    // Reset store state after each test
+    useSidebarStore.setState({ isCollapsed: false });
+  });
 
-    // CONTRACT: Hook must return [boolean, function]
-    expect(Array.isArray(result.current)).toBe(true);
-    expect(result.current).toHaveLength(2);
-    expect(typeof result.current[0]).toBe('boolean');
-    expect(typeof result.current[1]).toBe('function');
+  it('should return store with isCollapsed, toggle, and setCollapsed', () => {
+    const { result } = renderHook(() => useSidebarStore());
+
+    // CONTRACT: Store must have required properties and methods
+    expect(typeof result.current.isCollapsed).toBe('boolean');
+    expect(typeof result.current.toggle).toBe('function');
+    expect(typeof result.current.setCollapsed).toBe('function');
   });
 
   it('should default to false (expanded) when localStorage is empty', () => {
-    const { result } = renderHook(() => useSidebarState());
+    const { result } = renderHook(() => useSidebarStore());
 
     // CONTRACT: Default state is false (expanded)
-    expect(result.current[0]).toBe(false);
+    expect(result.current.isCollapsed).toBe(false);
   });
 
-  it('should read initial state from localStorage', () => {
-    // Pre-populate localStorage
-    localStorage.setItem('sidebar-collapsed', 'true');
+  it('should read initial state from localStorage', async () => {
+    // Pre-populate localStorage with Zustand persist format
+    localStorage.setItem('pipetrak:sidebar-collapsed', JSON.stringify({
+      state: { isCollapsed: true },
+      version: 0
+    }));
 
-    const { result } = renderHook(() => useSidebarState());
+    // Force rehydration by creating a new store instance
+    useSidebarStore.persist.rehydrate();
 
-    // CONTRACT: Hook reads from localStorage on mount
-    expect(result.current[0]).toBe(true);
+    // Wait a tick for rehydration
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const { result } = renderHook(() => useSidebarStore());
+
+    // CONTRACT: Store reads from localStorage on mount
+    expect(result.current.isCollapsed).toBe(true);
   });
 
   it('should persist state changes to localStorage', () => {
-    const { result } = renderHook(() => useSidebarState());
+    const { result } = renderHook(() => useSidebarStore());
 
-    // Toggle state
+    // Collapse sidebar
     act(() => {
-      result.current[1](true); // Collapse
+      result.current.setCollapsed(true);
     });
 
     // CONTRACT: State change writes to localStorage
-    expect(localStorage.getItem('sidebar-collapsed')).toBe('true');
-    expect(result.current[0]).toBe(true);
+    const stored = JSON.parse(localStorage.getItem('pipetrak:sidebar-collapsed') || '{}');
+    expect(stored.state.isCollapsed).toBe(true);
+    expect(result.current.isCollapsed).toBe(true);
 
-    // Toggle back
+    // Expand sidebar
     act(() => {
-      result.current[1](false); // Expand
+      result.current.setCollapsed(false);
     });
 
-    expect(localStorage.getItem('sidebar-collapsed')).toBe('false');
-    expect(result.current[0]).toBe(false);
+    const storedAfter = JSON.parse(localStorage.getItem('pipetrak:sidebar-collapsed') || '{}');
+    expect(storedAfter.state.isCollapsed).toBe(false);
+    expect(result.current.isCollapsed).toBe(false);
+  });
+
+  it('should toggle state correctly', () => {
+    const { result } = renderHook(() => useSidebarStore());
+
+    // Initial state is false (expanded)
+    expect(result.current.isCollapsed).toBe(false);
+
+    // Toggle to collapsed
+    act(() => {
+      result.current.toggle();
+    });
+
+    expect(result.current.isCollapsed).toBe(true);
+
+    // Toggle back to expanded
+    act(() => {
+      result.current.toggle();
+    });
+
+    expect(result.current.isCollapsed).toBe(false);
   });
 
   it('should handle localStorage unavailable gracefully', () => {
@@ -71,26 +107,30 @@ describe('useSidebarState Contract', () => {
       throw new Error('localStorage unavailable');
     };
 
-    const { result } = renderHook(() => useSidebarState());
+    const { result } = renderHook(() => useSidebarStore());
 
-    // CONTRACT: Hook doesn't crash if localStorage fails
+    // CONTRACT: Store doesn't crash if localStorage fails
     expect(() => {
       act(() => {
-        result.current[1](true);
+        result.current.setCollapsed(true);
       });
     }).not.toThrow();
+
+    // State should still update in memory
+    expect(result.current.isCollapsed).toBe(true);
 
     // Restore
     localStorage.setItem = originalSetItem;
   });
 
-  it('should coerce invalid localStorage values to boolean', () => {
-    // Set invalid value
-    localStorage.setItem('sidebar-collapsed', 'invalid');
+  it('should handle invalid localStorage values gracefully', () => {
+    // Set invalid JSON
+    localStorage.setItem('pipetrak:sidebar-collapsed', 'invalid-json');
 
-    const { result } = renderHook(() => useSidebarState());
+    const { result } = renderHook(() => useSidebarStore());
 
-    // CONTRACT: Invalid values are coerced (anything truthy → true)
-    expect(typeof result.current[0]).toBe('boolean');
+    // CONTRACT: Invalid localStorage values fall back to default
+    expect(typeof result.current.isCollapsed).toBe('boolean');
+    expect(result.current.isCollapsed).toBe(false);
   });
 });

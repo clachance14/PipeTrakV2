@@ -19,8 +19,21 @@ export interface ValidationResult {
 // Required columns
 const REQUIRED_COLUMNS = ['DRAWING', 'TYPE', 'QTY', 'CMDTY CODE'];
 
-// Valid component types
-const VALID_TYPES = ['Valve', 'Instrument', 'Support', 'Pipe', 'Fitting', 'Flange'];
+// Valid component types (all 11 types supported by database schema)
+const VALID_TYPES = [
+  'Spool',          // Prefab pipe spools
+  'Field_Weld',     // Field welds
+  'Valve',
+  'Instrument',
+  'Support',
+  'Pipe',
+  'Fitting',
+  'Flange',
+  'Tubing',
+  'Hose',
+  'Misc_Component',
+  'Threaded_Pipe'
+];
 
 // File size limit: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;

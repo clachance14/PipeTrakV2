@@ -15,6 +15,8 @@ export interface DrawingRowProps {
   onSelect?: (drawingId: string) => void
   /** Callback when pencil icon clicked for inline edit */
   onEditMetadata?: (drawing: DrawingRowType, field: 'area' | 'system' | 'package') => void
+  /** Mobile viewport indicator (≤1024px) */
+  isMobile?: boolean
 }
 
 /**
@@ -33,14 +35,18 @@ export function DrawingRow({
   isSelected = false,
   onSelect,
   onEditMetadata,
+  isMobile = false,
 }: DrawingRowProps) {
-  const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
+  // Mobile: simplified progress display "47%" instead of "47% Complete"
+  const progressSummary = isMobile
+    ? `${Math.round(drawing.avg_percent_complete)}%`
+    : `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 
   return (
     <div
       style={style}
-      className="group flex items-center gap-4 px-5 py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md"
+      className={`group flex items-center ${isMobile ? 'gap-1 px-2' : 'gap-4 px-5'} py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md`}
     >
       {/* Selection checkbox (shown only in selection mode) */}
       {selectionMode && onSelect && (
@@ -52,7 +58,7 @@ export function DrawingRow({
         />
       )}
 
-      {/* Expand icon */}
+      {/* Expand icon - Mobile: 44px tap target */}
       <div
         role="button"
         tabIndex={0}
@@ -65,32 +71,34 @@ export function DrawingRow({
             onToggle()
           }
         }}
-        className="cursor-pointer"
+        className={`cursor-pointer flex items-center justify-center ${isMobile ? 'min-h-[44px] min-w-[44px] flex-shrink-0' : ''}`}
       >
         {drawing.total_components > 0 && (
           <ChevronRight
-            className={`h-5 w-5 text-slate-500 transition-transform duration-200 ${
+            className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} text-slate-500 transition-transform duration-200 ${
               isExpanded ? 'rotate-90' : ''
             }`}
           />
         )}
-        {drawing.total_components === 0 && <div className="w-5" />}
+        {drawing.total_components === 0 && <div className={isMobile ? 'w-6' : 'w-5'} />}
       </div>
 
       {/* Drawing number */}
-      <div className="min-w-[140px] font-semibold text-base text-slate-900">
+      <div className={`${isMobile ? 'min-w-[70px] flex-shrink-0 text-xs' : 'min-w-[140px] text-base'} font-semibold text-slate-900 truncate`}>
         {drawing.drawing_no_norm}
       </div>
 
-      {/* Title */}
-      <div className="flex-1 text-sm text-slate-600">
-        {drawing.title || '—'}
-      </div>
+      {/* Title - Hidden on mobile */}
+      {!isMobile && (
+        <div className="flex-1 text-sm text-slate-600">
+          {drawing.title || '—'}
+        </div>
+      )}
 
       {/* Area (with inline edit pencil) */}
-      <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600">
-        <span>{drawing.area?.name || '—'}</span>
-        {onEditMetadata && (
+      <div className={`${isMobile ? 'flex-1 text-xs' : 'min-w-[100px]'} flex items-center gap-1.5 text-sm text-slate-600 truncate`}>
+        <span className="truncate">{drawing.area?.name || '—'}</span>
+        {!isMobile && onEditMetadata && (
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -105,9 +113,9 @@ export function DrawingRow({
       </div>
 
       {/* System (with inline edit pencil) */}
-      <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600">
-        <span>{drawing.system?.name || '—'}</span>
-        {onEditMetadata && (
+      <div className={`${isMobile ? 'flex-1 text-xs' : 'min-w-[100px]'} flex items-center gap-1.5 text-sm text-slate-600 truncate`}>
+        <span className="truncate">{drawing.system?.name || '—'}</span>
+        {!isMobile && onEditMetadata && (
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -121,32 +129,36 @@ export function DrawingRow({
         )}
       </div>
 
-      {/* Test Package (with inline edit pencil) */}
-      <div className="min-w-[120px] flex items-center gap-1.5 text-sm text-slate-600">
-        <span>{drawing.test_package?.name || '—'}</span>
-        {onEditMetadata && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onEditMetadata(drawing, 'package')
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
-            aria-label="Edit test package"
-          >
-            <Pencil className="h-3.5 w-3.5 text-slate-500" />
-          </button>
-        )}
-      </div>
+      {/* Test Package (with inline edit pencil) - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[120px] flex items-center gap-1.5 text-sm text-slate-600">
+          <span>{drawing.test_package?.name || '—'}</span>
+          {onEditMetadata && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditMetadata(drawing, 'package')
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+              aria-label="Edit test package"
+            >
+              <Pencil className="h-3.5 w-3.5 text-slate-500" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Progress summary */}
-      <div className="min-w-[130px] text-sm font-semibold text-slate-800">
+      <div className={`${isMobile ? 'min-w-[45px] flex-shrink-0 text-xs' : 'min-w-[130px] text-sm'} font-semibold text-slate-800 text-right`}>
         {progressSummary}
       </div>
 
-      {/* Component count */}
-      <div className="min-w-[90px] text-xs font-medium text-slate-500 text-right uppercase tracking-wide">
-        {componentCountText}
-      </div>
+      {/* Component count - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[90px] text-xs font-medium text-slate-500 text-right uppercase tracking-wide">
+          {componentCountText}
+        </div>
+      )}
     </div>
   )
 }

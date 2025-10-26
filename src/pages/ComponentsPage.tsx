@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { Layout } from '@/components/Layout';
 import { ComponentFilters, ComponentFiltersState } from '@/components/ComponentFilters';
 import { ComponentList } from '@/components/ComponentList';
 import { ComponentAssignDialog } from '@/components/ComponentAssignDialog';
@@ -43,59 +44,65 @@ export function ComponentsPage({
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Components</h1>
-          <p className="text-muted-foreground">
-            View, filter, and track component progress
-          </p>
+    <Layout>
+      <div className="mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold mb-4">Components</h1>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <ComponentFilters projectId={projectId} onFilterChange={setFilters} />
+
+            {selectedComponentIds.length > 0 && (
+              <Button onClick={() => setShowAssignDialog(true)}>
+                Assign {selectedComponentIds.length} Component
+                {selectedComponentIds.length !== 1 ? 's' : ''}
+              </Button>
+            )}
+
+            <div className="ml-auto text-sm text-slate-600">
+              Showing {components.length} component{components.length !== 1 ? 's' : ''}
+            </div>
+          </div>
         </div>
 
-        {selectedComponentIds.length > 0 && (
-          <Button onClick={() => setShowAssignDialog(true)}>
-            Assign {selectedComponentIds.length} Component
-            {selectedComponentIds.length !== 1 ? 's' : ''}
-          </Button>
-        )}
+        {/* Component List */}
+        <div className="bg-white rounded-lg shadow h-[calc(100vh-280px)]">
+          <ComponentList
+            components={components}
+            onComponentClick={handleComponentClick}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Component Detail Dialog */}
+        <Dialog
+          open={selectedComponentId !== null}
+          onOpenChange={(open) => !open && setSelectedComponentId(null)}
+        >
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Component Details</DialogTitle>
+            </DialogHeader>
+            {selectedComponentId && (
+              <ComponentDetailView
+                componentId={selectedComponentId}
+                canUpdateMilestones={canUpdateMilestones}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign Dialog */}
+        <ComponentAssignDialog
+          projectId={projectId}
+          componentIds={selectedComponentIds}
+          open={showAssignDialog}
+          onOpenChange={setShowAssignDialog}
+          onSuccess={handleAssignSuccess}
+        />
       </div>
-
-      {/* Filters */}
-      <ComponentFilters projectId={projectId} onFilterChange={setFilters} />
-
-      {/* Component List */}
-      <ComponentList
-        components={components}
-        onComponentClick={handleComponentClick}
-        isLoading={isLoading}
-      />
-
-      {/* Component Detail Dialog */}
-      <Dialog
-        open={selectedComponentId !== null}
-        onOpenChange={(open) => !open && setSelectedComponentId(null)}
-      >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Component Details</DialogTitle>
-          </DialogHeader>
-          {selectedComponentId && (
-            <ComponentDetailView
-              componentId={selectedComponentId}
-              canUpdateMilestones={canUpdateMilestones}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Assign Dialog */}
-      <ComponentAssignDialog
-        projectId={projectId}
-        componentIds={selectedComponentIds}
-        open={showAssignDialog}
-        onOpenChange={setShowAssignDialog}
-        onSuccess={handleAssignSuccess}
-      />
-    </div>
+    </Layout>
   );
 }

@@ -43,7 +43,7 @@ export function ComponentList({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[600px] border rounded-lg">
+      <div className="flex items-center justify-center h-full">
         <div className="text-muted-foreground">Loading components...</div>
       </div>
     );
@@ -51,7 +51,7 @@ export function ComponentList({
 
   if (components.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] border rounded-lg">
+      <div className="flex flex-col items-center justify-center h-full">
         <div className="text-muted-foreground mb-2">No components found</div>
         <div className="text-sm text-muted-foreground">
           Try adjusting your filters or import components
@@ -61,7 +61,7 @@ export function ComponentList({
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="overflow-hidden h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-4 py-3 bg-muted border-b font-medium text-sm">
         <div className="flex-1">Component</div>
@@ -75,7 +75,7 @@ export function ComponentList({
       {/* Virtualized List */}
       <div
         ref={parentRef}
-        className="h-[600px] overflow-auto"
+        className="flex-1 overflow-auto"
         style={{ contain: 'strict' }}
       >
         <div
@@ -106,11 +106,6 @@ export function ComponentList({
             );
           })}
         </div>
-      </div>
-
-      {/* Footer with count */}
-      <div className="px-4 py-2 bg-muted border-t text-sm text-muted-foreground">
-        Showing {components.length} component{components.length !== 1 ? 's' : ''}
       </div>
     </div>
   );

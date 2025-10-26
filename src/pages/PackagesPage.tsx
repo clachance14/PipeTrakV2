@@ -80,19 +80,25 @@ export function PackagesPage() {
 
   // Transform data for cards
   // Note: description field added in migration 00028
+  // Note: Stats (total_components, avg_percent_complete, etc.) may be 0/null if
+  //       mv_package_readiness hasn't been refreshed yet after package creation
   const packages = packagesData?.map((row) => {
     const rowWithDescription = row as typeof row & { description?: string | null };
+    const avgProgress = row.avg_percent_complete ?? 0;
+    const totalComponents = Number(row.total_components) || 0;
+    const blockerCount = Number(row.blocker_count) || 0;
+
     return {
       id: row.package_id!,
       name: row.package_name!,
       description: rowWithDescription.description || null,
-      progress: row.avg_percent_complete ? Math.round(row.avg_percent_complete) : 0,
-      componentCount: Number(row.total_components),
-      blockerCount: Number(row.blocker_count),
+      progress: Math.round(avgProgress),
+      componentCount: totalComponents,
+      blockerCount: blockerCount,
       targetDate: row.target_date || undefined,
-      statusColor: (Number(row.blocker_count) > 0
+      statusColor: (blockerCount > 0
         ? 'amber'
-        : row.avg_percent_complete === 100
+        : avgProgress === 100 && totalComponents > 0
         ? 'green'
         : 'blue') as 'green' | 'blue' | 'amber',
       // Full package data for editing

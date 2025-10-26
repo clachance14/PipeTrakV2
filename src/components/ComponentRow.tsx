@@ -5,6 +5,8 @@
 
 import { CSSProperties } from 'react';
 import type { Database } from '@/types/database.types';
+import { formatIdentityKey as formatDrawingComponentKey } from '@/lib/formatIdentityKey';
+import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
 
 type Component = Database['public']['Tables']['components']['Row'];
 
@@ -25,10 +27,21 @@ interface ComponentRowProps {
  * Includes identity key, type, area, system, package, and progress %
  */
 export function ComponentRow({ component, style, onClick }: ComponentRowProps) {
-  // Extract identity key display (first value or fallback)
-  const identityDisplay = component.identity_key
-    ? Object.values(component.identity_key)[0] || 'Unknown'
-    : 'Unknown';
+  // Format identity key based on component type
+  let identityDisplay: string;
+  if (component.component_type === 'field_weld') {
+    // Field welds use weld_id from identity_key
+    identityDisplay = formatFieldWeldKey(
+      component.identity_key as Record<string, unknown>,
+      component.component_type
+    );
+  } else {
+    // Other components use commodity_code, size, seq format
+    identityDisplay = formatDrawingComponentKey(
+      component.identity_key as any,
+      component.component_type as any
+    );
+  }
 
   // Format progress percentage
   const progressPercent = component.percent_complete
@@ -44,7 +57,7 @@ export function ComponentRow({ component, style, onClick }: ComponentRowProps) {
     <div
       style={style}
       onClick={onClick}
-      className="flex items-center gap-4 px-4 py-3 border-b hover:bg-accent cursor-pointer transition-colors"
+      className="flex items-center gap-4 px-4 py-3 border-b hover:bg-muted/50 cursor-pointer transition-colors"
     >
       {/* Identity Key */}
       <div className="flex-1 min-w-0">

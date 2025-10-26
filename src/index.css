@@ -35,4 +35,17 @@
   a {
     cursor: pointer;
   }
+
+  /* Prevent double-tap zoom on touch devices for interactive elements */
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  label[role="button"],
+  [role="checkbox"],
+  [role="slider"],
+  [role="button"] {
+    touch-action: manipulation;
+  }
 }

@@ -6,10 +6,12 @@ import { DrawingTable } from '@/components/drawing-table/DrawingTable'
 import { DrawingSearchInput } from '@/components/drawing-table/DrawingSearchInput'
 import { StatusFilterDropdown } from '@/components/drawing-table/StatusFilterDropdown'
 import { CollapseAllButton } from '@/components/drawing-table/CollapseAllButton'
+import { MobileFilterStack } from '@/components/drawing-table/MobileFilterStack'
 import { EmptyDrawingsState } from '@/components/drawing-table/EmptyDrawingsState'
 import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
 import { DrawingBulkActions } from '@/components/drawing-table/DrawingBulkActions'
 import { DrawingAssignDialog } from '@/components/drawing-table/DrawingAssignDialog'
+import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
 import { Button } from '@/components/ui/button'
 import { useDrawingsWithProgress } from '@/hooks/useDrawingsWithProgress'
 import { useComponentsByDrawings } from '@/hooks/useComponentsByDrawings'
@@ -20,7 +22,7 @@ import { useDrawingSelection } from '@/hooks/useDrawingSelection'
 import { useAreas } from '@/hooks/useAreas'
 import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
-import type { MilestoneConfig } from '@/types/drawing-table.types'
+import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { CheckSquare, Square } from 'lucide-react'
 
 /**
@@ -38,9 +40,16 @@ export function DrawingComponentTablePage() {
   const { selectedProjectId } = useProject()
   const { user } = useAuth()
 
+  // Feature 015: Mobile detection
+  const isMobile = useMobileDetection()
+
   // Feature 011: Selection mode and dialog state
   const [selectionMode, setSelectionMode] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+
+  // Field weld welder assignment dialog state
+  const [welderDialogOpen, setWelderDialogOpen] = useState(false)
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null)
 
   // Fetch data
   const { data: drawings, isLoading, isError, error, refetch } = useDrawingsWithProgress(selectedProjectId!)
@@ -71,33 +80,6 @@ export function DrawingComponentTablePage() {
   const expandedDrawingIdsArray = useMemo(() => Array.from(expandedDrawingIds), [expandedDrawingIds])
   const { componentsMap } = useComponentsByDrawings(expandedDrawingIdsArray)
 
-  // Calculate visible milestones from expanded components
-  const visibleMilestones = useMemo<MilestoneConfig[]>(() => {
-    const milestones = new Set<string>()
-    const milestoneConfigs: MilestoneConfig[] = []
-
-    componentsMap.forEach((components) => {
-      components.forEach((component) => {
-        component.template?.milestones_config?.forEach((m) => {
-          if (!milestones.has(m.name)) {
-            milestones.add(m.name)
-            milestoneConfigs.push(m)
-          }
-        })
-      })
-    })
-
-    // Sort by standard order
-    const standardOrder = ['Receive', 'Fabricate', 'Install', 'Erect', 'Connect', 'Support', 'Punch', 'Test', 'Restore']
-    return milestoneConfigs.sort((a, b) => {
-      const aIndex = standardOrder.indexOf(a.name)
-      const bIndex = standardOrder.indexOf(b.name)
-      if (aIndex === -1) return 1
-      if (bIndex === -1) return -1
-      return aIndex - bIndex
-    })
-  }, [componentsMap])
-
   // Handle milestone update
   const handleMilestoneUpdate = (componentId: string, milestoneName: string, value: boolean | number) => {
     if (!user?.id) {
@@ -105,6 +87,32 @@ export function DrawingComponentTablePage() {
       return
     }
 
+    // Find the component to check if it's a field weld
+    let component = null
+    for (const [, components] of componentsMap) {
+      const found = components.find(c => c.id === componentId)
+      if (found) {
+        component = found
+        break
+      }
+    }
+
+    // Intercept "Weld Made" on field welds (first-time check only)
+    if (
+      component &&
+      component.component_type === 'field_weld' &&
+      milestoneName === 'Weld Made' &&
+      value === true &&
+      component.current_milestones['Weld Made'] !== true &&
+      component.current_milestones['Weld Made'] !== 1
+    ) {
+      // Open welder assignment dialog instead of updating milestone directly
+      setSelectedComponentId(componentId)
+      setWelderDialogOpen(true)
+      return
+    }
+
+    // Normal milestone update
     // Convert boolean to number BEFORE passing to mutation
     const numericValue = typeof value === 'boolean' ? (value ? 1 : 0) : value
 
@@ -165,13 +173,13 @@ export function DrawingComponentTablePage() {
               drawings={[]}
               expandedDrawingIds={new Set()}
               componentsMap={new Map()}
-              visibleMilestones={[]}
               sortField={sortField}
               sortDirection={sortDirection}
               onToggleDrawing={() => {}}
               onMilestoneUpdate={() => {}}
               onSort={() => {}}
               loading={true}
+              isMobile={isMobile}
             />
           </div>
         </div>
@@ -219,43 +227,58 @@ export function DrawingComponentTablePage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-4">Component Progress</h1>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <DrawingSearchInput
-              value={searchTerm}
-              onChange={setSearch}
-              placeholder="Search by drawing number..."
+          {/* Filters - Mobile: vertical stack, Desktop: horizontal */}
+          {isMobile ? (
+            <MobileFilterStack
+              searchTerm={searchTerm}
+              onSearchChange={setSearch}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              onCollapseAll={collapseAll}
+              collapseAllDisabled={expandedDrawingIds.size === 0}
+              selectionMode={selectionMode}
+              onToggleSelectionMode={handleToggleSelectionMode}
+              showingCount={displayDrawings.length}
+              totalCount={drawings?.length || 0}
             />
-            <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
-            <CollapseAllButton
-              onClick={collapseAll}
-              disabled={expandedDrawingIds.size === 0}
-            />
+          ) : (
+            <div className="flex flex-wrap gap-4 items-center">
+              <DrawingSearchInput
+                value={searchTerm}
+                onChange={setSearch}
+                placeholder="Search by drawing number..."
+              />
+              <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
+              <CollapseAllButton
+                onClick={collapseAll}
+                disabled={expandedDrawingIds.size === 0}
+              />
 
-            {/* Feature 011: Selection Mode Toggle (T034) */}
-            <Button
-              variant={selectionMode ? 'default' : 'outline'}
-              size="sm"
-              onClick={handleToggleSelectionMode}
-              className="flex items-center gap-2"
-            >
-              {selectionMode ? (
-                <>
-                  <CheckSquare className="h-4 w-4" />
-                  Exit Select Mode
-                </>
-              ) : (
-                <>
-                  <Square className="h-4 w-4" />
-                  Select Mode
-                </>
-              )}
-            </Button>
+              {/* Feature 011: Selection Mode Toggle (T034) */}
+              <Button
+                variant={selectionMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleToggleSelectionMode}
+                className="flex items-center gap-2"
+              >
+                {selectionMode ? (
+                  <>
+                    <CheckSquare className="h-4 w-4" />
+                    Exit Select Mode
+                  </>
+                ) : (
+                  <>
+                    <Square className="h-4 w-4" />
+                    Select Mode
+                  </>
+                )}
+              </Button>
 
-            <div className="ml-auto text-sm text-slate-600">
-              Showing {displayDrawings.length} of {drawings?.length || 0} drawings
+              <div className="ml-auto text-sm text-slate-600">
+                Showing {displayDrawings.length} of {drawings?.length || 0} drawings
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Feature 011: Bulk Actions Toolbar (T036) */}
@@ -275,7 +298,6 @@ export function DrawingComponentTablePage() {
             drawings={displayDrawings}
             expandedDrawingIds={expandedDrawingIds}
             componentsMap={componentsMap}
-            visibleMilestones={visibleMilestones}
             sortField={sortField}
             sortDirection={sortDirection}
             onToggleDrawing={toggleDrawing}
@@ -285,6 +307,7 @@ export function DrawingComponentTablePage() {
             selectedDrawingIds={selectedDrawingIds}
             onToggleSelection={toggleSelection}
             onSelectAll={() => selectAll(visibleDrawingIds)}
+            isMobile={isMobile}
           />
         </div>
 
@@ -300,6 +323,16 @@ export function DrawingComponentTablePage() {
           open={assignDialogOpen}
           onOpenChange={setAssignDialogOpen}
         />
+
+        {/* Field Weld Welder Assignment Dialog */}
+        {selectedComponentId && (
+          <WelderAssignDialog
+            componentId={selectedComponentId}
+            projectId={selectedProjectId!}
+            open={welderDialogOpen}
+            onOpenChange={setWelderDialogOpen}
+          />
+        )}
       </div>
     </Layout>
   )

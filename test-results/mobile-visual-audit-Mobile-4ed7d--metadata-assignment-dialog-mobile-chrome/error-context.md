@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - link "PipeTrak" [ref=e8] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e9]: PipeTrak
+          - combobox [ref=e10]:
+            - option "Test 2" [selected]
+            - option "Test"
+            - option "➕ Add New Project"
+        - generic [ref=e12]:
+          - textbox "Search components, drawings, packages..." [ref=e13]
+          - img [ref=e14]
+        - generic [ref=e16]:
+          - button [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+          - generic [ref=e21]:
+            - generic [ref=e23]: C
+            - button "Sign Out" [ref=e24] [cursor=pointer]
+    - generic [ref=e25]:
+      - button "Collapse sidebar" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+      - navigation [ref=e29]:
+        - link "Dashboard" [ref=e30] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e31]
+          - generic [ref=e36]: Dashboard
+        - link "Components" [ref=e37] [cursor=pointer]:
+          - /url: /components
+          - img [ref=e38]
+          - generic [ref=e41]: Components
+        - link "Drawings" [ref=e42] [cursor=pointer]:
+          - /url: /drawings
+          - img [ref=e43]
+          - generic [ref=e46]: Drawings
+        - link "Test Packages" [ref=e47] [cursor=pointer]:
+          - /url: /packages
+          - img [ref=e48]
+          - generic [ref=e52]: Test Packages
+        - link "Needs Review" [ref=e53] [cursor=pointer]:
+          - /url: /needs-review
+          - img [ref=e54]
+          - generic [ref=e56]: Needs Review
+        - link "Welders" [ref=e57] [cursor=pointer]:
+          - /url: /welders
+          - img [ref=e58]
+          - generic [ref=e60]: Welders
+        - link "Weld Log" [ref=e61] [cursor=pointer]:
+          - /url: /weld-log
+          - img [ref=e62]
+          - generic [ref=e66]: Weld Log
+        - link "Imports" [ref=e67] [cursor=pointer]:
+          - /url: /imports
+          - img [ref=e68]
+          - generic [ref=e71]: Imports
+        - link "Metadata" [ref=e72] [cursor=pointer]:
+          - /url: /metadata
+          - img [ref=e73]
+          - generic [ref=e76]: Metadata
+        - link "Team" [ref=e77] [cursor=pointer]:
+          - /url: /team
+          - img [ref=e78]
+          - generic [ref=e83]: Team
+    - main [ref=e84]:
+      - generic [ref=e85]:
+        - heading "Component Progress" [level=1] [ref=e86]
+        - status "Loading drawings" [ref=e88]
+  - region "Notifications alt+T"
+```

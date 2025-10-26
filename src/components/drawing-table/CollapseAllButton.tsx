@@ -24,7 +24,7 @@ export function CollapseAllButton({
       onClick={onClick}
       disabled={disabled}
       aria-label="Collapse all drawings"
-      className={disabled ? 'opacity-50 cursor-not-allowed' : ''}
+      className={`min-h-[44px] w-full md:w-auto ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <ChevronsUp className="h-4 w-4 mr-2" />
       Collapse All

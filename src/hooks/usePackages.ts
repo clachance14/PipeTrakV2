@@ -24,7 +24,11 @@ type PackageReadinessRow = Database['public']['Views']['mv_package_readiness']['
 
 /**
  * Query package readiness data for a project
- * Returns materialized view with aggregated metrics
+ * Returns all test packages with stats from materialized view (if available)
+ *
+ * NOTE: Queries test_packages table directly to ensure ALL packages appear immediately,
+ * even if mv_package_readiness hasn't been refreshed yet. Stats are merged from the
+ * materialized view client-side.
  */
 export function usePackageReadiness(
   projectId: string
@@ -32,14 +36,47 @@ export function usePackageReadiness(
   return useQuery({
     queryKey: ['package-readiness', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Query 1: Get all test packages (authoritative source)
+      const { data: packagesData, error: packagesError } = await supabase
+        .from('test_packages')
+        .select('id, project_id, name, description, target_date')
+        .eq('project_id', projectId)
+        .order('name', { ascending: true });
+
+      if (packagesError) throw packagesError;
+
+      // Query 2: Get stats from materialized view (may be stale)
+      const { data: statsData, error: statsError } = await supabase
         .from('mv_package_readiness')
         .select('*')
-        .eq('project_id', projectId)
-        .order('package_name', { ascending: true });
+        .eq('project_id', projectId);
 
-      if (error) throw error;
-      return data || [];
+      if (statsError) throw statsError;
+
+      // Create a map of stats by package_id for quick lookup
+      const statsMap = new Map(
+        (statsData || []).map((stat) => [stat.package_id, stat])
+      );
+
+      // Merge packages with stats, defaulting to 0/null if stats not available
+      const merged: PackageReadinessRow[] = (packagesData || []).map((pkg) => {
+        const stats = statsMap.get(pkg.id);
+
+        return {
+          package_id: pkg.id,
+          project_id: pkg.project_id,
+          package_name: pkg.name,
+          description: pkg.description,
+          target_date: pkg.target_date,
+          total_components: stats?.total_components ?? 0,
+          completed_components: stats?.completed_components ?? 0,
+          avg_percent_complete: stats?.avg_percent_complete ?? null,
+          blocker_count: stats?.blocker_count ?? 0,
+          last_activity_at: stats?.last_activity_at ?? null,
+        } as PackageReadinessRow;
+      });
+
+      return merged;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes (view refreshes every 60s)
   });

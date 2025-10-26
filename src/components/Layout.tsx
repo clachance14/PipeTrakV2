@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useProjects } from '@/hooks/useProjects'
-import { useSidebarState } from '@/hooks/useSidebarState'
+import { useSidebarStore } from '@/stores/useSidebarStore'
 import { Sidebar } from '@/components/Sidebar'
 import { cn } from '@/lib/utils'
 
@@ -18,7 +18,7 @@ export function Layout({ children }: LayoutProps) {
   const params = useParams()
   const { selectedProjectId, setSelectedProjectId } = useProject()
   const { data: projects, isLoading: projectsLoading } = useProjects()
-  const [isCollapsed] = useSidebarState()
+  const { isCollapsed, toggleMobile } = useSidebarStore()
 
   // Auto-select first project if none selected and projects loaded
   useEffect(() => {
@@ -44,6 +44,13 @@ export function Layout({ children }: LayoutProps) {
 
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProjectId = e.target.value;
+
+    // Special handling for "Add New Project" option
+    if (newProjectId === '__new__') {
+      navigate('/projects/new');
+      return;
+    }
+
     setSelectedProjectId(newProjectId);
 
     // If on a project-specific route, navigate to same route with new project ID
@@ -58,18 +65,39 @@ export function Layout({ children }: LayoutProps) {
       {/* Top Navigation Bar */}
       <nav className="bg-slate-800 text-white shadow-lg">
         <div className="mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* Left: Logo and Project Selector */}
-            <div className="flex items-center gap-6">
+          <div className="flex h-16 items-center justify-between gap-4">
+            {/* Left: Hamburger + Logo + Project Selector */}
+            <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
+              {/* Hamburger menu (mobile only) */}
+              <button
+                onClick={toggleMobile}
+                className="md:hidden flex items-center justify-center min-h-[44px] min-w-[44px] hover:bg-slate-700 rounded-md transition-colors"
+                aria-label="Toggle menu"
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+
               <Link to="/" className="flex items-center gap-2">
-                <div className="text-2xl font-bold">PipeTrak</div>
+                <div className="text-xl md:text-2xl font-bold">PipeTrak</div>
               </Link>
 
               <select
                 value={selectedProjectId || ''}
                 onChange={handleProjectChange}
-                disabled={projectsLoading || !projects || projects.length === 0}
-                className="rounded-md bg-slate-700 px-4 py-2 text-sm text-white border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={projectsLoading}
+                className="rounded-md bg-slate-700 px-2 md:px-4 py-2 text-xs md:text-sm text-white border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed max-w-[120px] md:max-w-none"
               >
                 {projectsLoading && <option>Loading projects...</option>}
                 {!projectsLoading && (!projects || projects.length === 0) && (
@@ -80,12 +108,13 @@ export function Layout({ children }: LayoutProps) {
                     {project.name}
                   </option>
                 ))}
+                {!projectsLoading && <option value="__new__">➕ Add New Project</option>}
               </select>
             </div>
 
-            {/* Center: Search Bar */}
-            <div className="flex-1 max-w-2xl mx-8">
-              <div className="relative">
+            {/* Center: Search Bar (hidden on mobile) */}
+            <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
+              <div className="relative w-full">
                 <input
                   type="text"
                   placeholder="Search components, drawings, packages..."
@@ -108,9 +137,9 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Right: Notifications and User Menu */}
-            <div className="flex items-center gap-4">
-              {/* Notifications */}
-              <button className="relative p-2 rounded-md hover:bg-slate-700 transition-colors">
+            <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+              {/* Notifications (hidden on small mobile) */}
+              <button className="hidden sm:block relative p-2 rounded-md hover:bg-slate-700 transition-colors">
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -136,7 +165,7 @@ export function Layout({ children }: LayoutProps) {
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="text-sm hover:text-slate-300 transition-colors"
+                  className="hidden md:block text-sm hover:text-slate-300 transition-colors"
                 >
                   Sign Out
                 </button>
@@ -153,7 +182,10 @@ export function Layout({ children }: LayoutProps) {
       <main
         className={cn(
           'transition-all duration-300 ease-in-out',
-          isCollapsed ? 'ml-16' : 'ml-64'
+          // Mobile: no margin (full width)
+          'ml-0',
+          // Desktop: margin based on sidebar collapse state
+          isCollapsed ? 'md:ml-16' : 'md:ml-64'
         )}
       >
         {children}

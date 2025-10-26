@@ -12,6 +12,8 @@ interface DrawingTableHeaderProps {
   allSelected?: boolean
   /** Callback when "Select All" checkbox clicked */
   onSelectAll?: () => void
+  /** Mobile viewport indicator (≤1024px) */
+  isMobile?: boolean
 }
 
 /**
@@ -27,9 +29,10 @@ export function DrawingTableHeader({
   selectionMode = false,
   allSelected = false,
   onSelectAll,
+  isMobile = false,
 }: DrawingTableHeaderProps) {
   return (
-    <div className="flex items-center gap-4 px-5 py-3 bg-slate-100 border-b border-slate-300 font-semibold text-sm text-slate-700 sticky top-0 z-10">
+    <div className={`flex items-center ${isMobile ? 'gap-1 px-2 text-xs' : 'gap-4 px-5 text-sm'} py-3 bg-slate-100 border-b border-slate-300 font-semibold text-slate-700 sticky top-0 z-10`}>
       {/* Select All checkbox (shown only in selection mode) */}
       {selectionMode && onSelectAll && (
         <Checkbox
@@ -40,10 +43,10 @@ export function DrawingTableHeader({
       )}
 
       {/* Spacer for chevron icon */}
-      <div className="w-5" />
+      <div className={isMobile ? 'min-w-[44px] flex-shrink-0' : 'w-5'} />
 
       {/* Drawing Number */}
-      <div className="min-w-[140px]">
+      <div className={isMobile ? 'min-w-[70px] flex-shrink-0' : 'min-w-[140px]'}>
         <SortableColumnHeader
           label="Drawing"
           field="drawing_no_norm"
@@ -53,19 +56,21 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Title */}
-      <div className="flex-1">
-        <SortableColumnHeader
-          label="Title"
-          field="title"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
-        />
-      </div>
+      {/* Title - Hidden on mobile */}
+      {!isMobile && (
+        <div className="flex-1">
+          <SortableColumnHeader
+            label="Title"
+            field="title"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
 
       {/* Area */}
-      <div className="min-w-[100px]">
+      <div className={isMobile ? 'flex-1' : 'min-w-[100px]'}>
         <SortableColumnHeader
           label="Area"
           field="area"
@@ -76,7 +81,7 @@ export function DrawingTableHeader({
       </div>
 
       {/* System */}
-      <div className="min-w-[100px]">
+      <div className={isMobile ? 'flex-1' : 'min-w-[100px]'}>
         <SortableColumnHeader
           label="System"
           field="system"
@@ -86,21 +91,23 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Test Package */}
-      <div className="min-w-[120px]">
-        <SortableColumnHeader
-          label="Test Package"
-          field="test_package"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
-        />
-      </div>
+      {/* Test Package - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[120px]">
+          <SortableColumnHeader
+            label="Test Package"
+            field="test_package"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
 
       {/* Progress */}
-      <div className="min-w-[130px]">
+      <div className={isMobile ? 'min-w-[45px] flex-shrink-0 text-right' : 'min-w-[130px]'}>
         <SortableColumnHeader
-          label="Progress"
+          label={isMobile ? 'Prog' : 'Progress'}
           field="avg_percent_complete"
           currentSortField={sortField}
           currentSortDirection={sortDirection}
@@ -108,16 +115,18 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Component Count */}
-      <div className="min-w-[90px] text-right">
-        <SortableColumnHeader
-          label="Items"
-          field="total_components"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
-        />
-      </div>
+      {/* Component Count - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[90px] text-right">
+          <SortableColumnHeader
+            label="Items"
+            field="total_components"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
     </div>
   )
 }

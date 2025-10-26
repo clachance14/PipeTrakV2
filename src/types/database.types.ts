@@ -340,196 +340,110 @@ export type Database = {
           },
         ]
       }
-      field_weld_inspections: {
+      field_welds: {
         Row: {
           base_metal: string | null
-          comments: string | null
           component_id: string
           created_at: string
-          created_by: string | null
+          created_by: string
           date_welded: string | null
-          drawing_iso_number: string | null
-          flagged_for_xray: boolean
-          hydro_complete: boolean
-          hydro_complete_date: string | null
           id: string
-          last_updated_at: string
-          last_updated_by: string | null
+          is_repair: boolean | null
+          nde_date: string | null
+          nde_notes: string | null
+          nde_required: boolean
           nde_result: string | null
-          nde_type_performed: string | null
-          optional_info: string | null
-          package_number: string | null
-          parent_weld_id: string | null
-          pmi_complete: boolean
-          pmi_date: string | null
-          pmi_required: boolean
-          pmi_result: string | null
+          nde_type: string | null
+          original_weld_id: string | null
           project_id: string
-          pwht_complete: boolean
-          pwht_date: string | null
-          pwht_required: boolean
-          repair_sequence: number
-          restored_date: string | null
           schedule: string | null
           spec: string | null
-          system_code: string | null
-          test_pressure: number | null
-          tie_in_number: string | null
-          turned_over_to_client: boolean
-          turnover_date: string | null
-          weld_id_number: number
+          status: string
+          updated_at: string
           weld_size: string | null
-          weld_type: string | null
+          weld_type: string
           welder_id: string | null
-          welder_stencil: string | null
-          xray_flagged_by: string | null
-          xray_flagged_date: string | null
-          xray_percentage: string | null
-          xray_result: string | null
-          xray_shot_number: string | null
         }
         Insert: {
           base_metal?: string | null
-          comments?: string | null
           component_id: string
           created_at?: string
-          created_by?: string | null
+          created_by: string
           date_welded?: string | null
-          drawing_iso_number?: string | null
-          flagged_for_xray?: boolean
-          hydro_complete?: boolean
-          hydro_complete_date?: string | null
           id?: string
-          last_updated_at?: string
-          last_updated_by?: string | null
+          is_repair?: boolean | null
+          nde_date?: string | null
+          nde_notes?: string | null
+          nde_required?: boolean
           nde_result?: string | null
-          nde_type_performed?: string | null
-          optional_info?: string | null
-          package_number?: string | null
-          parent_weld_id?: string | null
-          pmi_complete?: boolean
-          pmi_date?: string | null
-          pmi_required?: boolean
-          pmi_result?: string | null
+          nde_type?: string | null
+          original_weld_id?: string | null
           project_id: string
-          pwht_complete?: boolean
-          pwht_date?: string | null
-          pwht_required?: boolean
-          repair_sequence?: number
-          restored_date?: string | null
           schedule?: string | null
           spec?: string | null
-          system_code?: string | null
-          test_pressure?: number | null
-          tie_in_number?: string | null
-          turned_over_to_client?: boolean
-          turnover_date?: string | null
-          weld_id_number: number
+          status?: string
+          updated_at?: string
           weld_size?: string | null
-          weld_type?: string | null
+          weld_type: string
           welder_id?: string | null
-          welder_stencil?: string | null
-          xray_flagged_by?: string | null
-          xray_flagged_date?: string | null
-          xray_percentage?: string | null
-          xray_result?: string | null
-          xray_shot_number?: string | null
         }
         Update: {
           base_metal?: string | null
-          comments?: string | null
           component_id?: string
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           date_welded?: string | null
-          drawing_iso_number?: string | null
-          flagged_for_xray?: boolean
-          hydro_complete?: boolean
-          hydro_complete_date?: string | null
           id?: string
-          last_updated_at?: string
-          last_updated_by?: string | null
+          is_repair?: boolean | null
+          nde_date?: string | null
+          nde_notes?: string | null
+          nde_required?: boolean
           nde_result?: string | null
-          nde_type_performed?: string | null
-          optional_info?: string | null
-          package_number?: string | null
-          parent_weld_id?: string | null
-          pmi_complete?: boolean
-          pmi_date?: string | null
-          pmi_required?: boolean
-          pmi_result?: string | null
+          nde_type?: string | null
+          original_weld_id?: string | null
           project_id?: string
-          pwht_complete?: boolean
-          pwht_date?: string | null
-          pwht_required?: boolean
-          repair_sequence?: number
-          restored_date?: string | null
           schedule?: string | null
           spec?: string | null
-          system_code?: string | null
-          test_pressure?: number | null
-          tie_in_number?: string | null
-          turned_over_to_client?: boolean
-          turnover_date?: string | null
-          weld_id_number?: number
+          status?: string
+          updated_at?: string
           weld_size?: string | null
-          weld_type?: string | null
+          weld_type?: string
           welder_id?: string | null
-          welder_stencil?: string | null
-          xray_flagged_by?: string | null
-          xray_flagged_date?: string | null
-          xray_percentage?: string | null
-          xray_result?: string | null
-          xray_shot_number?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "field_weld_inspections_component_id_fkey"
+            foreignKeyName: "field_welds_component_id_fkey"
             columns: ["component_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "components"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "field_weld_inspections_created_by_fkey"
+            foreignKeyName: "field_welds_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "field_weld_inspections_last_updated_by_fkey"
-            columns: ["last_updated_by"]
+            foreignKeyName: "field_welds_original_weld_id_fkey"
+            columns: ["original_weld_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "field_welds"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "field_weld_inspections_parent_weld_id_fkey"
-            columns: ["parent_weld_id"]
-            isOneToOne: false
-            referencedRelation: "field_weld_inspections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "field_weld_inspections_project_id_fkey"
+            foreignKeyName: "field_welds_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "field_weld_inspections_welder_id_fkey"
+            foreignKeyName: "field_welds_welder_id_fkey"
             columns: ["welder_id"]
             isOneToOne: false
             referencedRelation: "welders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "field_weld_inspections_xray_flagged_by_fkey"
-            columns: ["xray_flagged_by"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -916,6 +830,7 @@ export type Database = {
           status: string
           stencil: string
           stencil_norm: string
+          updated_at: string
           verified_at: string | null
           verified_by: string | null
         }
@@ -928,6 +843,7 @@ export type Database = {
           status?: string
           stencil: string
           stencil_norm: string
+          updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -940,6 +856,7 @@ export type Database = {
           status?: string
           stencil?: string
           stencil_norm?: string
+          updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -1024,6 +941,7 @@ export type Database = {
           avg_percent_complete: number | null
           blocker_count: number | null
           completed_components: number | null
+          description: string | null
           last_activity_at: string | null
           package_id: string | null
           package_name: string | null
@@ -1067,6 +985,16 @@ export type Database = {
         Args: { p_current_milestones: Json; p_template_id: string }
         Returns: number
       }
+      create_test_package: {
+        Args: {
+          p_description?: string
+          p_name: string
+          p_project_id: string
+          p_target_date?: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
       detect_similar_drawings: {
         Args: {
           p_drawing_no_norm: string
@@ -1094,56 +1022,27 @@ export type Database = {
           welder_stencil: string
         }[]
       }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      is_super_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      normalize_drawing_number: {
-        Args: { raw: string }
-        Returns: string
-      }
-      refresh_materialized_views: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
+      is_super_admin: { Args: never; Returns: boolean }
+      normalize_drawing_number: { Args: { raw: string }; Returns: string }
+      refresh_materialized_views: { Args: never; Returns: undefined }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_component_milestone: {
         Args: {
           p_component_id: string
           p_milestone_name: string
           p_new_value: number
           p_user_id: string
+        }
+        Returns: Json
+      }
+      update_test_package: {
+        Args: {
+          p_description?: string
+          p_name?: string
+          p_package_id: string
+          p_target_date?: string
+          p_user_id?: string
         }
         Returns: Json
       }
