@@ -10,11 +10,18 @@ vi.mock('@/hooks/useUpdateProfile', () => ({
   useUpdateProfile: vi.fn()
 }))
 
+// Mock useUpdateAvatar hook
+vi.mock('@/hooks/useUpdateAvatar', () => ({
+  useUpdateAvatar: vi.fn()
+}))
+
 import { useUpdateProfile } from '@/hooks/useUpdateProfile'
+import { useUpdateAvatar } from '@/hooks/useUpdateAvatar'
 
 describe('ProfileHeader', () => {
   let queryClient: QueryClient
   const mockMutate = vi.fn()
+  const mockAvatarMutate = vi.fn()
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -24,9 +31,18 @@ describe('ProfileHeader', () => {
       }
     })
 
-    // Default mock implementation
+    // Mock useUpdateProfile
     vi.mocked(useUpdateProfile).mockReturnValue({
       mutate: mockMutate,
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null
+    } as any)
+
+    // Mock useUpdateAvatar
+    vi.mocked(useUpdateAvatar).mockReturnValue({
+      mutate: mockAvatarMutate,
       isPending: false,
       isSuccess: false,
       isError: false,
@@ -226,5 +242,105 @@ describe('ProfileHeader', () => {
 
     // Should show placeholder
     expect(screen.getByText(/add your name/i)).toBeInTheDocument()
+  })
+})
+
+  // Avatar upload tests (T033)
+  describe('Avatar Upload', () => {
+    it('shows file input for avatar upload', () => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ProfileHeader user={mockUser} />
+        </QueryClientProvider>
+      )
+
+      const fileInput = screen.getByLabelText(/upload.*photo/i)
+      expect(fileInput).toBeInTheDocument()
+      expect(fileInput).toHaveAttribute('type', 'file')
+      expect(fileInput).toHaveAttribute('accept', 'image/jpeg,image/png,image/webp')
+    })
+
+    it('calls useUpdateAvatar when valid file is selected', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ProfileHeader user={mockUser} />
+        </QueryClientProvider>
+      )
+
+      const fileInput = screen.getByLabelText(/upload.*photo/i)
+      const file = new File(['avatar'], 'avatar.png', { type: 'image/png' })
+
+      await user.upload(fileInput, file)
+
+      expect(mockAvatarMutate).toHaveBeenCalledWith({
+        userId: '123',
+        file: expect.any(File)
+      })
+    })
+
+    it('shows error for invalid file type', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ProfileHeader user={mockUser} />
+        </QueryClientProvider>
+      )
+
+      const fileInput = screen.getByLabelText(/upload.*photo/i)
+      const file = new File(['document'], 'document.pdf', { type: 'application/pdf' })
+
+      await user.upload(fileInput, file)
+
+      // Should not call mutate
+      expect(mockAvatarMutate).not.toHaveBeenCalled()
+
+      // Should show error message
+      expect(screen.getByText(/invalid file type/i)).toBeInTheDocument()
+    })
+
+    it('shows error for file too large', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ProfileHeader user={mockUser} />
+        </QueryClientProvider>
+      )
+
+      const fileInput = screen.getByLabelText(/upload.*photo/i)
+      // Create a file larger than 2MB
+      const largeContent = new Array(3 * 1024 * 1024).fill('a').join('')
+      const file = new File([largeContent], 'large.png', { type: 'image/png' })
+
+      await user.upload(fileInput, file)
+
+      // Should not call mutate
+      expect(mockAvatarMutate).not.toHaveBeenCalled()
+
+      // Should show error message
+      expect(screen.getByText(/file too large/i)).toBeInTheDocument()
+    })
+
+    it('shows upload progress indicator', async () => {
+      vi.mocked(useUpdateAvatar).mockReturnValue({
+        mutate: mockAvatarMutate,
+        isPending: true,
+        isSuccess: false,
+        isError: false,
+        error: null
+      } as any)
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ProfileHeader user={mockUser} />
+        </QueryClientProvider>
+      )
+
+      // Should show uploading indicator
+      expect(screen.getByText(/uploading/i)).toBeInTheDocument()
+    })
   })
 })

@@ -131,9 +131,9 @@ Single project structure (React SPA):
 
 > **RED phase: Write failing tests first**
 
-- [ ] T033 [P] [US3] Write failing test for avatar upload in ProfileHeader tests (file picker, upload button, progress indicator)
-- [ ] T034 [P] [US3] Write failing test for useUpdateAvatar hook in tests/unit/hooks/useUpdateAvatar.test.ts (file upload, public URL retrieval, database update)
-- [ ] T035 [P] [US3] Write failing test for avatar validation utilities in tests/unit/lib/avatar-utils.test.ts (file type, file size, error messages)
+- [X] T033 [P] [US3] Write failing test for avatar upload in ProfileHeader tests (file picker, upload button, progress indicator)
+- [X] T034 [P] [US3] Write failing test for useUpdateAvatar hook in tests/unit/hooks/useUpdateAvatar.test.tsx (file upload, public URL retrieval, database update)
+- [X] T035 [P] [US3] Write failing test for avatar validation utilities in tests/unit/lib/avatar-utils.test.ts (file type, file size, error messages)
 
 ### Implementation for User Story 3
 
