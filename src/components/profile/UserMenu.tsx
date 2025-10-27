@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Avatar } from './Avatar'
 import { UserProfileModal } from './UserProfileModal'
+import { ProfileHeader } from './ProfileHeader'
 import { ProfileInfoSection } from './ProfileInfoSection'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import {
@@ -49,11 +50,21 @@ export function UserMenu() {
         {isLoading ? (
           <div className="text-center py-4">Loading...</div>
         ) : profileData ? (
-          <ProfileInfoSection
-            email={profileData.email}
-            organizationName={profileData.organization?.name || null}
-            role={profileData.role}
-          />
+          <div className="space-y-6">
+            <ProfileHeader
+              user={{
+                id: profileData.id,
+                email: profileData.email,
+                full_name: profileData.full_name,
+                avatar_url: profileData.avatar_url
+              }}
+            />
+            <ProfileInfoSection
+              email={profileData.email}
+              organizationName={profileData.organization?.name || null}
+              role={profileData.role}
+            />
+          </div>
         ) : (
           <div className="text-center py-4 text-slate-500">
             Unable to load profile data

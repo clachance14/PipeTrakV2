@@ -99,23 +99,23 @@ Single project structure (React SPA):
 
 > **RED phase: Write failing tests first**
 
-- [ ] T024 [P] [US2] Write failing test for ProfileHeader component in tests/unit/components/profile/ProfileHeader.test.tsx (name display, edit mode, save/cancel buttons)
-- [ ] T025 [P] [US2] Write failing test for useUpdateProfile hook in tests/unit/hooks/useUpdateProfile.test.ts (optimistic updates, rollback on error, cache invalidation)
+- [X] T024 [P] [US2] Write failing test for ProfileHeader component in tests/unit/components/profile/ProfileHeader.test.tsx (name display, edit mode, save/cancel buttons)
+- [X] T025 [P] [US2] Write failing test for useUpdateProfile hook in tests/unit/hooks/useUpdateProfile.test.tsx (optimistic updates, rollback on error, cache invalidation)
 
 ### Implementation for User Story 2
 
 > **GREEN phase: Implement to pass tests**
 
-- [ ] T026 [P] [US2] Implement ProfileHeader component in src/components/profile/ProfileHeader.tsx (avatar display, full name with inline edit functionality)
-- [ ] T027 [US2] Implement useUpdateProfile hook in src/hooks/useUpdateProfile.ts (TanStack Query mutation with onMutate/onError/onSettled for optimistic updates)
-- [ ] T028 [US2] Add ProfileHeader to UserProfileModal (replace or add above ProfileInfoSection)
-- [ ] T029 [US2] Wire ProfileHeader save button to useUpdateProfile mutation
-- [ ] T030 [US2] Add full name validation (trim whitespace, 1-100 characters, not empty)
+- [X] T026 [P] [US2] Implement ProfileHeader component in src/components/profile/ProfileHeader.tsx (avatar display, full name with inline edit functionality)
+- [X] T027 [US2] Implement useUpdateProfile hook in src/hooks/useUpdateProfile.ts (TanStack Query mutation with onMutate/onError/onSettled for optimistic updates)
+- [X] T028 [US2] Add ProfileHeader to UserProfileModal (replace or add above ProfileInfoSection)
+- [X] T029 [US2] Wire ProfileHeader save button to useUpdateProfile mutation
+- [X] T030 [US2] Add full name validation (trim whitespace, 1-100 characters, not empty)
 
 > **REFACTOR phase**
 
-- [ ] T031 [US2] Verify all tests pass (US1 + US2), refactor for quality
-- [ ] T032 [US2] Commit US2 implementation
+- [X] T031 [US2] Verify all tests pass (US1 + US2), refactor for quality
+- [X] T032 [US2] Commit US2 implementation
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently (view profile + edit name)
 
