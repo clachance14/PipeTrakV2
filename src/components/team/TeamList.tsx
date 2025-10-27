@@ -1,53 +1,124 @@
 import { useState } from 'react'
 import { useOrganization } from '@/hooks/useOrganization'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { RoleSelector } from './RoleSelector'
-import type { UserRole } from '@/lib/permissions'
+import { RoleChangeDialog } from './RoleChangeDialog'
+import type { Role } from '@/types/team.types'
 import { canManageTeam } from '@/lib/permissions'
 import { toast } from 'sonner'
 
+type SortOption = 'name' | 'role' | 'join_date' | 'last_active';
+
 interface TeamListProps {
   organizationId: string
-  currentUserRole: UserRole
+  currentUserRole: Role
+  searchTerm?: string
+  roleFilter?: Role | 'all'
+  statusFilter?: 'all' | 'active' | 'pending'
+  sortBy?: SortOption
 }
 
-export function TeamList({ organizationId, currentUserRole }: TeamListProps) {
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
+export function TeamList({
+  organizationId,
+  currentUserRole,
+  searchTerm = '',
+  roleFilter = 'all',
+  statusFilter = 'all',
+  sortBy = 'name',
+}: TeamListProps) {
   const [page, setPage] = useState(0)
   const limit = 50
+
+  // Role change dialog state
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<{ id: string; name: string; role: Role } | null>(null)
 
   const { useOrgMembers, updateMemberRoleMutation, removeMemberMutation } =
     useOrganization()
 
   const { data, isLoading } = useOrgMembers({
     organizationId,
-    search: search || undefined,
-    role: roleFilter !== 'all' ? roleFilter : undefined,
-    limit,
-    offset: page * limit,
+    limit: 1000, // Fetch all members for client-side filtering/sorting
+    offset: 0,
   })
 
-  const members = data?.members || []
-  const totalCount = data?.total_count || 0
+  const allMembers = data?.members || []
   const canManage = canManageTeam(currentUserRole)
 
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
+  // Client-side filtering
+  let filteredMembers = allMembers.filter((member) => {
+    // Search filter (name or email)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      const nameMatch = member.full_name?.toLowerCase().includes(search)
+      const emailMatch = member.email?.toLowerCase().includes(search)
+      if (!nameMatch && !emailMatch) return false
+    }
+
+    // Role filter
+    if (roleFilter !== 'all' && member.role !== roleFilter) {
+      return false
+    }
+
+    // Status filter (active vs pending invitations)
+    // For now, assume all members from useOrgMembers are "active"
+    if (statusFilter === 'pending') {
+      return false // Members from useOrgMembers are always active
+    }
+
+    return true
+  })
+
+  // Client-side sorting
+  filteredMembers = [...filteredMembers].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return (a.full_name || '').localeCompare(b.full_name || '')
+      case 'role':
+        return (a.role || '').localeCompare(b.role || '')
+      case 'join_date':
+        // Most recent first (descending)
+        return new Date(b.joined_at || 0).getTime() - new Date(a.joined_at || 0).getTime()
+      case 'last_active':
+        // TODO: Add last_active field to member type
+        // For now, sort by join_date as fallback
+        return new Date(b.joined_at || 0).getTime() - new Date(a.joined_at || 0).getTime()
+      default:
+        return 0
+    }
+  })
+
+  // Pagination
+  const totalCount = filteredMembers.length
+  const members = filteredMembers.slice(page * limit, (page + 1) * limit)
+
+  const handleOpenRoleDialog = (userId: string, name: string, role: Role) => {
+    setSelectedMember({ id: userId, name, role })
+    setRoleDialogOpen(true)
+  }
+
+  const handleCloseRoleDialog = () => {
+    setRoleDialogOpen(false)
+    setSelectedMember(null)
+  }
+
+  const handleConfirmRoleChange = (newRole: Role) => {
+    if (!selectedMember) return
+
     updateMemberRoleMutation.mutate(
-      { userId, role: newRole, organizationId },
+      { userId: selectedMember.id, role: newRole, organizationId },
       {
         onSuccess: () => {
-          toast.success('Role updated successfully')
+          toast.success(`Role updated to ${newRole}`)
+          handleCloseRoleDialog()
         },
         onError: (error: Error) => {
           const message = error.message || 'Failed to update role'
           if (message.includes('CANNOT_CHANGE_OWN_ROLE')) {
             toast.error('You cannot change your own role')
           } else if (message.includes('CANNOT_REMOVE_LAST_OWNER')) {
-            toast.error('Cannot remove the last owner')
+            toast.error('Cannot change role: Organization must have at least one owner')
           } else {
-            toast.error('Failed to update role')
+            toast.error('Failed to update role. Please try again.')
           }
         },
       }
@@ -77,23 +148,6 @@ export function TeamList({ organizationId, currentUserRole }: TeamListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Search and Filter */}
-      <div className="flex gap-4">
-        <Input
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1"
-        />
-        <div className="w-48">
-          <RoleSelector
-            value={roleFilter === 'all' ? 'viewer' : roleFilter}
-            onChange={(role) => setRoleFilter(role)}
-            currentUserRole={currentUserRole}
-          />
-        </div>
-      </div>
-
       {/* Members Table */}
       {isLoading ? (
         <div className="text-center py-8 text-gray-500">Loading...</div>
@@ -133,15 +187,19 @@ export function TeamList({ organizationId, currentUserRole }: TeamListProps) {
                     {member.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {canManage ? (
-                      <RoleSelector
-                        value={member.role as UserRole}
-                        onChange={(role) => handleRoleChange(member.id, role)}
-                        currentUserRole={currentUserRole}
-                      />
-                    ) : (
-                      <span className="capitalize">{member.role.replace('_', ' ')}</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="capitalize">{member.role?.replace('_', ' ') || 'No role'}</span>
+                      {canManage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenRoleDialog(member.id, member.full_name, member.role as Role)}
+                          aria-label="Change role"
+                        >
+                          Change Role
+                        </Button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : 'N/A'}
@@ -162,6 +220,18 @@ export function TeamList({ organizationId, currentUserRole }: TeamListProps) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Role Change Dialog */}
+      {selectedMember && (
+        <RoleChangeDialog
+          open={roleDialogOpen}
+          memberName={selectedMember.name}
+          currentRole={selectedMember.role}
+          onConfirm={handleConfirmRoleChange}
+          onCancel={handleCloseRoleDialog}
+          isLoading={updateMemberRoleMutation.isPending}
+        />
       )}
 
       {/* Pagination */}

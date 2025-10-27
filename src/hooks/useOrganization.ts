@@ -8,9 +8,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Database } from '@/types/database.types'
+import { toast } from 'sonner'
+import type { Role } from '@/types/team.types'
 
-type UserRole = Database['public']['Enums']['user_role']
+type UserRole = Role
 
 interface OrgMembersParams {
   organizationId: string
@@ -38,6 +39,7 @@ function useCurrentOrganizationQuery() {
         .single()
 
       if (userError) throw userError
+      if (!userData.organization_id) throw new Error('User has no organization')
 
       const { data: org, error: orgError } = await supabase
         .from('organizations')
@@ -98,6 +100,7 @@ export function useOrganization() {
   /**
    * Update a member's role
    * Modifies users.role directly
+   * Includes optimistic updates for <50ms perceived latency
    */
   const updateMemberRoleMutation = useMutation({
     mutationFn: async ({
@@ -120,25 +123,93 @@ export function useOrganization() {
       if (error) throw error
       return { success: true, user: data }
     },
+
+    onMutate: async ({ userId, role, organizationId }) => {
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['orgMembers', organizationId] })
+      const previousMembers = queryClient.getQueryData(['orgMembers', organizationId])
+
+      // Optimistically update the cache
+      queryClient.setQueryData(['orgMembers', organizationId], (old: any) => {
+        if (!old || !old.members) return old
+        return {
+          ...old,
+          members: old.members.map((member: any) =>
+            member.id === userId ? { ...member, role } : member
+          ),
+        }
+      })
+
+      return { previousMembers }
+    },
+
+    onError: (_err, variables, context) => {
+      // Rollback optimistic update on error
+      if (context?.previousMembers) {
+        queryClient.setQueryData(['orgMembers', variables.organizationId], context.previousMembers)
+      }
+      toast.error('Failed to update role. Please try again.')
+    },
+
     onSuccess: (_, variables) => {
+      toast.success(`Role updated to ${variables.role}`)
+    },
+
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: ['orgMembers', variables.organizationId] })
     },
   })
 
   /**
    * Remove a member from organization
-   * NOTE: In single-org model, removing a user from their only organization
-   * effectively disables their account. Consider implications carefully.
+   * NOTE: In single-org model, this soft-deletes the user by setting deleted_at timestamp.
    */
   const removeMemberMutation = useMutation({
-    mutationFn: async ({ userId }: { userId: string; organizationId: string }) => {
-      // In single-org model, we can't truly "remove" a user from their only org
-      // Options: 1) Delete the user account, 2) Set org to null (breaks NOT NULL), 3) Block at UI level
-      // For now, we throw an error - this should be handled at UI level
-      console.log('Cannot remove user:', userId)
-      throw new Error('Cannot remove user from their only organization. Consider deleting the user account instead.')
+    mutationFn: async ({ userId, organizationId }: { userId: string; organizationId: string }) => {
+      const { error } = await supabase
+        .from('users')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', userId)
+        .eq('organization_id', organizationId)
+
+      if (error) throw error
     },
-    onSuccess: (_, variables) => {
+
+    onMutate: async ({ userId, organizationId }) => {
+      await queryClient.cancelQueries({ queryKey: ['orgMembers', organizationId] })
+      const previousMembers = queryClient.getQueryData(['orgMembers', organizationId])
+
+      // Get member name before removing
+      const memberData = previousMembers as { members: Array<{ id: string; full_name: string | null; email: string }> } | undefined
+      const member = memberData?.members?.find((m) => m.id === userId)
+      const memberName = member?.full_name || member?.email || 'Member'
+
+      // Optimistically update the cache by removing the member
+      queryClient.setQueryData(['orgMembers', organizationId], (old: any) => {
+        if (!old || !old.members) return old
+        return {
+          ...old,
+          members: old.members.filter((m: any) => m.id !== userId),
+          total_count: old.total_count - 1,
+        }
+      })
+
+      return { previousMembers, memberName }
+    },
+
+    onError: (_err, variables, context) => {
+      // Rollback optimistic update on error
+      if (context?.previousMembers) {
+        queryClient.setQueryData(['orgMembers', variables.organizationId], context.previousMembers)
+      }
+      toast.error('Failed to remove member. Please try again.')
+    },
+
+    onSuccess: (_data, _variables, context) => {
+      toast.success(`${context?.memberName} removed from organization`)
+    },
+
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: ['orgMembers', variables.organizationId] })
     },
   })

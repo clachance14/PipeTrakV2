@@ -1,16 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router-dom'
 import { TeamManagement } from './TeamManagement'
-
-vi.mock('@/stores/organizationStore', () => ({
-  useOrganizationStore: () => ({
-    activeOrgId: 'org-1',
-  }),
-}))
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
+}))
+
+vi.mock('@/components/Layout', () => ({
+  Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 vi.mock('@/hooks/useInvitations', () => ({
@@ -25,6 +24,14 @@ vi.mock('@/hooks/useInvitations', () => ({
 
 vi.mock('@/hooks/useOrganization', () => ({
   useOrganization: () => ({
+    useCurrentOrganization: () => ({
+      data: {
+        organization: { id: 'org-1', name: 'Test Org', created_at: '2024-01-01' },
+        role: 'owner',
+      },
+      isLoading: false,
+      error: null,
+    }),
     useOrgMembers: () => ({
       data: { members: [], total_count: 0 },
       isLoading: false,
@@ -37,15 +44,20 @@ vi.mock('@/hooks/useOrganization', () => ({
 const queryClient = new QueryClient()
 
 describe('TeamManagement', () => {
-  it('renders team management page', () => {
+  it('renders team management page with organization loaded', () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <TeamManagement />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <TeamManagement />
+        </QueryClientProvider>
+      </MemoryRouter>
     )
 
+    // Verify the page title renders
     expect(screen.getByText('Team Management')).toBeInTheDocument()
-    // "Team Members" appears multiple times (tab + heading)
-    expect(screen.getAllByText('Team Members').length).toBeGreaterThan(0)
+    // Verify the description renders
+    expect(screen.getByText('View and manage your team members and their permissions')).toBeInTheDocument()
+    // Verify the Add Team Member button renders (only shows when org is loaded)
+    expect(screen.getByText('Add Team Member')).toBeInTheDocument()
   })
 })

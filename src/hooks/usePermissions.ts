@@ -67,12 +67,12 @@ export function usePermissions(): UsePermissionsReturn {
   const permissions = ROLE_PERMISSIONS[userRole];
 
   return {
-    canUpdateMilestones: permissions.can_update_milestones,
-    canImportWeldLog: permissions.can_import_weld_log,
-    canManageWelders: permissions.can_manage_welders,
-    canResolveReviews: permissions.can_resolve_reviews,
-    canViewDashboards: permissions.can_view_dashboards,
-    canManageTeam: permissions.can_manage_team,
+    canUpdateMilestones: permissions.includes('update_milestones'),
+    canImportWeldLog: false, // Not a defined permission yet
+    canManageWelders: permissions.includes('assign_welders'),
+    canResolveReviews: false, // Not a defined permission yet
+    canViewDashboards: permissions.includes('view_reports'),
+    canManageTeam: permissions.includes('manage_team'),
     hasPermission: (permission: Permission) => checkPermission(userRole, permission),
     role: userRole,
   };

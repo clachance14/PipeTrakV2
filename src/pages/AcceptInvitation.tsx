@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { getRoleRedirectPath } from '@/lib/permissions'
+import { getRoleRedirectPath, type Role } from '@/lib/permissions'
 import { toast } from 'sonner'
 
 const newUserSchema = z.object({
@@ -24,6 +24,13 @@ const newUserSchema = z.object({
 })
 
 type NewUserFormValues = z.infer<typeof newUserSchema>
+
+interface AcceptInvitationSuccess {
+  user: { id: string; email: string; is_new_user: boolean }
+  organization: { id: string; name: string } | null
+  role: Role
+  requires_email_confirmation?: boolean
+}
 
 export function AcceptInvitation() {
   const [searchParams] = useSearchParams()
@@ -87,7 +94,18 @@ export function AcceptInvitation() {
         full_name: formData?.full_name,
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: AcceptInvitationSuccess) => {
+          // Check if email confirmation is required
+          if (data.requires_email_confirmation) {
+            toast.success('Account created! Your team access has been set up.')
+            toast.info('Please check your email to confirm your account, then log in to start using PipeTrak.')
+            setAccepting(false)
+            // Optionally navigate to a "check email" page or login page
+            setTimeout(() => navigate('/login'), 3000)
+            return
+          }
+
+          // Email confirmation not required or user is already authenticated
           toast.success(`Welcome to ${invitation?.organization_name}!`)
           const redirectPath = getRoleRedirectPath(data.role)
           navigate(redirectPath)

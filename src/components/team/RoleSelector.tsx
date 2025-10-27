@@ -5,18 +5,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { UserRole } from '@/lib/permissions'
+import type { Role } from '@/types/team.types'
 import { canManageBilling } from '@/lib/permissions'
 
 interface RoleSelectorProps {
-  value: UserRole
-  onChange: (value: UserRole) => void
-  currentUserRole?: UserRole
+  value: Role
+  onChange: (value: Role) => void
+  currentUserRole?: Role
   disabled?: boolean
 }
 
 const ROLE_OPTIONS: Array<{
-  value: UserRole
+  value: Role
   label: string
   description: string
 }> = [

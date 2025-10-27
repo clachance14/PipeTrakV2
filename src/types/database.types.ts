@@ -776,36 +776,39 @@ export type Database = {
       users: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           email: string
           full_name: string | null
           id: string
           is_super_admin: boolean
-          organization_id: string
-          role: string
+          organization_id: string | null
+          role: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           email: string
           full_name?: string | null
           id: string
           is_super_admin?: boolean
-          organization_id: string
-          role: string
+          organization_id?: string | null
+          role?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
           is_super_admin?: boolean
-          organization_id?: string
-          role?: string
+          organization_id?: string | null
+          role?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string | null
@@ -961,6 +964,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invitation_for_user: {
+        Args: { p_invitation_id: string; p_user_id: string }
+        Returns: Json
+      }
       assign_drawing_with_inheritance: {
         Args: {
           p_area_id?: string
@@ -985,6 +992,10 @@ export type Database = {
         Args: { p_current_milestones: Json; p_template_id: string }
         Returns: number
       }
+      check_email_has_organization: {
+        Args: { check_email: string }
+        Returns: boolean
+      }
       create_test_package: {
         Args: {
           p_description?: string
@@ -1007,6 +1018,8 @@ export type Database = {
           similarity_score: number
         }[]
       }
+      get_current_user_email: { Args: never; Returns: string }
+      get_current_user_org_id: { Args: never; Returns: string }
       get_user_org_role: {
         Args: { org_uuid: string; user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1045,10 +1058,6 @@ export type Database = {
           p_user_id?: string
         }
         Returns: Json
-      }
-      user_is_org_member: {
-        Args: { org_uuid: string; user_uuid: string }
-        Returns: boolean
       }
       validate_component_identity_key: {
         Args: { p_component_type: string; p_identity_key: Json }

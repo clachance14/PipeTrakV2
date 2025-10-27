@@ -157,6 +157,7 @@ export function useCreateProject(): UseMutationResult<
         .single();
 
       if (!userData) throw new Error('User not found');
+      if (!userData.organization_id) throw new Error('User has no organization');
 
       const projectData: ProjectInsert = {
         name: input.name,
