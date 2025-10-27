@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React from 'react'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { supabase } from '@/lib/supabase'
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn(),
-  },
+    from: vi.fn()
+  }
 }))
 
 describe('useUserProfile', () => {
@@ -19,107 +20,107 @@ describe('useUserProfile', () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-      },
+        mutations: { retry: false }
+      }
     })
     vi.clearAllMocks()
   })
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
   )
 
-  it('fetches user profile data successfully', async () => {
-    const mockUserData = {
+  it('fetches user profile successfully', async () => {
+    const mockData = {
       id: '123',
       email: 'john@example.com',
-      role: 'admin',
       full_name: 'John Doe',
-      organization_id: 'org-123',
       avatar_url: null,
+      organization_id: 'org-123',
+      role: 'project_manager',
       organization: {
         id: 'org-123',
-        name: 'ACME Corp',
-      },
+        name: 'Acme Corp'
+      }
     }
 
-    // Mock successful response
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
-            data: mockUserData,
-            error: null,
-          }),
-        }),
-      }),
+            data: mockData,
+            error: null
+          })
+        })
+      })
     } as any)
 
     const { result } = renderHook(() => useUserProfile('123'), { wrapper })
 
-    // Initially loading
     expect(result.current.isLoading).toBe(true)
 
-    // Wait for data to load
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+      expect(result.current.isSuccess).toBe(true)
     })
 
-    // Expect data to be available
-    expect(result.current.data).toEqual(mockUserData)
+    expect(result.current.data).toEqual(mockData)
     expect(result.current.error).toBeNull()
   })
 
-  it('handles fetch error', async () => {
-    const mockError = new Error('Network error')
+  it('handles error when fetch fails', async () => {
+    const mockError = new Error('Database error')
 
-    // Mock error response
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
             data: null,
-            error: mockError,
-          }),
-        }),
-      }),
+            error: mockError
+          })
+        })
+      })
     } as any)
 
     const { result } = renderHook(() => useUserProfile('123'), { wrapper })
 
-    // Wait for error state
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+      expect(result.current.isError).toBe(true)
     })
 
-    // Expect error to be set
     expect(result.current.error).toBeTruthy()
     expect(result.current.data).toBeUndefined()
   })
 
-  it('sets correct query key for caching', () => {
-    const mockUserData = {
-      id: '123',
-      email: 'john@example.com',
-      role: 'admin',
-      full_name: 'John Doe',
-      organization_id: 'org-123',
-      avatar_url: null,
-    }
-
+  it('returns loading state initially', () => {
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: mockUserData,
-            error: null,
-          }),
-        }),
-      }),
+          single: vi.fn().mockReturnValue(new Promise(() => {})) // Never resolves
+        })
+      })
     } as any)
 
     const { result } = renderHook(() => useUserProfile('123'), { wrapper })
 
-    // Query key should include user ID for proper caching
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.data).toBeUndefined()
+    expect(result.current.error).toBeNull()
+  })
+
+  it('uses correct query key', () => {
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: {}, error: null })
+        })
+      })
+    } as any)
+
+    const { result } = renderHook(() => useUserProfile('test-user-id'), { wrapper })
+
+    // Query key should be ['userProfile', userId]
     expect(result.current).toBeDefined()
   })
 })

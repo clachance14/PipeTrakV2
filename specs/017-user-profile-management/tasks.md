@@ -63,27 +63,27 @@ Single project structure (React SPA):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (RED phase)**
 
-- [ ] T011 [P] [US1] Write failing test for UserMenu component in tests/unit/components/profile/UserMenu.test.tsx (avatar display, dropdown open, menu items)
-- [ ] T012 [P] [US1] Write failing test for UserProfileModal component in tests/unit/components/profile/UserProfileModal.test.tsx (open/close, Escape key, focus trap)
-- [ ] T013 [P] [US1] Write failing test for ProfileInfoSection component in tests/unit/components/profile/ProfileInfoSection.test.tsx (email, org, role display, null handling)
-- [ ] T014 [P] [US1] Write failing test for useUserProfile hook in tests/unit/hooks/useUserProfile.test.ts (data fetching, loading, error states)
+- [X] T011 [P] [US1] Write failing test for UserMenu component in tests/unit/components/profile/UserMenu.test.tsx (avatar display, dropdown open, menu items)
+- [X] T012 [P] [US1] Write failing test for UserProfileModal component in tests/unit/components/profile/UserProfileModal.test.tsx (open/close, Escape key, focus trap)
+- [X] T013 [P] [US1] Write failing test for ProfileInfoSection component in tests/unit/components/profile/ProfileInfoSection.test.tsx (email, org, role display, null handling)
+- [X] T014 [P] [US1] Write failing test for useUserProfile hook in tests/unit/hooks/useUserProfile.test.tsx (data fetching, loading, error states)
 
 ### Implementation for User Story 1
 
 > **GREEN phase: Implement minimum code to pass tests**
 
-- [ ] T015 [P] [US1] Implement UserMenu component in src/components/profile/UserMenu.tsx (avatar button, dropdown with "View Profile" and "Sign Out" options)
-- [ ] T016 [P] [US1] Implement UserProfileModal component in src/components/profile/UserProfileModal.tsx (Dialog wrapper with open/close state)
-- [ ] T017 [P] [US1] Implement ProfileInfoSection component in src/components/profile/ProfileInfoSection.tsx (read-only display of email, org name, role)
-- [ ] T018 [US1] Implement useUserProfile hook in src/hooks/useUserProfile.ts (TanStack Query hook to fetch user + organization data)
-- [ ] T019 [US1] Wire UserMenu to open UserProfileModal on "View Profile" click
-- [ ] T020 [US1] Wire UserProfileModal to display ProfileInfoSection with user data from useUserProfile
-- [ ] T021 [US1] Replace avatar button in src/components/Layout.tsx with UserMenu component (lines 159-172)
+- [X] T015 [P] [US1] Implement UserMenu component in src/components/profile/UserMenu.tsx (avatar button, dropdown with "View Profile" and "Sign Out" options)
+- [X] T016 [P] [US1] Implement UserProfileModal component in src/components/profile/UserProfileModal.tsx (Dialog wrapper with open/close state)
+- [X] T017 [P] [US1] Implement ProfileInfoSection component in src/components/profile/ProfileInfoSection.tsx (read-only display of email, org name, role)
+- [X] T018 [US1] Implement useUserProfile hook in src/hooks/useUserProfile.ts (TanStack Query hook to fetch user + organization data)
+- [X] T019 [US1] Wire UserMenu to open UserProfileModal on "View Profile" click
+- [X] T020 [US1] Wire UserProfileModal to display ProfileInfoSection with user data from useUserProfile
+- [X] T021 [US1] Replace avatar button in src/components/Layout.tsx with UserMenu component (lines 159-172)
 
 > **REFACTOR phase: Clean up code while keeping tests green**
 
-- [ ] T022 [US1] Verify all tests pass, refactor for code quality if needed
-- [ ] T023 [US1] Commit US1 implementation (tests + code together per Constitution)
+- [X] T022 [US1] Verify all tests pass, refactor for code quality if needed
+- [X] T023 [US1] Commit US1 implementation (tests + code together per Constitution)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently (users can view their profile)
 
