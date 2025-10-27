@@ -1,10 +1,10 @@
 import { ReactNode, useEffect } from 'react'
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useProjects } from '@/hooks/useProjects'
 import { useSidebarStore } from '@/stores/useSidebarStore'
 import { Sidebar } from '@/components/Sidebar'
+import { UserMenu } from '@/components/profile/UserMenu'
 import { cn } from '@/lib/utils'
 
 interface LayoutProps {
@@ -12,7 +12,6 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
@@ -36,11 +35,6 @@ export function Layout({ children }: LayoutProps) {
       setSelectedProjectId(params.projectId);
     }
   }, [params.projectId, selectedProjectId, setSelectedProjectId]);
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/login')
-  }
 
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProjectId = e.target.value;
@@ -157,19 +151,7 @@ export function Layout({ children }: LayoutProps) {
               </button>
 
               {/* User Menu */}
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center">
-                  <span className="text-sm font-semibold">
-                    {user?.email?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="hidden md:block text-sm hover:text-slate-300 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
+              <UserMenu />
             </div>
           </div>
         </div>
