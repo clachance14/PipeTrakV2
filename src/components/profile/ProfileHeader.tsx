@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Avatar } from './Avatar'
 import { useUpdateProfile } from '@/hooks/useUpdateProfile'
+import { useUpdateAvatar } from '@/hooks/useUpdateAvatar'
+import { validateAvatarFile } from '@/lib/avatar-utils'
+import { toast } from 'sonner'
 
 interface ProfileHeaderProps {
   user: {
@@ -15,8 +18,24 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [fullName, setFullName] = useState(user.full_name || '')
   const [error, setError] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isHoveringAvatar, setIsHoveringAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { mutate, isPending } = useUpdateProfile()
+  const avatarMutation = useUpdateAvatar()
+
+  // Handle avatar upload success/error with toasts
+  useEffect(() => {
+    if (avatarMutation.isSuccess) {
+      setUploadError(null)
+      toast.success('Avatar updated successfully')
+    } else if (avatarMutation.isError) {
+      const errorMessage = `Failed to upload avatar: ${avatarMutation.error?.message || 'Unknown error'}`
+      setUploadError(errorMessage)
+      toast.error(errorMessage)
+    }
+  }, [avatarMutation.isSuccess, avatarMutation.isError, avatarMutation.error])
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -56,10 +75,74 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
     )
   }
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Clear previous upload error
+    setUploadError(null)
+
+    // Validate file
+    const validation = validateAvatarFile(file)
+    if (!validation.valid) {
+      setUploadError(validation.error || 'Invalid file')
+      return
+    }
+
+    // Upload file
+    avatarMutation.mutate({ userId: user.id, file })
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   return (
-    <div className="flex items-center space-x-4 mb-6">
-      {/* Avatar */}
-      <Avatar url={user.avatar_url} email={user.email} size={80} />
+    <div className="space-y-2">
+      <div className="flex items-center space-x-4">
+        {/* Avatar with Upload */}
+        <div
+          className="relative cursor-pointer"
+          onMouseEnter={() => setIsHoveringAvatar(true)}
+          onMouseLeave={() => setIsHoveringAvatar(false)}
+          onClick={handleAvatarClick}
+        >
+        <Avatar url={user.avatar_url} email={user.email} size={80} />
+
+        {/* Hover Overlay or Upload State */}
+        {(isHoveringAvatar || avatarMutation.isPending) && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-medium">
+              {avatarMutation.isPending ? 'Uploading...' : 'Upload Photo'}
+            </span>
+          </div>
+        )}
+
+        {/* Progress Indicator for Large Files */}
+        {avatarMutation.isPending && (
+          <div className="absolute -bottom-2 left-0 right-0">
+            <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-slate-700 animate-pulse w-full"></div>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFileChange}
+          className="hidden"
+          aria-label="Upload profile photo"
+          disabled={avatarMutation.isPending}
+        />
+      </div>
 
       {/* Name Section */}
       <div className="flex-1">
@@ -113,6 +196,14 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
           </div>
         )}
       </div>
+    </div>
+
+    {/* Upload Error Message */}
+    {uploadError && (
+      <p className="text-sm text-red-600" role="alert">
+        {uploadError}
+      </p>
+    )}
     </div>
   )
 }
