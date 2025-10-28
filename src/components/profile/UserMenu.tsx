@@ -4,6 +4,7 @@ import { Avatar } from './Avatar'
 import { UserProfileModal } from './UserProfileModal'
 import { ProfileHeader } from './ProfileHeader'
 import { ProfileInfoSection } from './ProfileInfoSection'
+import { PasswordChangeForm } from './PasswordChangeForm'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ export function UserMenu() {
               organizationName={profileData.organization?.name || null}
               role={profileData.role}
             />
+            <PasswordChangeForm />
           </div>
         ) : (
           <div className="text-center py-4 text-slate-500">

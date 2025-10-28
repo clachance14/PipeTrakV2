@@ -139,18 +139,18 @@ Single project structure (React SPA):
 
 > **GREEN phase: Implement to pass tests**
 
-- [ ] T036 [P] [US3] Implement useUpdateAvatar hook in src/hooks/useUpdateAvatar.ts (upload to Storage, get public URL, update users.avatar_url)
-- [ ] T037 [P] [US3] Add avatar upload UI to ProfileHeader component (file input, hover overlay, progress indicator for files >500KB)
-- [ ] T038 [P] [US3] Create RLS policies for avatars storage bucket in supabase/migrations/00051_avatar_storage_rls.sql (SELECT public, INSERT/UPDATE/DELETE owner-only)
-- [ ] T039 [US3] Apply storage RLS policies via `supabase db push --linked`
-- [ ] T040 [US3] Wire ProfileHeader file input to useUpdateAvatar mutation
-- [ ] T041 [US3] Add client-side validation (file type, size checks) before upload using avatar-utils
-- [ ] T042 [US3] Update Avatar component fallback logic (check avatar_url, show initials if null)
+- [X] T036 [P] [US3] Implement useUpdateAvatar hook in src/hooks/useUpdateAvatar.ts (upload to Storage, get public URL, update users.avatar_url)
+- [X] T037 [P] [US3] Add avatar upload UI to ProfileHeader component (file input, hover overlay, progress indicator for files >500KB)
+- [X] T038 [P] [US3] Create RLS policies for avatars storage bucket in supabase/migrations/00051_avatar_storage_rls.sql (SELECT public, INSERT/UPDATE/DELETE owner-only)
+- [X] T039 [US3] Apply storage RLS policies via `supabase db push --linked`
+- [X] T040 [US3] Wire ProfileHeader file input to useUpdateAvatar mutation
+- [X] T041 [US3] Add client-side validation (file type, size checks) before upload using avatar-utils
+- [X] T042 [US3] Update Avatar component fallback logic (check avatar_url, show initials if null)
 
 > **REFACTOR phase**
 
-- [ ] T043 [US3] Verify all tests pass (US1 + US2 + US3), refactor for quality
-- [ ] T044 [US3] Commit US3 implementation
+- [X] T043 [US3] Verify all tests pass (US1 + US2 + US3), refactor for quality
+- [X] T044 [US3] Commit US3 implementation
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should work independently (view + edit name + upload photo)
 
@@ -174,18 +174,18 @@ Single project structure (React SPA):
 
 > **GREEN phase: Implement to pass tests**
 
-- [ ] T048 [P] [US4] Create password validation utilities in src/lib/password-validation.ts (analyzePasswordStrength, validatePasswordChangeForm)
-- [ ] T049 [P] [US4] Implement PasswordChangeForm component in src/components/profile/PasswordChangeForm.tsx (current, new, confirm password inputs with validation)
-- [ ] T050 [P] [US4] Implement useChangePassword hook in src/hooks/useChangePassword.ts (verify current password via signInWithPassword, update via auth.updateUser)
-- [ ] T051 [US4] Add PasswordChangeForm to UserProfileModal (below ProfileInfoSection)
-- [ ] T052 [US4] Wire PasswordChangeForm submit to useChangePassword mutation
-- [ ] T053 [US4] Add password strength indicator to PasswordChangeForm (display strength level as user types)
-- [ ] T054 [US4] Add show/hide password toggle buttons to all password inputs
+- [X] T048 [P] [US4] Create password validation utilities in src/lib/password-validation.ts (analyzePasswordStrength, validatePasswordChangeForm)
+- [X] T049 [P] [US4] Implement PasswordChangeForm component in src/components/profile/PasswordChangeForm.tsx (current, new, confirm password inputs with validation)
+- [X] T050 [P] [US4] Implement useChangePassword hook in src/hooks/useChangePassword.ts (verify current password via signInWithPassword, update via auth.updateUser)
+- [X] T051 [US4] Add PasswordChangeForm to UserProfileModal (below ProfileInfoSection)
+- [X] T052 [US4] Wire PasswordChangeForm submit to useChangePassword mutation
+- [X] T053 [US4] Add password strength indicator to PasswordChangeForm (display strength level as user types)
+- [X] T054 [US4] Add show/hide password toggle buttons to all password inputs
 
 > **REFACTOR phase**
 
-- [ ] T055 [US4] Verify all tests pass (US1 + US2 + US3 + US4), refactor for quality
-- [ ] T056 [US4] Commit US4 implementation
+- [X] T055 [US4] Verify all tests pass (US1 + US2 + US3 + US4), refactor for quality
+- [X] T056 [US4] Commit US4 implementation
 
 **Checkpoint**: All user stories should now be independently functional (view + edit + upload + password)
 

@@ -44,7 +44,7 @@ export function useUpdateProfile() {
     },
 
     // On error: Rollback to previous value
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousProfile) {
         queryClient.setQueryData(
           ['userProfile', context.userId],
