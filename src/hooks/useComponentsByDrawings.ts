@@ -23,7 +23,10 @@ export function useComponentsByDrawings(drawingIds: string[]) {
           .from('components')
           .select(`
             *,
-            progress_templates!inner(*)
+            progress_templates!inner(*),
+            areas(id, name),
+            systems(id, name),
+            test_packages(id, name)
           `)
           .eq('drawing_id', drawingId)
           .eq('is_retired', false)
@@ -32,7 +35,7 @@ export function useComponentsByDrawings(drawingIds: string[]) {
         if (error) throw error
 
         // Transform data to ComponentRow with computed fields
-        const components: ComponentRow[] = data.map((component) => ({
+        const components: ComponentRow[] = data.map((component: any) => ({
           id: component.id,
           project_id: component.project_id,
           drawing_id: component.drawing_id,
@@ -44,6 +47,10 @@ export function useComponentsByDrawings(drawingIds: string[]) {
           last_updated_at: component.last_updated_at,
           last_updated_by: component.last_updated_by,
           is_retired: component.is_retired,
+          // Metadata fields (from joined tables)
+          area: component.areas,
+          system: component.systems,
+          test_package: component.test_packages,
           // Joined template
           template: component.progress_templates as any,
           // Computed fields

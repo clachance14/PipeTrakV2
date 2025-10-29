@@ -160,6 +160,14 @@ export interface ComponentRow {
   /** True if component is retired/archived */
   is_retired: boolean
 
+  // Metadata fields (optional, inherited from drawing if null)
+  /** Area metadata (optional) */
+  area?: { id: string; name: string } | null
+  /** System metadata (optional) */
+  system?: { id: string; name: string } | null
+  /** Test package metadata (optional) */
+  test_package?: { id: string; name: string } | null
+
   // Joined from progress_templates
   /** Progress template for this component type */
   template: ProgressTemplate

@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { MilestoneCheckbox } from './MilestoneCheckbox'
 import { PartialMilestoneEditor } from './PartialMilestoneEditor'
 import { MobilePartialMilestoneEditor } from './MobilePartialMilestoneEditor'
-import { InheritanceBadge } from './InheritanceBadge'
-import { AssignedBadge } from './AssignedBadge'
-import { getBadgeType } from '@/lib/metadata-inheritance'
+import { MetadataCell } from './MetadataCell'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useOfflineQueue } from '@/hooks/useOfflineQueue'
+import { cn } from '@/lib/utils'
 import type { ComponentRow as ComponentRowType, MilestoneConfig } from '@/types/drawing-table.types'
 
 export interface ComponentRowProps {
@@ -27,6 +26,8 @@ export interface ComponentRowProps {
   system?: { id: string; name: string } | null
   /** Test package assigned to this component */
   testPackage?: { id: string; name: string } | null
+  /** Optional callback when component row is clicked */
+  onClick?: (componentId: string) => void
 }
 
 /**
@@ -65,6 +66,7 @@ export function ComponentRow({
   area,
   system,
   testPackage,
+  onClick,
 }: ComponentRowProps) {
   const isMobile = useMobileDetection()
   const isOnline = useNetworkStatus()
@@ -107,28 +109,6 @@ export function ComponentRow({
     setEditingMilestone(null)
   }
 
-  // Determine badge types for metadata fields
-  const areaBadge = getBadgeType(area?.id || null, drawing?.area?.id || null)
-  const systemBadge = getBadgeType(system?.id || null, drawing?.system?.id || null)
-  const packageBadge = getBadgeType(testPackage?.id || null, drawing?.test_package?.id || null)
-
-  const renderMetadataWithBadge = (
-    value: { id: string; name: string } | null | undefined,
-    badgeType: 'inherited' | 'assigned' | 'none',
-    drawingNumber?: string
-  ) => {
-    if (!value) return <span className="text-gray-400">—</span>
-
-    return (
-      <div className="flex items-center gap-1.5">
-        <span className="text-sm text-slate-700">{value.name}</span>
-        {badgeType === 'inherited' && drawingNumber && (
-          <InheritanceBadge drawingNumber={drawingNumber} />
-        )}
-        {badgeType === 'assigned' && <AssignedBadge />}
-      </div>
-    )
-  }
 
   const getMilestoneControl = (milestoneConfig: MilestoneConfig) => {
     const currentValue = component.current_milestones[milestoneConfig.name]
@@ -211,13 +191,40 @@ export function ComponentRow({
     )
   }
 
+  // Handle row click
+  const handleRowClick = (e: React.MouseEvent) => {
+    // Don't trigger row click if clicking interactive elements
+    const target = e.target as HTMLElement
+    if (
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'INPUT' ||
+      target.closest('button') ||
+      target.closest('input')
+    ) {
+      return
+    }
+    onClick?.(component.id)
+  }
+
   // Mobile card layout
   if (isMobile) {
     return (
       <div
         role="row"
         style={style}
-        className="flex flex-col gap-2 px-4 py-3 ml-8 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100"
+        onClick={handleRowClick}
+        className={cn(
+          "flex flex-col gap-2 px-4 py-3 ml-8 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100",
+          onClick && "cursor-pointer"
+        )}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick(component.id)
+          }
+        } : undefined}
+        aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
       >
         {/* Line 1: Component type + identity */}
         <div className="flex items-baseline gap-2">
@@ -236,32 +243,29 @@ export function ComponentRow({
           )}
         </div>
 
-        {/* Line 3: Metadata badges */}
+        {/* Line 3: Metadata cells */}
         <div className="flex flex-wrap gap-2 text-xs">
-          {area && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded">
-              <span className="text-slate-700">{area.name}</span>
-              {areaBadge === 'inherited' && drawing?.drawing_no_norm && (
-                <span className="text-blue-600">↓</span>
-              )}
-            </div>
-          )}
-          {system && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded">
-              <span className="text-slate-700">{system.name}</span>
-              {systemBadge === 'inherited' && drawing?.drawing_no_norm && (
-                <span className="text-green-600">↓</span>
-              )}
-            </div>
-          )}
-          {testPackage && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded">
-              <span className="text-slate-700">{testPackage.name}</span>
-              {packageBadge === 'inherited' && drawing?.drawing_no_norm && (
-                <span className="text-purple-600">↓</span>
-              )}
-            </div>
-          )}
+          <MetadataCell
+            value={area}
+            drawingValue={drawing?.area}
+            fieldName="Area"
+            componentId={component.id}
+            isMobile={true}
+          />
+          <MetadataCell
+            value={system}
+            drawingValue={drawing?.system}
+            fieldName="System"
+            componentId={component.id}
+            isMobile={true}
+          />
+          <MetadataCell
+            value={testPackage}
+            drawingValue={drawing?.test_package}
+            fieldName="Test Package"
+            componentId={component.id}
+            isMobile={true}
+          />
         </div>
 
         {/* Mobile partial milestone editor modal */}
@@ -287,7 +291,19 @@ export function ComponentRow({
     <div
       role="row"
       style={style}
-      className="flex items-center gap-4 px-5 py-3 pl-14 bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100"
+      onClick={handleRowClick}
+      className={cn(
+        "flex items-center gap-4 px-5 py-3 pl-14 bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100",
+        onClick && "cursor-pointer"
+      )}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick(component.id)
+        }
+      } : undefined}
+      aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
     >
       {/* Spacer for chevron */}
       <div className="w-5" />
@@ -309,28 +325,46 @@ export function ComponentRow({
         </div>
       ))}
 
-      {/* Spacer for title column */}
-      <div className="flex-1" />
-
-      {/* Area with badge */}
-      <div className="min-w-[100px]">
-        {renderMetadataWithBadge(area, areaBadge, drawing?.drawing_no_norm)}
+      {/* Area - ml-auto pushes this and subsequent metadata columns to the right edge */}
+      <div className="min-w-[100px] shrink-0 ml-auto">
+        <MetadataCell
+          value={area}
+          drawingValue={drawing?.area}
+          fieldName="Area"
+          componentId={component.id}
+          isMobile={false}
+        />
       </div>
 
-      {/* System with badge */}
+      {/* System */}
       <div className="min-w-[100px]">
-        {renderMetadataWithBadge(system, systemBadge, drawing?.drawing_no_norm)}
+        <MetadataCell
+          value={system}
+          drawingValue={drawing?.system}
+          fieldName="System"
+          componentId={component.id}
+          isMobile={false}
+        />
       </div>
 
-      {/* Test Package with badge */}
+      {/* Test Package */}
       <div className="min-w-[120px]">
-        {renderMetadataWithBadge(testPackage, packageBadge, drawing?.drawing_no_norm)}
+        <MetadataCell
+          value={testPackage}
+          drawingValue={drawing?.test_package}
+          fieldName="Test Package"
+          componentId={component.id}
+          isMobile={false}
+        />
       </div>
 
       {/* Progress percentage */}
-      <div className="ml-auto text-sm font-semibold text-slate-800">
+      <div className="min-w-[130px] text-sm font-semibold text-slate-800">
         {component.percent_complete.toFixed(0)}%
       </div>
+
+      {/* Spacer for Items column (component rows don't show item count) */}
+      <div className="min-w-[90px]" />
 
       {/* Mobile partial milestone editor modal */}
       {editingMilestone && (

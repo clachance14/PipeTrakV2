@@ -23,6 +23,8 @@ export interface DrawingTableProps {
   onSelectAll?: () => void
   // Feature 015: Mobile detection
   isMobile?: boolean
+  // Feature 020: Component metadata editing
+  onComponentClick?: (componentId: string) => void
 }
 
 type VirtualRow =
@@ -52,6 +54,7 @@ export function DrawingTable({
   onToggleSelection,
   onSelectAll,
   isMobile = false,
+  onComponentClick,
 }: DrawingTableProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -152,6 +155,9 @@ export function DrawingTable({
           }
 
           // Component row
+          // Find the parent drawing for this component
+          const parentDrawing = drawings.find(d => d.id === row.drawingId)
+
           return (
             <div
               key={virtualRow.key}
@@ -165,7 +171,12 @@ export function DrawingTable({
             >
               <ComponentRow
                 component={row.data}
+                drawing={parentDrawing}
+                area={row.data.area}
+                system={row.data.system}
+                testPackage={row.data.test_package}
                 onMilestoneUpdate={onMilestoneUpdate}
+                onClick={onComponentClick}
               />
             </div>
           )
