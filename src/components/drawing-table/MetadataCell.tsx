@@ -78,8 +78,8 @@ export const MetadataCell = ({
   value,
   drawingValue,
   fieldName,
-  componentId,
-  isMobile = false,
+  componentId: _componentId,
+  isMobile: _isMobile = false,
 }: MetadataCellProps) => {
   const state = getMetadataState(value, drawingValue)
 
