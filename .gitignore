@@ -45,3 +45,6 @@ tsconfig.node.tsbuildinfo
 *cleanup*.sql
 *delete*.sql
 backup_pre_*.sql
+
+# Git worktrees
+.worktrees/
