@@ -148,7 +148,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
           { name: 'Restore', weight: 10, order: 5, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: true,
     },
     // Fitting - 10% complete (Receive done)
@@ -188,7 +188,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
           { name: 'Restore', weight: 10, order: 5, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'EL90-150 2" (1)',
+      identityDisplay: 'EL90-150 2"',
       canUpdate: true,
     },
     // Threaded Pipe - 15% complete (Receive done + Fabricate 50%)
@@ -236,7 +236,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
           { name: 'Restore', weight: 10, order: 9, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'PIPE-SCH40 1" (1)',
+      identityDisplay: 'PIPE-SCH40 1"',
       canUpdate: true,
     },
   ]
@@ -363,7 +363,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('PIPE-SCH40 1" (1)')).toBeInTheDocument()
+      expect(screen.getByText('PIPE-SCH40 1"')).toBeInTheDocument()
     })
 
     return user
@@ -402,7 +402,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     await renderWithExpandedDrawing()
 
     // Find the threaded pipe component row
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')
     expect(pipeRow).toBeInTheDocument()
 
     // Verify component is at 15%
@@ -420,7 +420,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Find the threaded pipe component row
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
 
     // Click the "50%" text to open popover
     const fabricateButton = within(pipeRow).getByText('50%')
@@ -456,7 +456,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Find and click the Fabricate percentage to open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -491,7 +491,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -530,7 +530,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Verify initial state: 15%
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     expect(within(pipeRow).getByText('15%')).toBeInTheDocument()
 
     // Open popover, adjust slider to 75, and update
@@ -565,7 +565,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -607,7 +607,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -641,7 +641,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -688,7 +688,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -732,7 +732,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -776,7 +776,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Open popover and adjust slider
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
     const fabricateButton = within(pipeRow).getByText('50%')
     await user.click(fabricateButton)
 
@@ -809,7 +809,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     const user = await renderWithExpandedDrawing()
 
     // Find the threaded pipe component row
-    const pipeRow = screen.getByText('PIPE-SCH40 1" (1)').closest('[role="row"]')!
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
 
     // Verify Fabricate is at 50%
     expect(within(pipeRow).getByText('50%')).toBeInTheDocument()

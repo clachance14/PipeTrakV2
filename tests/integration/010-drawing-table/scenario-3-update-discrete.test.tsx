@@ -144,7 +144,7 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
           { name: 'Restore', weight: 10, order: 5, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: true,
     },
     // Fitting - 10% complete (Receive done)
@@ -184,7 +184,7 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
           { name: 'Restore', weight: 10, order: 5, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'EL90-150 2" (1)',
+      identityDisplay: 'EL90-150 2"',
       canUpdate: true,
     },
     // Threaded Pipe - 15% complete
@@ -232,7 +232,7 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
           { name: 'Restore', weight: 10, order: 9, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'PIPE-SCH40 1" (1)',
+      identityDisplay: 'PIPE-SCH40 1"',
       canUpdate: true,
     },
   ]
@@ -368,7 +368,7 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     return user
@@ -407,7 +407,7 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
     await renderAndExpandDrawing()
 
     // Find the valve component row
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('[role="row"]')
+    const valveRow = screen.getByText('VBALU-001 2"').closest('[role="row"]')
     expect(valveRow).toBeInTheDocument()
 
     // Verify component is at 0%
@@ -423,7 +423,7 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
     const user = await renderAndExpandDrawing()
 
     // Get the valve component row
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('[role="row"]')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('[role="row"]')!
 
     // Find and click the Receive checkbox
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
@@ -456,11 +456,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Get the valve component row and click Receive checkbox
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
 
     await user.click(receiveCheckbox)
@@ -489,11 +489,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Verify initial state: 0%
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     expect(within(valveRow).getByText('0%')).toBeInTheDocument()
 
     // Click Receive checkbox
@@ -531,11 +531,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Click Receive checkbox
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
     await user.click(receiveCheckbox)
 
@@ -565,11 +565,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Click Receive checkbox
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
     await user.click(receiveCheckbox)
 
@@ -616,11 +616,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Get the valve component row
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
 
     // Click checkbox
@@ -654,11 +654,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Click checkbox
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
     await user.click(receiveCheckbox)
 
@@ -681,10 +681,10 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
 
     // Click to check
@@ -745,11 +745,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Verify checkbox is disabled
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
     expect(receiveCheckbox).toBeDisabled()
   })
@@ -776,11 +776,11 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Click Receive checkbox
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
     await user.click(receiveCheckbox)
 
@@ -807,10 +807,10 @@ describe('Integration Test: Scenario 3 - Update Discrete Milestone (Checkbox)', 
 
     // Wait for components to load
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
-    const valveRow = screen.getByText('VBALU-001 2" (1)').closest('div')!
+    const valveRow = screen.getByText('VBALU-001 2"').closest('div')!
     const receiveCheckbox = within(valveRow).getByRole('checkbox', { name: /receive/i })
 
     // Focus the checkbox
