@@ -12,7 +12,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 2" (1)')
+      expect(result).toBe('VBALU-001 2"')
     })
 
     it('formats component with fractional size', () => {
@@ -23,7 +23,7 @@ describe('formatIdentityKey', () => {
         seq: 2
       }
       const result = formatIdentityKey(key, 'fitting')
-      expect(result).toBe('EL90-150 1X2 (2)')
+      expect(result).toBe('EL90-150 1X2')
     })
 
     it('omits size when NOSIZE', () => {
@@ -34,7 +34,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'support')
-      expect(result).toBe('SUPPORT-001 (1)')
+      expect(result).toBe('SUPPORT-001')
     })
 
     it('handles seq values greater than 1', () => {
@@ -45,7 +45,7 @@ describe('formatIdentityKey', () => {
         seq: 42
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 2" (42)')
+      expect(result).toBe('VBALU-001 2"')
     })
   })
 
@@ -93,7 +93,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'misc_component')
-      expect(result).toBe('MISC-001 (1)')
+      expect(result).toBe('MISC-001')
     })
 
     it('trims extra whitespace from result', () => {
@@ -104,7 +104,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 (1)')
+      expect(result).toBe('VBALU-001')
       expect(result).not.toContain('  ') // No double spaces
     })
 
@@ -123,7 +123,7 @@ describe('formatIdentityKey', () => {
 
       nonInstrumentTypes.forEach(type => {
         const result = formatIdentityKey(key, type)
-        expect(result).toBe('TEST-001 2" (1)')
+        expect(result).toBe('TEST-001 2"')
       })
 
       const instrumentResult = formatIdentityKey(key, 'instrument')
@@ -162,7 +162,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 1X2 (1)')
+      expect(result).toBe('VBALU-001 1X2')
       expect(result).not.toContain('"')
     })
   })
