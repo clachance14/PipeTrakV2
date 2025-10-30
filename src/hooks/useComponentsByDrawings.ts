@@ -31,7 +31,8 @@ export function useComponentsByDrawings(drawingIds: string[]) {
           `)
           .eq('drawing_id', drawingId)
           .eq('is_retired', false)
-          .order('identity_key->seq')
+          .order('component_type', { ascending: true })
+          .order('identity_key->seq', { ascending: true })
 
         if (error) throw error
 
