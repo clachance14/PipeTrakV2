@@ -2,6 +2,7 @@ import { useQueries } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils'
+import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculateDuplicateCounts'
 import type { ComponentRow } from '@/types/drawing-table.types'
 
 /**
@@ -34,6 +35,9 @@ export function useComponentsByDrawings(drawingIds: string[]) {
 
         if (error) throw error
 
+        // Calculate duplicate counts for all components
+        const counts = calculateDuplicateCounts(data as any)
+
         // Transform data to ComponentRow with computed fields
         const components: ComponentRow[] = data.map((component: any) => ({
           id: component.id,
@@ -61,7 +65,8 @@ export function useComponentsByDrawings(drawingIds: string[]) {
               )
             : formatIdentityKey(
                 component.identity_key as any,
-                component.component_type as any
+                component.component_type as any,
+                counts.get(createIdentityGroupKey(component.identity_key))
               ),
           canUpdate: true, // TODO: Get from permissions hook
         }))
