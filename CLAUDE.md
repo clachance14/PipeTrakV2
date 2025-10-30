@@ -425,7 +425,9 @@ For detailed implementation notes, architecture decisions, and feature-specific 
 - Supabase PostgreSQL (remote only, no local instance) (018-activity-feed)
 - jsPDF, jsPDF-AutoTable, xlsx for report exports (019-weekly-progress-reports)
 - @tanstack/react-virtual for virtualized table rendering (019-weekly-progress-reports)
+- Resend API for transactional emails (021-public-homepage enhancement)
 
 ## Recent Changes
+- 021-public-homepage: Enhanced demo signup with custom-branded emails via Resend API (replacing Supabase default SMTP)
 - 019-weekly-progress-reports: Added weekly progress reporting with multi-format export and mobile responsiveness
 - 017-user-profile-management: Added TypeScript 5.x (strict mode) with React 18.3
