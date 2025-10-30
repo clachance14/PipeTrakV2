@@ -293,7 +293,7 @@ export function ComponentRow({
       style={style}
       onClick={handleRowClick}
       className={cn(
-        "flex items-center gap-4 px-5 py-3 pl-14 bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100",
+        "flex items-center gap-4 px-5 py-3 pl-6 bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100",
         onClick && "cursor-pointer"
       )}
       tabIndex={onClick ? 0 : undefined}
@@ -306,10 +306,10 @@ export function ComponentRow({
       aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
     >
       {/* Spacer for chevron */}
-      <div className="w-5" />
+      <div className="w-3" />
 
       {/* Component type and identity display */}
-      <div className="w-[300px] text-sm truncate pr-4">
+      <div className="w-[380px] text-sm truncate pr-4">
         <span className="font-medium text-slate-600">
           {formatComponentType(component.component_type)}:
         </span>
