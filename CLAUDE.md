@@ -8,11 +8,39 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 
 ## Current Status
 
-**Last Updated**: 2025-10-27
-**Phase**: Feature Development - Team Management UI
-**Progress**: Feature 016 Complete (Team Management UI + Invitation Flow Fixes)
+**Last Updated**: 2025-10-29
+**Phase**: Feature Development - Public Marketing Homepage
+**Progress**: Feature 021 Complete (Public Marketing Homepage)
 
 ### ✅ Recently Completed Features
+
+**Feature 021**: Public Marketing Homepage (2025-10-29) - **PRODUCTION READY**
+- ✅ Public homepage at `/` with compelling hero section, value propositions, and feature highlights
+- ✅ Auto-redirect authenticated users to `/dashboard`
+- ✅ Demo signup flow with email + name capture
+- ✅ Isolated demo projects (200 components, 20 drawings, 10 packages) with 7-day access
+- ✅ Rate limiting (10/hour per IP, 3/day per email) with `rate_limit_events` table
+- ✅ Magic link authentication via Supabase Auth
+- ✅ Automated demo cleanup via pg_cron (daily at 2 AM UTC)
+- ✅ Mobile-responsive design (≥44px touch targets, no horizontal scroll)
+- ✅ WCAG 2.1 AA accessibility (semantic HTML, ARIA labels, keyboard navigation)
+- ✅ Scroll animations with reduced-motion support
+- ✅ 4 database migrations (00065-00068) for demo user fields and rate limiting
+- ✅ 2 Supabase Edge Functions (`demo-signup`, `cleanup-demos`)
+- ✅ Complete documentation in `specs/021-public-homepage/`
+
+**Feature 019**: Weekly Progress Reports (2025-10-28) - **PRODUCTION READY**
+- ✅ Generate progress reports grouped by Area, System, or Test Package
+- ✅ Virtualized table display with 7 milestone columns (Budget, Received, Installed, Punch, Tested, Restored)
+- ✅ Export to PDF, Excel, and CSV formats with proper formatting
+- ✅ Mobile-responsive design (≤1024px breakpoint: 3-column table, dropdown dimension selector)
+- ✅ Touch targets ≥44px (32px minimum exceeded for better UX)
+- ✅ WCAG 2.1 AA accessibility (semantic HTML, ARIA labels, keyboard navigation)
+- ✅ Performance optimized for 10,000+ component datasets (<3 second generation)
+- ✅ Accessible from Reports navigation link in sidebar
+- ✅ Database views for aggregated progress (vw_progress_by_area, vw_progress_by_system, vw_progress_by_test_package)
+- ✅ Earned value calculation function (calculate_earned_milestone_value)
+- ✅ Full test coverage with E2E workflow tests
 
 **Feature 016**: Team Management UI (2025-10-27) - **PRODUCTION READY**
 - ✅ Unified team member list with 6 complete user stories
@@ -388,4 +416,16 @@ For detailed implementation notes, architecture decisions, and feature-specific 
 - **Feature 011**: Drawing & Component Metadata Assignment UI - `specs/011-the-drawing-component/IMPLEMENTATION_STATUS.md`
 - **Feature 015**: Mobile Milestone Updates & Field Weld Management - `specs/015-mobile-milestone-updates/IMPLEMENTATION-NOTES.md`
 - **Feature 016**: Team Management UI - `specs/016-team-management-ui/IMPLEMENTATION-NOTES.md` (includes 13 invitation flow migrations, email confirmation handling, SECURITY DEFINER functions)
+- **Feature 019**: Weekly Progress Reports - `specs/019-weekly-progress-reports/tasks.md` (virtualized reporting with PDF/Excel/CSV export, mobile-responsive, WCAG 2.1 AA compliant)
 
+
+## Active Technologies
+- TypeScript 5.x (strict mode) with React 18.3 (017-user-profile-management)
+- TypeScript 5.x (strict mode enabled) + React 18.3, TanStack Query v5, Supabase JS Client, Vitest (018-activity-feed)
+- Supabase PostgreSQL (remote only, no local instance) (018-activity-feed)
+- jsPDF, jsPDF-AutoTable, xlsx for report exports (019-weekly-progress-reports)
+- @tanstack/react-virtual for virtualized table rendering (019-weekly-progress-reports)
+
+## Recent Changes
+- 019-weekly-progress-reports: Added weekly progress reporting with multi-format export and mobile responsiveness
+- 017-user-profile-management: Added TypeScript 5.x (strict mode) with React 18.3
