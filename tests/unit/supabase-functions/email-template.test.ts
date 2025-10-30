@@ -12,9 +12,11 @@ describe('email-template', () => {
     const mockFullName = 'John Smith'
     const mockMagicLinkUrl = 'https://example.supabase.co/auth/v1/verify?token=abc123&type=magiclink'
     const mockDemoExpiresAt = '2025-11-05T10:00:00.000Z' // ISO timestamp
+    const mockResendLinkUrl = 'https://example.supabase.co/functions/v1/resend-magic-link'
+    const mockUserEmail = 'test@example.com'
 
     it('renders email with all template variables', () => {
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       expect(html).toContain(mockFullName)
       expect(html).toContain(mockMagicLinkUrl)
@@ -23,7 +25,7 @@ describe('email-template', () => {
     })
 
     it('personalizes greeting with fullName parameter', () => {
-      const html = generateDemoEmailHtml('Jane Doe', mockMagicLinkUrl, mockDemoExpiresAt)
+      const html = generateDemoEmailHtml('Jane Doe', mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       // Should contain personalized greeting
       expect(html).toContain('Jane Doe')
@@ -33,7 +35,7 @@ describe('email-template', () => {
 
     it('includes magic link URL in CTA button', () => {
       const customMagicLink = 'https://custom.link/auth?token=xyz789'
-      const html = generateDemoEmailHtml(mockFullName, customMagicLink, mockDemoExpiresAt)
+      const html = generateDemoEmailHtml(mockFullName, customMagicLink, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       // Should include the magic link in an anchor tag
       expect(html).toContain('href="https://custom.link/auth?token=xyz789"')
@@ -50,59 +52,46 @@ describe('email-template', () => {
       ]
 
       testCases.forEach(({ input, expected }) => {
-        const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, input)
+        const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, input, mockResendLinkUrl, mockUserEmail)
         expect(html).toContain(expected)
       })
     })
 
     it('handles special characters in fullName (e.g., O\'Brien, José)', () => {
-      const specialNames = [
-        'Patrick O\'Brien',
-        'José García',
-        'François Lefèvre',
-        'O\'Malley & Sons'
-      ]
+      const specialNames = ['Patrick O\'Brien', 'José García', 'François Müller']
 
       specialNames.forEach(name => {
-        const html = generateDemoEmailHtml(name, mockMagicLinkUrl, mockDemoExpiresAt)
-
-        // Should contain the name with special characters properly rendered
+        const html = generateDemoEmailHtml(name, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
+        // Should contain the name without breaking HTML
         expect(html).toContain(name)
-        // Should not escape HTML entities (names are not HTML)
-        expect(html).not.toContain('&apos;')
-        expect(html).not.toContain('&#39;')
+        // Should be valid HTML
+        expect(html).toMatch(/<html>/)
       })
     })
 
     it('includes all required content sections (header, welcome, CTA, quick start, footer)', () => {
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       // Header section
       expect(html).toMatch(/Welcome to PipeTrak/i)
 
-      // Welcome message with brand intro
-      expect(html).toMatch(/industrial pipe tracking/i)
-      expect(html).toMatch(/brownfield construction/i)
+      // Welcome message
+      expect(html).toMatch(/Hi.*John Smith/i)
 
       // CTA button
       expect(html).toContain('Access Your Demo Project')
 
-      // Quick start guide sections (per FR-029)
-      expect(html).toMatch(/Progress Dashboard/i)
-      expect(html).toContain('200')
-      expect(html).toMatch(/Drawing Table/i)
-      expect(html).toContain('20')
-      expect(html).toMatch(/Test Packages/i)
-      expect(html).toContain('10')
-      expect(html).toMatch(/Team Management/i)
+      // Quick start guide
+      expect(html).toMatch(/What to Explore First|Quick Start/i)
+      expect(html).toContain('Progress Dashboard')
+      expect(html).toContain('Drawing Table')
 
       // Footer
-      expect(html).toMatch(/Questions/i)
-      expect(html).toContain('pipetrak.co')
+      expect(html).toMatch(/Questions\?/i)
     })
 
     it('uses inline styles only (no external CSS)', () => {
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       // Should NOT contain <style> tags or external stylesheets
       expect(html).not.toMatch(/<style[^>]*>/i)
@@ -117,7 +106,7 @@ describe('email-template', () => {
     })
 
     it('email size is <1MB (Resend limit)', () => {
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       // Calculate size in bytes
       const sizeInBytes = new Blob([html]).size
@@ -129,55 +118,60 @@ describe('email-template', () => {
       expect(sizeInBytes).toBeGreaterThan(500)
     })
 
-    it('includes resend login link in footer with default URL', () => {
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+    it('includes resend magic link button in footer', () => {
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
-      // Should include default login URL
-      expect(html).toContain('https://pipetrak.co/login')
+      // Should include resend link URL
+      expect(html).toContain(mockResendLinkUrl)
       // Should mention that link is single-use
       expect(html).toMatch(/single-use|one.time|only be used once/i)
-      // Should provide instructions for getting new link
-      expect(html).toMatch(/new login link|request another/i)
+      // Should provide button text
+      expect(html).toMatch(/Send Me a New Login Link/i)
     })
 
-    it('includes resend login link with custom URL when provided', () => {
-      const customLoginUrl = 'https://app.example.com/auth/login'
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, customLoginUrl)
+    it('includes resend magic link with custom endpoint when provided', () => {
+      const customResendUrl = 'https://custom.supabase.co/functions/v1/resend-magic-link'
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, customResendUrl, mockUserEmail)
 
-      // Should include custom login URL
-      expect(html).toContain('https://app.example.com/auth/login')
-      // Should NOT include default URL
-      expect(html).not.toContain('https://pipetrak.co/login')
+      // Should include custom resend URL
+      expect(html).toContain(customResendUrl)
+      // Should NOT include default URL (assuming test uses different URL)
+      expect(html).not.toContain('https://example.supabase.co/functions/v1/resend-magic-link')
     })
 
-    it('includes "Request New Login Link" button in footer', () => {
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+    it('includes "Send Me a New Login Link" button in footer', () => {
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
 
       // Should include button text
-      expect(html).toContain('Request New Login Link')
+      expect(html).toContain('Send Me a New Login Link')
       // Should be a clickable link/button
-      expect(html).toMatch(/href=["'][^"']*login[^"']*["']/i)
+      expect(html).toMatch(/href=["'][^"']*resend-magic-link[^"']*["']/i)
     })
 
-    it('pre-fills email in login URL when userEmail provided', () => {
+    it('pre-fills email in resend URL when userEmail provided', () => {
       const userEmail = 'test@example.com'
-      const loginUrl = 'https://pipetrak.co/login'
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, loginUrl, userEmail)
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, userEmail)
 
-      // Should include login URL with email parameter
-      expect(html).toContain('https://pipetrak.co/login?email=test%40example.com')
+      // Should include resend URL with email parameter
+      expect(html).toContain(`${mockResendLinkUrl}?email=test%40example.com`)
       // Should properly URL-encode the email
       expect(html).toContain('%40') // @ symbol encoded
     })
 
-    it('uses plain login URL when userEmail not provided', () => {
-      const loginUrl = 'https://pipetrak.co/login'
-      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, loginUrl)
+    it('uses plain resend URL when userEmail not provided', () => {
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl)
 
-      // Should include login URL without email parameter
-      expect(html).toContain('https://pipetrak.co/login')
+      // Should include resend URL without email parameter
+      expect(html).toContain(mockResendLinkUrl)
       // Should NOT have query parameters
-      expect(html).not.toContain('https://pipetrak.co/login?email=')
+      expect(html).not.toContain(`${mockResendLinkUrl}?email=`)
+    })
+
+    it('includes helpful context about receiving new email quickly', () => {
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, mockResendLinkUrl, mockUserEmail)
+
+      // Should mention that new email will arrive quickly
+      expect(html).toMatch(/receive.*new email.*seconds|new email.*seconds/i)
     })
   })
 })

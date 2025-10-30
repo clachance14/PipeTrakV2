@@ -43,7 +43,7 @@ function logError(phase: string, error: unknown, context: Record<string, unknown
  * @param fullName - User's full name
  * @param magicLinkUrl - Supabase magic link URL
  * @param demoExpiresAt - Demo expiration timestamp (ISO 8601)
- * @param loginUrl - URL to login page for requesting new magic links
+ * @param resendLinkUrl - URL to resend-magic-link Edge Function endpoint
  * @returns Object with success status and error details if failed
  */
 async function sendDemoEmail(
@@ -51,10 +51,10 @@ async function sendDemoEmail(
   fullName: string,
   magicLinkUrl: string,
   demoExpiresAt: string,
-  loginUrl: string
+  resendLinkUrl: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const emailHtml = generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt, loginUrl, email)
+    const emailHtml = generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt, resendLinkUrl, email)
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -281,7 +281,9 @@ serve(async (req) => {
 
     // 10. Extract base URL for email links
     const baseUrl = req.headers.get('origin') || 'https://pipetrak.co'
-    const loginUrl = `${baseUrl}/login`
+    // Use Supabase Functions URL for resend-magic-link endpoint
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const resendLinkUrl = `${supabaseUrl}/functions/v1/resend-magic-link`
 
     // 11. Generate magic link token
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
@@ -310,7 +312,7 @@ serve(async (req) => {
     const magicLinkUrl = linkData.properties.action_link
 
     // 13-14. Send email via Resend API (non-critical - don't fail signup on error)
-    const emailResult = await sendDemoEmail(email, fullName, magicLinkUrl, demoExpiresAt.toISOString(), loginUrl)
+    const emailResult = await sendDemoEmail(email, fullName, magicLinkUrl, demoExpiresAt.toISOString(), resendLinkUrl)
     const emailSent = emailResult.success
 
     // Email failure is logged but doesn't prevent successful signup
