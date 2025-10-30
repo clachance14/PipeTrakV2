@@ -274,3 +274,195 @@ With multiple developers:
 - Demo signup flow (US4) is the most complex - budget ~60% of implementation time
 - Rate limiting and cleanup jobs are critical for preventing abuse
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+
+---
+
+# ENHANCEMENT: Custom Demo Signup Emails via Resend (2025-10-29)
+
+**Purpose**: Replace Supabase's default magic link email with custom-branded emails sent via Resend for demo user signups (enhancement to User Story 4).
+
+**Organization**: Following TDD workflow - tests written before implementation per Constitution v1.0.2 Principle III.
+
+**Related Documents**:
+- Design: `docs/plans/2025-10-29-custom-demo-signup-emails-design.md`
+- Spec: FR-027 through FR-035 in `spec.md`
+- Contracts: `contracts/resend-api.md`, `contracts/supabase-admin-api.md`
+
+---
+
+## Phase 8: Enhancement Setup (Resend Configuration)
+
+**Purpose**: Configure Resend API and verify prerequisites before implementation
+
+- [ ] T065 Verify Resend account has `demo@pipetrak.co` verified as sender address (check Resend Dashboard → Settings → Domains)
+- [ ] T066 Set RESEND_API_KEY in Supabase Edge Function secrets via `npx supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxx`
+- [ ] T067 Verify RESEND_API_KEY is accessible in Edge Function environment via `npx supabase secrets list`
+
+**Checkpoint**: Resend configured - ready for implementation
+
+---
+
+## Phase 9: Email Template (User Story 4 Enhancement - TDD)
+
+**Purpose**: Create email template function with tests first per TDD discipline
+
+**User Story**: User Story 4 - Demo Signup (Enhancement to FR-027 through FR-035)
+
+**Independent Test**: Email template renders with correct variables, handles edge cases, formats dates properly
+
+### Tests (Red Phase)
+
+- [ ] T068 [US4] Create test file tests/unit/supabase-functions/email-template.test.ts with failing test: "renders email with all template variables"
+- [ ] T069 [US4] Add test case: "personalizes greeting with fullName parameter"
+- [ ] T070 [US4] Add test case: "includes magic link URL in CTA button"
+- [ ] T071 [US4] Add test case: "formats expiry date as 'Month Day, Year' format"
+- [ ] T072 [US4] Add test case: "handles special characters in fullName (e.g., O'Brien, José)"
+- [ ] T073 [US4] Add test case: "includes all required content sections (header, welcome, CTA, quick start, footer)"
+- [ ] T074 [US4] Add test case: "uses inline styles only (no external CSS)"
+- [ ] T075 [US4] Add test case: "email size is <1MB (Resend limit)"
+
+**Checkpoint**: All tests written and failing (Red phase complete)
+
+### Implementation (Green Phase)
+
+- [ ] T076 [US4] Create supabase/functions/demo-signup/email-template.ts with `generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt)` function signature
+- [ ] T077 [US4] Implement HTML template structure (header, welcome message, CTA button, quick start guide, footer per FR-028, FR-029, FR-033)
+- [ ] T078 [US4] Add template variable interpolation (fullName, magicLinkUrl, demoExpiresAt)
+- [ ] T079 [US4] Implement date formatting logic (convert ISO timestamp to "January 15, 2025" format)
+- [ ] T080 [US4] Add inline styles for email client compatibility (max-width 600px, sans-serif font, color styling)
+- [ ] T081 [US4] Verify all tests pass (Green phase complete)
+
+**Checkpoint**: Email template function complete with passing tests
+
+### Refactor (Blue Phase)
+
+- [ ] T082 [US4] Extract email content sections into constants for easier editing (WELCOME_MESSAGE, QUICK_START_ITEMS, etc.)
+- [ ] T083 [US4] Add JSDoc documentation to `generateDemoEmailHtml()` function with parameter descriptions
+- [ ] T084 [US4] Verify tests still pass after refactoring
+
+**Checkpoint**: Email template refactored and documented
+
+---
+
+## Phase 10: Magic Link Generation (User Story 4 Enhancement - TDD)
+
+**Purpose**: Replace `signInWithOtp()` with `admin.generateLink()` + Resend API integration
+
+**User Story**: User Story 4 - Demo Signup (Enhancement to FR-027, FR-034)
+
+**Independent Test**: Magic link generation works, Resend API called correctly, error handling graceful
+
+### Tests (Red Phase)
+
+- [ ] T085 [US4] Create test file tests/unit/supabase-functions/demo-signup-resend.test.ts with failing test: "generates magic link via admin.generateLink()"
+- [ ] T086 [US4] Add test case: "calls Resend API with correct payload structure"
+- [ ] T087 [US4] Add test case: "handles Resend API success (200 response)"
+- [ ] T088 [US4] Add test case: "handles Resend API failure (non-critical error, logs and continues)"
+- [ ] T089 [US4] Add test case: "handles magic link generation failure (critical error, throws and cleanup)"
+- [ ] T090 [US4] Add test case: "validates RESEND_API_KEY exists at startup"
+- [ ] T091 [US4] Add test case: "sets email_sent: true when Resend succeeds"
+- [ ] T092 [US4] Add test case: "sets email_sent: false when Resend fails"
+
+**Checkpoint**: All tests written and failing (Red phase complete)
+
+### Implementation (Green Phase)
+
+- [ ] T093 [US4] Modify supabase/functions/demo-signup/index.ts: Add RESEND_API_KEY environment variable check at top (throw error if missing per FR-034)
+- [ ] T094 [US4] Modify supabase/functions/demo-signup/index.ts: Import `generateDemoEmailHtml` from ./email-template.ts
+- [ ] T095 [US4] Modify supabase/functions/demo-signup/index.ts: Replace `signInWithOtp()` call (lines 208-220) with `admin.generateLink()` call per contracts/supabase-admin-api.md
+- [ ] T096 [US4] Modify supabase/functions/demo-signup/index.ts: Extract magic link URL from `linkData.properties.action_link`
+- [ ] T097 [US4] Modify supabase/functions/demo-signup/index.ts: Generate email HTML by calling `generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt)`
+- [ ] T098 [US4] Modify supabase/functions/demo-signup/index.ts: Call Resend API with `fetch('https://api.resend.com/emails', ...)` per contracts/resend-api.md
+- [ ] T099 [US4] Modify supabase/functions/demo-signup/index.ts: Handle Resend API errors gracefully (log error, set email_sent: false, don't throw per design doc error handling)
+- [ ] T100 [US4] Modify supabase/functions/demo-signup/index.ts: Add cleanup logic if magic link generation fails (delete user/org/project per contracts/supabase-admin-api.md error handling)
+- [ ] T101 [US4] Verify all tests pass (Green phase complete)
+
+**Checkpoint**: Magic link + Resend integration complete with passing tests
+
+### Refactor (Blue Phase)
+
+- [ ] T102 [US4] Extract Resend API call logic into separate function `sendDemoEmail(email, fullName, magicLinkUrl, demoExpiresAt)` for testability
+- [ ] T103 [US4] Add error logging with structured context (email, timestamp, error message, status code)
+- [ ] T104 [US4] Verify tests still pass after refactoring
+
+**Checkpoint**: Magic link generation refactored and error handling robust
+
+---
+
+## Phase 11: Integration & Deployment
+
+**Purpose**: Deploy updated Edge Function and verify end-to-end flow
+
+- [ ] T105 Deploy updated demo-signup Edge Function via `npx supabase functions deploy demo-signup`
+- [ ] T106 Verify deployment logs show no startup errors via `npx supabase functions logs demo-signup --limit 10`
+- [ ] T107 Test end-to-end demo signup flow (submit form → check email → verify custom Resend email received)
+- [ ] T108 Verify email content matches spec (FR-028 through FR-033: welcome message, quick start guide, personalized greeting, CTA button, footer)
+- [ ] T109 Test magic link authentication (click link in email → redirects to /dashboard with authenticated session)
+- [ ] T110 Verify email renders correctly in Gmail, Outlook, Apple Mail (manual visual check)
+- [ ] T111 Test error handling: Submit signup without RESEND_API_KEY set (should fail at startup)
+- [ ] T112 Test error handling: Mock Resend API failure (signup should succeed with email_sent: false logged)
+
+**Checkpoint**: Enhancement deployed and verified
+
+---
+
+## Phase 12: Documentation & Cleanup
+
+**Purpose**: Update documentation and clean up temporary files
+
+- [ ] T113 [P] Update CLAUDE.md Active Technologies section with "Resend API for transactional emails"
+- [ ] T114 [P] Update .env.example with `RESEND_API_KEY=re_your_resend_api_key_here` (documentation only, NOT the actual key)
+- [ ] T115 [P] Add deployment notes to specs/021-public-homepage/quickstart.md (already done, verify completeness)
+- [ ] T116 Commit all changes with message: "feat(demo-signup): integrate Resend for custom email delivery"
+
+**Checkpoint**: Enhancement complete and documented
+
+---
+
+## Enhancement Task Summary
+
+**Total Tasks**: 52 (T065 - T116)
+- Setup: 3 tasks (T065-T067)
+- Email Template (TDD): 17 tasks (T068-T084)
+  - Tests: 8 tasks
+  - Implementation: 6 tasks
+  - Refactor: 3 tasks
+- Magic Link Integration (TDD): 20 tasks (T085-T104)
+  - Tests: 8 tasks
+  - Implementation: 9 tasks
+  - Refactor: 3 tasks
+- Integration & Deployment: 8 tasks (T105-T112)
+- Documentation: 4 tasks (T113-T116)
+
+**Parallel Opportunities**:
+- T065, T066 can run in parallel (Resend verification is independent of secret setting)
+- T113, T114, T115 can run in parallel (different documentation files)
+- Within TDD phases: All test tasks (T068-T075, T085-T092) can be written in one session before implementation
+
+**Estimated Time**:
+- Setup: 15 minutes
+- Email Template (TDD): 2 hours
+- Magic Link Integration (TDD): 3 hours
+- Integration & Deployment: 1 hour
+- Documentation: 30 minutes
+- **Total**: ~7 hours
+
+**Dependencies**:
+- Phase 8 (Setup) must complete before Phase 9 or 10
+- Phase 9 (Email Template) must complete before Phase 10 (Magic Link Integration uses the template)
+- Phase 10 must complete before Phase 11 (Integration & Deployment)
+- Phase 11 must complete before Phase 12 (Documentation verifies deployment)
+
+**Independent Test Criteria** (User Story 4 Enhancement):
+✅ Email template renders with correct variables (fullName, magicLinkUrl, formatted date)
+✅ Email delivers via Resend (not Supabase SMTP)
+✅ Email contains all required sections (welcome, quick start, CTA, footer per FR-028 through FR-033)
+✅ Magic link redirects to dashboard with authenticated session
+✅ Error handling: Resend failure doesn't block signup (non-critical failure)
+✅ Error handling: Magic link generation failure triggers cleanup (critical failure)
+
+**Success Criteria**:
+- SC-008: Email delivery rate >95% via Resend
+- Performance: Total signup flow <10 seconds (email generation + Resend call adds ~1 second)
+- FR-027 through FR-035: All functional requirements met
+- Constitution compliance: TDD workflow followed, TypeScript strict mode, tests pass
