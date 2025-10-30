@@ -46,4 +46,54 @@ describe('calculateDuplicateCounts', () => {
     const result = calculateDuplicateCounts(components)
     expect(result.get('P-001|G4G-1412-05AA-001-6-6|6')).toBe(2)
   })
+
+  it('counts components separately across different drawings', () => {
+    const components = [
+      {
+        identity_key: {
+          drawing_norm: 'P-001',
+          commodity_code: 'VBALU-001',
+          size: '2',
+          seq: 1
+        }
+      },
+      {
+        identity_key: {
+          drawing_norm: 'P-002',
+          commodity_code: 'VBALU-001',
+          size: '2',
+          seq: 1
+        }
+      }
+    ]
+
+    const result = calculateDuplicateCounts(components)
+    expect(result.get('P-001|VBALU-001|2')).toBe(1)
+    expect(result.get('P-002|VBALU-001|2')).toBe(1)
+    expect(result.size).toBe(2)
+  })
+
+  it('handles NOSIZE components correctly', () => {
+    const components = [
+      {
+        identity_key: {
+          drawing_norm: 'P-001',
+          commodity_code: 'EQUIP-001',
+          size: 'NOSIZE',
+          seq: 1
+        }
+      },
+      {
+        identity_key: {
+          drawing_norm: 'P-001',
+          commodity_code: 'EQUIP-001',
+          size: 'NOSIZE',
+          seq: 2
+        }
+      }
+    ]
+
+    const result = calculateDuplicateCounts(components)
+    expect(result.get('P-001|EQUIP-001|NOSIZE')).toBe(2)
+  })
 })
