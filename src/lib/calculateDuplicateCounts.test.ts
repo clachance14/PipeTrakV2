@@ -22,4 +22,28 @@ describe('calculateDuplicateCounts', () => {
     expect(result.size).toBe(1)
     expect(result.get('P-001|VBALU-001|2')).toBe(1)
   })
+
+  it('returns count of 2 for two identical components', () => {
+    const components = [
+      {
+        identity_key: {
+          drawing_norm: 'P-001',
+          commodity_code: 'G4G-1412-05AA-001-6-6',
+          size: '6',
+          seq: 1
+        }
+      },
+      {
+        identity_key: {
+          drawing_norm: 'P-001',
+          commodity_code: 'G4G-1412-05AA-001-6-6',
+          size: '6',
+          seq: 2
+        }
+      }
+    ]
+
+    const result = calculateDuplicateCounts(components)
+    expect(result.get('P-001|G4G-1412-05AA-001-6-6|6')).toBe(2)
+  })
 })
