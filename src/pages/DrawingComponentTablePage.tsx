@@ -12,6 +12,7 @@ import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
 import { DrawingBulkActions } from '@/components/drawing-table/DrawingBulkActions'
 import { DrawingAssignDialog } from '@/components/drawing-table/DrawingAssignDialog'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
+import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal'
 import { Button } from '@/components/ui/button'
 import { useDrawingsWithProgress } from '@/hooks/useDrawingsWithProgress'
 import { useComponentsByDrawings } from '@/hooks/useComponentsByDrawings'
@@ -50,6 +51,9 @@ export function DrawingComponentTablePage() {
   // Field weld welder assignment dialog state
   const [welderDialogOpen, setWelderDialogOpen] = useState(false)
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null)
+
+  // Component metadata editing modal state
+  const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null)
 
   // Fetch data
   const { data: drawings, isLoading, isError, error, refetch } = useDrawingsWithProgress(selectedProjectId!)
@@ -307,6 +311,7 @@ export function DrawingComponentTablePage() {
             selectedDrawingIds={selectedDrawingIds}
             onToggleSelection={toggleSelection}
             onSelectAll={() => selectAll(visibleDrawingIds)}
+            onComponentClick={setMetadataModalComponentId}
             isMobile={isMobile}
           />
         </div>
@@ -333,6 +338,13 @@ export function DrawingComponentTablePage() {
             onOpenChange={setWelderDialogOpen}
           />
         )}
+
+        {/* Feature 020: Component Metadata Editing Modal */}
+        <ComponentMetadataModal
+          componentId={metadataModalComponentId || ''}
+          open={!!metadataModalComponentId}
+          onClose={() => setMetadataModalComponentId(null)}
+        />
       </div>
     </Layout>
   )

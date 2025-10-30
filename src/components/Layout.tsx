@@ -57,7 +57,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation Bar */}
-      <nav className="bg-slate-800 text-white shadow-lg">
+      <nav className="sticky top-0 z-50 bg-slate-800 text-white shadow-lg">
         <div className="mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Left: Hamburger + Logo + Project Selector */}

@@ -26,6 +26,7 @@ const EMAIL_STYLES = {
   BODY: 'font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;',
   HEADER: 'color: #2563eb;',
   CTA_BUTTON: 'background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;',
+  SECONDARY_CTA_BUTTON: 'background: #f3f4f6; color: #1f2937; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block; border: 1px solid #d1d5db; font-size: 14px;',
   CTA_CONTAINER: 'margin: 30px 0;',
   SECTION_TITLE: 'color: #1e40af; font-size: 18px;',
   FOOTER_TEXT: 'color: #6b7280; font-size: 14px; margin-top: 40px;',
@@ -51,6 +52,7 @@ const EMAIL_STYLES = {
  * @param magicLinkUrl - Supabase magic link URL for one-click authentication
  * @param demoExpiresAt - ISO 8601 timestamp of demo expiration (e.g., "2025-11-05T10:00:00.000Z")
  * @param loginUrl - URL to login page for requesting new magic link (e.g., "https://pipetrak.co/login")
+ * @param userEmail - User's email address for pre-filling login form
  * @returns Complete HTML email string ready to send via Resend API
  *
  * @example
@@ -59,7 +61,8 @@ const EMAIL_STYLES = {
  *   'Jane Doe',
  *   'https://example.supabase.co/auth/v1/verify?token=abc123',
  *   '2025-11-05T10:00:00.000Z',
- *   'https://pipetrak.co/login'
+ *   'https://pipetrak.co/login',
+ *   'jane@example.com'
  * )
  * // Returns: "<!DOCTYPE html>..."
  * ```
@@ -68,7 +71,8 @@ export function generateDemoEmailHtml(
   fullName: string,
   magicLinkUrl: string,
   demoExpiresAt: string,
-  loginUrl: string = 'https://pipetrak.co/login'
+  loginUrl: string = 'https://pipetrak.co/login',
+  userEmail?: string
 ): string {
   // Format expiry date as "Month Day, Year" (e.g., "November 5, 2025")
   // Use UTC timezone to avoid conversion issues with ISO timestamps
@@ -78,6 +82,11 @@ export function generateDemoEmailHtml(
     year: 'numeric',
     timeZone: 'UTC'
   })
+
+  // Build login URL with pre-filled email if provided
+  const resendLoginUrl = userEmail
+    ? `${loginUrl}?email=${encodeURIComponent(userEmail)}`
+    : loginUrl
 
   // Generate quick start guide list items
   const quickStartItems = EMAIL_CONTENT.QUICK_START_ITEMS
@@ -116,12 +125,25 @@ export function generateDemoEmailHtml(
     Your demo access is valid until ${expiryDate}.
   </p>
 
-  <!-- Footer -->
-  <p style="${EMAIL_STYLES.FOOTER_TEXT}">
-    <strong>Note:</strong> This login link can only be used once for security. If you need a new link,
-    visit <a href="${loginUrl}" style="color: #2563eb;">pipetrak.co/login</a> to request another one.
-  </p>
+  <!-- Footer - Resend Login Link -->
+  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+    <p style="${EMAIL_STYLES.FOOTER_TEXT}">
+      <strong>Note:</strong> This login link can only be used once for security reasons.
+    </p>
 
+    <p style="${EMAIL_STYLES.FOOTER_TEXT}">
+      If you need to access your demo again, click below to request a new login link:
+    </p>
+
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="${resendLoginUrl}"
+         style="${EMAIL_STYLES.SECONDARY_CTA_BUTTON}">
+        Request New Login Link
+      </a>
+    </div>
+  </div>
+
+  <!-- Support Footer -->
   <p style="${EMAIL_STYLES.FOOTER_TEXT}">
     Questions? Reply to this email or visit
     <a href="${EMAIL_CONTENT.SUPPORT_LINK}" style="color: #2563eb;">pipetrak.co</a>

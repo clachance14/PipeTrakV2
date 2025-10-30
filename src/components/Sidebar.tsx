@@ -11,7 +11,8 @@ import {
   Users,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BarChart3
 } from 'lucide-react';
 import { useSidebarStore } from '@/stores/useSidebarStore';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -44,6 +45,7 @@ export function Sidebar() {
     { path: '/needs-review', label: 'Needs Review', icon: AlertCircle },
     { path: '/welders', label: 'Welders', icon: Wrench },
     { path: '/weld-log', label: 'Weld Log', icon: ClipboardCheck },
+    { path: '/reports', label: 'Reports', icon: BarChart3 },
     { path: '/imports', label: 'Imports', icon: Upload },
     { path: '/metadata', label: 'Metadata', icon: Settings },
     { path: '/team', label: 'Team', icon: Users, permission: 'can_manage_team' }

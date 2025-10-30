@@ -145,6 +145,7 @@ export type Database = {
           retire_reason: string | null
           system_id: string | null
           test_package_id: string | null
+          version: number
         }
         Insert: {
           area_id?: string | null
@@ -165,6 +166,7 @@ export type Database = {
           retire_reason?: string | null
           system_id?: string | null
           test_package_id?: string | null
+          version?: number
         }
         Update: {
           area_id?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           retire_reason?: string | null
           system_id?: string | null
           test_package_id?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -193,6 +196,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "areas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_area"
+            referencedColumns: ["area_id"]
           },
           {
             foreignKeyName: "components_created_by_fkey"
@@ -244,6 +254,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "components_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
             foreignKeyName: "components_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -256,6 +273,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -311,6 +335,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -325,6 +356,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
             foreignKeyName: "drawings_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -337,6 +375,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -706,6 +751,87 @@ export type Database = {
           },
         ]
       }
+      rate_limit_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          identifier_type: string
+          identifier_value: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          identifier_type: string
+          identifier_value: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          identifier_type?: string
+          identifier_value?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      report_configs: {
+        Row: {
+          component_type_filter: string[] | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          grouping_dimension: string
+          hierarchical_grouping: boolean
+          id: string
+          name: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          component_type_filter?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          grouping_dimension: string
+          hierarchical_grouping?: boolean
+          id?: string
+          name: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          component_type_filter?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          grouping_dimension?: string
+          hierarchical_grouping?: boolean
+          id?: string
+          name?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_configs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_configs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       systems: {
         Row: {
           created_at: string
@@ -778,9 +904,11 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           deleted_at: string | null
+          demo_expires_at: string | null
           email: string
           full_name: string | null
           id: string
+          is_demo_user: boolean
           is_super_admin: boolean
           organization_id: string | null
           role: string | null
@@ -792,9 +920,11 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           deleted_at?: string | null
+          demo_expires_at?: string | null
           email: string
           full_name?: string | null
           id: string
+          is_demo_user?: boolean
           is_super_admin?: boolean
           organization_id?: string | null
           role?: string | null
@@ -806,9 +936,11 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           deleted_at?: string | null
+          demo_expires_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          is_demo_user?: boolean
           is_super_admin?: boolean
           organization_id?: string | null
           role?: string | null
@@ -913,6 +1045,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -927,6 +1066,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
             foreignKeyName: "drawings_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -939,6 +1085,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -961,6 +1114,101 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_progress_by_area: {
+        Row: {
+          area_id: string | null
+          area_name: string | null
+          budget: number | null
+          pct_installed: number | null
+          pct_punch: number | null
+          pct_received: number | null
+          pct_restored: number | null
+          pct_tested: number | null
+          pct_total: number | null
+          project_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_progress_by_system: {
+        Row: {
+          budget: number | null
+          pct_installed: number | null
+          pct_punch: number | null
+          pct_received: number | null
+          pct_restored: number | null
+          pct_tested: number | null
+          pct_total: number | null
+          project_id: string | null
+          system_id: string | null
+          system_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "systems_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_progress_by_test_package: {
+        Row: {
+          budget: number | null
+          pct_installed: number | null
+          pct_punch: number | null
+          pct_received: number | null
+          pct_restored: number | null
+          pct_tested: number | null
+          pct_total: number | null
+          project_id: string | null
+          test_package_id: string | null
+          test_package_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_recent_activity: {
+        Row: {
+          description: string | null
+          id: string | null
+          project_id: string | null
+          timestamp: string | null
+          user_id: string | null
+          user_initials: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestone_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -993,6 +1241,14 @@ export type Database = {
       }
       calculate_component_percent: {
         Args: { p_current_milestones: Json; p_template_id: string }
+        Returns: number
+      }
+      calculate_earned_milestone_value: {
+        Args: {
+          p_component_type: string
+          p_milestones: Json
+          p_standard_milestone: string
+        }
         Returns: number
       }
       check_email_has_organization: {

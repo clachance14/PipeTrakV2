@@ -243,7 +243,6 @@ describe('ProfileHeader', () => {
     // Should show placeholder
     expect(screen.getByText(/add your name/i)).toBeInTheDocument()
   })
-})
 
   // Avatar upload tests (T033)
   describe('Avatar Upload', () => {

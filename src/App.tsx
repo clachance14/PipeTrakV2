@@ -28,6 +28,11 @@ import MetadataManagementPage from '@/pages/MetadataManagementPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
 import { CreateProjectPage } from '@/pages/CreateProjectPage'
+import { ReportBuilderPage } from '@/pages/ReportBuilderPage'
+import { ReportViewPage } from '@/pages/ReportViewPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { HomePage } from '@/pages/HomePage'
+import { DemoSignupPage } from '@/pages/DemoSignupPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,9 +81,13 @@ function App() {
               }
             />
 
+            {/* Public homepage (Feature 021) */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/demo-signup" element={<DemoSignupPage />} />
+
             {/* Protected main routes */}
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <DashboardPage />
@@ -170,6 +179,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ImportsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/new"
+              element={
+                <ProtectedRoute>
+                  <ReportBuilderPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/view"
+              element={
+                <ProtectedRoute>
+                  <ReportViewPage />
                 </ProtectedRoute>
               }
             />

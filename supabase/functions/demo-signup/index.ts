@@ -54,7 +54,7 @@ async function sendDemoEmail(
   loginUrl: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const emailHtml = generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt, loginUrl)
+    const emailHtml = generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt, loginUrl, email)
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',

@@ -137,7 +137,7 @@ describe('email-template', () => {
       // Should mention that link is single-use
       expect(html).toMatch(/single-use|one.time|only be used once/i)
       // Should provide instructions for getting new link
-      expect(html).toMatch(/new link|request another/i)
+      expect(html).toMatch(/new login link|request another/i)
     })
 
     it('includes resend login link with custom URL when provided', () => {
@@ -148,6 +148,36 @@ describe('email-template', () => {
       expect(html).toContain('https://app.example.com/auth/login')
       // Should NOT include default URL
       expect(html).not.toContain('https://pipetrak.co/login')
+    })
+
+    it('includes "Request New Login Link" button in footer', () => {
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+
+      // Should include button text
+      expect(html).toContain('Request New Login Link')
+      // Should be a clickable link/button
+      expect(html).toMatch(/href=["'][^"']*login[^"']*["']/i)
+    })
+
+    it('pre-fills email in login URL when userEmail provided', () => {
+      const userEmail = 'test@example.com'
+      const loginUrl = 'https://pipetrak.co/login'
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, loginUrl, userEmail)
+
+      // Should include login URL with email parameter
+      expect(html).toContain('https://pipetrak.co/login?email=test%40example.com')
+      // Should properly URL-encode the email
+      expect(html).toContain('%40') // @ symbol encoded
+    })
+
+    it('uses plain login URL when userEmail not provided', () => {
+      const loginUrl = 'https://pipetrak.co/login'
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, loginUrl)
+
+      // Should include login URL without email parameter
+      expect(html).toContain('https://pipetrak.co/login')
+      // Should NOT have query parameters
+      expect(html).not.toContain('https://pipetrak.co/login?email=')
     })
   })
 })

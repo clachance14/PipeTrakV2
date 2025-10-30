@@ -193,17 +193,20 @@ export function DashboardPage() {
               </div>
             </Link>
 
-            <div className="bg-white rounded-lg shadow p-6 opacity-50 cursor-not-allowed">
+            <Link
+              to="/reports"
+              className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-gray-100 rounded-lg">
-                  <BarChart className="h-6 w-6 text-gray-600" />
+                <div className="p-3 bg-slate-100 rounded-lg">
+                  <BarChart className="h-6 w-6 text-slate-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Reports</h3>
-                  <p className="text-sm text-gray-600">Coming soon</p>
+                  <p className="text-sm text-gray-600">Progress reports</p>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 
