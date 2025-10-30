@@ -43,16 +43,18 @@ function logError(phase: string, error: unknown, context: Record<string, unknown
  * @param fullName - User's full name
  * @param magicLinkUrl - Supabase magic link URL
  * @param demoExpiresAt - Demo expiration timestamp (ISO 8601)
+ * @param loginUrl - URL to login page for requesting new magic links
  * @returns Object with success status and error details if failed
  */
 async function sendDemoEmail(
   email: string,
   fullName: string,
   magicLinkUrl: string,
-  demoExpiresAt: string
+  demoExpiresAt: string,
+  loginUrl: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const emailHtml = generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt)
+    const emailHtml = generateDemoEmailHtml(fullName, magicLinkUrl, demoExpiresAt, loginUrl)
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -277,12 +279,16 @@ serve(async (req) => {
 
     console.log('Demo data cloning temporarily disabled - project created with empty data')
 
-    // 10. Generate magic link token
+    // 10. Extract base URL for email links
+    const baseUrl = req.headers.get('origin') || 'https://pipetrak.co'
+    const loginUrl = `${baseUrl}/login`
+
+    // 11. Generate magic link token
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: {
-        redirectTo: `${req.headers.get('origin') || 'https://pipetrak.co'}/dashboard`
+        redirectTo: `${baseUrl}/dashboard`
       }
     })
 
@@ -300,11 +306,11 @@ serve(async (req) => {
       throw new Error('Failed to generate magic link')
     }
 
-    // 11. Extract magic link URL
+    // 12. Extract magic link URL
     const magicLinkUrl = linkData.properties.action_link
 
-    // 12-13. Send email via Resend API (non-critical - don't fail signup on error)
-    const emailResult = await sendDemoEmail(email, fullName, magicLinkUrl, demoExpiresAt.toISOString())
+    // 13-14. Send email via Resend API (non-critical - don't fail signup on error)
+    const emailResult = await sendDemoEmail(email, fullName, magicLinkUrl, demoExpiresAt.toISOString(), loginUrl)
     const emailSent = emailResult.success
 
     // Email failure is logged but doesn't prevent successful signup

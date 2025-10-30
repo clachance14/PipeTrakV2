@@ -128,5 +128,26 @@ describe('email-template', () => {
       // Sanity check: should be at least 500 bytes (not empty)
       expect(sizeInBytes).toBeGreaterThan(500)
     })
+
+    it('includes resend login link in footer with default URL', () => {
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt)
+
+      // Should include default login URL
+      expect(html).toContain('https://pipetrak.co/login')
+      // Should mention that link is single-use
+      expect(html).toMatch(/single-use|one.time|only be used once/i)
+      // Should provide instructions for getting new link
+      expect(html).toMatch(/new link|request another/i)
+    })
+
+    it('includes resend login link with custom URL when provided', () => {
+      const customLoginUrl = 'https://app.example.com/auth/login'
+      const html = generateDemoEmailHtml(mockFullName, mockMagicLinkUrl, mockDemoExpiresAt, customLoginUrl)
+
+      // Should include custom login URL
+      expect(html).toContain('https://app.example.com/auth/login')
+      // Should NOT include default URL
+      expect(html).not.toContain('https://pipetrak.co/login')
+    })
   })
 })
