@@ -6,6 +6,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatIdentityKey } from '@/lib/field-weld-utils'
+import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculateDuplicateCounts'
+import type { IdentityKey } from '@/types/drawing-table.types'
 
 interface FieldWeld {
   id: string
@@ -156,6 +158,17 @@ export function useFieldWelds({ projectId, enabled = true }: UseFieldWeldsOption
       const systemsMap = new Map(systemsResult.data?.map((s: any) => [s.id, s]) || [])
       const packagesMap = new Map(packagesResult.data?.map((p: any) => [p.id, p]) || [])
 
+      // Calculate duplicate counts for identity numbering
+      // Map field_welds data to components structure for count calculation
+      const componentsForCounting = (weldsData || []).map((weld: any) => {
+        const component = Array.isArray(weld.components) ? weld.components[0] : weld.components
+        return {
+          identity_key: component?.identity_key as IdentityKey,
+          component_type: component?.component_type
+        }
+      })
+      const counts = calculateDuplicateCounts(componentsForCounting)
+
       // Transform data to enriched format with identityDisplay
       const enriched: EnrichedFieldWeld[] = (weldsData || []).map((weld: any) => {
         const component = Array.isArray(weld.components) ? weld.components[0] : weld.components
@@ -174,7 +187,8 @@ export function useFieldWelds({ projectId, enabled = true }: UseFieldWeldsOption
           test_package: component?.test_package_id ? packagesMap.get(component.test_package_id) || null : null,
           identityDisplay: formatIdentityKey(
             component?.identity_key as Record<string, unknown>,
-            weld.weld_type
+            weld.weld_type,
+            counts.get(createIdentityGroupKey(component?.identity_key as IdentityKey))
           ),
         }
       })

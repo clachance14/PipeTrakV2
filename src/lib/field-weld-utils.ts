@@ -114,8 +114,15 @@ export function getCompletionLabel(percentComplete: number, status: WeldStatus):
 /**
  * Format identity key to display string
  * For field welds: "REPAIR-{id}" or "{weld_number}"
+ * @param identityKey - The identity key JSONB object
+ * @param _weldType - The weld type (unused but kept for API compatibility)
+ * @param totalCount - Total number of components with this identity (optional)
  */
-export function formatIdentityKey(identityKey: Record<string, unknown> | null, _weldType: string): string {
+export function formatIdentityKey(
+  identityKey: Record<string, unknown> | null,
+  _weldType: string,
+  totalCount?: number
+): string {
   if (!identityKey) return 'Unknown'
 
   // Check if it's a repair weld
@@ -126,14 +133,28 @@ export function formatIdentityKey(identityKey: Record<string, unknown> | null, _
 
   // Regular weld ID
   if ('weld_number' in identityKey) {
-    return identityKey.weld_number as string
+    const weldNumber = identityKey.weld_number as string
+    // Add count suffix if multiple welds with same identity exist
+    if (totalCount && totalCount > 1) {
+      const seq = identityKey.seq as number
+      return `${weldNumber} ${seq} of ${totalCount}`
+    }
+    return weldNumber
   }
 
   // Fallback: try to construct from available fields
   const parts: string[] = []
   if ('commodity_code' in identityKey) parts.push(identityKey.commodity_code as string)
   if ('size' in identityKey && identityKey.size !== 'NOSIZE') parts.push(identityKey.size as string)
-  if ('seq' in identityKey) parts.push(`(${identityKey.seq})`)
+  if ('seq' in identityKey) {
+    const seq = identityKey.seq as number
+    // Add count suffix if provided
+    if (totalCount && totalCount > 1) {
+      parts.push(`${seq} of ${totalCount}`)
+    } else {
+      parts.push(`(${seq})`)
+    }
+  }
 
   return parts.length > 0 ? parts.join(' ') : 'Unknown'
 }
