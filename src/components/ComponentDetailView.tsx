@@ -28,6 +28,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { formatIdentityKey } from '@/lib/formatIdentityKey';
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useMilestoneHistory } from '@/hooks/useMilestoneHistory';
 
 interface ComponentDetailViewProps {
   componentId: string;
@@ -51,6 +53,7 @@ export function ComponentDetailView({
 
   const { data: componentData, isLoading } = useComponent(componentId);
   const updateMilestoneMutation = useUpdateMilestone();
+  const { data: history = [], isLoading: historyLoading } = useMilestoneHistory(componentId, 50);
 
   // Cast to proper type early for metadata access
   const component = componentData as any;
@@ -409,7 +412,56 @@ export function ComponentDetailView({
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
-          <div className="text-sm text-muted-foreground">History content (TODO)</div>
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Milestone History</h3>
+
+            {historyLoading && (
+              <p className="text-sm text-muted-foreground">Loading history...</p>
+            )}
+
+            {!historyLoading && history.length === 0 && (
+              <p className="text-sm text-muted-foreground">No milestone updates yet</p>
+            )}
+
+            {!historyLoading && history.length > 0 && (
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-3">
+                  {history.map((event) => {
+                    const oldValueDisplay = typeof event.previous_value === 'number'
+                      ? `${event.previous_value}%`
+                      : event.previous_value ? 'Complete' : 'Incomplete';
+                    const newValueDisplay = typeof event.value === 'number'
+                      ? `${event.value}%`
+                      : event.value ? 'Complete' : 'Incomplete';
+
+                    return (
+                      <div
+                        key={event.id}
+                        className="p-4 border rounded-lg bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium">{event.milestone_name}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {oldValueDisplay} → {newValueDisplay}
+                            </p>
+                          </div>
+                          <time className="text-xs text-muted-foreground">
+                            {new Date(event.created_at).toLocaleString()}
+                          </time>
+                        </div>
+                        {event.user && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Updated by: {event.user.full_name || event.user.email}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -639,7 +691,56 @@ export function ComponentDetailView({
           </div>
         )}
         {activeTab === 'history' && (
-          <div className="text-sm text-muted-foreground">History content (TODO)</div>
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Milestone History</h3>
+
+            {historyLoading && (
+              <p className="text-sm text-muted-foreground">Loading history...</p>
+            )}
+
+            {!historyLoading && history.length === 0 && (
+              <p className="text-sm text-muted-foreground">No milestone updates yet</p>
+            )}
+
+            {!historyLoading && history.length > 0 && (
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-3">
+                  {history.map((event) => {
+                    const oldValueDisplay = typeof event.previous_value === 'number'
+                      ? `${event.previous_value}%`
+                      : event.previous_value ? 'Complete' : 'Incomplete';
+                    const newValueDisplay = typeof event.value === 'number'
+                      ? `${event.value}%`
+                      : event.value ? 'Complete' : 'Incomplete';
+
+                    return (
+                      <div
+                        key={event.id}
+                        className="p-4 border rounded-lg bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium">{event.milestone_name}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {oldValueDisplay} → {newValueDisplay}
+                            </p>
+                          </div>
+                          <time className="text-xs text-muted-foreground">
+                            {new Date(event.created_at).toLocaleString()}
+                          </time>
+                        </div>
+                        {event.user && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Updated by: {event.user.full_name || event.user.email}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
         )}
       </div>
     </>

@@ -193,3 +193,70 @@ describe('ComponentDetailView - Details Tab', () => {
     })
   })
 })
+
+describe('ComponentDetailView - Milestones Tab', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('shows milestone checkboxes when canUpdateMilestones is true', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-1"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Find all tab buttons
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    expect(milestonesTab).toBeDefined()
+
+    fireEvent.click(milestonesTab!)
+
+    // Should show milestone controls header
+    await waitFor(() => {
+      expect(screen.getByText(/Milestones/i)).toBeInTheDocument()
+    })
+  })
+
+  it('disables milestone controls when canUpdateMilestones is false', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-1"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Find all tab buttons
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    expect(milestonesTab).toBeDefined()
+
+    fireEvent.click(milestonesTab!)
+
+    // Should show permission message
+    await waitFor(() => {
+      expect(screen.getByText(/don't have permission/i)).toBeInTheDocument()
+    })
+  })
+})
