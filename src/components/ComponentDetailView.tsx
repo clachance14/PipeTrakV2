@@ -3,15 +3,26 @@
  * Detail view of a component with milestone tracking
  */
 
-import { MilestoneButton } from './MilestoneButton';
-import { MilestoneEventHistory } from './MilestoneEventHistory';
+import { useState } from 'react';
+// import { MilestoneButton } from './MilestoneButton'; // TODO: Will be used in Phase 5
+// import { MilestoneEventHistory } from './MilestoneEventHistory'; // TODO: Will be used in Phase 6
 import { useComponent } from '@/hooks/useComponents';
-import { useUpdateMilestone } from '@/hooks/useMilestones';
-import { toast } from 'sonner';
+// import { useUpdateMilestone } from '@/hooks/useMilestones'; // TODO: Will be used in Phase 5
+// import { toast } from 'sonner'; // TODO: Will be used in Phases 4-5
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ComponentDetailViewProps {
   componentId: string;
   canUpdateMilestones?: boolean; // Permission check
+  canEditMetadata?: boolean;      // NEW
+  onMetadataChange?: () => void;  // NEW
 }
 
 /**
@@ -21,10 +32,18 @@ interface ComponentDetailViewProps {
  */
 export function ComponentDetailView({
   componentId,
-  canUpdateMilestones = false,
+  canUpdateMilestones = false, // TODO: Will be used in Phase 5
+  canEditMetadata = false, // TODO: Will be used in Phase 4
+  onMetadataChange, // TODO: Will be used in Phase 4
 }: ComponentDetailViewProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>('overview');
+
   const { data: component, isLoading } = useComponent(componentId);
-  const updateMilestoneMutation = useUpdateMilestone();
+
+  // Suppress unused variable warnings for now
+  void canUpdateMilestones;
+  void canEditMetadata;
+  void onMetadataChange;
 
   if (isLoading) {
     return <div className="p-6">Loading component details...</div>;
@@ -34,88 +53,61 @@ export function ComponentDetailView({
     return <div className="p-6">Component not found</div>;
   }
 
-  // Extract progress template milestones config
-  const progressTemplate = (component as any).progress_template;
-  const milestonesConfig = progressTemplate?.milestones_config || [];
-
-  // Sort milestones by order
-  const sortedMilestones = [...milestonesConfig].sort(
-    (a: any, b: any) => a.order - b.order
-  );
-
-  const handleMilestoneChange = async (milestoneName: string, value: boolean | number) => {
-    try {
-      await updateMilestoneMutation.mutateAsync({
-        component_id: componentId,
-        milestone_name: milestoneName,
-        value,
-      });
-      toast.success('Milestone updated successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update milestone');
-    }
-  };
-
-  // Extract identity key display
-  const identityDisplay = component.identity_key
-    ? Object.values(component.identity_key as Record<string, any>).join(' - ')
-    : 'Unknown';
-
   return (
-    <div className="space-y-6 p-6">
-      {/* Component Header */}
-      <div>
-        <h2 className="text-2xl font-bold">{identityDisplay}</h2>
-        <p className="text-muted-foreground">{component.component_type}</p>
-      </div>
+    <>
+      {/* Desktop: Horizontal Tabs */}
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="hidden md:block">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="milestones">Milestones</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
 
-      {/* Progress Summary */}
-      <div className="p-4 bg-muted rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="font-semibold">Progress Complete:</span>
-          <span className="text-2xl font-bold">
-            {component.percent_complete?.toFixed(1) || 0}%
-          </span>
-        </div>
-        {component.last_updated_at && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Last updated: {new Date(component.last_updated_at).toLocaleString()}
-          </p>
+        <TabsContent value="overview" className="mt-4">
+          <div className="text-sm text-muted-foreground">Overview content (TODO)</div>
+        </TabsContent>
+
+        <TabsContent value="details" className="mt-4">
+          <div className="text-sm text-muted-foreground">Details content (TODO)</div>
+        </TabsContent>
+
+        <TabsContent value="milestones" className="mt-4">
+          <div className="text-sm text-muted-foreground">Milestones content (TODO)</div>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4">
+          <div className="text-sm text-muted-foreground">History content (TODO)</div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Mobile: Dropdown Selector */}
+      <div className="md:hidden space-y-4">
+        <Select value={activeTab} onValueChange={(val) => setActiveTab(val as any)}>
+          <SelectTrigger className="w-full min-h-[44px]">
+            <SelectValue placeholder="Select view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="overview">Overview</SelectItem>
+            <SelectItem value="details">Details</SelectItem>
+            <SelectItem value="milestones">Milestones</SelectItem>
+            <SelectItem value="history">History</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {activeTab === 'overview' && (
+          <div className="text-sm text-muted-foreground">Overview content (TODO)</div>
+        )}
+        {activeTab === 'details' && (
+          <div className="text-sm text-muted-foreground">Details content (TODO)</div>
+        )}
+        {activeTab === 'milestones' && (
+          <div className="text-sm text-muted-foreground">Milestones content (TODO)</div>
+        )}
+        {activeTab === 'history' && (
+          <div className="text-sm text-muted-foreground">History content (TODO)</div>
         )}
       </div>
-
-      {/* Milestones */}
-      <div className="space-y-4">
-        <h3 className="font-semibold">Milestones</h3>
-        <div className="space-y-3">
-          {sortedMilestones.map((milestone: any) => {
-            const currentValue =
-              (component.current_milestones as Record<string, any>)?.[milestone.name] ||
-              (milestone.is_partial ? 0 : false);
-
-            return (
-              <MilestoneButton
-                key={milestone.name}
-                milestone={milestone}
-                value={currentValue}
-                onChange={(value) => handleMilestoneChange(milestone.name, value)}
-                disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-              />
-            );
-          })}
-        </div>
-
-        {!canUpdateMilestones && (
-          <p className="text-sm text-muted-foreground italic">
-            You do not have permission to update milestones
-          </p>
-        )}
-      </div>
-
-      {/* Milestone Event History */}
-      <div className="border-t pt-4">
-        <MilestoneEventHistory componentId={componentId} />
-      </div>
-    </div>
+    </>
   );
 }
