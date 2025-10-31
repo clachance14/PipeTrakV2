@@ -89,6 +89,10 @@ export function ComponentsPage({
               <ComponentDetailView
                 componentId={selectedComponentId}
                 canUpdateMilestones={canUpdateMilestones}
+                canEditMetadata={true}
+                onMetadataChange={() => {
+                  // Optionally refetch components list
+                }}
               />
             )}
           </DialogContent>
