@@ -55,6 +55,24 @@ export function DrawingComponentTablePage() {
   // Component metadata editing modal state
   const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null)
 
+  // Validated component click handler with logging
+  const handleComponentClick = (componentId: string) => {
+    console.log('[DrawingComponentTablePage] Component clicked:', componentId)
+
+    // Validate component ID format (must be UUID, not contain colons)
+    if (!componentId || componentId.includes(':') || componentId.length < 10) {
+      console.error('[DrawingComponentTablePage] Invalid component ID detected:', {
+        componentId,
+        type: typeof componentId,
+        length: componentId?.length
+      })
+      // Don't open modal with invalid ID
+      return
+    }
+
+    setMetadataModalComponentId(componentId)
+  }
+
   // Fetch data
   const { data: drawings, isLoading, isError, error, refetch } = useDrawingsWithProgress(selectedProjectId!)
 
@@ -311,7 +329,7 @@ export function DrawingComponentTablePage() {
             selectedDrawingIds={selectedDrawingIds}
             onToggleSelection={toggleSelection}
             onSelectAll={() => selectAll(visibleDrawingIds)}
-            onComponentClick={setMetadataModalComponentId}
+            onComponentClick={handleComponentClick}
             isMobile={isMobile}
           />
         </div>
@@ -340,11 +358,13 @@ export function DrawingComponentTablePage() {
         )}
 
         {/* Feature 020: Component Metadata Editing Modal */}
-        <ComponentMetadataModal
-          componentId={metadataModalComponentId || ''}
-          open={!!metadataModalComponentId}
-          onClose={() => setMetadataModalComponentId(null)}
-        />
+        {metadataModalComponentId && (
+          <ComponentMetadataModal
+            componentId={metadataModalComponentId}
+            open={true}
+            onClose={() => setMetadataModalComponentId(null)}
+          />
+        )}
       </div>
     </Layout>
   )

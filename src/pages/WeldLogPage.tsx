@@ -10,6 +10,9 @@ import { WeldLogTable } from '@/components/weld-log/WeldLogTable'
 import { useFieldWelds, type EnrichedFieldWeld } from '@/hooks/useFieldWelds'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { NDEResultDialog } from '@/components/field-welds/NDEResultDialog'
+import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
+import { CreateRepairWeldDialog } from '@/components/field-welds/CreateRepairWeldDialog'
 
 export function WeldLogPage() {
   const { user } = useAuth()
@@ -22,6 +25,12 @@ export function WeldLogPage() {
   })
 
   const [filteredWelds, setFilteredWelds] = useState<EnrichedFieldWeld[]>([])
+
+  // Dialog state management
+  const [selectedWeld, setSelectedWeld] = useState<EnrichedFieldWeld | null>(null)
+  const [isWelderDialogOpen, setIsWelderDialogOpen] = useState(false)
+  const [isNDEDialogOpen, setIsNDEDialogOpen] = useState(false)
+  const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false)
 
   // Extract unique drawings, welders, packages, and systems for filter dropdowns
   const drawings = useMemo(() => {
@@ -80,7 +89,7 @@ export function WeldLogPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Weld Log</h1>
             <p className="mt-2 text-sm text-slate-600">QC tracking for all project field welds</p>
@@ -99,7 +108,7 @@ export function WeldLogPage() {
   if (isError) {
     return (
       <Layout>
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Weld Log</h1>
             <p className="mt-2 text-sm text-slate-600">QC tracking for all project field welds</p>
@@ -119,7 +128,7 @@ export function WeldLogPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-slate-900">Weld Log</h1>
@@ -146,12 +155,18 @@ export function WeldLogPage() {
             welds={filteredWelds}
             userRole={user?.role}
             onAssignWelder={(weldId) => {
-              // TODO: Open WelderAssignDialog
-              console.log('Assign welder to:', weldId)
+              const weld = filteredWelds.find((w) => w.id === weldId)
+              if (weld) {
+                setSelectedWeld(weld)
+                setIsWelderDialogOpen(true)
+              }
             }}
             onRecordNDE={(weldId) => {
-              // TODO: Open NDEResultDialog
-              console.log('Record NDE for:', weldId)
+              const weld = filteredWelds.find((w) => w.id === weldId)
+              if (weld) {
+                setSelectedWeld(weld)
+                setIsNDEDialogOpen(true)
+              }
             }}
           />
         </div>
@@ -163,6 +178,57 @@ export function WeldLogPage() {
           </p>
         </div>
       </div>
+
+      {/* Dialogs */}
+      {selectedWeld && (
+        <>
+          <WelderAssignDialog
+            fieldWeldId={selectedWeld.id}
+            projectId={projectId}
+            open={isWelderDialogOpen}
+            onOpenChange={setIsWelderDialogOpen}
+          />
+
+          <NDEResultDialog
+            fieldWeldId={selectedWeld.id}
+            componentId={selectedWeld.component.id}
+            welderName={selectedWeld.welder?.name}
+            dateWelded={selectedWeld.date_welded || undefined}
+            open={isNDEDialogOpen}
+            onOpenChange={setIsNDEDialogOpen}
+            onFailure={() => setIsRepairDialogOpen(true)}
+          />
+
+          <CreateRepairWeldDialog
+            originalFieldWeldId={selectedWeld.id}
+            originalWeldData={{
+              weldType: selectedWeld.weld_type,
+              weldSize: selectedWeld.weld_size || '',
+              schedule: selectedWeld.schedule || '',
+              baseMetal: selectedWeld.base_metal || '',
+              spec: selectedWeld.spec || '',
+              drawingId: selectedWeld.drawing.id,
+              projectId: projectId,
+            }}
+            open={isRepairDialogOpen}
+            onOpenChange={(open) => {
+              if (!open) {
+                console.log('[WeldLogPage] Closing repair dialog')
+              } else {
+                console.log('[WeldLogPage] Opening repair dialog with weld:', {
+                  id: selectedWeld.id,
+                  weld_type: selectedWeld.weld_type,
+                  weld_size: selectedWeld.weld_size,
+                  schedule: selectedWeld.schedule,
+                  base_metal: selectedWeld.base_metal,
+                  spec: selectedWeld.spec,
+                })
+              }
+              setIsRepairDialogOpen(open)
+            }}
+          />
+        </>
+      )}
     </Layout>
   )
 }

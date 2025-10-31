@@ -40,37 +40,49 @@ export function useComponentsByDrawings(drawingIds: string[]) {
         const counts = calculateDuplicateCounts(data as any)
 
         // Transform data to ComponentRow with computed fields
-        const components: ComponentRow[] = data.map((component: any) => ({
-          id: component.id,
-          project_id: component.project_id,
-          drawing_id: component.drawing_id,
-          component_type: component.component_type as any, // Type assertion for component_type
-          identity_key: component.identity_key as any, // Type assertion for identity_key
-          current_milestones: component.current_milestones as any,
-          percent_complete: component.percent_complete,
-          created_at: component.created_at,
-          last_updated_at: component.last_updated_at,
-          last_updated_by: component.last_updated_by,
-          is_retired: component.is_retired,
-          // Metadata fields (from joined tables)
-          area: component.areas,
-          system: component.systems,
-          test_package: component.test_packages,
-          // Joined template
-          template: component.progress_templates as any,
-          // Computed fields
-          identityDisplay: component.component_type === 'field_weld'
-            ? formatFieldWeldKey(
-                component.identity_key as any,
-                component.component_type as any
-              )
-            : formatIdentityKey(
-                component.identity_key as any,
-                component.component_type as any,
-                counts.get(createIdentityGroupKey(component.identity_key))
-              ),
-          canUpdate: true, // TODO: Get from permissions hook
-        }))
+        const components: ComponentRow[] = data.map((component: any) => {
+          // Validate component ID format
+          if (!component.id || typeof component.id !== 'string' || component.id.includes(':')) {
+            console.error('[useComponentsByDrawings] Invalid component ID detected from database:', {
+              component_id: component.id,
+              component_type: component.component_type,
+              drawing_id: drawingId,
+              identity_key: component.identity_key
+            })
+          }
+
+          return {
+            id: component.id,
+            project_id: component.project_id,
+            drawing_id: component.drawing_id,
+            component_type: component.component_type as any, // Type assertion for component_type
+            identity_key: component.identity_key as any, // Type assertion for identity_key
+            current_milestones: component.current_milestones as any,
+            percent_complete: component.percent_complete,
+            created_at: component.created_at,
+            last_updated_at: component.last_updated_at,
+            last_updated_by: component.last_updated_by,
+            is_retired: component.is_retired,
+            // Metadata fields (from joined tables)
+            area: component.areas,
+            system: component.systems,
+            test_package: component.test_packages,
+            // Joined template
+            template: component.progress_templates as any,
+            // Computed fields
+            identityDisplay: component.component_type === 'field_weld'
+              ? formatFieldWeldKey(
+                  component.identity_key as any,
+                  component.component_type as any
+                )
+              : formatIdentityKey(
+                  component.identity_key as any,
+                  component.component_type as any,
+                  counts.get(createIdentityGroupKey(component.identity_key))
+                ),
+            canUpdate: true, // TODO: Get from permissions hook
+          }
+        })
 
         return components
       },

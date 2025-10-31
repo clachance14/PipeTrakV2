@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 // import { MilestoneButton } from './MilestoneButton'; // TODO: Will be used in Phase 5
 // import { MilestoneEventHistory } from './MilestoneEventHistory'; // TODO: Will be used in Phase 6
 import { useComponent } from '@/hooks/useComponents';
-// import { useUpdateMilestone } from '@/hooks/useMilestones'; // TODO: Will be used in Phase 5
+import { useUpdateMilestone } from '@/hooks/useMilestones';
 import { Button } from '@/components/ui/button';
 import { useAreas } from '@/hooks/useAreas';
 import { useSystems } from '@/hooks/useSystems';
@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { formatIdentityKey } from '@/lib/formatIdentityKey';
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
 
@@ -41,16 +43,14 @@ interface ComponentDetailViewProps {
  */
 export function ComponentDetailView({
   componentId,
-  canUpdateMilestones = false, // TODO: Will be used in Phase 5
+  canUpdateMilestones = false,
   canEditMetadata = false,
   onMetadataChange,
 }: ComponentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>('overview');
 
   const { data: componentData, isLoading } = useComponent(componentId);
-
-  // Suppress unused variable warnings for now
-  void canUpdateMilestones;
+  const updateMilestoneMutation = useUpdateMilestone();
 
   // Cast to proper type early for metadata access
   const component = componentData as any;
@@ -117,6 +117,47 @@ export function ComponentDetailView({
       test_package_id: component.test_package_id,
     });
     setIsDirty(false);
+  };
+
+  // Handle milestone toggle
+  const handleMilestoneToggle = async (milestoneName: string, isPartial: boolean, currentValue: boolean | number) => {
+    if (!component) return;
+
+    let newValue: boolean | number;
+    if (isPartial) {
+      // Toggle partial between 0 and 100
+      newValue = currentValue === 100 ? 0 : 100;
+    } else {
+      // Toggle boolean
+      newValue = !currentValue;
+    }
+
+    try {
+      await updateMilestoneMutation.mutateAsync({
+        component_id: component.id,
+        milestone_name: milestoneName,
+        value: newValue,
+      });
+      toast.success(`${milestoneName} updated`);
+    } catch (error) {
+      toast.error(`Failed to update ${milestoneName}`);
+      console.error(error);
+    }
+  };
+
+  const handleSliderChange = async (milestoneName: string, value: number[]) => {
+    if (!component) return;
+
+    try {
+      await updateMilestoneMutation.mutateAsync({
+        component_id: component.id,
+        milestone_name: milestoneName,
+        value: value[0] ?? 0,
+      });
+    } catch (error) {
+      toast.error(`Failed to update ${milestoneName}`);
+      console.error(error);
+    }
   };
 
   // Format identity based on type
@@ -301,8 +342,70 @@ export function ComponentDetailView({
           </div>
         </TabsContent>
 
-        <TabsContent value="milestones" className="mt-4">
-          <div className="text-sm text-muted-foreground">Milestones content (TODO)</div>
+        <TabsContent value="milestones" className="mt-4 space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Milestones</h3>
+
+            {!canUpdateMilestones && (
+              <p className="text-sm text-muted-foreground mb-4">
+                You don't have permission to update milestones.
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {template?.milestones_config
+                ?.sort((a: any, b: any) => a.order - b.order)
+                .map((milestone: any) => {
+                  const currentValue = currentMilestones[milestone.name];
+
+                  return (
+                    <div
+                      key={milestone.name}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{milestone.name}</span>
+                          <Badge variant="outline">{milestone.weight}%</Badge>
+                        </div>
+                        {milestone.is_partial && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Current: {typeof currentValue === 'number' ? currentValue : 0}%
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {milestone.is_partial ? (
+                          <div className="w-48">
+                            <Slider
+                              value={[typeof currentValue === 'number' ? currentValue : 0]}
+                              onValueCommit={(val) => handleSliderChange(milestone.name, val)}
+                              min={0}
+                              max={100}
+                              step={1}
+                              disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                              className="min-h-[44px]"
+                            />
+                          </div>
+                        ) : (
+                          <Checkbox
+                            checked={currentValue === true}
+                            onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
+                            disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                            className="h-6 w-6"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {template?.milestones_config?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No milestones configured for this component type.</p>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
@@ -471,7 +574,69 @@ export function ComponentDetailView({
           </div>
         )}
         {activeTab === 'milestones' && (
-          <div className="text-sm text-muted-foreground">Milestones content (TODO)</div>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Milestones</h3>
+
+            {!canUpdateMilestones && (
+              <p className="text-sm text-muted-foreground mb-4">
+                You don't have permission to update milestones.
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {template?.milestones_config
+                ?.sort((a: any, b: any) => a.order - b.order)
+                .map((milestone: any) => {
+                  const currentValue = currentMilestones[milestone.name];
+
+                  return (
+                    <div
+                      key={milestone.name}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{milestone.name}</span>
+                          <Badge variant="outline">{milestone.weight}%</Badge>
+                        </div>
+                        {milestone.is_partial && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Current: {typeof currentValue === 'number' ? currentValue : 0}%
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {milestone.is_partial ? (
+                          <div className="w-48">
+                            <Slider
+                              value={[typeof currentValue === 'number' ? currentValue : 0]}
+                              onValueCommit={(val) => handleSliderChange(milestone.name, val)}
+                              min={0}
+                              max={100}
+                              step={1}
+                              disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                              className="min-h-[44px]"
+                            />
+                          </div>
+                        ) : (
+                          <Checkbox
+                            checked={currentValue === true}
+                            onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
+                            disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                            className="h-6 w-6"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {template?.milestones_config?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No milestones configured for this component type.</p>
+            )}
+          </div>
         )}
         {activeTab === 'history' && (
           <div className="text-sm text-muted-foreground">History content (TODO)</div>

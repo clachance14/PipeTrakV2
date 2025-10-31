@@ -49,11 +49,21 @@ export function FieldWeldRow({
 
   console.log('[FieldWeldRow] RENDERING - Component type:', component.component_type, 'ID:', component.id)
 
+  if (!component.id || component.id.includes(':')) {
+    console.error('[FieldWeldRow] Invalid component ID:', component.id, 'Full component:', component)
+  }
+
   const { data: fieldWeld, isLoading } = useFieldWeld({ componentId: component.id })
   const assignWelderMutation = useAssignWelder()
   const { user } = useAuth()
 
   console.log('[FieldWeldRow] fieldWeld data:', fieldWeld, 'isLoading:', isLoading)
+  console.log('[FieldWeldRow] isRejected check:', {
+    status: fieldWeld?.status,
+    isRejected: fieldWeld?.status === 'rejected',
+    componentId: component.id,
+    weldNumber: component.identityDisplay
+  })
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     console.log('[FieldWeldRow] Milestone changed:', { milestoneName, value, hasFieldWeld: !!fieldWeld })
@@ -153,8 +163,8 @@ export function FieldWeldRow({
     <>
       <div
         style={style}
-        className={`flex flex-col border-b border-slate-200 hover:bg-slate-50 transition-colors ${
-          isRejected ? 'opacity-60 bg-slate-50' : ''
+        className={`flex flex-col border-b border-slate-200 transition-colors ${
+          isRejected ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-slate-50'
         }`}
       >
         {/* Main row */}
@@ -170,8 +180,13 @@ export function FieldWeldRow({
           </button>
 
           {/* Weld ID */}
-          <div className="w-32 flex-shrink-0 text-sm font-medium text-slate-900 truncate">
-            {component.identityDisplay || 'N/A'}
+          <div className="w-32 flex-shrink-0 text-sm font-medium flex items-center gap-2">
+            {isRejected && (
+              <span className="text-red-600" title="Rejected">✗</span>
+            )}
+            <span className={isRejected ? 'line-through text-slate-500 truncate' : 'text-slate-900 truncate'}>
+              {component.identityDisplay || 'N/A'}
+            </span>
           </div>
 
           {/* Type */}

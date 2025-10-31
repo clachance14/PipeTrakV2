@@ -4,7 +4,7 @@
  */
 
 export type WeldType = 'BW' | 'SW' | 'FW' | 'TW'
-export type NDEType = 'RT' | 'UT' | 'PT' | 'MT'
+export type NDEType = 'RT' | 'UT' | 'PT' | 'MT' | 'VT'
 export type WeldStatus = 'active' | 'accepted' | 'rejected'
 
 /**
@@ -29,6 +29,7 @@ export function formatNDEType(type: string): string {
     UT: 'Ultrasonic Testing',
     PT: 'Penetrant Testing',
     MT: 'Magnetic Testing',
+    VT: 'Visual Testing',
   }
   return ndeTypes[type.toUpperCase()] || type
 }

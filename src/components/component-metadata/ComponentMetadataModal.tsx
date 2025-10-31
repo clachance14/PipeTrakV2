@@ -260,7 +260,7 @@ export function ComponentMetadataModal({
   const isSaving = updateMutation.isPending
 
   // Modal title based on mode
-  const title = mode === 'edit' ? 'Edit Component Metadata' : 'View Component Metadata'
+  const title = mode === 'edit' ? 'Edit Component Details' : 'View Component Details'
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -324,9 +324,9 @@ export function ComponentMetadataModal({
                   disabled={!hasChanges || isSaving}
                   aria-label={
                     isSaving
-                      ? 'Saving metadata changes'
+                      ? 'Saving details changes'
                       : hasChanges
-                        ? 'Save metadata changes'
+                        ? 'Save details changes'
                         : 'No changes to save'
                   }
                   aria-busy={isSaving}
@@ -341,7 +341,7 @@ export function ComponentMetadataModal({
               <Alert variant="destructive" className="mt-4" role="alert" aria-live="assertive">
                 <AlertDescription className="space-y-3">
                   <div>
-                    {updateMutation.error?.message || 'Failed to save metadata'}
+                    {updateMutation.error?.message || 'Failed to save details'}
                   </div>
                   <Button
                     variant="outline"

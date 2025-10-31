@@ -123,7 +123,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
 
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="min-w-full divide-y divide-slate-200">
+      <table className="w-full divide-y divide-slate-200">
         <thead>
           <tr>
             <SortableHeader column="weld_id">Weld ID</SortableHeader>
@@ -150,9 +150,16 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
                 {/* Weld ID */}
                 <td className="whitespace-nowrap px-3 py-2 text-sm font-medium text-slate-900">
                   {weld.identityDisplay}
-                  {weld.is_repair && (
-                    <span className="ml-1 text-xs text-orange-600">(Repair)</span>
-                  )}
+                  {weld.is_repair && (() => {
+                    // Extract original weld number from repair number
+                    // e.g., "W-008.1" -> "W-008"
+                    const originalWeldNumber = weld.identityDisplay.split('.')[0]
+                    return (
+                      <span className="ml-1 text-xs text-orange-600">
+                        (Repair of {originalWeldNumber})
+                      </span>
+                    )
+                  })()}
                 </td>
 
                 {/* Drawing (clickable link) */}

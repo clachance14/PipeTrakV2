@@ -86,3 +86,52 @@ describe('ComponentDetailView - Tabs', () => {
     expect(milestoneTab).not.toBeDisabled()
   })
 })
+
+describe('ComponentDetailView - Details Tab', () => {
+  const queryClient = new QueryClient()
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('shows metadata editing form when canEditMetadata is true', () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-1"
+        canUpdateMilestones={true}
+        canEditMetadata={true}
+      />,
+      { wrapper }
+    )
+
+    // Find all tab buttons
+    const tabs = screen.getAllByRole('tab')
+    const detailsTab = tabs.find(tab => tab.textContent === 'Details')
+    expect(detailsTab).toBeDefined()
+
+    fireEvent.click(detailsTab!)
+
+    expect(screen.getByText('Assign Metadata')).toBeInTheDocument()
+    expect(screen.getByText('Save')).toBeInTheDocument()
+  })
+
+  it('disables form when canEditMetadata is false', () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-1"
+        canUpdateMilestones={true}
+        canEditMetadata={false}
+      />,
+      { wrapper }
+    )
+
+    // Find all tab buttons
+    const tabs = screen.getAllByRole('tab')
+    const detailsTab = tabs.find(tab => tab.textContent === 'Details')
+    expect(detailsTab).toBeDefined()
+
+    fireEvent.click(detailsTab!)
+
+    expect(screen.getByText(/don't have permission/i)).toBeInTheDocument()
+  })
+})

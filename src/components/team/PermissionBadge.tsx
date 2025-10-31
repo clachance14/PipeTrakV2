@@ -9,6 +9,10 @@ interface PermissionBadgeProps {
 export function PermissionBadge({ permission, hasPermission }: PermissionBadgeProps) {
   // Convert snake_case to Title Case
   const formatPermissionName = (perm: Permission): string => {
+    // Special case: Show "Assign Details" instead of "Assign Metadata" for field workers
+    if (perm === 'assign_metadata') {
+      return 'Assign Details';
+    }
     return perm
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))

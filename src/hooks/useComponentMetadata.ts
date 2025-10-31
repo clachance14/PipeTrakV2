@@ -55,6 +55,7 @@ export function useComponentMetadata(
       if (error) throw error
       return data as unknown as Component
     },
+    enabled: !!componentId && componentId.length > 10 && !componentId.includes(':'), // Only fetch if valid UUID
     staleTime: 1 * 60 * 1000 // 1 minute - metadata changes infrequently
   })
 }

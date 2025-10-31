@@ -97,7 +97,7 @@ export function DrawingAssignDialog({
 
   const handleSubmit = async () => {
     if (!user) {
-      toast.error('You must be logged in to assign metadata');
+      toast.error('You must be logged in to assign drawing details');
       return;
     }
 
@@ -107,7 +107,7 @@ export function DrawingAssignDialog({
     const hasPackageSelection = testPackageId && testPackageId !== 'NO_CHANGE';
 
     if (!hasAreaSelection && !hasSystemSelection && !hasPackageSelection) {
-      toast.error('Please select at least one metadata field (Area, System, or Test Package)');
+      toast.error('Please select at least one field (Area, System, or Test Package)');
       return;
     }
 
@@ -126,8 +126,8 @@ export function DrawingAssignDialog({
         // Calculate total inherited components across all drawings
         const totalInherited = result?.reduce((sum, r) => sum + (r.components_inherited || 0), 0) || 0;
         toast.success(
-          `Successfully assigned metadata to ${drawingIds.length} drawing(s). ` +
-          `${totalInherited} component(s) inherited metadata.`
+          `Successfully assigned details to ${drawingIds.length} drawing(s). ` +
+          `${totalInherited} component(s) inherited details.`
         );
       } else if (drawing) {
         // Single assignment - send 'NO_CHANGE' for unchanged fields
@@ -143,7 +143,7 @@ export function DrawingAssignDialog({
         const kept = result?.components_kept_existing || 0;
 
         toast.success(
-          `Metadata assigned to drawing ${drawing.drawing_no_norm}. ` +
+          `Details assigned to drawing ${drawing.drawing_no_norm}. ` +
           `${inherited} component(s) inherited, ${kept} kept existing values.`
         );
       }
@@ -153,19 +153,19 @@ export function DrawingAssignDialog({
     } catch (error) {
       console.error('Failed to assign metadata:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Failed to assign metadata: ${errorMessage}`);
+      toast.error(`Failed to assign details: ${errorMessage}`);
     }
   };
 
   const title = isBulkMode
-    ? `Assign Metadata to ${drawingIds.length} Drawings`
-    : `Assign Metadata to Drawing: ${drawing?.drawing_no_norm}`;
+    ? `Assign Details to ${drawingIds.length} Drawings`
+    : `Assign Details to Drawing: ${drawing?.drawing_no_norm}`;
 
   const description = isBulkMode
-    ? 'Select metadata to assign to all selected drawings. Choose "No change" to preserve existing values.'
+    ? 'Select details to assign to all selected drawings. Choose "No change" to preserve existing values.'
     : drawing?.title
     ? `${drawing.title}`
-    : 'Select metadata to assign to this drawing.';
+    : 'Select details to assign to this drawing.';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -339,7 +339,7 @@ export function DrawingAssignDialog({
               ? 'Assigning...'
               : isBulkMode
               ? `Assign to ${drawingIds.length} Drawings`
-              : 'Assign Metadata'}
+              : 'Assign Details'}
           </Button>
         </DialogFooter>
       </DialogContent>
