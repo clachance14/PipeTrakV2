@@ -38,6 +38,7 @@ export function useTestPackages(projectId: string): UseQueryResult<TestPackage[]
       return data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!projectId, // Only fetch when projectId is provided
   });
 }
 

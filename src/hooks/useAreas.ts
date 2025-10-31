@@ -26,6 +26,7 @@ export function useAreas(projectId: string): UseQueryResult<Area[], Error> {
       return data || [];
     },
     staleTime: 10 * 60 * 1000, // 10 minutes (areas rarely change)
+    enabled: !!projectId, // Only fetch when projectId is provided
   });
 }
 
