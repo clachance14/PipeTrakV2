@@ -3,12 +3,17 @@
  * Detail view of a component with milestone tracking
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // import { MilestoneButton } from './MilestoneButton'; // TODO: Will be used in Phase 5
 // import { MilestoneEventHistory } from './MilestoneEventHistory'; // TODO: Will be used in Phase 6
 import { useComponent } from '@/hooks/useComponents';
 // import { useUpdateMilestone } from '@/hooks/useMilestones'; // TODO: Will be used in Phase 5
-// import { toast } from 'sonner'; // TODO: Will be used in Phases 4-5
+import { Button } from '@/components/ui/button';
+import { useAreas } from '@/hooks/useAreas';
+import { useSystems } from '@/hooks/useSystems';
+import { useTestPackages } from '@/hooks/useTestPackages';
+import { useAssignComponents } from '@/hooks/useComponentAssignment';
+import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -37,8 +42,8 @@ interface ComponentDetailViewProps {
 export function ComponentDetailView({
   componentId,
   canUpdateMilestones = false, // TODO: Will be used in Phase 5
-  canEditMetadata = false, // TODO: Will be used in Phase 4
-  onMetadataChange, // TODO: Will be used in Phase 4
+  canEditMetadata = false,
+  onMetadataChange,
 }: ComponentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>('overview');
 
@@ -46,8 +51,35 @@ export function ComponentDetailView({
 
   // Suppress unused variable warnings for now
   void canUpdateMilestones;
-  void canEditMetadata;
-  void onMetadataChange;
+
+  // Cast to proper type early for metadata access
+  const component = componentData as any;
+
+  // State for metadata form
+  const [metadataForm, setMetadataForm] = useState({
+    area_id: component?.area_id || null,
+    system_id: component?.system_id || null,
+    test_package_id: component?.test_package_id || null,
+  });
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Sync form with component data
+  useEffect(() => {
+    if (component) {
+      setMetadataForm({
+        area_id: component.area_id,
+        system_id: component.system_id,
+        test_package_id: component.test_package_id,
+      });
+      setIsDirty(false);
+    }
+  }, [component]);
+
+  // Fetch metadata options
+  const { data: areas = [] } = useAreas(component?.project_id || '');
+  const { data: systems = [] } = useSystems(component?.project_id || '');
+  const { data: testPackages = [] } = useTestPackages(component?.project_id || '');
+  const assignMutation = useAssignComponents();
 
   if (isLoading) {
     return <div className="p-6">Loading component details...</div>;
@@ -57,8 +89,35 @@ export function ComponentDetailView({
     return <div className="p-6">Component not found</div>;
   }
 
-  // Cast to proper type with joined data
-  const component = componentData as any;
+  // Handle metadata save
+  const handleMetadataSave = async () => {
+    if (!component) return;
+
+    try {
+      await assignMutation.mutateAsync({
+        component_ids: [component.id],
+        area_id: metadataForm.area_id,
+        system_id: metadataForm.system_id,
+        test_package_id: metadataForm.test_package_id,
+      });
+
+      toast.success('Metadata updated successfully');
+      setIsDirty(false);
+      onMetadataChange?.();
+    } catch (error) {
+      toast.error('Failed to update metadata');
+      console.error(error);
+    }
+  };
+
+  const handleMetadataCancel = () => {
+    setMetadataForm({
+      area_id: component.area_id,
+      system_id: component.system_id,
+      test_package_id: component.test_package_id,
+    });
+    setIsDirty(false);
+  };
 
   // Format identity based on type
   let identityDisplay: string;
@@ -133,8 +192,113 @@ export function ComponentDetailView({
           </div>
         </TabsContent>
 
-        <TabsContent value="details" className="mt-4">
-          <div className="text-sm text-muted-foreground">Details content (TODO)</div>
+        <TabsContent value="details" className="mt-4 space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Assign Metadata</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Assign or change the Area, System, and Test Package for this component.
+            </p>
+
+            {/* Area */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Area</label>
+              <Select
+                value={metadataForm.area_id || 'none'}
+                onValueChange={(val) => {
+                  setMetadataForm({ ...metadataForm, area_id: val === 'none' ? null : val });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select area" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No Area --</SelectItem>
+                  {areas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* System */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">System</label>
+              <Select
+                value={metadataForm.system_id || 'none'}
+                onValueChange={(val) => {
+                  setMetadataForm({ ...metadataForm, system_id: val === 'none' ? null : val });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select system" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No System --</SelectItem>
+                  {systems.map((system) => (
+                    <SelectItem key={system.id} value={system.id}>
+                      {system.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Test Package */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Test Package</label>
+              <Select
+                value={metadataForm.test_package_id || 'none'}
+                onValueChange={(val) => {
+                  setMetadataForm({ ...metadataForm, test_package_id: val === 'none' ? null : val });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select test package" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No Test Package --</SelectItem>
+                  {testPackages.map((pkg) => (
+                    <SelectItem key={pkg.id} value={pkg.id}>
+                      {pkg.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Actions */}
+            {canEditMetadata && (
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleMetadataSave}
+                  disabled={!isDirty || assignMutation.isPending}
+                >
+                  {assignMutation.isPending ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleMetadataCancel}
+                  disabled={!isDirty || assignMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {!canEditMetadata && (
+              <p className="text-sm text-muted-foreground pt-4">
+                You don't have permission to edit metadata.
+              </p>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="milestones" className="mt-4">
@@ -199,7 +363,112 @@ export function ComponentDetailView({
           </div>
         )}
         {activeTab === 'details' && (
-          <div className="text-sm text-muted-foreground">Details content (TODO)</div>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Assign Metadata</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Assign or change the Area, System, and Test Package for this component.
+            </p>
+
+            {/* Area */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Area</label>
+              <Select
+                value={metadataForm.area_id || 'none'}
+                onValueChange={(val) => {
+                  setMetadataForm({ ...metadataForm, area_id: val === 'none' ? null : val });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select area" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No Area --</SelectItem>
+                  {areas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* System */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">System</label>
+              <Select
+                value={metadataForm.system_id || 'none'}
+                onValueChange={(val) => {
+                  setMetadataForm({ ...metadataForm, system_id: val === 'none' ? null : val });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select system" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No System --</SelectItem>
+                  {systems.map((system) => (
+                    <SelectItem key={system.id} value={system.id}>
+                      {system.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Test Package */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Test Package</label>
+              <Select
+                value={metadataForm.test_package_id || 'none'}
+                onValueChange={(val) => {
+                  setMetadataForm({ ...metadataForm, test_package_id: val === 'none' ? null : val });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select test package" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No Test Package --</SelectItem>
+                  {testPackages.map((pkg) => (
+                    <SelectItem key={pkg.id} value={pkg.id}>
+                      {pkg.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Actions */}
+            {canEditMetadata && (
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleMetadataSave}
+                  disabled={!isDirty || assignMutation.isPending}
+                >
+                  {assignMutation.isPending ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleMetadataCancel}
+                  disabled={!isDirty || assignMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {!canEditMetadata && (
+              <p className="text-sm text-muted-foreground pt-4">
+                You don't have permission to edit metadata.
+              </p>
+            )}
+          </div>
         )}
         {activeTab === 'milestones' && (
           <div className="text-sm text-muted-foreground">Milestones content (TODO)</div>
