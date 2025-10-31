@@ -134,6 +134,18 @@ export function useUpdateMilestone(): UseMutationResult<
         queryKey: ['projects', data.component.project_id, 'components'],
       });
 
+      // Invalidate drawing-specific components query (used by drawings page table)
+      if (data.component.drawing_id) {
+        queryClient.invalidateQueries({
+          queryKey: ['components', { drawing_id: data.component.drawing_id }],
+        });
+      }
+
+      // Invalidate drawings list with progress (to update drawing row progress percentages)
+      queryClient.invalidateQueries({
+        queryKey: ['drawings-with-progress', { project_id: data.component.project_id }],
+      });
+
       // Invalidate milestone history for this component (matches useMilestoneHistory query key)
       queryClient.invalidateQueries({
         queryKey: ['milestone-history', data.component.id],
