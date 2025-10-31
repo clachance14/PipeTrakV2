@@ -8,10 +8,17 @@ vi.mock('@/hooks/useComponents', () => ({
   useComponent: () => ({
     data: {
       id: 'comp-1',
+      project_id: 'proj-1',
       component_type: 'valve',
       identity_key: { commodity_code: 'VBALU-001', size: '2', seq: 1 },
       percent_complete: 50,
       current_milestones: {},
+      template: {
+        milestones_config: []
+      },
+      area_id: null,
+      system_id: null,
+      test_package_id: null,
     },
     isLoading: false,
   })
@@ -21,6 +28,38 @@ vi.mock('@/hooks/useMilestoneHistory', () => ({
   useMilestoneHistory: () => ({
     data: [],
     isLoading: false,
+  })
+}))
+
+vi.mock('@/hooks/useMilestones', () => ({
+  useUpdateMilestone: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })
+}))
+
+vi.mock('@/hooks/useAreas', () => ({
+  useAreas: () => ({
+    data: [],
+  })
+}))
+
+vi.mock('@/hooks/useSystems', () => ({
+  useSystems: () => ({
+    data: [],
+  })
+}))
+
+vi.mock('@/hooks/useTestPackages', () => ({
+  useTestPackages: () => ({
+    data: [],
+  })
+}))
+
+vi.mock('@/hooks/useComponentAssignment', () => ({
+  useAssignComponents: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
   })
 }))
 
@@ -88,13 +127,18 @@ describe('ComponentDetailView - Tabs', () => {
 })
 
 describe('ComponentDetailView - Details Tab', () => {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  it('shows metadata editing form when canEditMetadata is true', () => {
+  it('shows metadata editing form when canEditMetadata is true', async () => {
     render(
       <ComponentDetailView
         componentId="comp-1"
@@ -104,6 +148,11 @@ describe('ComponentDetailView - Details Tab', () => {
       { wrapper }
     )
 
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
     // Find all tab buttons
     const tabs = screen.getAllByRole('tab')
     const detailsTab = tabs.find(tab => tab.textContent === 'Details')
@@ -111,11 +160,13 @@ describe('ComponentDetailView - Details Tab', () => {
 
     fireEvent.click(detailsTab!)
 
-    expect(screen.getByText('Assign Metadata')).toBeInTheDocument()
-    expect(screen.getByText('Save')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Assign Metadata')).toBeInTheDocument()
+      expect(screen.getByText('Save')).toBeInTheDocument()
+    })
   })
 
-  it('disables form when canEditMetadata is false', () => {
+  it('disables form when canEditMetadata is false', async () => {
     render(
       <ComponentDetailView
         componentId="comp-1"
@@ -125,6 +176,11 @@ describe('ComponentDetailView - Details Tab', () => {
       { wrapper }
     )
 
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
     // Find all tab buttons
     const tabs = screen.getAllByRole('tab')
     const detailsTab = tabs.find(tab => tab.textContent === 'Details')
@@ -132,6 +188,8 @@ describe('ComponentDetailView - Details Tab', () => {
 
     fireEvent.click(detailsTab!)
 
-    expect(screen.getByText(/don't have permission/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/don't have permission/i)).toBeInTheDocument()
+    })
   })
 })
