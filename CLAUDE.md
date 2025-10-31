@@ -14,6 +14,17 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 
 ### ✅ Recently Completed Features
 
+**Feature 022**: Unified Component Details Form (2025-10-31)
+- ✅ Enhanced ComponentDetailView with 4-tab interface (Overview, Details, Milestones, History)
+- ✅ Metadata editing (Area, System, Test Package) in Details tab
+- ✅ Interactive milestone editing (checkboxes for discrete, sliders for partial)
+- ✅ Milestone history timeline with user and timestamp
+- ✅ Mobile-responsive with dropdown tab selector (<768px)
+- ✅ Permission-based editing (can_update_milestones, can_edit_metadata)
+- ✅ Accessible from both drawings page and components page
+- ✅ Replaced ComponentAssignDialog with unified form
+- ✅ WCAG 2.1 AA accessibility (keyboard navigation, ARIA labels)
+
 **Feature 021**: Public Marketing Homepage (2025-10-29) - **PRODUCTION READY**
 - ✅ Public homepage at `/` with compelling hero section, value propositions, and feature highlights
 - ✅ Auto-redirect authenticated users to `/dashboard`
