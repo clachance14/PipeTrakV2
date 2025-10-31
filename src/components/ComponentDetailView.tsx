@@ -455,6 +455,13 @@ export function ComponentDetailView({
                             Updated by: {event.user.full_name || event.user.email}
                           </p>
                         )}
+
+                        {/* Field weld context */}
+                        {component.component_type === 'field_weld' && event.milestone_name === 'Weld Made' && (
+                          <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                            <p>Field weld milestone - check weld log for welder details</p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -733,6 +740,13 @@ export function ComponentDetailView({
                           <p className="text-xs text-muted-foreground mt-2">
                             Updated by: {event.user.full_name || event.user.email}
                           </p>
+                        )}
+
+                        {/* Field weld context */}
+                        {component.component_type === 'field_weld' && event.milestone_name === 'Weld Made' && (
+                          <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                            <p>Field weld milestone - check weld log for welder details</p>
+                          </div>
                         )}
                       </div>
                     );
