@@ -126,7 +126,7 @@ export function useUpdateMilestone(): UseMutationResult<
       };
     },
     onSuccess: (data) => {
-      // Invalidate component cache to refetch updated percent_complete
+      // Invalidate component cache to refetch updated percent_complete and milestones
       queryClient.invalidateQueries({
         queryKey: ['components', data.component.id],
       });
@@ -134,7 +134,12 @@ export function useUpdateMilestone(): UseMutationResult<
         queryKey: ['projects', data.component.project_id, 'components'],
       });
 
-      // Invalidate milestone events for this component
+      // Invalidate milestone history for this component (matches useMilestoneHistory query key)
+      queryClient.invalidateQueries({
+        queryKey: ['milestone-history', data.component.id],
+      });
+
+      // Also invalidate the old milestone-events query key (for backwards compatibility)
       queryClient.invalidateQueries({
         queryKey: ['components', data.component.id, 'milestone-events'],
       });

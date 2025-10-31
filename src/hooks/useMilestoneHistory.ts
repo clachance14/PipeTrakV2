@@ -26,7 +26,7 @@ export function useMilestoneHistory(componentId: string, limit: number = 20) {
           user:users(email, full_name)
         `)
         .eq('component_id', componentId)
-        .order('timestamp', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(limit)
 
       if (error) {
