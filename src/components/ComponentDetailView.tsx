@@ -17,6 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { formatIdentityKey } from '@/lib/formatIdentityKey';
+import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
 
 interface ComponentDetailViewProps {
   componentId: string;
@@ -38,7 +42,7 @@ export function ComponentDetailView({
 }: ComponentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>('overview');
 
-  const { data: component, isLoading } = useComponent(componentId);
+  const { data: componentData, isLoading } = useComponent(componentId);
 
   // Suppress unused variable warnings for now
   void canUpdateMilestones;
@@ -49,9 +53,37 @@ export function ComponentDetailView({
     return <div className="p-6">Loading component details...</div>;
   }
 
-  if (!component) {
+  if (!componentData) {
     return <div className="p-6">Component not found</div>;
   }
+
+  // Cast to proper type with joined data
+  const component = componentData as any;
+
+  // Format identity based on type
+  let identityDisplay: string;
+  if (component.component_type === 'field_weld') {
+    identityDisplay = formatFieldWeldKey(
+      component.identity_key as Record<string, unknown>,
+      component.component_type
+    );
+  } else if (component.component_type === 'spool') {
+    const key = component.identity_key as Record<string, unknown>;
+    identityDisplay = (key?.spool_id as string) || 'Unknown Spool';
+  } else {
+    identityDisplay = formatIdentityKey(
+      component.identity_key as any,
+      component.component_type as any
+    );
+  }
+
+  // Calculate milestone stats
+  const template = component.progress_template;
+  const totalMilestones = template?.milestones_config?.length || 0;
+  const currentMilestones = (component.current_milestones as Record<string, boolean | number>) || {};
+  const completedMilestones = Object.values(currentMilestones).filter(
+    (value) => value === true || value === 100
+  ).length;
 
   return (
     <>
@@ -64,8 +96,41 @@ export function ComponentDetailView({
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-4">
-          <div className="text-sm text-muted-foreground">Overview content (TODO)</div>
+        <TabsContent value="overview" className="mt-4 space-y-6">
+          {/* Component Identity */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Component</h3>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-mono">{identityDisplay}</span>
+              <Badge variant="secondary">{component.component_type}</Badge>
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Progress</h3>
+              <span className="text-2xl font-bold">{component.percent_complete.toFixed(1)}%</span>
+            </div>
+            <Progress value={component.percent_complete} className="h-3" />
+            <p className="text-sm text-muted-foreground mt-2">
+              Last updated: {component.last_updated_at
+                ? new Date(component.last_updated_at).toLocaleString()
+                : 'Never'}
+            </p>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">Total Milestones</p>
+              <p className="text-3xl font-bold">{totalMilestones}</p>
+            </div>
+            <div className="border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">Completed</p>
+              <p className="text-3xl font-bold">{completedMilestones}</p>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="details" className="mt-4">
@@ -96,7 +161,42 @@ export function ComponentDetailView({
         </Select>
 
         {activeTab === 'overview' && (
-          <div className="text-sm text-muted-foreground">Overview content (TODO)</div>
+          <div className="space-y-6">
+            {/* Component Identity */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Component</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-mono">{identityDisplay}</span>
+                <Badge variant="secondary">{component.component_type}</Badge>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold">Progress</h3>
+                <span className="text-2xl font-bold">{component.percent_complete.toFixed(1)}%</span>
+              </div>
+              <Progress value={component.percent_complete} className="h-3" />
+              <p className="text-sm text-muted-foreground mt-2">
+                Last updated: {component.last_updated_at
+                  ? new Date(component.last_updated_at).toLocaleString()
+                  : 'Never'}
+              </p>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Total Milestones</p>
+                <p className="text-3xl font-bold">{totalMilestones}</p>
+              </div>
+              <div className="border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-3xl font-bold">{completedMilestones}</p>
+              </div>
+            </div>
+          </div>
         )}
         {activeTab === 'details' && (
           <div className="text-sm text-muted-foreground">Details content (TODO)</div>
