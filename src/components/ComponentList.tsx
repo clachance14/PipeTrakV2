@@ -7,7 +7,9 @@
 import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ComponentRow } from './ComponentRow';
+import { SortableColumnHeader } from './table/SortableColumnHeader';
 import type { Database } from '@/types/database.types';
+import type { ComponentSortField, SortDirection } from '@/types/component-table.types';
 
 type Component = Database['public']['Tables']['components']['Row'];
 
@@ -20,6 +22,9 @@ interface ComponentListProps {
   })[];
   onComponentClick?: (component: Component) => void;
   isLoading?: boolean;
+  sortField: ComponentSortField;
+  sortDirection: SortDirection;
+  onSort: (field: ComponentSortField, direction: SortDirection) => void;
 }
 
 /**
@@ -31,6 +36,9 @@ export function ComponentList({
   components,
   onComponentClick,
   isLoading,
+  sortField,
+  sortDirection,
+  onSort,
 }: ComponentListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -64,12 +72,61 @@ export function ComponentList({
     <div className="overflow-hidden h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-4 py-3 bg-muted border-b font-medium text-sm">
-        <div className="flex-1">Component</div>
-        <div className="flex-1 hidden md:block">Drawing</div>
-        <div className="flex-1 hidden lg:block">Area</div>
-        <div className="flex-1 hidden lg:block">System</div>
-        <div className="flex-1 hidden xl:block">Test Package</div>
-        <div className="w-20 text-right">Progress</div>
+        <div className="flex-1">
+          <SortableColumnHeader
+            label="Component"
+            field="identity_key"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+        <div className="flex-1 hidden md:block">
+          <SortableColumnHeader
+            label="Drawing"
+            field="drawing"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+        <div className="flex-1 hidden lg:block">
+          <SortableColumnHeader
+            label="Area"
+            field="area"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+        <div className="flex-1 hidden lg:block">
+          <SortableColumnHeader
+            label="System"
+            field="system"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+        <div className="flex-1 hidden xl:block">
+          <SortableColumnHeader
+            label="Test Package"
+            field="test_package"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+        <div className="w-20 text-right">
+          <SortableColumnHeader
+            label="Progress"
+            field="percent_complete"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+            className="justify-end"
+          />
+        </div>
       </div>
 
       {/* Virtualized List */}
