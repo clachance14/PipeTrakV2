@@ -138,6 +138,16 @@ export function ComponentDetailView({
       newValue = !currentValue;
     }
 
+    // For field welds: Auto-open welder dialog when Weld Made is checked
+    if (
+      component.component_type === 'field_weld' &&
+      milestoneName === 'Weld Made' &&
+      newValue === true
+    ) {
+      setWelderDialogOpen(true);
+      return; // Don't update milestone yet - let welder assignment handle it
+    }
+
     try {
       await updateMilestoneMutation.mutateAsync({
         component_id: component.id,

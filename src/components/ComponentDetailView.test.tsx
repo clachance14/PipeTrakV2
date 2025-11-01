@@ -5,23 +5,59 @@ import { ComponentDetailView } from './ComponentDetailView'
 
 // Mock hooks
 vi.mock('@/hooks/useComponents', () => ({
-  useComponent: () => ({
-    data: {
-      id: 'comp-1',
-      project_id: 'proj-1',
-      component_type: 'valve',
-      identity_key: { commodity_code: 'VBALU-001', size: '2', seq: 1 },
-      percent_complete: 50,
-      current_milestones: {},
-      template: {
-        milestones_config: []
+  useComponent: (componentId: string) => {
+    // Return field_weld mock for fw-1
+    if (componentId === 'fw-1') {
+      return {
+        data: {
+          id: 'fw-1',
+          project_id: 'proj-1',
+          component_type: 'field_weld',
+          identity_key: { drawing_number: 'DWG-001', sequence: 1 },
+          percent_complete: 10,
+          current_milestones: {
+            'Fit-Up': false,
+            'Weld Made': false,
+            'Punch': false,
+            'Test': false,
+            'Restore': false,
+          },
+          progress_template: {
+            milestones_config: [
+              { name: 'Fit-Up', weight: 10, is_partial: false, order: 1, requires_welder: false },
+              { name: 'Weld Made', weight: 60, is_partial: false, order: 2, requires_welder: true },
+              { name: 'Punch', weight: 10, is_partial: false, order: 3, requires_welder: false },
+              { name: 'Test', weight: 15, is_partial: false, order: 4, requires_welder: false },
+              { name: 'Restore', weight: 5, is_partial: false, order: 5, requires_welder: false },
+            ]
+          },
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+        },
+        isLoading: false,
+      }
+    }
+
+    // Default valve mock
+    return {
+      data: {
+        id: 'comp-1',
+        project_id: 'proj-1',
+        component_type: 'valve',
+        identity_key: { commodity_code: 'VBALU-001', size: '2', seq: 1 },
+        percent_complete: 50,
+        current_milestones: {},
+        template: {
+          milestones_config: []
+        },
+        area_id: null,
+        system_id: null,
+        test_package_id: null,
       },
-      area_id: null,
-      system_id: null,
-      test_package_id: null,
-    },
-    isLoading: false,
-  })
+      isLoading: false,
+    }
+  }
 }))
 
 vi.mock('@/hooks/useMilestoneHistory', () => ({
@@ -257,6 +293,69 @@ describe('ComponentDetailView - Milestones Tab', () => {
     // Should show permission message
     await waitFor(() => {
       expect(screen.getByText(/don't have permission/i)).toBeInTheDocument()
+    })
+  })
+})
+
+// Mock WelderAssignDialog component
+vi.mock('@/components/field-welds/WelderAssignDialog', () => ({
+  WelderAssignDialog: ({ open }: { open: boolean }) => {
+    return open ? <div role="dialog" data-testid="welder-dialog">Welder Assignment Dialog</div> : null
+  }
+}))
+
+describe('ComponentDetailView - Field Weld Auto-Open Welder Dialog', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('opens welder dialog when Weld Made milestone is checked for field weld', async () => {
+    // The mock at the top of the file handles fw-1 as a field_weld component
+    render(
+      <ComponentDetailView
+        componentId="fw-1"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Navigate to Milestones tab
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    expect(milestonesTab).toBeDefined()
+    fireEvent.click(milestonesTab!)
+
+    // Find the Weld Made checkbox
+    await waitFor(() => {
+      expect(screen.getByText('Weld Made')).toBeInTheDocument()
+    })
+
+    // Get all checkboxes (should be 5 for the 5 milestones: Fit-Up, Weld Made, Punch, Test, Restore)
+    const checkboxes = screen.getAllByRole('checkbox')
+    // Weld Made is the second milestone (index 1)
+    const weldMadeCheckbox = checkboxes[1]
+
+    // Initially, welder dialog should not be visible
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    // Check the Weld Made checkbox
+    fireEvent.click(weldMadeCheckbox)
+
+    // Welder dialog should now be open
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
   })
 })
