@@ -7,6 +7,7 @@
  */
 
 import type { Database } from '@/types/database.types'
+import type { SortDirection as SortDirectionType } from '@/components/table/SortableColumnHeader'
 
 // ============================================================================
 // Component Types
@@ -247,8 +248,9 @@ export type SortField =
 
 /**
  * Sort direction options
+ * Re-exported from SortableColumnHeader for backward compatibility
  */
-export type SortDirection = 'asc' | 'desc'
+export type SortDirection = SortDirectionType
 
 /**
  * URL query parameters for the drawing table page

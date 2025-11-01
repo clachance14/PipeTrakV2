@@ -1,17 +1,18 @@
 import { ArrowUp, ArrowDown } from 'lucide-react'
-import type { SortField, SortDirection } from '@/types/drawing-table.types'
 
-interface SortableColumnHeaderProps {
+export type SortDirection = 'asc' | 'desc'
+
+interface SortableColumnHeaderProps<T extends string> {
   /** Column label to display */
   label: string
   /** Field name this column sorts by */
-  field: SortField
+  field: T
   /** Current active sort field */
-  currentSortField: SortField
+  currentSortField: T
   /** Current sort direction */
   currentSortDirection: SortDirection
   /** Callback when column is clicked */
-  onSort: (field: SortField, direction: SortDirection) => void
+  onSort: (field: T, direction: SortDirection) => void
   /** Optional CSS classes */
   className?: string
 }
@@ -20,21 +21,22 @@ interface SortableColumnHeaderProps {
  * Sortable column header component
  *
  * Displays column label with sort indicator icon.
- * Clicking cycles through: asc → desc → back to default (drawing_no_norm asc)
+ * Clicking cycles through: asc → desc → back to asc
  *
  * Features:
  * - Visual sort indicator (ArrowUp/ArrowDown)
  * - Keyboard accessible (Tab, Enter/Space)
  * - ARIA labels for screen readers
+ * - Generic field type for reusability
  */
-export function SortableColumnHeader({
+export function SortableColumnHeader<T extends string>({
   label,
   field,
   currentSortField,
   currentSortDirection,
   onSort,
   className = '',
-}: SortableColumnHeaderProps) {
+}: SortableColumnHeaderProps<T>) {
   const isActive = currentSortField === field
 
   const handleClick = () => {
@@ -45,8 +47,9 @@ export function SortableColumnHeader({
       // Currently sorted ascending - switch to descending
       onSort(field, 'desc')
     } else {
-      // Currently sorted descending - reset to default (drawing_no_norm asc)
-      onSort('drawing_no_norm', 'asc')
+      // Currently sorted descending - cycle back to ascending
+      // Note: Reset behavior depends on parent component's default field
+      onSort(field, 'asc')
     }
   }
 
@@ -72,7 +75,7 @@ export function SortableColumnHeader({
       aria-label={
         isActive
           ? `${label}, sorted ${currentSortDirection === 'asc' ? 'ascending' : 'descending'}. Click to ${
-              currentSortDirection === 'asc' ? 'sort descending' : 'reset sort'
+              currentSortDirection === 'asc' ? 'sort descending' : 'sort ascending'
             }.`
           : `${label}, not sorted. Click to sort ascending.`
       }
