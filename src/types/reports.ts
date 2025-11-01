@@ -124,3 +124,127 @@ export const DIMENSION_LABELS: Record<GroupingDimension, string> = {
   system: 'System',
   test_package: 'Test Package',
 };
+
+/**
+ * ============================================================================
+ * FIELD WELD PROGRESS REPORTS (Weekly Field Weld Reports Feature)
+ * ============================================================================
+ */
+
+// Grouping dimension for field weld reports (includes 'welder')
+export type FieldWeldGroupingDimension = 'area' | 'system' | 'test_package' | 'welder';
+
+// Field weld progress row data structure (matches view output)
+export interface FieldWeldProgressRow {
+  // Primary key (area_id, system_id, test_package_id, or welder_id)
+  id: string;
+  // Display name (area_name, system_name, test_package_name, or welder_name)
+  name: string;
+  // Welder stencil (only for welder dimension)
+  stencil?: string;
+  // Project ID for filtering
+  projectId: string;
+
+  // Budget metrics
+  totalWelds: number;
+  activeCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+
+  // Milestone progress (0-100%)
+  pctFitup: number;
+  pctWeldComplete: number;
+  pctAccepted: number;
+
+  // NDE metrics
+  ndeRequiredCount: number;
+  ndePassCount: number;
+  ndeFailCount: number;
+  ndePendingCount: number;
+  ndePassRate: number | null;
+
+  // Repair metrics
+  repairCount: number;
+  repairRate: number;
+
+  // Time metrics (in days)
+  avgDaysToNDE: number | null;
+  avgDaysToAcceptance: number | null;
+
+  // Overall completion
+  pctTotal: number;
+
+  // Welder-specific metrics (only for welder dimension)
+  firstPassAcceptanceCount?: number;
+  firstPassAcceptanceRate?: number | null;
+}
+
+// Grand Total row for field weld reports
+export interface FieldWeldGrandTotalRow {
+  name: 'Grand Total';
+  totalWelds: number;
+  activeCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  pctFitup: number;
+  pctWeldComplete: number;
+  pctAccepted: number;
+  ndeRequiredCount: number;
+  ndePassCount: number;
+  ndeFailCount: number;
+  ndePendingCount: number;
+  ndePassRate: number | null;
+  repairCount: number;
+  repairRate: number;
+  avgDaysToNDE: number | null;
+  avgDaysToAcceptance: number | null;
+  pctTotal: number;
+  // Welder-specific (only shown for welder dimension)
+  firstPassAcceptanceCount?: number;
+  firstPassAcceptanceRate?: number | null;
+}
+
+// Field weld report data structure
+export interface FieldWeldReportData {
+  dimension: FieldWeldGroupingDimension;
+  rows: FieldWeldProgressRow[];
+  grandTotal: FieldWeldGrandTotalRow;
+  generatedAt: Date;
+  projectId: string;
+}
+
+// Field weld dimension display labels
+export const FIELD_WELD_DIMENSION_LABELS: Record<FieldWeldGroupingDimension, string> = {
+  area: 'Area',
+  system: 'System',
+  test_package: 'Test Package',
+  welder: 'Welder',
+};
+
+// Field weld report column configuration
+export interface FieldWeldReportColumn {
+  key: keyof FieldWeldProgressRow | keyof FieldWeldGrandTotalRow;
+  label: string;
+  width?: number;
+  align?: 'left' | 'center' | 'right';
+  format?: 'text' | 'number' | 'percentage' | 'decimal';
+  hideOnMobile?: boolean; // Hide column on mobile (≤1024px)
+}
+
+// Standard field weld report columns
+export const FIELD_WELD_REPORT_COLUMNS: FieldWeldReportColumn[] = [
+  { key: 'name', label: 'Name', align: 'left', format: 'text' },
+  { key: 'totalWelds', label: 'Total Welds', align: 'right', format: 'number' },
+  { key: 'pctFitup', label: 'Fit-up', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'pctWeldComplete', label: 'Weld Complete', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'pctAccepted', label: 'Accepted', align: 'right', format: 'percentage' },
+  { key: 'ndePassRate', label: 'NDE Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'repairRate', label: 'Repair Rate', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'pctTotal', label: '% Complete', align: 'right', format: 'percentage' },
+] as const;
+
+// Welder-specific columns (additional columns for welder dimension)
+export const WELDER_PERFORMANCE_COLUMNS: FieldWeldReportColumn[] = [
+  { key: 'firstPassAcceptanceRate', label: 'First Pass Rate', align: 'right', format: 'percentage' },
+  { key: 'avgDaysToAcceptance', label: 'Avg Days to Accept', align: 'right', format: 'decimal', hideOnMobile: true },
+] as const;
