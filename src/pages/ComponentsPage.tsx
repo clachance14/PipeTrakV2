@@ -3,13 +3,14 @@
  * Main page for viewing and managing components with filtering and assignment
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
 import { ComponentFilters, ComponentFiltersState } from '@/components/ComponentFilters';
 import { ComponentList } from '@/components/ComponentList';
 import { ComponentAssignDialog } from '@/components/ComponentAssignDialog';
 import { ComponentDetailView } from '@/components/ComponentDetailView';
 import { useComponents } from '@/hooks/useComponents';
+import { useComponentSort } from '@/hooks/useComponentSort';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,6 +34,13 @@ export function ComponentsPage({
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
 
   const { data: components = [], isLoading } = useComponents(projectId, filters);
+  const { sortField, sortDirection, sortComponents, handleSort } = useComponentSort();
+
+  // Sort components using the hook
+  const sortedComponents = useMemo(
+    () => sortComponents(components),
+    [components, sortComponents]
+  );
 
   const handleComponentClick = (component: any) => {
     setSelectedComponentId(component.id);
@@ -62,7 +70,7 @@ export function ComponentsPage({
             )}
 
             <div className="ml-auto text-sm text-slate-600">
-              Showing {components.length} component{components.length !== 1 ? 's' : ''}
+              Showing {sortedComponents.length} component{sortedComponents.length !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
@@ -70,9 +78,12 @@ export function ComponentsPage({
         {/* Component List */}
         <div className="bg-white rounded-lg shadow h-[calc(100vh-280px)]">
           <ComponentList
-            components={components}
+            components={sortedComponents}
             onComponentClick={handleComponentClick}
             isLoading={isLoading}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
           />
         </div>
 
