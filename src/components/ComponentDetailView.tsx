@@ -30,6 +30,8 @@ import { formatIdentityKey } from '@/lib/formatIdentityKey';
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMilestoneHistory } from '@/hooks/useMilestoneHistory';
+import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog';
+import { UserPlus } from 'lucide-react';
 
 interface ComponentDetailViewProps {
   componentId: string;
@@ -50,6 +52,7 @@ export function ComponentDetailView({
   onMetadataChange,
 }: ComponentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>('overview');
+  const [welderDialogOpen, setWelderDialogOpen] = useState(false);
 
   const { data: componentData, isLoading } = useComponent(componentId);
   const updateMilestoneMutation = useUpdateMilestone();
@@ -347,7 +350,22 @@ export function ComponentDetailView({
 
         <TabsContent value="milestones" className="mt-4 space-y-4">
           <div>
-            <h3 className="text-lg font-semibold mb-4">Milestones</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Milestones</h3>
+
+              {/* Field weld welder assignment button */}
+              {component.component_type === 'field_weld' && canUpdateMilestones && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWelderDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Assign Welder
+                </Button>
+              )}
+            </div>
 
             {!canUpdateMilestones && (
               <p className="text-sm text-muted-foreground mb-4">
@@ -634,7 +652,22 @@ export function ComponentDetailView({
         )}
         {activeTab === 'milestones' && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold mb-4">Milestones</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Milestones</h3>
+
+              {/* Field weld welder assignment button */}
+              {component.component_type === 'field_weld' && canUpdateMilestones && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWelderDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Assign Welder
+                </Button>
+              )}
+            </div>
 
             {!canUpdateMilestones && (
               <p className="text-sm text-muted-foreground mb-4">
@@ -757,6 +790,16 @@ export function ComponentDetailView({
           </div>
         )}
       </div>
+
+      {/* Welder Assignment Dialog (for field welds) */}
+      {component?.component_type === 'field_weld' && (
+        <WelderAssignDialog
+          componentId={componentId}
+          projectId={component.project_id}
+          open={welderDialogOpen}
+          onOpenChange={setWelderDialogOpen}
+        />
+      )}
     </>
   );
 }
