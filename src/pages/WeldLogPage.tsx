@@ -88,7 +88,7 @@ export function WeldLogPage() {
 
   if (isLoading) {
     return (
-      <Layout>
+      <Layout fixedHeight>
         <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Weld Log</h1>
@@ -107,7 +107,7 @@ export function WeldLogPage() {
 
   if (isError) {
     return (
-      <Layout>
+      <Layout fixedHeight>
         <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Weld Log</h1>
@@ -127,18 +127,18 @@ export function WeldLogPage() {
   }
 
   return (
-    <Layout>
-      <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Weld Log</h1>
-          <p className="mt-2 text-sm text-slate-600">
+    <Layout fixedHeight>
+      <div className="flex flex-col h-full mx-auto max-w-[1920px] px-4 py-3 md:py-8 sm:px-6 lg:px-8">
+        {/* Page Header - Fixed */}
+        <div className="flex-shrink-0 mb-3 md:mb-6">
+          <h1 className="text-lg md:text-3xl font-bold text-slate-900">Weld Log</h1>
+          <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-600">
             QC tracking for all project field welds - Sortable table with advanced filtering
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="mb-6">
+        {/* Filters - Fixed */}
+        <div className="flex-shrink-0 mb-3 md:mb-6">
           <WeldLogFilters
             welds={welds}
             drawings={drawings}
@@ -149,8 +149,8 @@ export function WeldLogPage() {
           />
         </div>
 
-        {/* Table */}
-        <div className="mb-8">
+        {/* Table - Scrollable fills remaining space */}
+        <div className="flex-1 overflow-hidden">
           <WeldLogTable
             welds={filteredWelds}
             userRole={user?.role}
@@ -169,13 +169,6 @@ export function WeldLogPage() {
               }
             }}
           />
-        </div>
-
-        {/* Responsive Design Notes */}
-        <div className="mt-8 hidden text-xs text-slate-500 lg:block">
-          <p>
-            <strong>Desktop view</strong> - All columns visible with sortable headers
-          </p>
         </div>
       </div>
 

@@ -122,7 +122,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="h-full overflow-auto rounded-lg border border-slate-200 bg-white">
       <table className="w-full divide-y divide-slate-200">
         <thead>
           <tr>
