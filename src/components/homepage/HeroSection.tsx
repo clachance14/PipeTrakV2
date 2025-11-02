@@ -15,10 +15,6 @@ export function HeroSection() {
   }
 
   const handleViewFeatures = () => {
-    smoothScroll('reporting')
-  }
-
-  const handleLearnMore = () => {
     smoothScroll('features')
   }
 
@@ -37,13 +33,13 @@ export function HeroSection() {
       </div>
 
       {/* Logo/Wordmark (top-left) */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center px-6 py-4 md:px-12">
-        <div className="text-white text-2xl font-bold tracking-tight">
+      <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center px-4 py-3 md:px-12 md:py-4">
+        <div className="text-white text-xl md:text-2xl font-bold tracking-tight">
           PipeTrak
         </div>
         <a
           href="/login"
-          className="text-white hover:text-slate-300 transition-colors px-4 py-2 text-sm font-medium"
+          className="text-white hover:text-slate-300 transition-colors px-3 py-2 text-sm font-medium flex items-center justify-center"
           style={{ minWidth: '44px', minHeight: '44px' }}
         >
           Login
@@ -51,28 +47,28 @@ export function HeroSection() {
       </div>
 
       {/* Hero Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 pt-24 md:pt-0 md:px-6 text-center">
         {/* Headline */}
-        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-bold text-white mb-3 sm:mb-4 md:mb-6 leading-tight">
           Track Every Pipe.
           <br />
           From Takeoff to Turnover.
         </h1>
 
         {/* Tagline */}
-        <p className="text-xl md:text-2xl text-slate-300 mb-10 max-w-3xl mx-auto">
+        <p className="text-sm sm:text-base md:text-xl lg:text-2xl text-slate-300 mb-4 sm:mb-6 md:mb-10 max-w-3xl mx-auto px-2">
           Industrial pipe tracking for construction teams who demand visibility, efficiency, and control.
         </p>
 
         {/* Value Propositions (3 bullets) */}
         <div
-          className="flex flex-col md:flex-row gap-6 mb-12 justify-center items-center"
+          className="flex flex-col md:flex-row gap-3 md:gap-6 mb-4 sm:mb-6 md:mb-12 justify-center items-center"
           role="list"
           aria-label="Key features"
         >
-          <div className="flex items-center gap-3" role="listitem">
+          <div className="flex items-center gap-2" role="listitem">
             <svg
-              className="w-6 h-6 text-blue-400 flex-shrink-0"
+              className="w-5 h-5 md:w-6 md:h-6 text-blue-400 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -85,12 +81,12 @@ export function HeroSection() {
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
-            <span className="text-white font-medium">Real-Time Visibility</span>
+            <span className="text-white font-medium text-sm md:text-base">Real-Time Visibility</span>
           </div>
 
-          <div className="flex items-center gap-3" role="listitem">
+          <div className="flex items-center gap-2" role="listitem">
             <svg
-              className="w-6 h-6 text-blue-400 flex-shrink-0"
+              className="w-5 h-5 md:w-6 md:h-6 text-blue-400 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -103,12 +99,12 @@ export function HeroSection() {
                 d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-white font-medium">Mobile-First Updates</span>
+            <span className="text-white font-medium text-sm md:text-base">Mobile-First Updates</span>
           </div>
 
-          <div className="flex items-center gap-3" role="listitem">
+          <div className="flex items-center gap-2" role="listitem">
             <svg
-              className="w-6 h-6 text-blue-400 flex-shrink-0"
+              className="w-5 h-5 md:w-6 md:h-6 text-blue-400 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -121,16 +117,16 @@ export function HeroSection() {
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span className="text-white font-medium">Complete Audit Trail</span>
+            <span className="text-white font-medium text-sm md:text-base">Complete Audit Trail</span>
           </div>
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 justify-center items-stretch sm:items-center px-2">
           <button
             onClick={handleTryDemo}
-            className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl"
-            style={{ minWidth: '200px', minHeight: '56px' }}
+            className="px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm sm:text-base md:text-lg shadow-lg hover:shadow-xl"
+            style={{ minHeight: '44px' }}
             aria-label="Try PipeTrak demo project"
           >
             Try Demo Project
@@ -138,20 +134,11 @@ export function HeroSection() {
 
           <button
             onClick={handleViewFeatures}
-            className="px-8 py-4 bg-transparent border-2 border-blue-400 text-blue-400 rounded-lg hover:bg-blue-400/10 transition-colors font-semibold text-lg"
-            style={{ minWidth: '200px', minHeight: '56px' }}
+            className="px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 bg-transparent border-2 border-blue-400 text-blue-400 rounded-lg hover:bg-blue-400/10 transition-colors font-semibold text-sm sm:text-base md:text-lg"
+            style={{ minHeight: '44px' }}
             aria-label="View PipeTrak features"
           >
             View Features
-          </button>
-
-          <button
-            onClick={handleLearnMore}
-            className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
-            style={{ minWidth: '200px', minHeight: '56px' }}
-            aria-label="Learn more about PipeTrak"
-          >
-            Learn More
           </button>
         </div>
       </div>
