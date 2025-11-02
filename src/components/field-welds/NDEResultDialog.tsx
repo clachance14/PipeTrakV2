@@ -201,19 +201,19 @@ export function NDEResultDialog({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="PASS" id="pass" />
                   <Label htmlFor="pass" className="font-normal cursor-pointer">
-                    PASS ◉
+                    PASS
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="FAIL" id="fail" />
                   <Label htmlFor="fail" className="font-normal cursor-pointer">
-                    FAIL ○
+                    FAIL
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="PENDING" id="pending" />
                   <Label htmlFor="pending" className="font-normal cursor-pointer">
-                    PENDING ○
+                    PENDING
                   </Label>
                 </div>
               </RadioGroup>

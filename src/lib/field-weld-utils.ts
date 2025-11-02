@@ -132,14 +132,9 @@ export function formatIdentityKey(
     return repairId || 'REPAIR'
   }
 
-  // Regular weld ID
+  // Regular weld ID - field welds always have unique weld numbers, no "x of y" needed
   if ('weld_number' in identityKey) {
     const weldNumber = identityKey.weld_number as string
-    // Add count suffix if multiple welds with same identity exist
-    if (totalCount && totalCount > 1) {
-      const seq = identityKey.seq as number
-      return `${weldNumber} ${seq} of ${totalCount}`
-    }
     return weldNumber
   }
 

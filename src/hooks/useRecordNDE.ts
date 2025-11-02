@@ -76,6 +76,7 @@ export function useRecordNDE() {
     onSuccess: (_data, payload) => {
       // Invalidate caches
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
+      queryClient.invalidateQueries({ queryKey: ['field-welds'] }) // For Weld Log table
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
 

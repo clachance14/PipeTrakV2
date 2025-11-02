@@ -333,6 +333,16 @@ export function usePackageComponents(
 function formatIdentityKey(key: any, type: string, totalCount = 1): string {
   if (!key) return 'Unknown';
 
+  // Spools have unique spool_id - no "x of y" formatting needed
+  if (type === 'spool' && 'spool_id' in key) {
+    return key.spool_id;
+  }
+
+  // Field welds have unique weld_number - no "x of y" formatting needed
+  if (type === 'field_weld' && 'weld_number' in key) {
+    return key.weld_number;
+  }
+
   const { commodity_code, size, seq } = key;
   const sizeDisplay = size && size !== 'NOSIZE' ? ` ${size}` : '';
 

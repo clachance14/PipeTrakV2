@@ -19,6 +19,16 @@ export function formatIdentityKey(
   type: ComponentType,
   totalCount?: number
 ): string {
+  // Spools have unique spool_id - no "x of y" formatting needed
+  if (type === 'spool' && 'spool_id' in key) {
+    return (key as any).spool_id || 'Unknown Spool'
+  }
+
+  // Field welds have unique weld_number - no "x of y" formatting needed
+  if (type === 'field_weld' && 'weld_number' in key) {
+    return (key as any).weld_number || 'Unknown Weld'
+  }
+
   const { commodity_code, size, seq } = key
 
   // Check if size should be displayed
