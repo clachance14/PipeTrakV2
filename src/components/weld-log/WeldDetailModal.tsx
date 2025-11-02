@@ -36,15 +36,17 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onReco
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Weld Details: {weld.identityDisplay}</DialogTitle>
-          <DialogDescription>
-            Complete information for this weld including specifications, NDE results, and status
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden">
+        <div className="flex-shrink-0 p-6 pb-4 pr-12">
+          <DialogHeader>
+            <DialogTitle>Weld Details: {weld.identityDisplay}</DialogTitle>
+            <DialogDescription>
+              Complete information for this weld including specifications, NDE results, and status
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 space-y-6">
           {/* Identification Section */}
           <section aria-labelledby="identification-heading">
             <h2 id="identification-heading" className="text-sm font-semibold text-slate-900 mb-3">Identification</h2>
@@ -180,43 +182,45 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onReco
           </section>
         </div>
 
-        {/* Conditional Action Buttons */}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-            {/* Conditional Button Logic:
-                - If weld not made (no welder_id): Show "Update Weld" button
-                - If weld made but no NDE result: Show "Record NDE" button
-                - If NDE recorded: Show NO action buttons
-            */}
-            {!weld.welder_id && (
-              <button
-                onClick={onUpdateWeld}
-                className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Update weld milestones"
-              >
-                Update Weld
-              </button>
-            )}
+        {/* Fixed Footer with Action Buttons */}
+        <div className="flex-shrink-0 p-6 pt-4 border-t border-slate-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              {/* Conditional Button Logic:
+                  - If weld not made (no welder_id): Show "Update Weld" button
+                  - If weld made but no NDE result: Show "Record NDE" button
+                  - If NDE recorded: Show NO action buttons
+              */}
+              {!weld.welder_id && (
+                <button
+                  onClick={onUpdateWeld}
+                  className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  aria-label="Update weld milestones"
+                >
+                  Update Weld
+                </button>
+              )}
 
-            {weld.welder_id && !weld.nde_result && (
-              <button
-                onClick={onRecordNDE}
-                className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Record NDE result"
-              >
-                Record NDE
-              </button>
-            )}
+              {weld.welder_id && !weld.nde_result && (
+                <button
+                  onClick={onRecordNDE}
+                  className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Record NDE result"
+                >
+                  Record NDE
+                </button>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="min-h-[44px] px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              aria-label="Close dialog"
+            >
+              Close
+            </button>
           </div>
-
-          {/* Close Button */}
-          <button
-            onClick={() => onOpenChange(false)}
-            className="min-h-[44px] px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400"
-            aria-label="Close dialog"
-          >
-            Close
-          </button>
         </div>
       </DialogContent>
     </Dialog>

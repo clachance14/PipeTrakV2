@@ -188,9 +188,9 @@ export function DrawingComponentTablePage() {
   if (isLoading) {
     return (
       <Layout fixedHeight>
-        <div className="mx-auto px-4 py-8">
+        <div className="flex flex-col h-full mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="bg-white rounded-lg shadow h-[calc(100vh-200px)]">
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden">
             <DrawingTable
               drawings={[]}
               expandedDrawingIds={new Set()}
@@ -213,10 +213,12 @@ export function DrawingComponentTablePage() {
   if (isError) {
     return (
       <Layout fixedHeight>
-        <div className="mx-auto px-4 py-8">
+        <div className="flex flex-col h-full mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="bg-white rounded-lg shadow p-4">
-            <DrawingTableError error={error} onRetry={() => refetch()} />
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto">
+            <div className="p-4">
+              <DrawingTableError error={error} onRetry={() => refetch()} />
+            </div>
           </div>
         </div>
       </Layout>
@@ -227,14 +229,16 @@ export function DrawingComponentTablePage() {
   if (displayDrawings.length === 0) {
     return (
       <Layout fixedHeight>
-        <div className="mx-auto px-4 py-8">
+        <div className="flex flex-col h-full mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="bg-white rounded-lg shadow p-4">
-            <EmptyDrawingsState
-              hasSearch={searchTerm !== ''}
-              hasFilter={statusFilter !== 'all'}
-              onClearFilters={handleClearFilters}
-            />
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto">
+            <div className="p-4">
+              <EmptyDrawingsState
+                hasSearch={searchTerm !== ''}
+                hasFilter={statusFilter !== 'all'}
+                onClearFilters={handleClearFilters}
+              />
+            </div>
           </div>
         </div>
       </Layout>
@@ -315,7 +319,7 @@ export function DrawingComponentTablePage() {
         )}
 
         {/* Table - Scrollable fills remaining space */}
-        <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden">
           <DrawingTable
             drawings={displayDrawings}
             expandedDrawingIds={expandedDrawingIds}

@@ -57,40 +57,56 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
     }
   }
 
-  const sortedWelds = [...welds].sort((a, b) => {
-    const multiplier = sortDirection === 'asc' ? 1 : -1
+  const sortedWelds = (() => {
+    // Special handling for date_welded: exclude null dates from sort
+    if (sortColumn === 'date_welded') {
+      const weldsWithDates = welds.filter(w => w.date_welded !== null)
+      const weldsWithoutDates = welds.filter(w => w.date_welded === null)
 
-    switch (sortColumn) {
-      case 'weld_id':
-        return multiplier * a.identityDisplay.localeCompare(b.identityDisplay)
-      case 'drawing':
-        return multiplier * a.drawing.drawing_no_norm.localeCompare(b.drawing.drawing_no_norm)
-      case 'welder':
-        const welderA = a.welder?.stencil || 'zzz'
-        const welderB = b.welder?.stencil || 'zzz'
-        return multiplier * welderA.localeCompare(welderB)
-      case 'date_welded':
-        const dateA = a.date_welded || '9999-12-31'
-        const dateB = b.date_welded || '9999-12-31'
+      // Sort only welds with dates
+      const sorted = [...weldsWithDates].sort((a, b) => {
+        const multiplier = sortDirection === 'asc' ? 1 : -1
+        const dateA = a.date_welded!
+        const dateB = b.date_welded!
         return multiplier * dateA.localeCompare(dateB)
-      case 'weld_type':
-        return multiplier * a.weld_type.localeCompare(b.weld_type)
-      case 'size':
-        const sizeA = a.weld_size || 'zzz'
-        const sizeB = b.weld_size || 'zzz'
-        return multiplier * sizeA.localeCompare(sizeB)
-      case 'nde_result':
-        const ndeA = a.nde_result || 'zzz'
-        const ndeB = b.nde_result || 'zzz'
-        return multiplier * ndeA.localeCompare(ndeB)
-      case 'status':
-        return multiplier * a.status.localeCompare(b.status)
-      case 'progress':
-        return multiplier * (a.component.percent_complete - b.component.percent_complete)
-      default:
-        return 0
+      })
+
+      // Append welds without dates at the end
+      return [...sorted, ...weldsWithoutDates]
     }
-  })
+
+    // Standard sorting for all other columns
+    return [...welds].sort((a, b) => {
+      const multiplier = sortDirection === 'asc' ? 1 : -1
+
+      switch (sortColumn) {
+        case 'weld_id':
+          return multiplier * a.identityDisplay.localeCompare(b.identityDisplay)
+        case 'drawing':
+          return multiplier * a.drawing.drawing_no_norm.localeCompare(b.drawing.drawing_no_norm)
+        case 'welder':
+          const welderA = a.welder?.stencil || 'zzz'
+          const welderB = b.welder?.stencil || 'zzz'
+          return multiplier * welderA.localeCompare(welderB)
+        case 'weld_type':
+          return multiplier * a.weld_type.localeCompare(b.weld_type)
+        case 'size':
+          const sizeA = a.weld_size || 'zzz'
+          const sizeB = b.weld_size || 'zzz'
+          return multiplier * sizeA.localeCompare(sizeB)
+        case 'nde_result':
+          const ndeA = a.nde_result || 'zzz'
+          const ndeB = b.nde_result || 'zzz'
+          return multiplier * ndeA.localeCompare(ndeB)
+        case 'status':
+          return multiplier * a.status.localeCompare(b.status)
+        case 'progress':
+          return multiplier * (a.component.percent_complete - b.component.percent_complete)
+        default:
+          return 0
+      }
+    })
+  })()
 
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) {
