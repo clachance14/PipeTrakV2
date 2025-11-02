@@ -127,11 +127,20 @@ async function syncSingleUpdate(update: QueuedUpdate, retryCount: number = 0): P
     await new Promise(resolve => setTimeout(resolve, delay))
   }
 
+  // Convert boolean to numeric (1 or 0) for discrete milestones
+  // Partial milestones already have numeric values (0-100)
+  let numericValue: number
+  if (typeof update.value === 'boolean') {
+    numericValue = update.value ? 1 : 0
+  } else {
+    numericValue = update.value
+  }
+
   // Call Supabase RPC
   const { error } = await supabase.rpc('update_component_milestone', {
     p_component_id: update.component_id,
     p_milestone_name: update.milestone_name,
-    p_new_value: update.value as number,
+    p_new_value: numericValue,
     p_user_id: update.user_id
   })
 
