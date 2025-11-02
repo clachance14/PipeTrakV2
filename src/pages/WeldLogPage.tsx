@@ -10,14 +10,18 @@ import { WeldLogTable } from '@/components/weld-log/WeldLogTable'
 import { useFieldWelds, type EnrichedFieldWeld } from '@/hooks/useFieldWelds'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { NDEResultDialog } from '@/components/field-welds/NDEResultDialog'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
 import { CreateRepairWeldDialog } from '@/components/field-welds/CreateRepairWeldDialog'
+import { WeldDetailModal } from '@/components/weld-log/WeldDetailModal'
+import { UpdateWeldDialog } from '@/components/field-welds/UpdateWeldDialog'
 
 export function WeldLogPage() {
   const { user } = useAuth()
   const { selectedProjectId } = useProject()
   const projectId = selectedProjectId || ''
+  const isMobile = useMobileDetection()
 
   const { data: welds = [], isLoading, isError, error } = useFieldWelds({
     projectId,
@@ -26,8 +30,10 @@ export function WeldLogPage() {
 
   const [filteredWelds, setFilteredWelds] = useState<EnrichedFieldWeld[]>([])
 
-  // Dialog state management
+  // Modal state management (Feature 022 - Phase 4)
   const [selectedWeld, setSelectedWeld] = useState<EnrichedFieldWeld | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false)
   const [isWelderDialogOpen, setIsWelderDialogOpen] = useState(false)
   const [isNDEDialogOpen, setIsNDEDialogOpen] = useState(false)
   const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false)
@@ -85,6 +91,29 @@ export function WeldLogPage() {
     })
     return Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name))
   }, [welds])
+
+  // Event handlers (Feature 022 - Phase 4)
+  const handleRowClick = (weld: EnrichedFieldWeld) => {
+    setSelectedWeld(weld)
+    setIsDetailModalOpen(true)
+  }
+
+  const handleUpdateWeld = () => {
+    setIsUpdateDialogOpen(true)
+  }
+
+  const handleTriggerWelderDialog = () => {
+    // Close both detail modal and update dialog, then open welder dialog
+    setIsDetailModalOpen(false)
+    setIsUpdateDialogOpen(false)
+    setIsWelderDialogOpen(true)
+  }
+
+  const handleRecordNDE = () => {
+    // Close detail modal, then open NDE dialog
+    setIsDetailModalOpen(false)
+    setIsNDEDialogOpen(true)
+  }
 
   if (isLoading) {
     return (
@@ -154,6 +183,8 @@ export function WeldLogPage() {
           <WeldLogTable
             welds={filteredWelds}
             userRole={user?.role}
+            isMobile={isMobile}
+            onRowClick={isMobile ? handleRowClick : undefined}
             onAssignWelder={(weldId) => {
               const weld = filteredWelds.find((w) => w.id === weldId)
               if (weld) {
@@ -172,9 +203,27 @@ export function WeldLogPage() {
         </div>
       </div>
 
-      {/* Dialogs */}
+      {/* Dialogs (Feature 022 - Phase 4) */}
       {selectedWeld && (
         <>
+          {/* Detail Modal (Feature 022) */}
+          <WeldDetailModal
+            weld={selectedWeld}
+            open={isDetailModalOpen}
+            onOpenChange={setIsDetailModalOpen}
+            onUpdateWeld={handleUpdateWeld}
+            onRecordNDE={handleRecordNDE}
+          />
+
+          {/* Update Weld Dialog (Feature 022) */}
+          <UpdateWeldDialog
+            weld={selectedWeld}
+            open={isUpdateDialogOpen}
+            onOpenChange={setIsUpdateDialogOpen}
+            onTriggerWelderDialog={handleTriggerWelderDialog}
+          />
+
+          {/* Welder Assignment Dialog (reused from Feature 015) */}
           <WelderAssignDialog
             fieldWeldId={selectedWeld.id}
             projectId={projectId}
@@ -182,6 +231,7 @@ export function WeldLogPage() {
             onOpenChange={setIsWelderDialogOpen}
           />
 
+          {/* NDE Result Dialog (reused from Feature 015) */}
           <NDEResultDialog
             fieldWeldId={selectedWeld.id}
             componentId={selectedWeld.component.id}
@@ -192,6 +242,7 @@ export function WeldLogPage() {
             onFailure={() => setIsRepairDialogOpen(true)}
           />
 
+          {/* Repair Weld Dialog (existing functionality) */}
           <CreateRepairWeldDialog
             originalFieldWeldId={selectedWeld.id}
             originalWeldData={{

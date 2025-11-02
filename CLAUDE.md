@@ -8,13 +8,24 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 
 ## Current Status
 
-**Last Updated**: 2025-10-29
-**Phase**: Feature Development - Public Marketing Homepage
-**Progress**: Feature 021 Complete (Public Marketing Homepage)
+**Last Updated**: 2025-11-02
+**Phase**: Feature Development - Mobile Weld Log Optimization
+**Progress**: Feature 022 In Progress (Mobile Weld Log)
 
 ### ✅ Recently Completed Features
 
-**Feature 022**: Unified Component Details Form (2025-10-31)
+**Feature 022**: Mobile Weld Log Optimization (2025-11-02) - **IN PROGRESS**
+- ✅ Mobile-optimized 3-column weld log table (Weld ID, Drawing, Date Welded) for ≤1024px viewports
+- ✅ Row-click to open weld detail modal on mobile (desktop unchanged)
+- ✅ WeldDetailModal with conditional action buttons (Update Weld, Record NDE)
+- ✅ UpdateWeldDialog with welder assignment interception logic
+- ✅ Touch targets ≥44px (WCAG 2.1 AA compliance)
+- ✅ Keyboard navigation support (Tab, Enter, Escape)
+- ✅ Integration tests for complete mobile workflow
+- ⚠️ Manual testing pending (mobile devices, accessibility audit)
+- 📁 Documentation in `specs/022-weld-log-mobile/`
+
+**Feature 022** (Previous): Unified Component Details Form (2025-10-31)
 - ✅ Enhanced ComponentDetailView with 4-tab interface (Overview, Details, Milestones, History)
 - ✅ Metadata editing (Area, System, Test Package) in Details tab
 - ✅ Interactive milestone editing (checkboxes for discrete, sliders for partial)

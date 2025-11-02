@@ -15,6 +15,7 @@ import {
   getStatusBadgeColor,
 } from '@/lib/field-weld-utils'
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds'
+import { useMobileDetection } from '@/hooks/useMobileDetection'
 
 interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
@@ -39,6 +40,7 @@ type SortDirection = 'asc' | 'desc'
 export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: WeldLogTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('date_welded')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const isMobile = useMobileDetection()
 
   const canAssignWelder = userRole && ['owner', 'admin', 'project_manager', 'foreman'].includes(userRole)
   const canRecordNDE = userRole && ['owner', 'admin', 'qc_inspector'].includes(userRole)
@@ -128,16 +130,18 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
           <tr>
             <SortableHeader column="weld_id">Weld ID</SortableHeader>
             <SortableHeader column="drawing">Drawing</SortableHeader>
-            <SortableHeader column="welder">Welder</SortableHeader>
+            {!isMobile && <SortableHeader column="welder">Welder</SortableHeader>}
             <SortableHeader column="date_welded">Date Welded</SortableHeader>
-            <SortableHeader column="weld_type">Type</SortableHeader>
-            <SortableHeader column="size">Size</SortableHeader>
-            <SortableHeader column="nde_result">NDE Result</SortableHeader>
-            <SortableHeader column="status">Status</SortableHeader>
-            <SortableHeader column="progress">Progress</SortableHeader>
-            <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-700">
-              Actions
-            </th>
+            {!isMobile && <SortableHeader column="weld_type">Type</SortableHeader>}
+            {!isMobile && <SortableHeader column="size">Size</SortableHeader>}
+            {!isMobile && <SortableHeader column="nde_result">NDE Result</SortableHeader>}
+            {!isMobile && <SortableHeader column="status">Status</SortableHeader>}
+            {!isMobile && <SortableHeader column="progress">Progress</SortableHeader>}
+            {!isMobile && (
+              <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-700">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -146,7 +150,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
             const showRecordNDE = canRecordNDE && weld.status === 'active' && weld.welder_id
 
             return (
-              <tr key={weld.id} className="hover:bg-slate-50">
+              <tr key={weld.id} className={`hover:bg-slate-50 ${isMobile ? 'min-h-[44px]' : ''}`}>
                 {/* Weld ID */}
                 <td className="whitespace-nowrap px-3 py-2 text-sm font-medium text-slate-900">
                   {weld.identityDisplay}
@@ -173,15 +177,17 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
                 </td>
 
                 {/* Welder */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
-                  {weld.welder ? (
-                    <span>
-                      {weld.welder.stencil} - {weld.welder.name}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400">Not Assigned</span>
-                  )}
-                </td>
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
+                    {weld.welder ? (
+                      <span>
+                        {weld.welder.stencil} - {weld.welder.name}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Not Assigned</span>
+                    )}
+                  </td>
+                )}
 
                 {/* Date Welded */}
                 <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
@@ -193,81 +199,93 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
                 </td>
 
                 {/* Weld Type */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
-                  {formatWeldType(weld.weld_type)}
-                </td>
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
+                    {formatWeldType(weld.weld_type)}
+                  </td>
+                )}
 
                 {/* Size */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
-                  {formatWeldSize(weld.weld_size)}
-                </td>
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
+                    {formatWeldSize(weld.weld_size)}
+                  </td>
+                )}
 
                 {/* NDE Result */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm">
-                  {weld.nde_result ? (
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getNDEResultColor(weld.nde_result)}`}>
-                      {weld.nde_type && `${formatNDEType(weld.nde_type)} `}
-                      {weld.nde_result}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400">-</span>
-                  )}
-                </td>
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm">
+                    {weld.nde_result ? (
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getNDEResultColor(weld.nde_result)}`}>
+                        {weld.nde_type && `${formatNDEType(weld.nde_type)} `}
+                        {weld.nde_result}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                )}
 
                 {/* Status */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm">
-                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeColor(weld.status)}`}>
-                    {weld.status.charAt(0).toUpperCase() + weld.status.slice(1)}
-                  </span>
-                </td>
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm">
+                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeColor(weld.status)}`}>
+                      {weld.status.charAt(0).toUpperCase() + weld.status.slice(1)}
+                    </span>
+                  </td>
+                )}
 
                 {/* Progress */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
-                  <div className="flex items-center">
-                    <div className="w-16 rounded-full bg-slate-200">
-                      <div
-                        className={`h-2 rounded-full ${
-                          weld.status === 'rejected'
-                            ? 'bg-red-500'
-                            : weld.status === 'accepted'
-                            ? 'bg-green-500'
-                            : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${weld.component.percent_complete}%` }}
-                      />
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
+                    <div className="flex items-center">
+                      <div className="w-16 rounded-full bg-slate-200">
+                        <div
+                          className={`h-2 rounded-full ${
+                            weld.status === 'rejected'
+                              ? 'bg-red-500'
+                              : weld.status === 'accepted'
+                              ? 'bg-green-500'
+                              : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${weld.component.percent_complete}%` }}
+                        />
+                      </div>
+                      <span className="ml-2 text-xs font-medium">{weld.component.percent_complete}%</span>
                     </div>
-                    <span className="ml-2 text-xs font-medium">{weld.component.percent_complete}%</span>
-                  </div>
-                </td>
+                  </td>
+                )}
 
                 {/* Actions */}
-                <td className="whitespace-nowrap px-3 py-2 text-sm">
-                  <div className="flex gap-2">
-                    {showAssignWelder && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onAssignWelder?.(weld.id)}
-                        className="h-7 text-xs"
-                      >
-                        Assign Welder
-                      </Button>
-                    )}
-                    {showRecordNDE && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onRecordNDE?.(weld.id)}
-                        className="h-7 text-xs"
-                      >
-                        Record NDE
-                      </Button>
-                    )}
-                    {weld.status !== 'active' && (
-                      <span className="text-xs text-slate-400">No actions</span>
-                    )}
-                  </div>
-                </td>
+                {!isMobile && (
+                  <td className="whitespace-nowrap px-3 py-2 text-sm">
+                    <div className="flex gap-2">
+                      {showAssignWelder && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAssignWelder?.(weld.id)}
+                          className="h-7 text-xs"
+                        >
+                          Assign Welder
+                        </Button>
+                      )}
+                      {showRecordNDE && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onRecordNDE?.(weld.id)}
+                          className="h-7 text-xs"
+                        >
+                          Record NDE
+                        </Button>
+                      )}
+                      {weld.status !== 'active' && (
+                        <span className="text-xs text-slate-400">No actions</span>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             )
           })}

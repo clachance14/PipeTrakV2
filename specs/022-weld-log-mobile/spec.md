@@ -92,7 +92,7 @@ As a quality inspector on mobile, I need to record NDE results from the weld det
 - **What happens when a weld has repair history (multiple repair welds)?** Detail modal shows original weld ID and repair relationship (if applicable).
 - **How does sorting work on mobile vs desktop?** Sorting functionality remains identical - column headers clickable on both views.
 - **What happens if user unchecks Weld Made after it was already checked?** UpdateWeldDialog allows unchecking (no interception), but this should be rare as useAssignWelder typically marks the milestone complete permanently.
-- **What happens when 3 modals are stacked (WeldDetailModal → UpdateWeldDialog → WelderAssignDialog)?** Per user requirement, when WelderAssignDialog opens, both UpdateWeldDialog and WeldDetailModal automatically close (return to table on completion).
+- **What happens when 3 modals are stacked (WeldDetailModal → UpdateWeldDialog → WelderAssignDialog)?** Per user requirement, when WelderAssignDialog opens, both parent modals (UpdateWeldDialog and WeldDetailModal) automatically close (return to table on completion).
 
 ## Requirements *(mandatory)*
 
@@ -124,11 +124,11 @@ As a quality inspector on mobile, I need to record NDE results from the weld det
 - **FR-015**: UpdateWeldDialog MUST display checkboxes for Fit-Up and Weld Made milestones with current state reflected
 - **FR-016**: UpdateWeldDialog MUST show current progress percentage and progress bar
 - **FR-017**: UpdateWeldDialog MUST update milestones directly via useUpdateMilestone hook when Fit-Up only is changed
-- **FR-018**: UpdateWeldDialog MUST intercept when Weld Made is checked for the FIRST TIME and trigger welder assignment dialog instead of direct milestone update (matches DrawingComponentTablePage pattern)
+- **FR-018**: UpdateWeldDialog MUST intercept when Weld Made is checked for the FIRST TIME (defined as: current value in `component.current_milestones['Weld Made']` is `false`, `0`, or `null`) and trigger welder assignment dialog instead of direct milestone update (matches DrawingComponentTablePage pattern)
 - **FR-019**: UpdateWeldDialog MUST allow unchecking milestones (no interception, direct update)
 
 **Modal Closure Behavior**
-- **FR-020**: System MUST close UpdateWeldDialog AND WeldDetailModal when WelderAssignDialog opens (per user requirement: "close lower modals")
+- **FR-020**: System MUST close parent modals (UpdateWeldDialog AND WeldDetailModal) when child modal WelderAssignDialog opens
 - **FR-021**: System MUST close WeldDetailModal when NDEResultDialog opens
 - **FR-022**: System MUST return user to weld log table after WelderAssignDialog or NDEResultDialog completes successfully
 
@@ -141,8 +141,7 @@ As a quality inspector on mobile, I need to record NDE results from the weld det
 - **FR-026**: NDEResultDialog MUST use existing useRecordNDE hook
 
 **Data Refresh**
-- **FR-027**: System MUST automatically refresh weld log table after successful welder assignment (via TanStack Query invalidation)
-- **FR-028**: System MUST automatically refresh weld log table after successful NDE recording (via TanStack Query invalidation)
+- **FR-027**: System MUST automatically refresh weld log table after successful mutations (welder assignment, NDE recording, milestone updates) via TanStack Query invalidation of `['field-welds']` query key
 
 **Accessibility (WCAG 2.1 AA)**
 - **FR-029**: Mobile weld row touch targets MUST be at least 44px in height
@@ -153,8 +152,8 @@ As a quality inspector on mobile, I need to record NDE results from the weld det
 - **FR-034**: All interactive elements MUST have ARIA labels for screen readers
 
 **Performance**
-- **FR-035**: Mobile weld log table MUST render all visible rows in under 2 seconds for datasets up to 1,000 welds
-- **FR-036**: Weld detail modal MUST load and display all content in under 1 second on 3G mobile networks
+- **FR-035**: Mobile weld log table MUST render all visible rows in under 2 seconds for datasets up to 1,000 welds (measured from TanStack Query resolution to DOM paint completion via React DevTools Profiler `onRender` callback with `actualDuration` metric)
+- **FR-036**: Weld detail modal MUST load and display all content in under 1 second on 3G mobile networks (simulated via Chrome DevTools Network Throttling: "Slow 3G" profile = 400Kbps down, 400Kbps up, 2000ms RTT)
 
 ### Key Entities *(include if feature involves data)*
 
@@ -171,8 +170,8 @@ As a quality inspector on mobile, I need to record NDE results from the weld det
 - **SC-001**: Mobile users can view the weld log without horizontal scrolling on devices with screen width ≤1024px
 - **SC-002**: Mobile users can access full weld details within 1 tap (row click → modal opens)
 - **SC-003**: Field supervisors can update milestones on mobile using the same interception pattern as DrawingComponentTablePage (Weld Made → welder assignment)
-- **SC-004**: Field foremen can assign welders on mobile in under 30 seconds (same as desktop)
-- **SC-005**: Field inspectors can record NDE on mobile in under 60 seconds (same as desktop)
+- **SC-004**: Field foremen can assign welders on mobile in under 30 seconds (same as desktop) with automatic table refresh (FR-027)
+- **SC-005**: Field inspectors can record NDE on mobile in under 60 seconds (same as desktop) with automatic table refresh (FR-027)
 - **SC-006**: Mobile weld log table renders all visible rows in under 2 seconds for datasets up to 1,000 welds
 - **SC-007**: Touch targets for weld rows and modal buttons meet WCAG 2.1 AA accessibility standards (≥44px)
 - **SC-008**: Desktop weld log functionality remains 100% unchanged (all 10 columns, inline actions, sorting, filtering)
