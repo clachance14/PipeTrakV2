@@ -11,6 +11,8 @@ import { HeroSection } from '@/components/homepage/HeroSection'
 import { ScrollIndicator } from '@/components/homepage/ScrollIndicator'
 import { HomepageFooter } from '@/components/homepage/HomepageFooter'
 import { FeatureCards } from '@/components/homepage/FeatureCards'
+import { FeaturesCarousel } from '@/components/homepage/FeaturesCarousel'
+import { FeatureDeepDive } from '@/components/homepage/FeatureDeepDive'
 
 export function HomePage() {
   const { user } = useAuth()
@@ -66,6 +68,39 @@ export function HomePage() {
             <FeatureCards />
           </div>
         </section>
+
+        {/* Key Features Section with Carousel */}
+        <div id="reporting" className="bg-slate-900">
+          <div className="max-w-4xl mx-auto px-6 pt-16 pb-8 text-center">
+            <h2 className="text-5xl font-bold text-white mb-4">
+              Key Features
+            </h2>
+            <p className="text-xl text-slate-400 mb-8">
+              Comprehensive tools designed for industrial construction teams
+            </p>
+          </div>
+
+          <FeaturesCarousel />
+        </div>
+
+        {/* Feature Deep-Dive Section */}
+        <section
+          id="deep-dive"
+          className="py-20 bg-slate-900"
+          role="region"
+          aria-label="Feature deep-dives"
+        >
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-4xl font-bold text-white text-center mb-6">
+              How PipeTrak Works
+            </h2>
+            <p className="text-xl text-slate-400 text-center mb-12 max-w-3xl mx-auto">
+              From material takeoff to final turnover, PipeTrak provides the tools you need to track every component through every milestone.
+            </p>
+            <FeatureDeepDive />
+          </div>
+        </section>
+
         {/* Footer */}
         <HomepageFooter />
       </div>

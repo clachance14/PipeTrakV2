@@ -14,6 +14,10 @@ export function HeroSection() {
     navigate('/demo-signup')
   }
 
+  const handleViewFeatures = () => {
+    smoothScroll('reporting')
+  }
+
   const handleLearnMore = () => {
     smoothScroll('features')
   }
@@ -133,10 +137,19 @@ export function HeroSection() {
           </button>
 
           <button
+            onClick={handleViewFeatures}
+            className="px-8 py-4 bg-transparent border-2 border-blue-400 text-blue-400 rounded-lg hover:bg-blue-400/10 transition-colors font-semibold text-lg"
+            style={{ minWidth: '200px', minHeight: '56px' }}
+            aria-label="View PipeTrak features"
+          >
+            View Features
+          </button>
+
+          <button
             onClick={handleLearnMore}
             className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
             style={{ minWidth: '200px', minHeight: '56px' }}
-            aria-label="Learn more about PipeTrak features"
+            aria-label="Learn more about PipeTrak"
           >
             Learn More
           </button>
