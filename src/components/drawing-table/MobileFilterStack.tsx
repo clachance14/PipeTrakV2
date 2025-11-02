@@ -66,25 +66,30 @@ export function MobileFilterStack({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Toggle Button */}
+    <div className="flex flex-col gap-2">
+      {/* Toggle Button with Count */}
       <Button
         variant="outline"
         size="sm"
         onClick={handleToggle}
-        className="flex items-center gap-2 min-h-[44px] w-full justify-center"
+        className="flex items-center justify-between min-h-[44px] w-full px-3 py-2"
         aria-expanded={isExpanded}
         aria-controls="mobile-filters-content"
         aria-label={isExpanded ? "Hide filter controls" : "Show filter controls"}
         id="mobile-filters-toggle"
       >
-        <ChevronDown
-          className="h-4 w-4 chevron-rotate"
-          data-expanded={isExpanded}
-          aria-hidden="true"
-        />
-        <span className="text-sm font-medium">
-          {isExpanded ? 'Hide Filters' : 'Show Filters'}
+        <div className="flex items-center gap-2">
+          <ChevronDown
+            className="h-4 w-4 chevron-rotate"
+            data-expanded={isExpanded}
+            aria-hidden="true"
+          />
+          <span className="text-sm font-medium">
+            {isExpanded ? 'Hide Filters' : 'Show Filters'}
+          </span>
+        </div>
+        <span className="text-xs text-slate-600 font-normal">
+          {showingCount}/{totalCount}
         </span>
       </Button>
 
@@ -95,7 +100,7 @@ export function MobileFilterStack({
         id="mobile-filters-content"
       >
         <div className="collapsible-content">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {/* Search input - full width */}
             <DrawingSearchInput
               value={searchTerm}
@@ -137,11 +142,6 @@ export function MobileFilterStack({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Showing count - always visible */}
-      <div className="text-xs text-slate-600 text-center">
-        Showing {showingCount} of {totalCount} drawings
       </div>
     </div>
   )

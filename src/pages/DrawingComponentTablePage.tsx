@@ -244,10 +244,10 @@ export function DrawingComponentTablePage() {
   // Main table view
   return (
     <Layout>
-      <div className="mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-4">Component Progress</h1>
+      <div className="flex flex-col h-full mx-auto px-4 py-3 md:py-8">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 mb-3 md:mb-6">
+          <h1 className="text-lg md:text-2xl font-bold mb-2 md:mb-4">Component Progress</h1>
 
           {/* Filters - Mobile: vertical stack, Desktop: horizontal */}
           {isMobile ? (
@@ -303,9 +303,9 @@ export function DrawingComponentTablePage() {
           )}
         </div>
 
-        {/* Feature 011: Bulk Actions Toolbar (T036) */}
+        {/* Feature 011: Bulk Actions Toolbar (T036) - Fixed */}
         {selectionMode && selectedDrawingIds.size > 0 && (
-          <div className="mb-4">
+          <div className="flex-shrink-0 mb-4">
             <DrawingBulkActions
               selectedCount={selectedDrawingIds.size}
               onAssignMetadata={handleOpenBulkAssignDialog}
@@ -314,8 +314,8 @@ export function DrawingComponentTablePage() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow h-[calc(100vh-280px)]">
+        {/* Table - Scrollable fills remaining space */}
+        <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
           <DrawingTable
             drawings={displayDrawings}
             expandedDrawingIds={expandedDrawingIds}

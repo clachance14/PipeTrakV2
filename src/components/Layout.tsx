@@ -55,9 +55,9 @@ export function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Top Navigation Bar */}
-      <nav className="sticky top-0 z-50 bg-slate-800 text-white shadow-lg">
+      <nav className="flex-shrink-0 sticky top-0 z-50 bg-slate-800 text-white shadow-lg">
         <div className="mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Left: Hamburger + Logo + Project Selector */}
@@ -163,7 +163,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <main
         className={cn(
-          'transition-all duration-300 ease-in-out',
+          'flex-1 transition-all duration-300 ease-in-out overflow-hidden',
           // Mobile: no margin (full width)
           'ml-0',
           // Desktop: margin based on sidebar collapse state
