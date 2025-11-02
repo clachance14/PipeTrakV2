@@ -187,7 +187,7 @@ export function DrawingComponentTablePage() {
   // Loading state
   if (isLoading) {
     return (
-      <Layout>
+      <Layout fixedHeight>
         <div className="mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
           <div className="bg-white rounded-lg shadow h-[calc(100vh-200px)]">
@@ -212,7 +212,7 @@ export function DrawingComponentTablePage() {
   // Error state
   if (isError) {
     return (
-      <Layout>
+      <Layout fixedHeight>
         <div className="mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
           <div className="bg-white rounded-lg shadow p-4">
@@ -226,7 +226,7 @@ export function DrawingComponentTablePage() {
   // Empty state
   if (displayDrawings.length === 0) {
     return (
-      <Layout>
+      <Layout fixedHeight>
         <div className="mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
           <div className="bg-white rounded-lg shadow p-4">
@@ -243,7 +243,7 @@ export function DrawingComponentTablePage() {
 
   // Main table view
   return (
-    <Layout>
+    <Layout fixedHeight>
       <div className="flex flex-col h-full mx-auto px-4 py-3 md:py-8">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 mb-3 md:mb-6">

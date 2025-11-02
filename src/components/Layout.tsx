@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
+  fixedHeight?: boolean // Enable fixed height mode for pages that need scrollable content areas
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children, fixedHeight = false }: LayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
@@ -55,9 +56,12 @@ export function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className={fixedHeight ? "h-screen flex flex-col bg-gray-50" : "min-h-screen bg-gray-50"}>
       {/* Top Navigation Bar */}
-      <nav className="flex-shrink-0 sticky top-0 z-50 bg-slate-800 text-white shadow-lg">
+      <nav className={cn(
+        "sticky top-0 z-50 bg-slate-800 text-white shadow-lg",
+        fixedHeight && "flex-shrink-0"
+      )}>
         <div className="mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Left: Hamburger + Logo + Project Selector */}
@@ -163,7 +167,8 @@ export function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <main
         className={cn(
-          'flex-1 transition-all duration-300 ease-in-out overflow-hidden',
+          'transition-all duration-300 ease-in-out',
+          fixedHeight && 'flex-1 overflow-hidden',
           // Mobile: no margin (full width)
           'ml-0',
           // Desktop: margin based on sidebar collapse state
