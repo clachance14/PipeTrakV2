@@ -30,7 +30,7 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
   const updateMilestone = useUpdateMilestone()
 
   // Get current milestone values from component
-  const currentMilestones = weld.component.current_milestones as Record<string, number> || {}
+  const currentMilestones = (weld.component.current_milestones as Record<string, any>) || {}
 
   // Local state for checkboxes
   const [fitUpChecked, setFitUpChecked] = useState(Boolean(currentMilestones['Fit-up']))
@@ -121,7 +121,7 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
               className="flex flex-1 cursor-pointer flex-col"
             >
               <span className="text-sm font-medium text-slate-900">Fit-up</span>
-              <span className="text-xs text-slate-500">Weld is fitted up and ready for welding (30%)</span>
+              <span className="text-xs text-slate-500">Mark when joint is fitted up and ready for welding</span>
             </label>
           </div>
 
@@ -140,7 +140,7 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
               className="flex flex-1 cursor-pointer flex-col"
             >
               <span className="text-sm font-medium text-slate-900">Weld Complete</span>
-              <span className="text-xs text-slate-500">Weld has been completed (65%)</span>
+              <span className="text-xs text-slate-500">Mark when welding is complete (triggers welder assignment)</span>
             </label>
           </div>
 

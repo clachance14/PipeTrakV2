@@ -22,6 +22,8 @@ interface WeldLogTableProps {
   onAssignWelder?: (weldId: string) => void
   onRecordNDE?: (weldId: string) => void
   userRole?: string
+  isMobile?: boolean
+  onRowClick?: (weld: EnrichedFieldWeld) => void
 }
 
 type SortColumn =
@@ -37,10 +39,11 @@ type SortColumn =
 
 type SortDirection = 'asc' | 'desc'
 
-export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: WeldLogTableProps) {
+export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('date_welded')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const isMobile = useMobileDetection()
+  const isMobileDetected = useMobileDetection()
+  const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
 
   const canAssignWelder = userRole && ['owner', 'admin', 'project_manager', 'foreman'].includes(userRole)
   const canRecordNDE = userRole && ['owner', 'admin', 'qc_inspector'].includes(userRole)
@@ -150,7 +153,11 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole }: W
             const showRecordNDE = canRecordNDE && weld.status === 'active' && weld.welder_id
 
             return (
-              <tr key={weld.id} className={`hover:bg-slate-50 ${isMobile ? 'min-h-[44px]' : ''}`}>
+              <tr
+                key={weld.id}
+                className={`hover:bg-slate-50 ${isMobile ? 'min-h-[44px]' : ''} ${onRowClick ? 'cursor-pointer' : ''}`}
+                onClick={onRowClick ? () => onRowClick(weld) : undefined}
+              >
                 {/* Weld ID */}
                 <td className="whitespace-nowrap px-3 py-2 text-sm font-medium text-slate-900">
                   {weld.identityDisplay}
