@@ -340,14 +340,14 @@ export async function processImportV2(
           identity_key: { weld_number: row.cmdtyCode }
         });
       } else if (typeLower === 'instrument') {
-        // Instrument: no sequence suffix
+        // Instrument: no quantity explosion (always seq: 1)
         components.push({
           ...baseComponent,
           identity_key: {
             drawing_norm: normalized,
             commodity_code: row.cmdtyCode,
             size: normalizeSize(row.size),
-            seq: null
+            seq: 1
           }
         });
       } else {

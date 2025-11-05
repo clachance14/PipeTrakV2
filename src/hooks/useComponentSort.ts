@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { naturalCompare } from '@/lib/natural-sort'
 import type { ComponentSortField, SortDirection } from '@/types/component-table.types'
 import type { Database } from '@/types/database.types'
 
@@ -21,23 +22,26 @@ export function useComponentSort() {
         switch (sortField) {
           case 'identity_key':
             // Stringify identity_key for comparison
-            comparison = JSON.stringify(a.identity_key).localeCompare(
+            comparison = naturalCompare(
+              JSON.stringify(a.identity_key),
               JSON.stringify(b.identity_key)
             )
             break
           case 'drawing':
-            comparison = (a.drawing?.drawing_no_norm || '').localeCompare(
+            comparison = naturalCompare(
+              a.drawing?.drawing_no_norm || '',
               b.drawing?.drawing_no_norm || ''
             )
             break
           case 'area':
-            comparison = (a.area?.name || '').localeCompare(b.area?.name || '')
+            comparison = naturalCompare(a.area?.name || '', b.area?.name || '')
             break
           case 'system':
-            comparison = (a.system?.name || '').localeCompare(b.system?.name || '')
+            comparison = naturalCompare(a.system?.name || '', b.system?.name || '')
             break
           case 'test_package':
-            comparison = (a.test_package?.name || '').localeCompare(
+            comparison = naturalCompare(
+              a.test_package?.name || '',
               b.test_package?.name || ''
             )
             break

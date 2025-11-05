@@ -181,28 +181,7 @@ serve(async (req) => {
     }
 
     // Process import (metadata → drawings → components)
-    let result: ImportResult;
-    try {
-      result = await processImportV2(supabaseUrl, serviceRoleKey, typedPayload);
-    } catch (processingError) {
-      console.error('Import processing error:', processingError);
-      result = {
-        success: false,
-        componentsCreated: 0,
-        drawingsCreated: 0,
-        drawingsUpdated: 0,
-        metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
-        componentsByType: {},
-        duration: 0,
-        error: `Import processing failed: ${processingError instanceof Error ? processingError.message : String(processingError)}`,
-        details: [
-          {
-            row: 0,
-            issue: processingError instanceof Error ? processingError.stack || processingError.message : String(processingError)
-          }
-        ]
-      };
-    }
+    const result = await processImportV2(supabaseUrl, serviceRoleKey, typedPayload);
 
     // Refresh materialized views to update dashboard immediately
     if (result.success) {
@@ -217,7 +196,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(result),
       {
-        status: result.success ? 200 : 400, // Use 400 for validation/business logic errors, not 500
+        status: result.success ? 200 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { useCallback } from 'react'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { naturalCompare } from '@/lib/natural-sort'
 import type { DrawingRow, StatusFilter, SortField, SortDirection } from '@/types/drawing-table.types'
 
 /**
@@ -162,7 +163,7 @@ export function useDrawingFilters() {
         // Compare values
         let comparison = 0
         if (typeof aVal === 'string' && typeof bVal === 'string') {
-          comparison = aVal.localeCompare(bVal)
+          comparison = naturalCompare(aVal, bVal)
         } else if (typeof aVal === 'number' && typeof bVal === 'number') {
           comparison = aVal - bVal
         }
