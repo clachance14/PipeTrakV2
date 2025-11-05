@@ -8,9 +8,19 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 
 ## Current Status
 
-**Last Updated**: 2025-11-02
+**Last Updated**: 2025-11-05
 **Phase**: Feature Development - Mobile Weld Log Optimization
 **Progress**: Feature 022 In Progress (Mobile Weld Log)
+
+### 🐛 Recent Bug Fixes
+
+**Bug Fix**: Team Management - Remove Member Functionality (2025-11-05)
+- ✅ Fixed Remove Member button being disabled for owners/admins
+- ✅ Added RLS policy allowing owners/admins to soft-delete users in their organization
+- ✅ Fixed missing `currentUserRole` prop in TeamManagement page
+- 📁 Migration: `supabase/migrations/00081_allow_admins_to_remove_members.sql`
+- 📝 Root Cause: Two-layer issue (database RLS + missing UI prop)
+- 🔍 Files Modified: `src/pages/TeamManagement.tsx`, database migration, test coverage
 
 ### ✅ Recently Completed Features
 

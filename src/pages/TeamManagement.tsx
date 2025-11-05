@@ -7,6 +7,7 @@ import { TeamMemberList } from '@/components/team/TeamMemberList';
 import { TeamFilters } from '@/components/team/TeamFilters';
 import { AddMemberDialog } from '@/components/team/AddMemberDialog';
 import { Button } from '@/components/ui/button';
+import type { Role } from '@/types/team.types';
 
 export function TeamManagement() {
   const { useCurrentOrganization } = useOrganization();
@@ -69,6 +70,7 @@ export function TeamManagement() {
   }
 
   const organizationId = currentOrgData.organization.id;
+  const currentUserRole = currentOrgData.role as Role;
 
   return (
     <Layout>
@@ -109,6 +111,7 @@ export function TeamManagement() {
             roleFilter={roleFilter}
             statusFilter={statusFilter}
             sortBy={sortBy}
+            currentUserRole={currentUserRole}
             onAddMemberClick={() => setAddMemberDialogOpen(true)}
           />
 
