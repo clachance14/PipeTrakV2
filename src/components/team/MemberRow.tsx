@@ -13,9 +13,10 @@ interface MemberRowProps {
   onToggle: (id: string) => void;
   organizationId: string;
   currentUserRole: Role;
+  currentUserId: string; // NEW: ID of authenticated user
 }
 
-export function MemberRow({ member, invitation, isExpanded, onToggle, organizationId, currentUserRole }: MemberRowProps) {
+export function MemberRow({ member, invitation, isExpanded, onToggle, organizationId, currentUserRole, currentUserId }: MemberRowProps) {
   // Determine if this is a member or invitation
   const isMember = !!member;
   const id = member?.user_id || invitation?.id || '';
@@ -27,6 +28,9 @@ export function MemberRow({ member, invitation, isExpanded, onToggle, organizati
 
   // Only owners and admins can remove members
   const canRemoveMember = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+  // Check if this row represents the current user
+  const isSelf = member?.user_id === currentUserId;
 
   const handleClick = () => {
     onToggle(id);
@@ -154,34 +158,22 @@ export function MemberRow({ member, invitation, isExpanded, onToggle, organizati
             )}
           </div>
 
-          {/* Remove Member action (only for active members) - Touch-friendly on mobile */}
-          {isMember && member && (
+          {/* Remove Member action (only for active members, not self) - Touch-friendly on mobile */}
+          {isMember && member && !isSelf && canRemoveMember && (
             <div className="w-full lg:w-auto lg:ml-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              {canRemoveMember ? (
-                <RemoveMemberDialog
-                  member={member}
-                  organizationId={organizationId}
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full lg:w-auto min-h-[32px]"
-                    >
-                      Remove Member
-                    </Button>
-                  }
-                />
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled
-                  title="You need admin or owner role to remove members"
-                  className="text-slate-400 cursor-not-allowed w-full lg:w-auto min-h-[32px]"
-                >
-                  Remove Member
-                </Button>
-              )}
+              <RemoveMemberDialog
+                member={member}
+                organizationId={organizationId}
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full lg:w-auto min-h-[44px]"
+                  >
+                    Remove Member
+                  </Button>
+                }
+              />
             </div>
           )}
         </div>
