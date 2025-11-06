@@ -1,6 +1,7 @@
 // T020: TeamManagementPage - Unified team member list with permissions
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useTeamFilters } from '@/hooks/useTeamFilters';
 import { TeamMemberList } from '@/components/team/TeamMemberList';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import type { Role } from '@/types/team.types';
 
 export function TeamManagement() {
+  const { user } = useAuth();
   const { useCurrentOrganization } = useOrganization();
   const { data: currentOrgData, isLoading, error } = useCurrentOrganization();
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
@@ -112,6 +114,7 @@ export function TeamManagement() {
             statusFilter={statusFilter}
             sortBy={sortBy}
             currentUserRole={currentUserRole}
+            currentUserId={user?.id || ''}
             onAddMemberClick={() => setAddMemberDialogOpen(true)}
           />
 

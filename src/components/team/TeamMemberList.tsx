@@ -15,6 +15,7 @@ interface TeamMemberListProps {
   statusFilter?: 'all' | 'active' | 'pending';
   sortBy?: SortOption;
   currentUserRole?: Role;
+  currentUserId?: string;
   onAddMemberClick?: () => void;
 }
 
@@ -25,6 +26,7 @@ export function TeamMemberList({
   statusFilter = 'all',
   sortBy = 'name',
   currentUserRole = 'viewer',
+  currentUserId = '',
   onAddMemberClick,
 }: TeamMemberListProps) {
   const { toggleRow, isExpanded } = useExpandedRows();
@@ -235,6 +237,7 @@ export function TeamMemberList({
                 onToggle={toggleRow}
                 organizationId={organizationId}
                 currentUserRole={currentUserRole}
+                currentUserId={currentUserId}
               />
             ))}
           </div>
