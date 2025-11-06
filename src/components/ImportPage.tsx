@@ -6,6 +6,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
+import { Download } from 'lucide-react';
 import { useImport } from '@/hooks/useImport';
 import { ImportPreview } from './ImportPreview';
 import { ImportPreviewErrorBoundary } from './ImportPreviewErrorBoundary';
@@ -310,22 +311,6 @@ export function ImportPage({ projectId }: ImportPageProps) {
     disabled: isParsing || !!previewState // Disable during parsing or when preview is shown
   });
 
-  const downloadTemplate = () => {
-    const template = `DRAWING,TYPE,QTY,CMDTY CODE,SPEC,DESCRIPTION,SIZE,Comments
-P-001,Valve,2,VBALU-001,ES-03,Ball Valve Cl150,1,Example valve
-DRAIN-1,Flange,1,FBLAG2DFA2351215,ES-03,Blind Flange B16.5 cl150,2,Example flange
-PW-55401,Instrument,1,ME-55402,EN-14,Pressure Gauge,1/2,Example instrument`;
-
-    const blob = new Blob([template], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'takeoff-template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -350,13 +335,18 @@ PW-55401,Instrument,1,ME-55402,EN-14,Pressure Gauge,1/2,Example instrument`;
       ) : (
         <>
           {/* CSV Template Download */}
-          <div className="mb-6">
-            <button
-              onClick={downloadTemplate}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          <div className="mb-4">
+            <a
+              href="/templates/material-takeoff-template.csv"
+              download="material-takeoff-template.csv"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
             >
-              Download CSV Template
-            </button>
+              <Download className="h-4 w-4" />
+              Download Template CSV
+            </a>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Download a template with sample data. Columns marked with * are required.
+            </p>
           </div>
 
           {/* Dropzone */}
