@@ -1,0 +1,222 @@
+import { useState, useRef, useEffect } from 'react'
+import { toast } from 'sonner'
+import type { MilestoneConfig } from '@/types/drawing-table.types'
+
+export interface PartialMilestoneInputProps {
+  /** Milestone configuration from progress template */
+  milestone: MilestoneConfig
+
+  /** Current milestone value (0-100) */
+  currentValue: number
+
+  /** Callback fired when user saves a valid value (blur or Enter key) */
+  onUpdate: (value: number) => void
+
+  /** Whether input is disabled (user lacks permission) */
+  disabled: boolean
+
+  /** Whether to use mobile sizing (≥48px height) */
+  isMobile?: boolean
+}
+
+/**
+ * Inline numeric input for partial milestones
+ *
+ * Renders a numeric input that allows direct percentage entry (0-100).
+ * Users can type a value and save via Enter key or blur event.
+ * Escape key cancels the edit and reverts to the previous value.
+ *
+ * Features:
+ * - Auto-select all text on focus
+ * - Enter key saves and advances to next input
+ * - Escape key cancels and blurs
+ * - Blur saves the value
+ * - Validation (0-100 range)
+ * - Mobile-optimized (≥48px touch target, 16px font)
+ * - WCAG 2.1 AA accessible
+ */
+export function PartialMilestoneInput({
+  milestone,
+  currentValue,
+  onUpdate,
+  disabled,
+  isMobile = false,
+}: PartialMilestoneInputProps) {
+  const [localValue, setLocalValue] = useState(currentValue)
+  const [hasError, setHasError] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const revertTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Sync local value when currentValue prop changes
+  useEffect(() => {
+    setLocalValue(currentValue)
+  }, [currentValue])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (revertTimerRef.current) {
+        clearTimeout(revertTimerRef.current)
+      }
+    }
+  }, [])
+
+  const validateValue = (value: number): boolean => {
+    return value >= 0 && value <= 100
+  }
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Select all text when input receives focus
+    e.target.select()
+    // Clear any error state
+    setHasError(false)
+    if (revertTimerRef.current) {
+      clearTimeout(revertTimerRef.current)
+      revertTimerRef.current = null
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Update local state as user types
+    const value = e.target.value
+    if (value === '') {
+      setLocalValue(0)
+    } else {
+      const numValue = parseInt(value, 10)
+      if (!isNaN(numValue)) {
+        setLocalValue(numValue)
+      }
+    }
+  }
+
+  const handleBlur = () => {
+    // Handle empty input - revert silently
+    if (localValue === 0 && currentValue !== 0) {
+      setLocalValue(currentValue)
+      return
+    }
+
+    // Round decimal values
+    const roundedValue = Math.round(localValue)
+
+    // Validate range (0-100)
+    if (!validateValue(roundedValue)) {
+      setHasError(true)
+      toast.error(`Value must be between 0-100. Current value: ${roundedValue}`)
+
+      // Auto-revert after 2 seconds
+      revertTimerRef.current = setTimeout(() => {
+        setLocalValue(currentValue)
+        setHasError(false)
+        revertTimerRef.current = null
+      }, 2000)
+      return
+    }
+
+    // Value is valid - save if different from current
+    if (roundedValue !== currentValue) {
+      onUpdate(roundedValue)
+      toast.success(`${milestone.name} updated to ${roundedValue}%`)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      // Save and move to next input
+      e.preventDefault()
+
+      // Round decimal values
+      const roundedValue = Math.round(localValue)
+
+      // Validate range (0-100)
+      if (!validateValue(roundedValue)) {
+        setHasError(true)
+        toast.error(`Value must be between 0-100. Current value: ${roundedValue}`)
+
+        // Auto-revert after 2 seconds
+        revertTimerRef.current = setTimeout(() => {
+          setLocalValue(currentValue)
+          setHasError(false)
+          revertTimerRef.current = null
+        }, 2000)
+        return
+      }
+
+      if (roundedValue !== currentValue) {
+        onUpdate(roundedValue)
+        toast.success(`${milestone.name} updated to ${roundedValue}%`)
+      }
+
+      // Find next input and focus it
+      const currentInput = inputRef.current
+      if (currentInput) {
+        const allInputs = Array.from(
+          document.querySelectorAll<HTMLInputElement>('input[role="spinbutton"]')
+        )
+        const currentIndex = allInputs.indexOf(currentInput)
+        const nextInput = allInputs[currentIndex + 1]
+        if (nextInput) {
+          nextInput.focus()
+        }
+      }
+    } else if (e.key === 'Escape') {
+      // Cancel edit and revert to previous value
+      e.preventDefault()
+      setLocalValue(currentValue)
+      setHasError(false)
+      if (revertTimerRef.current) {
+        clearTimeout(revertTimerRef.current)
+        revertTimerRef.current = null
+      }
+      inputRef.current?.blur()
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {/* Milestone name label */}
+      <label
+        htmlFor={`milestone-${milestone.name}-${currentValue}`}
+        className={`text-slate-700 font-medium text-center ${isMobile ? 'text-xs' : 'text-xs'}`}
+      >
+        {milestone.name}
+      </label>
+
+      {/* Input with % suffix */}
+      <div className="flex items-center gap-1">
+        <input
+          id={`milestone-${milestone.name}-${currentValue}`}
+          ref={inputRef}
+          type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={localValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          role="spinbutton"
+          aria-label={`${milestone.name} milestone, currently ${currentValue} percent`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={currentValue}
+          aria-invalid={hasError}
+          className={`
+            rounded text-center font-medium transition-colors
+            ${hasError
+              ? 'border-2 border-red-500 ring-2 ring-red-500 animate-shake'
+              : 'border border-slate-300'
+            }
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+            disabled:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed
+            ${isMobile ? 'w-12 h-12 text-base' : 'w-14 h-8 text-sm'}
+          `}
+        />
+        <span className={`text-slate-600 ${isMobile ? 'text-base' : 'text-sm'}`}>
+          %
+        </span>
+      </div>
+    </div>
+  )
+}
