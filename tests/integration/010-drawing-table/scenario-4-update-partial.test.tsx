@@ -398,448 +398,233 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
     vi.clearAllMocks()
   })
 
-  it('displays threaded pipe component with Fabricate milestone at 50%', async () => {
+  // ========================================
+  // US1: Direct Numeric Entry Tests
+  // ========================================
+
+  it('renders threaded pipe with inline numeric inputs', async () => {
     await renderWithExpandedDrawing()
 
     // Find the threaded pipe component row
     const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')
     expect(pipeRow).toBeInTheDocument()
 
-    // Verify component is at 15%
-    expect(within(pipeRow!).getByText('15%')).toBeInTheDocument()
+    // Verify 5 partial milestone inputs display (Fabricate, Install, Erect, Connect, Support)
+    const inputs = within(pipeRow!).getAllByRole('spinbutton')
+    expect(inputs).toHaveLength(5)
 
-    // Verify Fabricate shows 50% (partial milestone)
-    const fabricateText = within(pipeRow!).getByText('50%')
-    expect(fabricateText).toBeInTheDocument()
+    // Verify Fabricate input shows current value of 50
+    const fabricateInput = within(pipeRow!).getByLabelText(/Fabricate milestone/)
+    expect(fabricateInput).toHaveValue(50)
 
-    // Verify it's a clickable button
-    expect(fabricateText.closest('button')).toBeInTheDocument()
+    // Verify Install input exists and shows 0
+    const installInput = within(pipeRow!).getByLabelText(/Install milestone/)
+    expect(installInput).toHaveValue(0)
   })
 
-  it('opens popover with slider when clicking percentage text', async () => {
+  it('updates milestone on Enter key press', async () => {
     const user = await renderWithExpandedDrawing()
 
     // Find the threaded pipe component row
     const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
 
-    // Click the "50%" text to open popover
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
+    // Find Fabricate input (currently 50)
+    const fabricateInput = within(pipeRow).getByLabelText(/Fabricate milestone/)
 
-    // Wait for popover to appear
-    await waitFor(() => {
-      // Popover should contain "Fabricate" label
-      expect(screen.getByText('Fabricate')).toBeInTheDocument()
-    })
+    // Click input to focus
+    await user.click(fabricateInput)
 
-    // Verify slider exists
-    const slider = screen.getByRole('slider')
-    expect(slider).toBeInTheDocument()
+    // Type new value
+    await user.clear(fabricateInput)
+    await user.type(fabricateInput, '75')
 
-    // Verify slider is at 50
-    expect(slider).toHaveAttribute('aria-valuenow', '50')
+    // Press Enter to save
+    await user.keyboard('{Enter}')
 
-    // Verify slider range (0-100)
-    expect(slider).toHaveAttribute('aria-valuemin', '0')
-    expect(slider).toHaveAttribute('aria-valuemax', '100')
-
-    // Verify Update and Cancel buttons exist
-    expect(screen.getByRole('button', { name: /update/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
-
-    // Verify value display shows "50%"
-    const popover = screen.getByText('Fabricate').closest('div')!
-    expect(within(popover).getByText('50%')).toBeInTheDocument()
-  })
-
-  it('updates value display when dragging slider', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Find and click the Fabricate percentage to open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    // Wait for popover
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    const slider = screen.getByRole('slider')
-
-    // Change slider value to 75
-    // Note: Radix Slider uses arrow keys for adjustment
-    slider.focus()
-
-    // Increase by 25% (5 steps of 5%)
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Wait for value display to update to 75%
-    await waitFor(() => {
-      const popover = screen.getByText('Fabricate').closest('div')!
-      const valueDisplays = within(popover).getAllByText('75%')
-      expect(valueDisplays.length).toBeGreaterThan(0)
-    })
-
-    // Verify slider value changed
-    expect(slider).toHaveAttribute('aria-valuenow', '75')
-  })
-
-  it('sends correct payload and updates component progress when clicking Update button', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    // Change slider to 75
-    const slider = screen.getByRole('slider')
-    slider.focus()
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Click Update button
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    await user.click(updateButton)
-
-    // Verify RPC was called with correct payload
+    // Verify RPC was called with correct value
     await waitFor(() => {
       expect(supabase.rpc).toHaveBeenCalledWith('update_component_milestone', {
         p_component_id: 'comp-3-uuid',
         p_milestone_name: 'Fabricate',
-        p_new_value: 75, // Numeric value
+        p_new_value: 75,
         p_user_id: 'user-1-uuid',
       })
     })
 
-    // Verify popover closes
-    await waitFor(() => {
-      expect(screen.queryByText('Fabricate')).not.toBeInTheDocument()
-    })
+    // Verify success toast shown
+    expect(toast.success).toHaveBeenCalled()
   })
 
-  it('updates component progress from 15% to 17.5% after successful mutation', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Verify initial state: 15%
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    expect(within(pipeRow).getByText('15%')).toBeInTheDocument()
-
-    // Open popover, adjust slider to 75, and update
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    const slider = screen.getByRole('slider')
-    slider.focus()
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    await user.click(updateButton)
-
-    // Wait for mutation to complete and queries to refetch
-    await waitFor(() => {
-      expect(supabase.rpc).toHaveBeenCalled()
-    })
-
-    // Note: In a real scenario, the component progress would update via query invalidation
-    // In this mock test, we verify the RPC call happened with correct calculation expectation
-    // The actual progress recalculation happens in the database
-    expect(mockRpcResponse.new_percent_complete).toBe(17.5)
-  })
-
-  it('closes popover without saving when clicking Cancel button', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    // Change slider to 75
-    const slider = screen.getByRole('slider')
-    slider.focus()
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Verify temporary value shows 75%
-    await waitFor(() => {
-      const popover = screen.getByText('Fabricate').closest('div')!
-      const valueDisplays = within(popover).getAllByText('75%')
-      expect(valueDisplays.length).toBeGreaterThan(0)
-    })
-
-    // Click Cancel button
-    const cancelButton = screen.getByRole('button', { name: /cancel/i })
-    await user.click(cancelButton)
-
-    // Verify popover closes
-    await waitFor(() => {
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument()
-    })
-
-    // Verify RPC was NOT called
-    expect(supabase.rpc).not.toHaveBeenCalled()
-
-    // Verify original value still shows 50%
-    expect(within(pipeRow).getByText('50%')).toBeInTheDocument()
-  })
-
-  it('closes popover without saving when pressing ESC key', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    // Change slider to 75
-    const slider = screen.getByRole('slider')
-    slider.focus()
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Press ESC to cancel
-    await user.keyboard('{Escape}')
-
-    // Verify popover closes
-    await waitFor(() => {
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument()
-    })
-
-    // Verify RPC was NOT called
-    expect(supabase.rpc).not.toHaveBeenCalled()
-
-    // Verify original value still shows 50%
-    expect(within(pipeRow).getByText('50%')).toBeInTheDocument()
-  })
-
-  it('adjusts slider in 5% increments', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    const slider = screen.getByRole('slider')
-
-    // Verify step attribute is 5
-    // Note: Radix Slider may use data attributes or custom implementation
-    // We verify behavior by checking value changes
-
-    // Start at 50
-    expect(slider).toHaveAttribute('aria-valuenow', '50')
-
-    // Press right arrow once (should increment by 5)
-    slider.focus()
-    await user.keyboard('{ArrowRight}')
-
-    // Should now be 55
-    await waitFor(() => {
-      expect(slider).toHaveAttribute('aria-valuenow', '55')
-    })
-
-    // Press right arrow again
-    await user.keyboard('{ArrowRight}')
-
-    // Should now be 60
-    await waitFor(() => {
-      expect(slider).toHaveAttribute('aria-valuenow', '60')
-    })
-
-    // Press left arrow
-    await user.keyboard('{ArrowLeft}')
-
-    // Should now be 55
-    await waitFor(() => {
-      expect(slider).toHaveAttribute('aria-valuenow', '55')
-    })
-  })
-
-  it('validates slider range (0-100)', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    const slider = screen.getByRole('slider')
-
-    // Verify min=0, max=100
-    expect(slider).toHaveAttribute('aria-valuemin', '0')
-    expect(slider).toHaveAttribute('aria-valuemax', '100')
-
-    // Try to go beyond max
-    slider.focus()
-
-    // Press right arrow many times to reach 100
-    for (let i = 0; i < 20; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Should cap at 100
-    await waitFor(() => {
-      const currentValue = parseInt(slider.getAttribute('aria-valuenow') || '0')
-      expect(currentValue).toBeLessThanOrEqual(100)
-    })
-
-    // Try to go below min
-    for (let i = 0; i < 30; i++) {
-      await user.keyboard('{ArrowLeft}')
-    }
-
-    // Should cap at 0
-    await waitFor(() => {
-      const currentValue = parseInt(slider.getAttribute('aria-valuenow') || '0')
-      expect(currentValue).toBeGreaterThanOrEqual(0)
-    })
-  })
-
-  it('resets slider to current value when reopening popover after cancel', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    // Change slider to 75
-    const slider = screen.getByRole('slider')
-    slider.focus()
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Verify changed to 75
-    await waitFor(() => {
-      expect(slider).toHaveAttribute('aria-valuenow', '75')
-    })
-
-    // Press ESC to cancel
-    await user.keyboard('{Escape}')
-
-    // Wait for popover to close
-    await waitFor(() => {
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument()
-    })
-
-    // Reopen popover
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    // Verify slider reset to original value (50)
-    const reopenedSlider = screen.getByRole('slider')
-    expect(reopenedSlider).toHaveAttribute('aria-valuenow', '50')
-  })
-
-  it('shows optimistic update when clicking Update button', async () => {
-    const user = await renderWithExpandedDrawing()
-
-    // Open popover and adjust slider
-    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
-
-    await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
-    })
-
-    const slider = screen.getByRole('slider')
-    slider.focus()
-    for (let i = 0; i < 5; i++) {
-      await user.keyboard('{ArrowRight}')
-    }
-
-    // Record time before clicking Update
-    const startTime = performance.now()
-
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    await user.click(updateButton)
-
-    // Assert popover closes quickly (<100ms) - optimistic behavior
-    await waitFor(() => {
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument()
-    }, { timeout: 100 })
-
-    const closeTime = performance.now() - startTime
-    expect(closeTime).toBeLessThan(100)
-  })
-
-  it('handles multiple partial milestones independently', async () => {
+  it('updates milestone on blur event', async () => {
     const user = await renderWithExpandedDrawing()
 
     // Find the threaded pipe component row
     const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
 
-    // Verify Fabricate is at 50%
-    expect(within(pipeRow).getByText('50%')).toBeInTheDocument()
+    // Find Install input (currently 0)
+    const installInput = within(pipeRow).getByLabelText(/Install milestone/)
 
-    // Note: Install, Erect, Connect, Support are also partial milestones at 0%
-    // We can't easily test them in this scenario because they show as text "0%"
-    // and there may be multiple "0%" texts in the row
-    // This test verifies the Fabricate milestone works independently
+    // Click input to focus
+    await user.click(installInput)
 
-    // Open Fabricate popover
-    const fabricateButton = within(pipeRow).getByText('50%')
-    await user.click(fabricateButton)
+    // Type new value
+    await user.clear(installInput)
+    await user.type(installInput, '80')
 
+    // Click outside to trigger blur
+    await user.click(document.body)
+
+    // Verify RPC was called with correct value
     await waitFor(() => {
-      expect(screen.getByRole('slider')).toBeInTheDocument()
+      expect(supabase.rpc).toHaveBeenCalledWith('update_component_milestone', {
+        p_component_id: 'comp-3-uuid',
+        p_milestone_name: 'Install',
+        p_new_value: 80,
+        p_user_id: 'user-1-uuid',
+      })
     })
 
-    // Verify only Fabricate popover is open by checking the label
-    const fabricateLabel = screen.getByText('Fabricate')
-    expect(fabricateLabel).toBeInTheDocument()
+    // Verify input returns to default state (not focused)
+    expect(installInput).not.toHaveFocus()
+  })
 
-    // Verify the slider is for Fabricate (at 50, not 0)
-    const slider = screen.getByRole('slider')
-    expect(slider).toHaveAttribute('aria-valuenow', '50')
+  it('cancels edit on Escape key press', async () => {
+    const user = await renderWithExpandedDrawing()
 
-    // Close the popover
+    // Find the threaded pipe component row
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
+
+    // Find Fabricate input (currently 50)
+    const fabricateInput = within(pipeRow).getByLabelText(/Fabricate milestone/)
+
+    // Click input to focus
+    await user.click(fabricateInput)
+
+    // Type new value
+    await user.clear(fabricateInput)
+    await user.type(fabricateInput, '75')
+
+    // Press Escape to cancel
     await user.keyboard('{Escape}')
 
+    // Verify input reverted to previous value
+    expect(fabricateInput).toHaveValue(50)
+
+    // Verify input lost focus
+    expect(fabricateInput).not.toHaveFocus()
+
+    // Verify RPC was NOT called
+    expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  // ========================================
+  // US2: Input Validation Tests
+  // ========================================
+
+  it('shows error for value >100', async () => {
+    const user = await renderWithExpandedDrawing()
+
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
+    const fabricateInput = within(pipeRow).getByLabelText(/Fabricate milestone/)
+
+    await user.click(fabricateInput)
+    await user.clear(fabricateInput)
+    await user.type(fabricateInput, '150')
+    await user.click(document.body) // Blur
+
+    // Verify error toast shown
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.stringContaining('Value must be between 0-100')
+    )
+
+    // Verify input shows red border
+    expect(fabricateInput).toHaveClass('border-red-500')
+
+    // Wait for auto-revert after 2 seconds
     await waitFor(() => {
-      expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+      expect(fabricateInput).toHaveValue(50) // Reverted to previous
+    }, { timeout: 2500 })
+  })
+
+  it('shows error for negative value', async () => {
+    const user = await renderWithExpandedDrawing()
+
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
+    const installInput = within(pipeRow).getByLabelText(/Install milestone/)
+
+    await user.click(installInput)
+    await user.clear(installInput)
+    await user.type(installInput, '-10')
+    await user.click(document.body) // Blur
+
+    // Verify error toast shown
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.stringContaining('Value must be between 0-100')
+    )
+
+    // Verify input reverts to previous value
+    await waitFor(() => {
+      expect(installInput).toHaveValue(0)
+    }, { timeout: 2500 })
+  })
+
+  it('reverts to previous on empty input', async () => {
+    const user = await renderWithExpandedDrawing()
+
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
+    const fabricateInput = within(pipeRow).getByLabelText(/Fabricate milestone/)
+
+    await user.click(fabricateInput)
+    await user.clear(fabricateInput)
+    await user.click(document.body) // Blur with empty value
+
+    // Should revert to previous value silently (no error toast)
+    expect(fabricateInput).toHaveValue(50)
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('rounds decimal values', async () => {
+    const user = await renderWithExpandedDrawing()
+
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
+    const fabricateInput = within(pipeRow).getByLabelText(/Fabricate milestone/)
+
+    await user.click(fabricateInput)
+    await user.clear(fabricateInput)
+    await user.type(fabricateInput, '75.5')
+    await user.keyboard('{Enter}')
+
+    // Verify RPC was called with rounded value
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith('update_component_milestone', {
+        p_component_id: 'comp-3-uuid',
+        p_milestone_name: 'Fabricate',
+        p_new_value: 76, // Rounded from 75.5
+        p_user_id: 'user-1-uuid',
+      })
     })
   })
+
+  it('normalizes leading zeros', async () => {
+    const user = await renderWithExpandedDrawing()
+
+    const pipeRow = screen.getByText('PIPE-SCH40 1"').closest('[role="row"]')!
+    const fabricateInput = within(pipeRow).getByLabelText(/Fabricate milestone/)
+
+    await user.click(fabricateInput)
+    await user.clear(fabricateInput)
+    await user.type(fabricateInput, '075')
+    await user.keyboard('{Enter}')
+
+    // Verify RPC was called with normalized value
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith('update_component_milestone', {
+        p_component_id: 'comp-3-uuid',
+        p_milestone_name: 'Fabricate',
+        p_new_value: 75, // Normalized from 075
+        p_user_id: 'user-1-uuid',
+      })
+    })
+  })
+
 })

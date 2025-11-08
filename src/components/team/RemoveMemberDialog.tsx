@@ -55,7 +55,7 @@ export function RemoveMemberDialog({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
           <AlertDialogDescription>

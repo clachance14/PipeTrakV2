@@ -16,6 +16,23 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// Mock useOrganization hook
+const mockRemoveMemberMutation = {
+  mutate: vi.fn(),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+  data: undefined,
+  reset: vi.fn(),
+};
+
+vi.mock('@/hooks/useOrganization', () => ({
+  useOrganization: () => ({
+    removeMemberMutation: mockRemoveMemberMutation,
+  }),
+}));
+
 describe('RemoveMemberDialog', () => {
   let queryClient: QueryClient;
 
@@ -210,13 +227,15 @@ describe('RemoveMemberDialog', () => {
   });
 
   describe('Mutation Behavior', () => {
-    it('should trigger removeMemberMutation when Remove is clicked', async () => {
+    it('should call removeMemberMutation with correct arguments when Remove is clicked', async () => {
       const user = userEvent.setup();
-      const onRemove = vi.fn();
+      const onRemoveSuccess = vi.fn();
 
-      // Note: onRemoveSuccess callback is called after mutation succeeds
-      // In real usage, the mutation is handled by useOrganization hook
-      // This test verifies the dialog opens/closes correctly
+      // Mock mutation to simulate success
+      mockRemoveMemberMutation.mutate.mockImplementation((variables, { onSuccess }) => {
+        // Simulate successful mutation
+        if (onSuccess) onSuccess();
+      });
 
       render(
         <QueryClientProvider client={queryClient}>
@@ -225,7 +244,7 @@ describe('RemoveMemberDialog', () => {
               member={mockMember}
               organizationId="org-123"
               trigger={<button>Remove Member</button>}
-              onRemoveSuccess={onRemove}
+              onRemoveSuccess={onRemoveSuccess}
             />
           </BrowserRouter>
         </QueryClientProvider>
@@ -235,10 +254,62 @@ describe('RemoveMemberDialog', () => {
       await user.click(triggerButton);
 
       const removeButton = await screen.findByRole('button', { name: /^remove$/i });
+      await user.click(removeButton);
 
-      // Verify button exists and is clickable
-      expect(removeButton).toBeInTheDocument();
-      expect(removeButton).not.toBeDisabled();
+      // Verify mutation was called with correct arguments
+      expect(mockRemoveMemberMutation.mutate).toHaveBeenCalledWith(
+        {
+          userId: 'user-123',
+          organizationId: 'org-123',
+        },
+        expect.objectContaining({
+          onSuccess: expect.any(Function),
+          onError: expect.any(Function),
+        })
+      );
+
+      // Verify success callback was triggered
+      await waitFor(() => {
+        expect(onRemoveSuccess).toHaveBeenCalledWith('user-123');
+      });
+    });
+
+    it('should close dialog on mutation error', async () => {
+      const user = userEvent.setup();
+      const onRemoveSuccess = vi.fn();
+
+      // Mock mutation to simulate error
+      mockRemoveMemberMutation.mutate.mockImplementation((variables, { onError }) => {
+        // Simulate failed mutation
+        if (onError) onError(new Error('Failed to remove member'));
+      });
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <RemoveMemberDialog
+              member={mockMember}
+              organizationId="org-123"
+              trigger={<button>Remove Member</button>}
+              onRemoveSuccess={onRemoveSuccess}
+            />
+          </BrowserRouter>
+        </QueryClientProvider>
+      );
+
+      const triggerButton = screen.getByRole('button', { name: /remove member/i });
+      await user.click(triggerButton);
+
+      const removeButton = await screen.findByRole('button', { name: /^remove$/i });
+      await user.click(removeButton);
+
+      // Verify dialog closes even on error
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+
+      // Verify success callback was NOT triggered
+      expect(onRemoveSuccess).not.toHaveBeenCalled();
     });
 
     it('should render action buttons in dialog', async () => {

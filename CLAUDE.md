@@ -8,11 +8,36 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 
 ## Current Status
 
-**Last Updated**: 2025-11-05
-**Phase**: Feature Development - Mobile Weld Log Optimization
-**Progress**: Feature 022 In Progress (Mobile Weld Log)
+**Last Updated**: 2025-11-08
+**Phase**: Bug Fix - Welder Assignment Data Migration
+**Progress**: Migration 00084 Applied - All milestone values converted to numeric
+
+### ✅ Recently Completed Features
+
+**Feature 025**: Threaded Pipe Inline Milestone Input (2025-11-07) - **PRODUCTION READY**
+- ✅ Replaced slider-based popover/modal editors with inline numeric inputs for threaded pipe partial milestones
+- ✅ Direct percentage entry (0-100) with Enter key or blur to save
+- ✅ Input validation with visual feedback (red border, shake animation, error toast) for invalid values (>100, <0)
+- ✅ Auto-revert to previous value after 2 seconds on error
+- ✅ Keyboard navigation (Tab between inputs, Enter saves and advances, Escape cancels)
+- ✅ Mobile-optimized (≥48px touch targets, 16px font to prevent iOS zoom, numeric keyboard auto-opens)
+- ✅ Permission-based disabled states (gray background, cursor-not-allowed)
+- ✅ WCAG 2.1 AA accessibility (aria-label, aria-valuenow, aria-invalid, role="spinbutton")
+- ✅ Reduced update workflow from 4-5 steps to 2 steps (50% faster: 3-4s → 1-2s)
+- ✅ Zero database changes (pure UI refactor)
+- ✅ Old components deleted (PartialMilestoneEditor, MobilePartialMilestoneEditor)
+- 📁 Documentation in `specs/025-threaded-pipe-inline-input/`
 
 ### 🐛 Recent Bug Fixes
+
+**Bug Fix**: Welder Assignment 400 Error (2025-11-08) - **CRITICAL FIX**
+- ✅ Fixed 400 Bad Request error when assigning welders in Component Detail modal
+- ✅ Root Cause: Schema evolution inconsistency - `current_milestones` JSONB field stored boolean values (`true`/`false`) but `update_component_milestone` RPC expected numeric values (`1`/`0`)
+- ✅ Solution: Data migration converted all boolean milestone values to numeric (28 components affected)
+- 📁 Migration: `supabase/migrations/00084_convert_boolean_milestones_to_numeric.sql`
+- 📝 Error Message: `invalid input syntax for type numeric: "true"` (PostgreSQL error code 22P02)
+- 🔍 Affected: Field weld components and other component types with discrete milestones
+- 📋 Files: `useAssignWelder.ts`, `WelderAssignDialog.tsx`, `ComponentDetailView.tsx`
 
 **Bug Fix**: Team Management - Remove Member Functionality (2025-11-05)
 - ✅ Fixed Remove Member button being disabled for owners/admins
@@ -21,8 +46,6 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 - 📁 Migration: `supabase/migrations/00081_allow_admins_to_remove_members.sql`
 - 📝 Root Cause: Two-layer issue (database RLS + missing UI prop)
 - 🔍 Files Modified: `src/pages/TeamManagement.tsx`, database migration, test coverage
-
-### ✅ Recently Completed Features
 
 **Feature 022**: Mobile Weld Log Optimization (2025-11-02) - **IN PROGRESS**
 - ✅ Mobile-optimized 3-column weld log table (Weld ID, Drawing, Date Welded) for ≤1024px viewports
@@ -157,6 +180,15 @@ npm run lint
 - **State**: TanStack Query (server state), Zustand (client state), React Context (auth)
 - **Testing**: Vitest + Testing Library with jsdom
 
+### Design Patterns & Guidelines
+**See**: `docs/plans/2025-11-06-design-rules.md` for comprehensive development patterns including:
+- Recipe-based development guides (creating pages, forms, tables, modals)
+- Mobile-responsive layout patterns (≤1024px breakpoint, ≥44px touch targets)
+- Permission-gated features and RLS integration
+- Type safety patterns and database type usage
+- Accessibility checklist (WCAG 2.1 AA compliance)
+- Testing patterns and coverage requirements
+
 ### Authentication Flow
 Authentication uses a centralized pattern:
 - `AuthContext` (src/contexts/AuthContext.tsx) wraps the entire app and provides `useAuth()` hook
@@ -204,8 +236,9 @@ supabase db diff --schema public --linked
 - 14+ tables: `organizations`, `users`, `projects`, `components`, `drawings`, `packages`, `welders`, `invitations`, etc.
 - Row Level Security (RLS) enabled on all tables
 - **Single-org architecture** (refactored from multi-tenant in Sprint 1)
-- 49 migrations applied (as of 2025-10-27)
+- 82+ migrations applied (as of 2025-11-06)
 - See `supabase/migrations/` for all migration files
+- **RLS Documentation**: See `docs/security/RLS-RULES.md` for comprehensive RLS patterns and `docs/security/RLS-AUDIT-CHECKLIST.md` for quick reference when creating new tables/functions
 
 **Recent Critical Migrations (Feature 016 - Invitation Flow)**:
 - `00037-00049`: 13 migrations to fix invitation acceptance flow

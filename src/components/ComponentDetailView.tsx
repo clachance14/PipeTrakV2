@@ -198,7 +198,7 @@ export function ComponentDetailView({
   const totalMilestones = template?.milestones_config?.length || 0;
   const currentMilestones = (component.current_milestones as Record<string, boolean | number>) || {};
   const completedMilestones = Object.values(currentMilestones).filter(
-    (value) => value === true || value === 100
+    (value) => value === 1 || value === true || value === 100
   ).length;
 
   return (
@@ -421,7 +421,7 @@ export function ComponentDetailView({
                           </div>
                         ) : (
                           <Checkbox
-                            checked={currentValue === true}
+                            checked={currentValue === 1 || currentValue === true}
                             onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
                             disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
                             className="h-6 w-6"
@@ -723,7 +723,7 @@ export function ComponentDetailView({
                           </div>
                         ) : (
                           <Checkbox
-                            checked={currentValue === true}
+                            checked={currentValue === 1 || currentValue === true}
                             onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
                             disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
                             className="h-6 w-6"

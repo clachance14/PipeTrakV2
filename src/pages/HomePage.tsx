@@ -31,11 +31,11 @@ export function HomePage() {
 
     const metaDescription = document.querySelector('meta[name="description"]')
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Track every pipe from takeoff to turnover. Real-time visibility, mobile-first updates, and complete audit trail for industrial construction projects.')
+      metaDescription.setAttribute('content', 'Track every pipe from takeoff to turnover. See real-time visibility, update from mobile devices, and maintain complete audit trails.')
     } else {
       const meta = document.createElement('meta')
       meta.name = 'description'
-      meta.content = 'Track every pipe from takeoff to turnover. Real-time visibility, mobile-first updates, and complete audit trail for industrial construction projects.'
+      meta.content = 'Track every pipe from takeoff to turnover. See real-time visibility, update from mobile devices, and maintain complete audit trails.'
       document.head.appendChild(meta)
     }
   }, [])
@@ -63,7 +63,7 @@ export function HomePage() {
         >
           <div className="max-w-7xl mx-auto px-6">
             <h2 className="text-4xl font-bold text-white text-center mb-12">
-              Everything You Need to Track Your Project
+              Track Progress, Manage Field Welds, and Report Status
             </h2>
             <FeatureCards />
           </div>
@@ -73,10 +73,10 @@ export function HomePage() {
         <div id="reporting" className="bg-slate-900">
           <div className="max-w-4xl mx-auto px-6 pt-16 pb-8 text-center">
             <h2 className="text-5xl font-bold text-white mb-4">
-              Key Features
+              Core Capabilities
             </h2>
             <p className="text-xl text-slate-400 mb-8">
-              Comprehensive tools designed for industrial construction teams
+              Comprehensive tools for industrial construction teams
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export function HomePage() {
               How PipeTrak Works
             </h2>
             <p className="text-xl text-slate-400 text-center mb-12 max-w-3xl mx-auto">
-              From material takeoff to final turnover, PipeTrak provides the tools you need to track every component through every milestone.
+              From material takeoff to final turnover, track every component through every milestone with PipeTrak.
             </p>
             <FeatureDeepDive />
           </div>

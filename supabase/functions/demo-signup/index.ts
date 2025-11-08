@@ -263,29 +263,65 @@ serve(async (req) => {
       throw new Error('Failed to create demo project')
     }
 
-    // 9. Clone demo data to project (200 components, 20 drawings, 10 packages)
-    // TODO: Fix demo template to match actual database schema (components table requires component_type, progress_template_id, etc.)
-    // For now, skip demo data cloning to get core signup flow working
+    // 9. Create demo skeleton (5 areas, 5 systems, 10 test packages, 4 welders)
+    // T052: Call create_demo_skeleton RPC function
+    const { error: skeletonError } = await supabase.rpc('create_demo_skeleton', {
+      p_user_id: authUser.user.id,
+      p_org_id: org.id,
+      p_project_id: project.id
+    })
+
+    if (skeletonError) {
+      console.error('[demo-signup] Skeleton creation failed:', skeletonError)
+      // Cleanup on skeleton failure
+      await supabase.auth.admin.deleteUser(authUser.user.id)
+      throw new Error(`Failed to create demo skeleton: ${skeletonError.message}`)
+    }
+
+    console.log('[demo-signup] Demo skeleton created successfully')
+
+    // 10. Fire-and-forget: Invoke populate-demo-data Edge Function asynchronously
+    // T053: Async invocation without awaiting response
+    // T055: Logging for population invocation status
+    supabase.functions
+      .invoke('populate-demo-data', {
+        body: {
+          projectId: project.id,
+          organizationId: org.id
+        }
+      })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[demo-signup] Population invocation failed:', error)
+        } else {
+          console.log('[demo-signup] Population started successfully')
+        }
+      })
+      .catch((err) => {
+        console.error('[demo-signup] Population invocation error:', err)
+      })
+
+    // Stats for response (skeleton creation successful)
     const cloneResult = {
       success: true,
       stats: {
-        areas: 0,
-        systems: 0,
-        testPackages: 0,
-        drawings: 0,
-        components: 0
+        areas: 5,
+        systems: 5,
+        testPackages: 10,
+        drawings: 0, // Will be populated asynchronously
+        components: 0 // Will be populated asynchronously
       }
     }
 
-    console.log('Demo data cloning temporarily disabled - project created with empty data')
+    console.log('Demo skeleton created with placeholder stats - population in progress')
 
-    // 10. Extract base URL for email links
+    // 11. Extract base URL for email links
     const baseUrl = req.headers.get('origin') || 'https://pipetrak.co'
     // Use Supabase Functions URL for resend-magic-link endpoint
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const resendLinkUrl = `${supabaseUrl}/functions/v1/resend-magic-link`
 
-    // 11. Generate magic link token
+    // 12. Generate magic link token
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email,
@@ -308,10 +344,10 @@ serve(async (req) => {
       throw new Error('Failed to generate magic link')
     }
 
-    // 12. Extract magic link URL
+    // 13. Extract magic link URL
     const magicLinkUrl = linkData.properties.action_link
 
-    // 13-14. Send email via Resend API (non-critical - don't fail signup on error)
+    // 14-15. Send email via Resend API (non-critical - don't fail signup on error)
     const emailResult = await sendDemoEmail(email, fullName, magicLinkUrl, demoExpiresAt.toISOString(), resendLinkUrl)
     const emailSent = emailResult.success
 
@@ -320,7 +356,7 @@ serve(async (req) => {
 
     const duration = Date.now() - startTime
 
-    // 14. Return success
+    // 16. Return success
     return new Response(
       JSON.stringify({
         success: true,

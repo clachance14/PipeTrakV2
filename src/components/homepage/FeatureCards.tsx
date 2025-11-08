@@ -70,7 +70,7 @@ const features: FeatureCard[] = [
       </svg>
     ),
     title: 'Complete Audit Trail',
-    description: 'Every milestone update is logged with timestamp and user. Perfect for QA documentation, client reporting, and regulatory compliance.'
+    description: 'The system logs every milestone update with timestamp and user. Perfect for QA documentation, client reporting, and regulatory compliance.'
   }
 ]
 

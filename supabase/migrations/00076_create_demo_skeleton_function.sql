@@ -56,13 +56,12 @@ BEGIN
   -- =====================================================================
   -- PART 4: Insert 4 Welders
   -- =====================================================================
-  -- Use format matching existing pattern: LETTER-NUMBER
-  INSERT INTO welders (project_id, stencil, stencil_norm, name)
+  INSERT INTO welders (project_id, stencil, name)
   VALUES
-    (p_project_id, 'JD-123', 'JD-123', 'John Davis'),
-    (p_project_id, 'SM-456', 'SM-456', 'Sarah Miller'),
-    (p_project_id, 'TR-789', 'TR-789', 'Tom Rodriguez'),
-    (p_project_id, 'KL-012', 'KL-012', 'Kim Lee')
+    (p_project_id, 'JD-123', 'John Davis'),
+    (p_project_id, 'SM-456', 'Sarah Miller'),
+    (p_project_id, 'TR-789', 'Tom Rodriguez'),
+    (p_project_id, 'KL-012', 'Kim Lee')
   ON CONFLICT (project_id, stencil_norm) DO NOTHING;
 
 END;
@@ -110,7 +109,7 @@ Followed by: populate-demo-data Edge Function (async bulk population)
 
 -- Data Integrity:
 -- - Foreign key constraints enforced (project_id, organization_id)
--- - Unique constraints prevent duplicates (project_id+name, project_id+stencil_norm)
+-- - Unique constraints prevent duplicates (project_id+name, org_id+stamp)
 -- - Default values applied (created_at timestamps)
 
 -- =====================================================================

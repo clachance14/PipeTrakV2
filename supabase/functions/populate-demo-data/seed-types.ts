@@ -1,9 +1,6 @@
 /**
- * Seed Data Schema Contract
+ * Seed Data Schema Types
  * Feature: 023-demo-data-population
- *
- * Defines TypeScript interfaces for declarative demo seed data structure.
- * This contract ensures type safety and consistency across seed data generation.
  */
 
 // Component Types
@@ -59,6 +56,7 @@ export interface DemoComponent {
 // Field Weld Record
 export interface DemoWeld {
   weld_number: string;     // e.g., "W-001"
+  component_tag: string;   // Tag of the field_weld component
   drawing: string;         // Natural key reference (drawing_number)
   type: WeldType;
   material: Material;
@@ -72,7 +70,6 @@ export interface ComponentMilestoneState {
   erect?: boolean;         // Erect milestone (spool only)
   connect?: boolean;       // Connect milestone (spool only)
   punch?: boolean;         // Punch milestone (all types)
-  // test and restore intentionally omitted (0% for active construction)
 }
 
 // Weld Milestone State
@@ -81,7 +78,6 @@ export interface WeldMilestoneState {
   fit_up?: boolean;        // Fit-Up milestone
   weld_made?: boolean;     // Weld Made milestone (triggers welder assignment)
   punch?: boolean;         // Punch milestone
-  // test and restore intentionally omitted (0% for active construction)
 }
 
 // Welder Assignment
@@ -93,64 +89,16 @@ export interface WelderAssignment {
 
 // Complete Seed Data Structure
 export interface DemoSeedData {
-  // Phase 1: Skeleton (created by SQL function)
   skeleton: {
-    areas: string[];       // 5 areas
-    systems: string[];     // 5 systems
-    packages: string[];    // 10 packages
-    welders: Welder[];     // 4 welders
+    areas: string[];
+    systems: string[];
+    packages: string[];
+    welders: Welder[];
   };
-
-  // Phase 2: Bulk data (created by Edge Function)
-  drawings: DemoDrawing[];                   // 20 drawings
-  components: DemoComponent[];               // 200 components
-  welds: DemoWeld[];                         // ~120 welds
-  milestones: ComponentMilestoneState[];     // 200 component states
-  weld_milestones: WeldMilestoneState[];     // ~120 weld states
-  weld_assignments: WelderAssignment[];      // ~78 assignments (65% of welds)
-}
-
-// Validation Constants
-export const DEMO_DATA_CONSTRAINTS = {
-  areas: { count: 5 },
-  systems: { count: 5 },
-  packages: { count: 10 },
-  welders: { count: 4 },
-  drawings: { count: 20, componentsPerDrawing: { min: 5, max: 20 } },
-  components: {
-    total: 200,
-    distribution: {
-      spool: 40,
-      support: 80,
-      valve: 50,
-      flange: 20,
-      instrument: 10
-    }
-  },
-  welds: {
-    total: 120,  // Approximately (3 per spool)
-    perSpool: 3,
-    assignmentRate: 0.65  // 65% of welds have welder assigned
-  }
-} as const;
-
-// Milestone Progression Probabilities
-export const MILESTONE_PROBABILITIES = {
-  receive: 0.95,         // 95% of components received
-  install_erect: 0.70,   // 70% installed/erected
-  connect: 0.50,         // 50% connected (spool only)
-  punch: 0.30,           // 30% punch complete
-  test: 0.00,            // 0% tested (active construction)
-  restore: 0.00          // 0% restored (active construction)
-} as const;
-
-// Export type guards
-export function isSpoolIdentity(identity: IdentityKey): identity is { spool_id: string } {
-  return 'spool_id' in identity;
-}
-
-export function isStandardIdentity(
-  identity: IdentityKey
-): identity is { drawing_norm: string; commodity_code: string; size: string; seq: number } {
-  return 'drawing_norm' in identity && 'commodity_code' in identity;
+  drawings: DemoDrawing[];
+  components: DemoComponent[];
+  welds: DemoWeld[];
+  milestones: ComponentMilestoneState[];
+  weld_milestones: WeldMilestoneState[];
+  weld_assignments: WelderAssignment[];
 }
