@@ -594,26 +594,49 @@ ORDER BY tablename;
 2. SECURITY DEFINER function `accept_invitation()` for immediate org/role assignment (Migration 00049)
 3. Authenticated users can update their own invitation acceptance (Migration 00048)
 
-**Accept Invitation Function**:
+**Accept Invitation Function** (simplified for documentation; see `00049_accept_invitation_function.sql` for full implementation):
 ```sql
-CREATE OR REPLACE FUNCTION accept_invitation(invitation_id UUID)
-RETURNS void
-SECURITY DEFINER
-AS $$
+CREATE OR REPLACE FUNCTION accept_invitation_for_user(
+  p_user_id UUID,
+  p_invitation_id UUID
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_invitation RECORD;
 BEGIN
-  -- Update user with organization_id and role
+  -- Get invitation details
+  SELECT id, email, organization_id, role, status, expires_at
+  INTO v_invitation
+  FROM invitations
+  WHERE id = p_invitation_id;
+
+  -- SECURITY VALIDATIONS (actual implementation includes):
+  -- 1. Validate invitation exists
+  -- 2. Validate status is 'pending'
+  -- 3. Validate not expired
+  -- 4. Verify user email matches invitation email
+
+  -- Update user with organization and role
   UPDATE users
-  SET organization_id = (SELECT organization_id FROM invitations WHERE id = invitation_id),
-      role = (SELECT role FROM invitations WHERE id = invitation_id)
-  WHERE id = auth.uid();
+  SET organization_id = v_invitation.organization_id,
+      role = v_invitation.role
+  WHERE id = p_user_id;
 
   -- Mark invitation as accepted
   UPDATE invitations
-  SET status = 'accepted', accepted_at = now()
-  WHERE id = invitation_id;
+  SET status = 'accepted', accepted_at = NOW()
+  WHERE id = p_invitation_id;
+
+  RETURN jsonb_build_object('success', true);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
+
+**Note**: The actual implementation in migration `00049_accept_invitation_function.sql` includes comprehensive security validations:
+- Email matching check (user email must match invitation email)
+- Status validation (invitation must be 'pending')
+- Expiration check (invitation must not be expired)
+- Proper error handling with specific error codes
 
 ### 3. Super Admin Bypass
 **Use Case**: Platform support needs to access any organization for debugging.
@@ -756,8 +779,8 @@ Use this checklist when creating new database functions, tables, or migrations:
 - **00082**: Organization insert policy fix
 
 ### Related Documentation
-- [CLAUDE.md](/home/clachance14/projects/PipeTrak_V2/CLAUDE.md) - Project overview and architecture
-- [Feature 016: Team Management](/home/clachance14/projects/PipeTrak_V2/specs/016-team-management-ui/IMPLEMENTATION-NOTES.md) - Invitation flow details
+- [CLAUDE.md](../../CLAUDE.md) - Project overview and architecture
+- [Feature 016: Team Management](../../specs/016-team-management-ui/IMPLEMENTATION-NOTES.md) - Invitation flow details
 - [Supabase RLS Documentation](https://supabase.com/docs/guides/auth/row-level-security)
 
 ---

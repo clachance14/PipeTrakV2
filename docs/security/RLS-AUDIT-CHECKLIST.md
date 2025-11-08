@@ -387,7 +387,7 @@ CREATE POLICY "Admins can delete [table]"
 ## 🔗 Quick Links
 
 - [Full RLS Rules Documentation](./RLS-RULES.md)
-- [CLAUDE.md](/home/clachance14/projects/PipeTrak_V2/CLAUDE.md) - Project overview
+- [CLAUDE.md](../../CLAUDE.md) - Project overview
 - [Supabase RLS Documentation](https://supabase.com/docs/guides/auth/row-level-security)
 
 ---

@@ -16,6 +16,13 @@ envContent.split('\n').forEach(line => {
   }
 })
 
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Missing required environment variables')
+  if (!supabaseUrl) console.error('  - VITE_SUPABASE_URL is not set')
+  if (!supabaseServiceKey) console.error('  - SUPABASE_SERVICE_ROLE_KEY is not set')
+  process.exit(1)
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { persistSession: false, autoRefreshToken: false }
 })

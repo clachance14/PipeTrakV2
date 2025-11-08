@@ -78,7 +78,14 @@ SELECT
       WHEN 'support' THEN concat('Support ',
                                  c.identity_key->>'commodity_code', ' ',
                                  c.identity_key->>'size')
-      -- Add other component types as needed
+      WHEN 'valve' THEN concat('Valve ', c.identity_key->>'tag_number')
+      WHEN 'fitting' THEN concat('Fitting ', c.identity_key->>'fitting_id')
+      WHEN 'flange' THEN concat('Flange ', c.identity_key->>'flange_id')
+      WHEN 'instrument' THEN concat('Instrument ', c.identity_key->>'tag_number')
+      WHEN 'tubing' THEN concat('Tubing ', c.identity_key->>'tubing_id')
+      WHEN 'hose' THEN concat('Hose ', c.identity_key->>'hose_id')
+      WHEN 'misc_component' THEN concat('Misc Component ', c.identity_key->>'component_id')
+      WHEN 'threaded_pipe' THEN concat('Threaded Pipe ', c.identity_key->>'pipe_id')
       ELSE concat('Component ', c.id::text)
     END,
     CASE

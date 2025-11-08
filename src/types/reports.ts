@@ -131,8 +131,8 @@ export const DIMENSION_LABELS: Record<GroupingDimension, string> = {
  * ============================================================================
  */
 
-// Grouping dimension for field weld reports (includes 'welder')
-export type FieldWeldGroupingDimension = 'area' | 'system' | 'test_package' | 'welder';
+// Grouping dimension for field weld reports (includes 'welder' and 'overall')
+export type FieldWeldGroupingDimension = 'area' | 'system' | 'test_package' | 'welder' | 'overall';
 
 // Field weld progress row data structure (matches view output)
 export interface FieldWeldProgressRow {
@@ -219,6 +219,7 @@ export const FIELD_WELD_DIMENSION_LABELS: Record<FieldWeldGroupingDimension, str
   system: 'System',
   test_package: 'Test Package',
   welder: 'Welder',
+  overall: 'Overall',
 };
 
 // Field weld report column configuration

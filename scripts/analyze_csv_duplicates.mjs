@@ -1,8 +1,8 @@
 import Papa from 'papaparse'
 import { readFileSync } from 'fs'
-import { normalizeDrawing } from './src/lib/csv/normalize-drawing.js'
-import { normalizeSize } from './src/lib/csv/normalize-size.js'
-import { generateIdentityKey } from './src/lib/csv/generate-identity-key.js'
+import { normalizeDrawing } from './src/lib/csv/normalize-drawing.ts'
+import { normalizeSize } from './src/lib/csv/normalize-size.ts'
+import { generateIdentityKey } from './src/lib/csv/generate-identity-key.ts'
 
 // Get CSV file path from command line
 const csvFilePath = process.argv[2]
@@ -31,7 +31,7 @@ parsed.data.forEach((row, index) => {
   const type = row.TYPE
   const size = row.SIZE || ''
   const cmdtyCode = row['CMDTY CODE'] || row['Cmdty Code'] || row['COMMODITY CODE']
-  const qty = parseInt(row.QTY || row.QUANTITY || '1')
+  const qty = parseInt(row.QTY || row.QUANTITY || '1', 10) || 1
 
   if (!drawing || !type || !cmdtyCode) {
     return // Skip incomplete rows

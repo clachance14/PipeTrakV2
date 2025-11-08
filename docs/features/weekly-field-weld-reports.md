@@ -371,15 +371,17 @@ npm test -- --coverage
 
 ## Accessibility
 
-All components meet WCAG 2.1 AA standards:
+Components implement WCAG 2.1 AA patterns (pending formal accessibility audit):
 
-✅ Semantic HTML (`<table>`, `<thead>`, `<tbody>`, `role` attributes)
-✅ ARIA labels for all buttons and interactive elements
-✅ Keyboard navigation support (Tab, Enter, Esc)
-✅ Focus indicators on all controls
-✅ Screen reader friendly (tested with NVDA/JAWS patterns)
-✅ Touch targets ≥44px on mobile
-✅ Color contrast ratios meet AA standards
+- ✅ Semantic HTML (`<table>`, `<thead>`, `<tbody>`, `role` attributes)
+- ✅ ARIA labels for all buttons and interactive elements
+- ✅ Keyboard navigation support (Tab, Enter, Esc)
+- ✅ Focus indicators on all controls
+- ⏳ Screen reader testing pending (planned with NVDA/JAWS)
+- ✅ Touch targets ≥44px on mobile
+- ✅ Color contrast ratios designed for AA standards
+
+**Note**: Formal accessibility testing with automated tools (jest-axe, axe-core) and manual screen reader testing has not yet been completed. See "Accessibility audit" in Maintenance section below.
 
 ## Known Limitations & Future Enhancements
 
