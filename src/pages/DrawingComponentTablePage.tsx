@@ -188,9 +188,9 @@ export function DrawingComponentTablePage() {
   if (isLoading) {
     return (
       <Layout fixedHeight>
-        <div className="flex flex-col h-full mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden">
+          <h1 className="text-2xl font-bold mb-6 px-4 py-8">Component Progress</h1>
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-4 mb-4">
             <DrawingTable
               drawings={[]}
               expandedDrawingIds={new Set()}
@@ -213,9 +213,9 @@ export function DrawingComponentTablePage() {
   if (isError) {
     return (
       <Layout fixedHeight>
-        <div className="flex flex-col h-full mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto">
+        <div className="flex flex-col h-full overflow-hidden">
+          <h1 className="text-2xl font-bold mb-6 px-4 py-8">Component Progress</h1>
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto mx-4 mb-4">
             <div className="p-4">
               <DrawingTableError error={error} onRetry={() => refetch()} />
             </div>
@@ -229,9 +229,9 @@ export function DrawingComponentTablePage() {
   if (displayDrawings.length === 0) {
     return (
       <Layout fixedHeight>
-        <div className="flex flex-col h-full mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto">
+        <div className="flex flex-col h-full overflow-hidden">
+          <h1 className="text-2xl font-bold mb-6 px-4 py-8">Component Progress</h1>
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto mx-4 mb-4">
             <div className="p-4">
               <EmptyDrawingsState
                 hasSearch={searchTerm !== ''}
@@ -248,9 +248,9 @@ export function DrawingComponentTablePage() {
   // Main table view
   return (
     <Layout fixedHeight>
-      <div className="flex flex-col h-full mx-auto px-4 py-3 md:py-8">
+      <div className="flex flex-col h-full overflow-hidden">
         {/* Header - Fixed */}
-        <div className="flex-shrink-0 mb-3 md:mb-6">
+        <div className="flex-shrink-0 mb-3 md:mb-6 px-4 py-3 md:py-8">
           <h1 className="text-lg md:text-2xl font-bold mb-2 md:mb-4">Component Progress</h1>
 
           {/* Filters - Mobile: vertical stack, Desktop: horizontal */}
@@ -309,7 +309,7 @@ export function DrawingComponentTablePage() {
 
         {/* Feature 011: Bulk Actions Toolbar (T036) - Fixed */}
         {selectionMode && selectedDrawingIds.size > 0 && (
-          <div className="flex-shrink-0 mb-4">
+          <div className="flex-shrink-0 mb-4 px-4">
             <DrawingBulkActions
               selectedCount={selectedDrawingIds.size}
               onAssignMetadata={handleOpenBulkAssignDialog}
@@ -319,7 +319,7 @@ export function DrawingComponentTablePage() {
         )}
 
         {/* Table - Scrollable fills remaining space */}
-        <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-4 mb-4">
           <DrawingTable
             drawings={displayDrawings}
             expandedDrawingIds={expandedDrawingIds}
