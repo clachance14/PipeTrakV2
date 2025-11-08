@@ -1,0 +1,22 @@
+Testing vw_recent_activity view...
+
+View queryable: true
+Error: null
+Count: 223
+Sample data: [
+  {
+    id: '774fbf1a-188a-4a8e-b0eb-3197215e6517',
+    project_id: '00771244-552e-4b07-bf44-819b1a9ca7a4',
+    user_id: '1b093e7b-2cfc-41a0-be9b-72f07c8a0988',
+    user_initials: 'CO',
+    description: 'Cory LaChance marked Install complete for Component 39906639-9dc8-4dfa-8c1f-378cc6269aad (Drawing placeholder)',
+    timestamp: '2025-10-28T13:07:11.512957+00:00'
+  }
+]
+
+Test query (with project filter):
+Query successful: true
+Test error: null
+Test results count: 5
+
+✅ View vw_recent_activity is successfully created and queryable!

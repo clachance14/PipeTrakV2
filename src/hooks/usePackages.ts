@@ -19,6 +19,7 @@ import type {
   UpdatePackageResponse,
   PackageComponent,
 } from '@/types/package.types';
+import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculateDuplicateCounts';
 
 type PackageReadinessRow = Database['public']['Views']['mv_package_readiness']['Row'];
 
@@ -294,6 +295,9 @@ export function usePackageComponents(
       // Combine both result sets
       const allData = [...(directData || []), ...filteredInherited];
 
+      // Calculate duplicate counts for identity key numbering
+      const duplicateCounts = calculateDuplicateCounts(allData as any);
+
       // Transform to PackageComponent format
       const components: PackageComponent[] = allData.map((row: any) => ({
         id: row.id,
@@ -302,7 +306,11 @@ export function usePackageComponents(
         drawing_test_package_id: row.drawings?.test_package_id || null,
         component_type: row.component_type,
         identity_key: row.identity_key,
-        identityDisplay: formatIdentityKey(row.identity_key, row.component_type),
+        identityDisplay: formatIdentityKey(
+          row.identity_key,
+          row.component_type,
+          duplicateCounts.get(createIdentityGroupKey(row.identity_key as any))
+        ),
         test_package_id: row.test_package_id,
         percent_complete: row.percent_complete,
         current_milestones: row.current_milestones,
@@ -320,9 +328,20 @@ export function usePackageComponents(
 /**
  * Format identity key for display
  * Reuses logic from Feature 010
+ * @param totalCount - Total number of components with matching identity (for proper numbering)
  */
-function formatIdentityKey(key: any, type: string): string {
+function formatIdentityKey(key: any, type: string, totalCount = 1): string {
   if (!key) return 'Unknown';
+
+  // Spools have unique spool_id - no "x of y" formatting needed
+  if (type === 'spool' && 'spool_id' in key) {
+    return key.spool_id;
+  }
+
+  // Field welds have unique weld_number - no "x of y" formatting needed
+  if (type === 'field_weld' && 'weld_number' in key) {
+    return key.weld_number;
+  }
 
   const { commodity_code, size, seq } = key;
   const sizeDisplay = size && size !== 'NOSIZE' ? ` ${size}` : '';
@@ -332,6 +351,11 @@ function formatIdentityKey(key: any, type: string): string {
     return `${commodity_code}${sizeDisplay}`;
   }
 
-  // Others show (seq)
-  return `${commodity_code}${sizeDisplay} (${seq || 1})`;
+  // Others show (seq) only if totalCount > 1
+  if (totalCount > 1) {
+    return `${commodity_code}${sizeDisplay} (${seq || 1})`;
+  }
+
+  // Single component - no suffix
+  return `${commodity_code}${sizeDisplay}`;
 }

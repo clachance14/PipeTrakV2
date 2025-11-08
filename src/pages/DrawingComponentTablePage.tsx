@@ -12,6 +12,7 @@ import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
 import { DrawingBulkActions } from '@/components/drawing-table/DrawingBulkActions'
 import { DrawingAssignDialog } from '@/components/drawing-table/DrawingAssignDialog'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
+import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal'
 import { Button } from '@/components/ui/button'
 import { useDrawingsWithProgress } from '@/hooks/useDrawingsWithProgress'
 import { useComponentsByDrawings } from '@/hooks/useComponentsByDrawings'
@@ -50,6 +51,27 @@ export function DrawingComponentTablePage() {
   // Field weld welder assignment dialog state
   const [welderDialogOpen, setWelderDialogOpen] = useState(false)
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null)
+
+  // Component metadata editing modal state
+  const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null)
+
+  // Validated component click handler with logging
+  const handleComponentClick = (componentId: string) => {
+    console.log('[DrawingComponentTablePage] Component clicked:', componentId)
+
+    // Validate component ID format (must be UUID, not contain colons)
+    if (!componentId || componentId.includes(':') || componentId.length < 10) {
+      console.error('[DrawingComponentTablePage] Invalid component ID detected:', {
+        componentId,
+        type: typeof componentId,
+        length: componentId?.length
+      })
+      // Don't open modal with invalid ID
+      return
+    }
+
+    setMetadataModalComponentId(componentId)
+  }
 
   // Fetch data
   const { data: drawings, isLoading, isError, error, refetch } = useDrawingsWithProgress(selectedProjectId!)
@@ -165,10 +187,10 @@ export function DrawingComponentTablePage() {
   // Loading state
   if (isLoading) {
     return (
-      <Layout>
-        <div className="mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="bg-white rounded-lg shadow h-[calc(100vh-200px)]">
+      <Layout fixedHeight>
+        <div className="flex flex-col h-full overflow-hidden">
+          <h1 className="text-2xl font-bold mb-6 px-4 py-8">Component Progress</h1>
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-4 mb-4">
             <DrawingTable
               drawings={[]}
               expandedDrawingIds={new Set()}
@@ -190,11 +212,13 @@ export function DrawingComponentTablePage() {
   // Error state
   if (isError) {
     return (
-      <Layout>
-        <div className="mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="bg-white rounded-lg shadow p-4">
-            <DrawingTableError error={error} onRetry={() => refetch()} />
+      <Layout fixedHeight>
+        <div className="flex flex-col h-full overflow-hidden">
+          <h1 className="text-2xl font-bold mb-6 px-4 py-8">Component Progress</h1>
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto mx-4 mb-4">
+            <div className="p-4">
+              <DrawingTableError error={error} onRetry={() => refetch()} />
+            </div>
           </div>
         </div>
       </Layout>
@@ -204,15 +228,17 @@ export function DrawingComponentTablePage() {
   // Empty state
   if (displayDrawings.length === 0) {
     return (
-      <Layout>
-        <div className="mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Component Progress</h1>
-          <div className="bg-white rounded-lg shadow p-4">
-            <EmptyDrawingsState
-              hasSearch={searchTerm !== ''}
-              hasFilter={statusFilter !== 'all'}
-              onClearFilters={handleClearFilters}
-            />
+      <Layout fixedHeight>
+        <div className="flex flex-col h-full overflow-hidden">
+          <h1 className="text-2xl font-bold mb-6 px-4 py-8">Component Progress</h1>
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto mx-4 mb-4">
+            <div className="p-4">
+              <EmptyDrawingsState
+                hasSearch={searchTerm !== ''}
+                hasFilter={statusFilter !== 'all'}
+                onClearFilters={handleClearFilters}
+              />
+            </div>
           </div>
         </div>
       </Layout>
@@ -221,11 +247,11 @@ export function DrawingComponentTablePage() {
 
   // Main table view
   return (
-    <Layout>
-      <div className="mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-4">Component Progress</h1>
+    <Layout fixedHeight>
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 mb-3 md:mb-6 px-4 py-3 md:py-8">
+          <h1 className="text-lg md:text-2xl font-bold mb-2 md:mb-4">Component Progress</h1>
 
           {/* Filters - Mobile: vertical stack, Desktop: horizontal */}
           {isMobile ? (
@@ -281,9 +307,9 @@ export function DrawingComponentTablePage() {
           )}
         </div>
 
-        {/* Feature 011: Bulk Actions Toolbar (T036) */}
+        {/* Feature 011: Bulk Actions Toolbar (T036) - Fixed */}
         {selectionMode && selectedDrawingIds.size > 0 && (
-          <div className="mb-4">
+          <div className="flex-shrink-0 mb-4 px-4">
             <DrawingBulkActions
               selectedCount={selectedDrawingIds.size}
               onAssignMetadata={handleOpenBulkAssignDialog}
@@ -292,8 +318,8 @@ export function DrawingComponentTablePage() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow h-[calc(100vh-280px)]">
+        {/* Table - Scrollable fills remaining space */}
+        <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-4 mb-4">
           <DrawingTable
             drawings={displayDrawings}
             expandedDrawingIds={expandedDrawingIds}
@@ -307,6 +333,7 @@ export function DrawingComponentTablePage() {
             selectedDrawingIds={selectedDrawingIds}
             onToggleSelection={toggleSelection}
             onSelectAll={() => selectAll(visibleDrawingIds)}
+            onComponentClick={handleComponentClick}
             isMobile={isMobile}
           />
         </div>
@@ -331,6 +358,15 @@ export function DrawingComponentTablePage() {
             projectId={selectedProjectId!}
             open={welderDialogOpen}
             onOpenChange={setWelderDialogOpen}
+          />
+        )}
+
+        {/* Feature 020: Component Metadata Editing Modal */}
+        {metadataModalComponentId && (
+          <ComponentMetadataModal
+            componentId={metadataModalComponentId}
+            open={true}
+            onClose={() => setMetadataModalComponentId(null)}
           />
         )}
       </div>

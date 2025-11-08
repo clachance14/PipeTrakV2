@@ -26,6 +26,7 @@ export function useSystems(projectId: string): UseQueryResult<System[], Error> {
       return data || [];
     },
     staleTime: 10 * 60 * 1000, // 10 minutes (systems rarely change)
+    enabled: !!projectId, // Only fetch when projectId is provided
   });
 }
 

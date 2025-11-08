@@ -94,7 +94,7 @@ describe('useUpdateMilestone', () => {
     const mockRpc = await getMockRpc(); expect(mockRpc).toHaveBeenCalledWith('update_component_milestone', {
       p_component_id: 'comp-1-uuid',
       p_milestone_name: 'Receive',
-      p_new_value: true,
+      p_new_value: 1, // Boolean true should be converted to numeric 1
       p_user_id: 'user-uuid',
     })
   })
@@ -137,7 +137,7 @@ describe('useUpdateMilestone', () => {
     const mockRpc = await getMockRpc(); expect(mockRpc).toHaveBeenCalledWith('update_component_milestone', {
       p_component_id: 'comp-1-uuid',
       p_milestone_name: 'Install',
-      p_new_value: false,
+      p_new_value: 0, // Boolean false should be converted to numeric 0
       p_user_id: 'user-uuid',
     })
   })

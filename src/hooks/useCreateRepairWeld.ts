@@ -26,8 +26,14 @@ export function useCreateRepairWeld() {
 
   return useMutation({
     mutationFn: async (payload: CreateRepairWeldPayload) => {
+      console.log('[useCreateRepairWeld] Starting with payload:', payload)
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
+
+      if (!payload.drawing_id) {
+        throw new Error('Drawing ID is required but was not provided')
+      }
 
       // Validate repair chain depth before creating repair (CHK002)
       let depth = 0
@@ -54,34 +60,62 @@ export function useCreateRepairWeld() {
 
       const { data: originalWeld, error: fetchError } = await supabase
         .from('field_welds')
-        .select('project_id, component_id, component:components!inner(progress_template_id)')
+        .select('project_id, component_id, component:components!inner(progress_template_id, identity_key)')
         .eq('id', payload.original_field_weld_id)
         .single()
 
-      if (fetchError || !originalWeld) throw new Error('Failed to fetch original weld')
+      if (fetchError || !originalWeld) {
+        console.error('[useCreateRepairWeld] Fetch error:', fetchError)
+        throw new Error('Failed to fetch original weld')
+      }
 
-      // Get the progress_template_id from the original component
-      const progressTemplateId = (originalWeld.component as any)?.progress_template_id
+      // Get the progress_template_id and identity_key from the original component
+      const originalComponent = originalWeld.component as any
+      const progressTemplateId = originalComponent?.progress_template_id
+      const originalIdentityKey = originalComponent?.identity_key
+      const originalWeldNumber = originalIdentityKey?.weld_number || 'UNKNOWN'
+
+      console.log('[useCreateRepairWeld] Original weld data:', {
+        project_id: originalWeld.project_id,
+        component_id: originalWeld.component_id,
+        progress_template_id: progressTemplateId,
+        original_weld_number: originalWeldNumber,
+      })
+
+      if (!progressTemplateId) {
+        throw new Error('Progress template ID not found on original component')
+      }
+
+      // Create repair weld number: Original number + "." + repair attempt number
+      // e.g., "W-001" becomes "W-001.1", "W-001.2", etc.
+      const repairWeldNumber = `${originalWeldNumber}.${depth + 1}`
+
+      const componentData = {
+        project_id: originalWeld.project_id,
+        drawing_id: payload.drawing_id,
+        component_type: 'field_weld' as const,
+        progress_template_id: progressTemplateId,
+        identity_key: {
+          weld_number: repairWeldNumber,
+          repair_of: payload.original_field_weld_id,
+        },
+        percent_complete: 0,
+        current_milestones: {},
+        created_by: user.id,
+        last_updated_by: user.id,
+      }
+      console.log('[useCreateRepairWeld] Creating component with:', componentData)
 
       const { data: component, error: componentError } = await supabase
         .from('components')
-        .insert({
-          project_id: originalWeld.project_id,
-          drawing_id: payload.drawing_id,
-          component_type: 'field_weld',
-          progress_template_id: progressTemplateId,
-          identity_key: {
-            weld_id: 'REPAIR-' + payload.original_field_weld_id.substring(0, 8),
-            repair_of: payload.original_field_weld_id,
-          },
-          percent_complete: 0,
-          current_milestones: {},
-          created_by: user.id,
-        })
+        .insert(componentData)
         .select()
         .single()
 
-      if (componentError) throw new Error('Failed to create repair component')
+      if (componentError) {
+        console.error('[useCreateRepairWeld] Component creation error:', componentError)
+        throw new Error(`Failed to create repair component: ${componentError.message || JSON.stringify(componentError)}`)
+      }
 
       const { data: fieldWeld, error: fieldWeldError } = await supabase
         .from('field_welds')
@@ -108,9 +142,18 @@ export function useCreateRepairWeld() {
       return { component, field_weld: fieldWeld, depth }
     },
     onSuccess: (data) => {
+      // Invalidate all related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
+      queryClient.invalidateQueries({ queryKey: ['field-welds'] })
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+
+      console.log('[useCreateRepairWeld] Success! Repair weld created:', {
+        component_id: data.component.id,
+        field_weld_id: data.field_weld.id,
+        drawing_id: data.component.drawing_id,
+        weld_number: (data.component.identity_key as any)?.weld_number,
+      })
 
       // Show depth info in toast for awareness
       const depthMessage = data.depth > 0

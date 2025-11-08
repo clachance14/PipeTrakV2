@@ -23,6 +23,8 @@ export interface DrawingTableProps {
   onSelectAll?: () => void
   // Feature 015: Mobile detection
   isMobile?: boolean
+  // Feature 020: Component metadata editing
+  onComponentClick?: (componentId: string) => void
 }
 
 type VirtualRow =
@@ -52,6 +54,7 @@ export function DrawingTable({
   onToggleSelection,
   onSelectAll,
   isMobile = false,
+  onComponentClick,
 }: DrawingTableProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -86,9 +89,25 @@ export function DrawingTable({
         return 64 // Drawing row: fixed 64px
       }
       // Component rows:
-      // Desktop: 60px (compact table row)
-      // Mobile: 150px (card with large vertical milestone layout: 32px checkbox + label + identity + metadata)
-      return isMobile ? 150 : 60
+      // Desktop: Check if component has partial milestones (threaded pipes need extra height for labels + inputs)
+      //   - With partial milestones: 100px (py-5 padding + milestone label + input)
+      //   - Discrete milestones only: 60px (py-3 padding + checkbox)
+      // Mobile: Dynamic height based on milestone count (grid layout wraps at 3 columns)
+      //   - 6 milestones = 2 rows: 220px (identity + 2 milestone rows + metadata)
+      //   - 3 milestones = 1 row: 150px
+      if (row?.type === 'component') {
+        if (isMobile) {
+          const milestoneCount = row.data.template.milestones_config.length
+          // Calculate rows needed (3 milestones per row in grid)
+          const milestoneRows = Math.ceil(milestoneCount / 3)
+          // Base height (identity + metadata) + milestone row height
+          return 100 + (milestoneRows * 60)
+        }
+        // Check if component has any partial milestones
+        const hasPartialMilestones = row.data.template.milestones_config.some(m => m.is_partial)
+        return hasPartialMilestones ? 100 : 60
+      }
+      return 60 // fallback
     },
     overscan: isMobile ? 5 : 10,
   })
@@ -152,6 +171,9 @@ export function DrawingTable({
           }
 
           // Component row
+          // Find the parent drawing for this component
+          const parentDrawing = drawings.find(d => d.id === row.drawingId)
+
           return (
             <div
               key={virtualRow.key}
@@ -165,7 +187,12 @@ export function DrawingTable({
             >
               <ComponentRow
                 component={row.data}
+                drawing={parentDrawing}
+                area={row.data.area}
+                system={row.data.system}
+                testPackage={row.data.test_package}
                 onMilestoneUpdate={onMilestoneUpdate}
+                onClick={onComponentClick}
               />
             </div>
           )

@@ -4,7 +4,12 @@
 export type User = {
   id: string
   email: string
-  role: 'admin' | 'member'
+  role: 'owner' | 'admin' | 'project_manager' | 'foreman' | 'qc_inspector' | 'welder' | 'viewer' | null
+  full_name: string | null
+  organization_id: string | null
+  avatar_url: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export type Organization = {

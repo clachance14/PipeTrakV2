@@ -11,7 +11,8 @@ import {
   Users,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BarChart3
 } from 'lucide-react';
 import { useSidebarStore } from '@/stores/useSidebarStore';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -33,7 +34,7 @@ interface NavItem {
 }
 
 export function Sidebar() {
-  const { isCollapsed, isMobileOpen, toggle, setMobileOpen } = useSidebarStore();
+  const { isCollapsed, isMobileOpen, isHovering, toggle, setMobileOpen, setHovering } = useSidebarStore();
   const location = useLocation();
 
   const navItems: NavItem[] = [
@@ -44,8 +45,9 @@ export function Sidebar() {
     { path: '/needs-review', label: 'Needs Review', icon: AlertCircle },
     { path: '/welders', label: 'Welders', icon: Wrench },
     { path: '/weld-log', label: 'Weld Log', icon: ClipboardCheck },
+    { path: '/reports', label: 'Reports', icon: BarChart3 },
     { path: '/imports', label: 'Imports', icon: Upload },
-    { path: '/metadata', label: 'Metadata', icon: Settings },
+    { path: '/metadata', label: 'Details', icon: Settings },
     { path: '/team', label: 'Team', icon: Users, permission: 'can_manage_team' }
   ];
 
@@ -73,11 +75,21 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <div
+        onMouseEnter={() => {
+          if (isCollapsed) {
+            setHovering(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (isCollapsed) {
+            setHovering(false);
+          }
+        }}
         className={cn(
           'fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 transition-all duration-300 ease-in-out',
           // Desktop: always visible, collapsible width
           'md:block md:z-40',
-          isCollapsed ? 'md:w-16' : 'md:w-64',
+          isCollapsed && !isHovering ? 'md:w-16' : 'md:w-64',
           // Mobile: hidden by default, slide in from left when open, full width
           'md:translate-x-0',
           isMobileOpen ? 'translate-x-0 w-64 z-50' : '-translate-x-full w-64'
@@ -113,14 +125,14 @@ export function Sidebar() {
                   active
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100',
-                  isCollapsed ? 'md:justify-center' : ''
+                  isCollapsed && !isHovering ? 'md:justify-center' : ''
                 )}
-                title={isCollapsed ? item.label : undefined}
+                title={isCollapsed && !isHovering ? item.label : undefined}
               >
-                <Icon className={cn('flex-shrink-0', isCollapsed ? 'md:h-5 md:w-5 h-6 w-6' : 'h-5 w-5')} />
-                {(!isCollapsed || isMobileOpen) && (
+                <Icon className={cn('flex-shrink-0', isCollapsed && !isHovering ? 'md:h-5 md:w-5 h-6 w-6' : 'h-5 w-5')} />
+                {((!isCollapsed || isHovering) || isMobileOpen) && (
                   <>
-                    <span className="flex-1 text-sm font-medium">{item.label}</span>
+                    <span className="flex-1 text-sm font-medium whitespace-nowrap overflow-hidden">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="flex items-center justify-center h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full">
                         {item.badge > 9 ? '9+' : item.badge}

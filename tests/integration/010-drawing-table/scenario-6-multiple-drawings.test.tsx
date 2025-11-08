@@ -65,7 +65,7 @@ const mockComponentsDrawing1 = [
       size: '2',
       seq: 1,
     },
-    identityDisplay: 'VBALU-001 2" (1)',
+    identityDisplay: 'VBALU-001 2"',
     current_milestones: { Receive: 0, Install: 0, Test: 0, Certify: 0, Stencil: 0 },
     percent_complete: 0,
     template: {
@@ -93,7 +93,7 @@ const mockComponentsDrawing1 = [
       size: '1X2',
       seq: 1,
     },
-    identityDisplay: 'FELBDFA235 1X2 (1)',
+    identityDisplay: 'FELBDFA235 1X2',
     current_milestones: { Receive: 1, Install: 0 },
     percent_complete: 10,
     template: {
@@ -118,7 +118,7 @@ const mockComponentsDrawing1 = [
       size: 'NOSIZE',
       seq: 1,
     },
-    identityDisplay: 'PT-16000 (1)',
+    identityDisplay: 'PT-16000',
     current_milestones: { Receive: 1, Fabricate: 50 },
     percent_complete: 15,
     template: {
@@ -146,7 +146,7 @@ const mockComponentsDrawing2 = [
       size: '1',
       seq: 1,
     },
-    identityDisplay: 'VBALU-002 1" (1)',
+    identityDisplay: 'VBALU-002 1"',
     current_milestones: { Receive: 1, Install: 1, Test: 1, Certify: 1, Stencil: 1 },
     percent_complete: 100,
     template: {
@@ -177,7 +177,7 @@ const mockComponentsDrawing3 = [
       size: '4',
       seq: 1,
     },
-    identityDisplay: 'PIPE-001 4" (1)',
+    identityDisplay: 'PIPE-001 4"',
     current_milestones: { Receive: 0, Install: 0 },
     percent_complete: 0,
     template: {
@@ -202,7 +202,7 @@ const mockComponentsDrawing3 = [
       size: '4',
       seq: 1,
     },
-    identityDisplay: 'PIPE-002 4" (1)',
+    identityDisplay: 'PIPE-002 4"',
     current_milestones: { Receive: 0, Install: 0 },
     percent_complete: 0,
     template: {
@@ -463,14 +463,14 @@ describe('Integration Test: Scenario 6 - Multiple Drawings Expanded', () => {
 
     // Components from Drawing P-001 should be visible
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
-      expect(screen.getByText('FELBDFA235 1X2 (1)')).toBeInTheDocument()
-      expect(screen.getByText('PT-16000 (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
+      expect(screen.getByText('FELBDFA235 1X2')).toBeInTheDocument()
+      expect(screen.getByText('PT-16000')).toBeInTheDocument()
     })
 
     // Component from Drawing P-002 should be visible
     await waitFor(() => {
-      expect(screen.getByText('VBALU-002 1" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-002 1"')).toBeInTheDocument()
     })
   })
 

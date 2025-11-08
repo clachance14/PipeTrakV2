@@ -10,10 +10,12 @@ import { persist } from 'zustand/middleware'
 interface SidebarStore {
   isCollapsed: boolean
   isMobileOpen: boolean
+  isHovering: boolean
   toggle: () => void
   setCollapsed: (value: boolean) => void
   toggleMobile: () => void
   setMobileOpen: (value: boolean) => void
+  setHovering: (value: boolean) => void
 }
 
 /**
@@ -25,6 +27,7 @@ export const useSidebarStore = create<SidebarStore>()(
     (set) => ({
       isCollapsed: false,
       isMobileOpen: false,
+      isHovering: false,
 
       toggle: () => {
         set((state) => ({ isCollapsed: !state.isCollapsed }))
@@ -40,6 +43,10 @@ export const useSidebarStore = create<SidebarStore>()(
 
       setMobileOpen: (value: boolean) => {
         set({ isMobileOpen: value })
+      },
+
+      setHovering: (value: boolean) => {
+        set({ isHovering: value })
       },
     }),
     {

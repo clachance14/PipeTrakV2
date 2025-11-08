@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
+import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculateDuplicateCounts'
 import type { ComponentRow } from '@/types/drawing-table.types'
 
 /**
@@ -32,9 +33,13 @@ export function useComponentsByDrawing(
         `)
         .eq('drawing_id', drawingId)
         .eq('is_retired', false)
-        .order('identity_key->seq')
+        .order('component_type', { ascending: true })
+        .order('identity_key->seq', { ascending: true })
 
       if (error) throw error
+
+      // Calculate duplicate counts for identity numbering
+      const counts = calculateDuplicateCounts(data as any)
 
       // Transform data to ComponentRow with computed fields
       const components: ComponentRow[] = data.map((component) => ({
@@ -54,7 +59,8 @@ export function useComponentsByDrawing(
         // Computed fields
         identityDisplay: formatIdentityKey(
           component.identity_key as unknown as ComponentRow['identity_key'],
-          component.component_type as ComponentRow['component_type']
+          component.component_type as ComponentRow['component_type'],
+          counts.get(createIdentityGroupKey(component.identity_key as unknown as ComponentRow['identity_key']))
         ),
         canUpdate: true, // TODO: Get from permissions hook
       }))

@@ -175,7 +175,7 @@ export function ComponentAssignDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isSingleComponent ? 'Assign Component Metadata' : 'Assign Components'}
+            {isSingleComponent ? 'Assign Component Details' : 'Assign Components'}
           </DialogTitle>
           <DialogDescription>
             {isSingleComponent && singleComponentData

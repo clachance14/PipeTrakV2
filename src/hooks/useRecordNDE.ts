@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 
 interface RecordNDEPayload {
   field_weld_id: string
-  nde_type: 'RT' | 'UT' | 'PT' | 'MT'
+  nde_type: 'RT' | 'UT' | 'PT' | 'MT' | 'VT'
   nde_result: 'PASS' | 'FAIL' | 'PENDING'
   nde_date: string
   nde_notes?: string
@@ -54,14 +54,16 @@ export function useRecordNDE() {
 
       // Update component progress based on result
       if (payload.nde_result === 'PASS') {
-        // Mark "Accepted" milestone (100% complete)
+        // Mark all milestones complete (100%) - using actual milestone names from template
         await supabase
           .from('components')
           .update({
-            progress_state: {
-              'Fit-up': true,
-              'Weld Complete': true,
-              'Accepted': true,
+            current_milestones: {
+              'Fit-Up': true,
+              'Weld Made': true,
+              'Punch': true,
+              'Test': true,
+              'Restore': true,
             },
             percent_complete: 100,
           })
@@ -74,6 +76,7 @@ export function useRecordNDE() {
     onSuccess: (_data, payload) => {
       // Invalidate caches
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
+      queryClient.invalidateQueries({ queryKey: ['field-welds'] }) // For Weld Log table
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
 

@@ -407,7 +407,7 @@ describe('Integration Test: Edge Cases', () => {
       last_updated_by: null,
       is_retired: false,
       template: valveTemplate,
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: true,
     }
 
@@ -434,7 +434,7 @@ describe('Integration Test: Edge Cases', () => {
       renderPage(['/?expanded=drawing-1-uuid'])
 
       // Wait for component AND milestone controls to load
-      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // Verify initially unchecked
       expect(receiveCheckbox).not.toBeChecked()
@@ -473,7 +473,7 @@ describe('Integration Test: Edge Cases', () => {
 
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       await user.click(receiveCheckbox)
 
@@ -532,7 +532,7 @@ describe('Integration Test: Edge Cases', () => {
       last_updated_by: null,
       is_retired: false,
       template: valveTemplate,
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: false, // Read-only access
     }
 
@@ -558,7 +558,7 @@ describe('Integration Test: Edge Cases', () => {
     it('displays disabled checkboxes for read-only user', async () => {
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       expect(receiveCheckbox).toBeDisabled()
     })
@@ -566,7 +566,7 @@ describe('Integration Test: Edge Cases', () => {
     it('checkboxes have disabled attribute', async () => {
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // Checkbox should be disabled
       expect(receiveCheckbox).toHaveAttribute('disabled')
@@ -577,7 +577,7 @@ describe('Integration Test: Edge Cases', () => {
 
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // Try to click disabled checkbox
       await user.click(receiveCheckbox)
@@ -589,7 +589,7 @@ describe('Integration Test: Edge Cases', () => {
     it('applies not-allowed cursor style to disabled checkboxes', async () => {
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: receiveCheckbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // Check for cursor-not-allowed class or disabled state
       expect(receiveCheckbox).toBeDisabled()
@@ -641,7 +641,7 @@ describe('Integration Test: Edge Cases', () => {
       last_updated_by: null,
       is_retired: false,
       template: valveTemplate,
-      identityDisplay: `VALVE-${i.toString().padStart(3, '0')} 2" (${i + 1})`,
+      identityDisplay: `VALVE-${i.toString().padStart(3, '0')} 2"`,
       canUpdate: true,
     }))
 
@@ -669,7 +669,7 @@ describe('Integration Test: Edge Cases', () => {
 
       // Wait for first component to appear (indicates loading complete)
       await waitFor(() => {
-        expect(screen.getByText('VALVE-000 2" (1)')).toBeInTheDocument()
+        expect(screen.getByText('VALVE-000 2"')).toBeInTheDocument()
       })
 
       const loadTime = performance.now() - startTime
@@ -722,7 +722,7 @@ describe('Integration Test: Edge Cases', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText('VALVE-000 2" (1)')).toBeInTheDocument()
+        expect(screen.getByText('VALVE-000 2"')).toBeInTheDocument()
       })
 
       const renderTime = performance.now() - startTime
@@ -770,7 +770,7 @@ describe('Integration Test: Edge Cases', () => {
       last_updated_by: null,
       is_retired: false,
       template: valveTemplate,
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: true,
     }
 
@@ -815,7 +815,7 @@ describe('Integration Test: Edge Cases', () => {
       )
 
       // Wait for Tab A to load with milestone controls
-      const { checkbox: checkboxA } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox: checkboxA } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // Mock RPC to simulate last write wins
       let callCount = 0
@@ -862,7 +862,7 @@ describe('Integration Test: Edge Cases', () => {
 
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // First update
       await user.click(checkbox)
@@ -914,7 +914,7 @@ describe('Integration Test: Edge Cases', () => {
 
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // Click checkbox
       await user.click(checkbox)
@@ -960,7 +960,7 @@ describe('Integration Test: Edge Cases', () => {
 
       renderPage(['/?expanded=drawing-1-uuid'])
 
-      const { checkbox } = await waitForComponentWithMilestone('VBALU-001 2" (1)')
+      const { checkbox } = await waitForComponentWithMilestone('VBALU-001 2"')
 
       // First click: check
       await user.click(checkbox)

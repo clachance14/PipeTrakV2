@@ -1,0 +1,36 @@
+-- Migration 00067: Demo User RLS Isolation Documentation
+-- Feature: 021-public-homepage
+-- Date: 2025-10-29
+-- Description: Document that demo users are properly isolated via organization_id
+--
+-- This migration does NOT create new RLS policies. It documents that existing
+-- RLS policies automatically enforce demo user isolation via the organization_id column.
+--
+-- Demo User Isolation Strategy:
+-- =============================
+-- 1. Each demo user gets a unique organization during signup (1:1 relationship)
+-- 2. All existing RLS policies filter by organization_id (SELECT organization_id FROM users WHERE id = auth.uid())
+-- 3. Demo users can ONLY see data linked to their organization
+-- 4. Regular users CANNOT see demo project data (different organization_id)
+-- 5. Demo users CANNOT see each other's data (different organization_id)
+--
+-- ============================================================================
+-- VERIFICATION (Manual)
+-- ============================================================================
+-- After applying migrations, manually verify:
+-- 1. Demo users can only see their own organization
+-- 2. Demo users can only see their own project
+-- 3. Demo users cannot see other demo users' data
+-- 4. Regular users cannot see demo project data
+--
+-- Query to verify RLS policies exist:
+-- SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename;
+--
+-- ============================================================================
+-- MIGRATION COMPLETE: 00067_demo_rls_policies.sql
+-- ============================================================================
+-- Purpose: Document demo user isolation strategy
+-- New RLS Policies: 0 (existing policies already enforce isolation)
+-- Verification: Manual testing recommended after demo signup implementation
+-- Next Steps: Apply migration 00068_setup_pg_cron_cleanup.sql
+-- ============================================================================

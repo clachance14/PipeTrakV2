@@ -1,15 +1,19 @@
 /**
  * WeldLogFilters Component (Feature 014 - T069)
  * Filter controls for Weld Log page with URL state management
+ * Enhancement: Collapsible mobile filters (2025-11-02)
  */
 
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, X } from 'lucide-react'
+import { Search, X, ChevronDown } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useMobileDetection } from '@/hooks/useMobileDetection'
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds'
+
+const STORAGE_KEY = 'pipetrak-weld-log-filters-expanded'
 
 interface WeldLogFiltersProps {
   welds: EnrichedFieldWeld[]
@@ -28,9 +32,36 @@ export function WeldLogFilters({
   systems,
   onFilteredWeldsChange,
 }: WeldLogFiltersProps) {
+  const isMobile = useMobileDetection()
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm)
+
+  // Collapse state with localStorage persistence (mobile only)
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    if (!isMobile) return true // Always expanded on desktop
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored !== null ? JSON.parse(stored) : true // Default to expanded
+    } catch {
+      return true
+    }
+  })
+
+  // Sync state changes to localStorage
+  useEffect(() => {
+    if (!isMobile) return
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(isExpanded))
+    } catch {
+      console.warn('Failed to persist weld log filter collapse state to localStorage')
+    }
+  }, [isExpanded, isMobile])
+
+  // Toggle handler
+  const handleToggle = () => {
+    setIsExpanded(prev => !prev)
+  }
 
   // Get filter values from URL
   const drawingFilter = searchParams.get('drawing') || 'all'
@@ -132,6 +163,147 @@ export function WeldLogFilters({
     packageFilter !== 'all' ||
     systemFilter !== 'all'
 
+  // Mobile collapsible view
+  if (isMobile) {
+    return (
+      <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
+        {/* Toggle Button with Count */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleToggle}
+          className="flex items-center justify-between min-h-[44px] w-full px-3 py-2"
+          aria-expanded={isExpanded}
+          aria-controls="weld-log-filters-content"
+          aria-label={isExpanded ? "Hide filter controls" : "Show filter controls"}
+          id="weld-log-filters-toggle"
+        >
+          <div className="flex items-center gap-2">
+            <ChevronDown
+              className="h-4 w-4 chevron-rotate"
+              data-expanded={isExpanded}
+              aria-hidden="true"
+            />
+            <span className="text-sm font-medium">
+              {isExpanded ? 'Hide Filters' : 'Show Filters'}
+            </span>
+          </div>
+          <span className="text-xs text-slate-600 font-normal">
+            {filteredWelds.length}/{welds.length}
+          </span>
+        </Button>
+
+        {/* Collapsible Container */}
+        <div
+          className="collapsible-grid"
+          data-expanded={isExpanded}
+          id="weld-log-filters-content"
+        >
+          <div className="collapsible-content">
+            <div className="space-y-3">
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by weld ID, drawing, or welder..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Filter Controls - Vertical stack on mobile */}
+              <div className="space-y-2">
+                {/* Drawing Filter */}
+                <Select value={drawingFilter} onValueChange={(value) => updateFilter('drawing', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Drawings" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Drawings</SelectItem>
+                    {drawings.map((drawing) => (
+                      <SelectItem key={drawing.id} value={drawing.id}>
+                        {drawing.drawing_no_norm}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Welder Filter */}
+                <Select value={welderFilter} onValueChange={(value) => updateFilter('welder', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Welders" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Welders</SelectItem>
+                    {welders.map((welder) => (
+                      <SelectItem key={welder.id} value={welder.id}>
+                        {welder.stencil} - {welder.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={(value) => updateFilter('status', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Package Filter */}
+                <Select value={packageFilter} onValueChange={(value) => updateFilter('package', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Packages" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Packages</SelectItem>
+                    {testPackages.map((pkg) => (
+                      <SelectItem key={pkg.id} value={pkg.id}>
+                        {pkg.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* System Filter */}
+                <Select value={systemFilter} onValueChange={(value) => updateFilter('system', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Systems" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Systems</SelectItem>
+                    {systems.map((system) => (
+                      <SelectItem key={system.id} value={system.id}>
+                        {system.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Clear Button (if active filters) */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="w-full">
+                  <X className="mr-1 h-4 w-4" />
+                  Clear All Filters
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop view (unchanged)
   return (
     <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
       {/* Search Box */}

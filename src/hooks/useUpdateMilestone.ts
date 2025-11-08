@@ -30,14 +30,28 @@ export function useUpdateMilestone() {
     mutationFn: async (payload: MilestoneUpdatePayload) => {
       // Convert boolean to numeric (1 or 0) for discrete milestones
       // Partial milestones already send numeric values (0-100)
-      const numericValue = typeof payload.value === 'boolean'
-        ? (payload.value ? 1 : 0)
-        : payload.value
+      let numericValue: number;
+
+      if (typeof payload.value === 'boolean') {
+        numericValue = payload.value ? 1 : 0;
+      } else if (typeof payload.value === 'string') {
+        // Handle string values (shouldn't happen, but be defensive)
+        if (payload.value === 'true') numericValue = 1;
+        else if (payload.value === 'false') numericValue = 0;
+        else numericValue = parseFloat(payload.value) || 0;
+      } else {
+        numericValue = Number(payload.value);
+      }
+
+      // Ensure we have a valid number
+      if (isNaN(numericValue)) {
+        throw new Error(`Invalid milestone value: ${payload.value}`);
+      }
 
       const { data, error } = await supabase.rpc('update_component_milestone', {
         p_component_id: payload.component_id,
         p_milestone_name: payload.milestone_name,
-        p_new_value: Number(numericValue),
+        p_new_value: numericValue,
         p_user_id: payload.user_id,
       })
 

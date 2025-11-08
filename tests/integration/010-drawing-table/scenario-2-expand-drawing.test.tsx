@@ -101,7 +101,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
           { name: 'Restore', weight: 10, order: 5, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: true,
     },
     // Fitting - discrete workflow (5 checkboxes), Receive completed
@@ -141,7 +141,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
           { name: 'Restore', weight: 10, order: 5, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'EL90-150 2" (1)',
+      identityDisplay: 'EL90-150 2"',
       canUpdate: true,
     },
     // Threaded Pipe - hybrid workflow (mix of checkboxes + percentages)
@@ -189,7 +189,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
           { name: 'Restore', weight: 10, order: 9, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'PIPE-SCH40 1" (1)',
+      identityDisplay: 'PIPE-SCH40 1"',
       canUpdate: true,
     },
   ]
@@ -328,13 +328,13 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
 
     // Wait for components to appear
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Verify all 3 component rows are visible
-    expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
-    expect(screen.getByText('EL90-150 2" (1)')).toBeInTheDocument()
-    expect(screen.getByText('PIPE-SCH40 1" (1)')).toBeInTheDocument()
+    expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
+    expect(screen.getByText('EL90-150 2"')).toBeInTheDocument()
+    expect(screen.getByText('PIPE-SCH40 1"')).toBeInTheDocument()
   })
 
   it('shows correct component types as badges', async () => {
@@ -374,7 +374,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Find component rows and verify percentages
@@ -382,7 +382,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
 
     // Valve: 0%
     const valveRow = componentRows.find((row) =>
-      within(row).queryByText('VBALU-001 2" (1)')
+      within(row).queryByText('VBALU-001 2"')
     )
     expect(valveRow).toBeDefined()
     if (valveRow) {
@@ -391,7 +391,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
 
     // Fitting: 10%
     const fittingRow = componentRows.find((row) =>
-      within(row).queryByText('EL90-150 2" (1)')
+      within(row).queryByText('EL90-150 2"')
     )
     expect(fittingRow).toBeDefined()
     if (fittingRow) {
@@ -400,7 +400,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
 
     // Threaded Pipe: 15%
     const pipeRow = componentRows.find((row) =>
-      within(row).queryByText('PIPE-SCH40 1" (1)')
+      within(row).queryByText('PIPE-SCH40 1"')
     )
     expect(pipeRow).toBeDefined()
     if (pipeRow) {
@@ -428,7 +428,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // URL should now include expanded param
@@ -449,7 +449,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
 
     // Components should load automatically
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Click to collapse
@@ -465,7 +465,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
 
     // Components should be hidden
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
   })
 
@@ -485,13 +485,13 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Verify component rows have indentation class
     const componentRows = screen.getAllByRole('row')
     const valveRow = componentRows.find((row) =>
-      within(row).queryByText('VBALU-001 2" (1)')
+      within(row).queryByText('VBALU-001 2"')
     )
 
     expect(valveRow).toBeDefined()
@@ -517,7 +517,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Find valve component row (all discrete milestones)
@@ -554,14 +554,14 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('PIPE-SCH40 1" (1)')).toBeInTheDocument()
+      expect(screen.getByText('PIPE-SCH40 1"')).toBeInTheDocument()
     })
 
     // Threaded pipe has partial milestones: Fabricate (50%), Install (0%), etc.
     // Look for percentage display in pipe row
     const componentRows = screen.getAllByRole('row')
     const pipeRow = componentRows.find((row) =>
-      within(row).queryByText('PIPE-SCH40 1" (1)')
+      within(row).queryByText('PIPE-SCH40 1"')
     )
 
     expect(pipeRow).toBeDefined()
@@ -570,7 +570,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
       // Note: PartialMilestoneEditor may render percentage as clickable button
       // The actual percentage display is tested in component unit tests
       // Here we just verify the row exists and contains the expected data
-      expect(within(pipeRow).getByText('PIPE-SCH40 1" (1)')).toBeInTheDocument()
+      expect(within(pipeRow).getByText('PIPE-SCH40 1"')).toBeInTheDocument()
     }
   })
 
@@ -588,7 +588,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Valve and Fitting templates don't have "Fabricate" milestone
@@ -623,7 +623,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Icon should now be rotated
@@ -649,7 +649,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(drawingRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Collapse
@@ -659,7 +659,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(expandedRow)
 
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
 
     // Icon should be back to original position
@@ -692,7 +692,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Press Space to collapse
@@ -703,7 +703,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.keyboard(' ')
 
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
   })
 
@@ -742,7 +742,7 @@ describe('Integration Test: Scenario 2 - Expand Drawing to See Components', () =
     await user.click(collapsedRow)
 
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     const expandedRow = screen.getByRole('button', {

@@ -1,18 +1,18 @@
 import { ReactNode, useEffect } from 'react'
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
 import { useProjects } from '@/hooks/useProjects'
 import { useSidebarStore } from '@/stores/useSidebarStore'
 import { Sidebar } from '@/components/Sidebar'
+import { UserMenu } from '@/components/profile/UserMenu'
 import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
+  fixedHeight?: boolean // Enable fixed height mode for pages that need scrollable content areas
 }
 
-export function Layout({ children }: LayoutProps) {
-  const { user, signOut } = useAuth()
+export function Layout({ children, fixedHeight = false }: LayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
@@ -37,11 +37,6 @@ export function Layout({ children }: LayoutProps) {
     }
   }, [params.projectId, selectedProjectId, setSelectedProjectId]);
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/login')
-  }
-
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProjectId = e.target.value;
 
@@ -61,9 +56,12 @@ export function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={fixedHeight ? "h-dvh flex flex-col bg-gray-50" : "min-h-screen bg-gray-50"}>
       {/* Top Navigation Bar */}
-      <nav className="bg-slate-800 text-white shadow-lg">
+      <nav className={cn(
+        "sticky top-0 z-50 bg-slate-800 text-white shadow-lg",
+        fixedHeight && "flex-shrink-0"
+      )}>
         <div className="mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Left: Hamburger + Logo + Project Selector */}
@@ -157,19 +155,7 @@ export function Layout({ children }: LayoutProps) {
               </button>
 
               {/* User Menu */}
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center">
-                  <span className="text-sm font-semibold">
-                    {user?.email?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="hidden md:block text-sm hover:text-slate-300 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
+              <UserMenu />
             </div>
           </div>
         </div>
@@ -182,6 +168,7 @@ export function Layout({ children }: LayoutProps) {
       <main
         className={cn(
           'transition-all duration-300 ease-in-out',
+          fixedHeight && 'flex-1 overflow-hidden',
           // Mobile: no margin (full width)
           'ml-0',
           // Desktop: margin based on sidebar collapse state

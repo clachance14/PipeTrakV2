@@ -38,6 +38,7 @@ const NDE_TYPES = [
   { value: 'UT', label: 'UT (Ultrasonic)' },
   { value: 'PT', label: 'PT (Penetrant)' },
   { value: 'MT', label: 'MT (Magnetic)' },
+  { value: 'VT', label: 'VT (Visual)' },
 ]
 
 type NDEResult = 'PASS' | 'FAIL' | 'PENDING'
@@ -57,6 +58,7 @@ export function NDEResultDialog({
     new Date().toISOString().split('T')[0]!
   )
   const [ndeNotes, setNdeNotes] = useState<string>('')
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const recordNDEMutation = useRecordNDE()
 
@@ -67,6 +69,7 @@ export function NDEResultDialog({
       setNdeResult('')
       setNdeDate(new Date().toISOString().split('T')[0]!)
       setNdeNotes('')
+      setShowConfirmation(false)
     }
   }, [open])
 
@@ -94,10 +97,16 @@ export function NDEResultDialog({
       return
     }
 
+    // If FAIL and not yet confirmed, show confirmation dialog
+    if (ndeResult === 'FAIL' && !showConfirmation) {
+      setShowConfirmation(true)
+      return
+    }
+
     try {
       await recordNDEMutation.mutateAsync({
         field_weld_id: fieldWeldId,
-        nde_type: ndeType as 'RT' | 'UT' | 'PT' | 'MT',
+        nde_type: ndeType as 'RT' | 'UT' | 'PT' | 'MT' | 'VT',
         nde_result: ndeResult as 'PASS' | 'FAIL' | 'PENDING',
         nde_date: ndeDate,
         nde_notes: ndeNotes.trim() || undefined,
@@ -192,26 +201,68 @@ export function NDEResultDialog({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="PASS" id="pass" />
                   <Label htmlFor="pass" className="font-normal cursor-pointer">
-                    PASS ◉
+                    PASS
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="FAIL" id="fail" />
                   <Label htmlFor="fail" className="font-normal cursor-pointer">
-                    FAIL ○
+                    FAIL
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="PENDING" id="pending" />
                   <Label htmlFor="pending" className="font-normal cursor-pointer">
-                    PENDING ○
+                    PENDING
                   </Label>
                 </div>
               </RadioGroup>
             </div>
 
-            {/* Warning Box - Only show when FAIL is selected */}
-            {ndeResult === 'FAIL' && (
+            {/* Confirmation Dialog - Show when FAIL is selected and user clicks submit */}
+            {ndeResult === 'FAIL' && showConfirmation && (
+              <div className="rounded-lg border-2 border-red-500 bg-red-50 p-4">
+                <div className="flex gap-3">
+                  <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="text-base font-bold text-red-900 mb-2">
+                      ⚠️ CONFIRM: Weld Rejection
+                    </h4>
+                    <div className="text-sm text-red-800 space-y-2 mb-3">
+                      <p className="font-semibold">This action will IMMEDIATELY:</p>
+                      <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li>Mark this weld as <strong>REJECTED</strong></li>
+                        <li>Set progress to 100% (complete but rejected)</li>
+                        <li>Require creating a repair weld</li>
+                      </ul>
+                      <p className="font-semibold mt-2">Are you sure you want to continue?</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowConfirmation(false)}
+                        className="bg-white hover:bg-gray-100 text-gray-900 border-gray-300"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={recordNDEMutation.isPending}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        {recordNDEMutation.isPending ? 'Recording...' : 'Yes, Reject Weld'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Warning Box - Only show when FAIL is selected but not yet confirmed */}
+            {ndeResult === 'FAIL' && !showConfirmation && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                 <div className="flex gap-3">
                   <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -264,27 +315,30 @@ export function NDEResultDialog({
             </div>
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-900"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={recordNDEMutation.isPending || !ndeType || !ndeResult || !ndeDate}
-              className={
-                ndeResult === 'FAIL'
-                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }
-            >
-              {recordNDEMutation.isPending ? 'Recording...' : 'Record NDE Result'}
-            </Button>
-          </DialogFooter>
+          {/* Only show footer buttons if not in confirmation mode */}
+          {!(ndeResult === 'FAIL' && showConfirmation) && (
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-900"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={recordNDEMutation.isPending || !ndeType || !ndeResult || !ndeDate}
+                className={
+                  ndeResult === 'FAIL'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }
+              >
+                {recordNDEMutation.isPending ? 'Recording...' : 'Record NDE Result'}
+              </Button>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>

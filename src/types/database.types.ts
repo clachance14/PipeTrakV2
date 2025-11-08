@@ -145,6 +145,7 @@ export type Database = {
           retire_reason: string | null
           system_id: string | null
           test_package_id: string | null
+          version: number
         }
         Insert: {
           area_id?: string | null
@@ -165,6 +166,7 @@ export type Database = {
           retire_reason?: string | null
           system_id?: string | null
           test_package_id?: string | null
+          version?: number
         }
         Update: {
           area_id?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           retire_reason?: string | null
           system_id?: string | null
           test_package_id?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -193,6 +196,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "areas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
+            foreignKeyName: "components_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_area"
+            referencedColumns: ["area_id"]
           },
           {
             foreignKeyName: "components_created_by_fkey"
@@ -244,6 +261,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "components_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
+            foreignKeyName: "components_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
             foreignKeyName: "components_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -256,6 +287,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
+          },
+          {
+            foreignKeyName: "components_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -311,6 +356,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -325,6 +384,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
             foreignKeyName: "drawings_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -336,6 +409,61 @@ export type Database = {
             columns: ["test_package_id"]
             isOneToOne: false
             referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
+          },
+        ]
+      }
+      field_weld_report_snapshots: {
+        Row: {
+          created_at: string
+          dimension: string
+          dimension_id: string | null
+          dimension_name: string | null
+          id: string
+          metrics: Json
+          project_id: string
+          snapshot_date: string
+        }
+        Insert: {
+          created_at?: string
+          dimension: string
+          dimension_id?: string | null
+          dimension_name?: string | null
+          id?: string
+          metrics: Json
+          project_id: string
+          snapshot_date?: string
+        }
+        Update: {
+          created_at?: string
+          dimension?: string
+          dimension_id?: string | null
+          dimension_name?: string | null
+          id?: string
+          metrics?: Json
+          project_id?: string
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_weld_report_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -438,6 +566,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_welds_welder_id_fkey"
+            columns: ["welder_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_welder"
+            referencedColumns: ["welder_id"]
           },
           {
             foreignKeyName: "field_welds_welder_id_fkey"
@@ -706,6 +841,87 @@ export type Database = {
           },
         ]
       }
+      rate_limit_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          identifier_type: string
+          identifier_value: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          identifier_type: string
+          identifier_value: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          identifier_type?: string
+          identifier_value?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      report_configs: {
+        Row: {
+          component_type_filter: string[] | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          grouping_dimension: string
+          hierarchical_grouping: boolean
+          id: string
+          name: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          component_type_filter?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          grouping_dimension: string
+          hierarchical_grouping?: boolean
+          id?: string
+          name: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          component_type_filter?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          grouping_dimension?: string
+          hierarchical_grouping?: boolean
+          id?: string
+          name?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_configs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_configs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       systems: {
         Row: {
           created_at: string
@@ -775,37 +991,49 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
+          deleted_at: string | null
+          demo_expires_at: string | null
           email: string
           full_name: string | null
           id: string
+          is_demo_user: boolean
           is_super_admin: boolean
-          organization_id: string
-          role: string
+          organization_id: string | null
+          role: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          demo_expires_at?: string | null
           email: string
           full_name?: string | null
           id: string
+          is_demo_user?: boolean
           is_super_admin?: boolean
-          organization_id: string
-          role: string
+          organization_id?: string | null
+          role?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          demo_expires_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          is_demo_user?: boolean
           is_super_admin?: boolean
-          organization_id?: string
-          role?: string
+          organization_id?: string | null
+          role?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string | null
@@ -907,6 +1135,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -921,6 +1163,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_system"
+            referencedColumns: ["system_id"]
+          },
+          {
             foreignKeyName: "drawings_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -933,6 +1189,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -959,8 +1229,242 @@ export type Database = {
           },
         ]
       }
+      vw_field_weld_progress_by_area: {
+        Row: {
+          accepted_count: number | null
+          active_count: number | null
+          area_id: string | null
+          area_name: string | null
+          avg_days_to_acceptance: number | null
+          avg_days_to_nde: number | null
+          nde_fail_count: number | null
+          nde_pass_count: number | null
+          nde_pass_rate: number | null
+          nde_pending_count: number | null
+          nde_required_count: number | null
+          pct_accepted: number | null
+          pct_fitup: number | null
+          pct_total: number | null
+          pct_weld_complete: number | null
+          project_id: string | null
+          rejected_count: number | null
+          repair_count: number | null
+          repair_rate: number | null
+          total_welds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_field_weld_progress_by_system: {
+        Row: {
+          accepted_count: number | null
+          active_count: number | null
+          avg_days_to_acceptance: number | null
+          avg_days_to_nde: number | null
+          nde_fail_count: number | null
+          nde_pass_count: number | null
+          nde_pass_rate: number | null
+          nde_pending_count: number | null
+          nde_required_count: number | null
+          pct_accepted: number | null
+          pct_fitup: number | null
+          pct_total: number | null
+          pct_weld_complete: number | null
+          project_id: string | null
+          rejected_count: number | null
+          repair_count: number | null
+          repair_rate: number | null
+          system_id: string | null
+          system_name: string | null
+          total_welds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "systems_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_field_weld_progress_by_test_package: {
+        Row: {
+          accepted_count: number | null
+          active_count: number | null
+          avg_days_to_acceptance: number | null
+          avg_days_to_nde: number | null
+          nde_fail_count: number | null
+          nde_pass_count: number | null
+          nde_pass_rate: number | null
+          nde_pending_count: number | null
+          nde_required_count: number | null
+          pct_accepted: number | null
+          pct_fitup: number | null
+          pct_total: number | null
+          pct_weld_complete: number | null
+          project_id: string | null
+          rejected_count: number | null
+          repair_count: number | null
+          repair_rate: number | null
+          test_package_id: string | null
+          test_package_name: string | null
+          total_welds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_field_weld_progress_by_welder: {
+        Row: {
+          accepted_count: number | null
+          active_count: number | null
+          avg_days_to_acceptance: number | null
+          avg_days_to_nde: number | null
+          first_pass_acceptance_count: number | null
+          first_pass_acceptance_rate: number | null
+          nde_fail_count: number | null
+          nde_pass_count: number | null
+          nde_pass_rate: number | null
+          nde_pending_count: number | null
+          nde_required_count: number | null
+          pct_accepted: number | null
+          pct_fitup: number | null
+          pct_total: number | null
+          pct_weld_complete: number | null
+          project_id: string | null
+          rejected_count: number | null
+          repair_count: number | null
+          repair_rate: number | null
+          total_welds: number | null
+          welder_id: string | null
+          welder_name: string | null
+          welder_stencil: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_progress_by_area: {
+        Row: {
+          area_id: string | null
+          area_name: string | null
+          budget: number | null
+          pct_installed: number | null
+          pct_punch: number | null
+          pct_received: number | null
+          pct_restored: number | null
+          pct_tested: number | null
+          pct_total: number | null
+          project_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_progress_by_system: {
+        Row: {
+          budget: number | null
+          pct_installed: number | null
+          pct_punch: number | null
+          pct_received: number | null
+          pct_restored: number | null
+          pct_tested: number | null
+          pct_total: number | null
+          project_id: string | null
+          system_id: string | null
+          system_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "systems_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_progress_by_test_package: {
+        Row: {
+          budget: number | null
+          pct_installed: number | null
+          pct_punch: number | null
+          pct_received: number | null
+          pct_restored: number | null
+          pct_tested: number | null
+          pct_total: number | null
+          project_id: string | null
+          test_package_id: string | null
+          test_package_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_recent_activity: {
+        Row: {
+          description: string | null
+          id: string | null
+          project_id: string | null
+          timestamp: string | null
+          user_id: string | null
+          user_initials: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestone_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      accept_invitation_for_user: {
+        Args: { p_invitation_id: string; p_user_id: string }
+        Returns: Json
+      }
       assign_drawing_with_inheritance: {
         Args: {
           p_area_id?: string
@@ -981,8 +1485,42 @@ export type Database = {
         }
         Returns: Json[]
       }
+      calculate_avg_days_between: {
+        Args: { date_end: string; date_start: string }
+        Returns: number
+      }
       calculate_component_percent: {
         Args: { p_current_milestones: Json; p_template_id: string }
+        Returns: number
+      }
+      calculate_earned_milestone_value: {
+        Args: {
+          p_component_type: string
+          p_milestones: Json
+          p_standard_milestone: string
+        }
+        Returns: number
+      }
+      calculate_field_weld_delta: {
+        Args: {
+          p_dimension: string
+          p_dimension_id: string
+          p_end_date?: string
+          p_project_id: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      check_email_has_organization: {
+        Args: { check_email: string }
+        Returns: boolean
+      }
+      create_field_weld_snapshot: {
+        Args: {
+          p_dimension: string
+          p_project_id: string
+          p_snapshot_date?: string
+        }
         Returns: number
       }
       create_test_package: {
@@ -1007,6 +1545,8 @@ export type Database = {
           similarity_score: number
         }[]
       }
+      get_current_user_email: { Args: never; Returns: string }
+      get_current_user_org_id: { Args: never; Returns: string }
       get_user_org_role: {
         Args: { org_uuid: string; user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1045,10 +1585,6 @@ export type Database = {
           p_user_id?: string
         }
         Returns: Json
-      }
-      user_is_org_member: {
-        Args: { org_uuid: string; user_uuid: string }
-        Returns: boolean
       }
       validate_component_identity_key: {
         Args: { p_component_type: string; p_identity_key: Json }

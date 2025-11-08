@@ -4,21 +4,15 @@
  * Aggregates metrics from components, packages, and needs_review for dashboard display
  */
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import { useMemo, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useComponents } from './useComponents';
 import { useNeedsReview } from './useNeedsReview';
+import { ActivityItem } from '@/types/activity';
 
-/**
- * Activity item structure for recent activity feed
- */
-interface ActivityItem {
-  id: string;
-  user_initials: string;
-  description: string;
-  timestamp: string; // ISO 8601
-}
+// Activity feed query configuration (T003)
+const ACTIVITY_FEED_STALE_TIME = 30 * 1000; // 30 seconds
 
 /**
  * Dashboard metrics data structure
@@ -32,11 +26,78 @@ export interface DashboardMetrics {
 }
 
 /**
- * Fake audit log implementation (audit_log table doesn't exist yet)
- * Returns empty array until audit_log is implemented
+ * Fetch recent activity from vw_recent_activity view
+ * T006-T008: Real TanStack Query implementation
+ *
+ * @param projectId - The project to fetch activities for
+ * @returns Query result with ActivityItem[] data, loading state, and error
  */
-function useAuditLog(_projectId: string): { data: ActivityItem[] } {
-  return { data: [] };
+function useAuditLog(projectId: string): {
+  data: ActivityItem[];
+  isLoading: boolean;
+  error: Error | null;
+} {
+  const queryClient = useQueryClient();
+
+  // T007: TanStack Query configuration with proper query key and stale time
+  const query = useQuery({
+    queryKey: ['projects', projectId, 'recent-activity'],
+    queryFn: async () => {
+      // T006: Fetch from vw_recent_activity with project_id filter and LIMIT 10
+      // Cast to any because view isn't in generated types yet
+      const { data, error } = await supabase
+        .from('vw_recent_activity' as any)
+        .select('id, user_initials, description, timestamp')
+        .eq('project_id', projectId)
+        .order('timestamp', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      // T008: Transform view data to ActivityItem[] format
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        user_initials: row.user_initials,
+        description: row.description,
+        timestamp: row.timestamp,
+      })) as ActivityItem[];
+    },
+    staleTime: ACTIVITY_FEED_STALE_TIME,
+    enabled: !!projectId, // Only fetch when projectId is provided
+  });
+
+  // T017: Realtime subscription to milestone_events INSERTs
+  useEffect(() => {
+    if (!projectId) return;
+
+    const channel = supabase
+      .channel('milestone_events')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'milestone_events',
+        },
+        () => {
+          // Invalidate query to trigger refetch
+          queryClient.invalidateQueries({
+            queryKey: ['projects', projectId, 'recent-activity'],
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, queryClient]);
+
+  return {
+    data: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error,
+  };
 }
 
 /**
@@ -74,8 +135,8 @@ export function useDashboardMetrics(
     staleTime: 60 * 1000, // 1 minute (matches materialized view refresh)
   });
 
-  // Fake audit log (returns empty array)
-  const auditLogData = useAuditLog(projectId);
+  // T009: Use real audit log data
+  const auditLogQuery = useAuditLog(projectId);
 
   // Compute aggregated metrics from all queries
   const data = useMemo(() => {
@@ -83,7 +144,8 @@ export function useDashboardMetrics(
     if (
       componentsQuery.isLoading ||
       needsReviewQuery.isLoading ||
-      packageReadinessQuery.isLoading
+      packageReadinessQuery.isLoading ||
+      auditLogQuery.isLoading
     ) {
       return undefined;
     }
@@ -91,7 +153,7 @@ export function useDashboardMetrics(
     const components = componentsQuery.data || [];
     const needsReview = needsReviewQuery.data || [];
     const packages = packageReadinessQuery.data || [];
-    const recentActivity = auditLogData.data || [];
+    const recentActivity = auditLogQuery.data || [];
 
     // Calculate overall progress (average of all components' percent_complete)
     const overallProgress =
@@ -121,24 +183,28 @@ export function useDashboardMetrics(
     needsReviewQuery.data,
     packageReadinessQuery.isLoading,
     packageReadinessQuery.data,
-    auditLogData.data,
+    auditLogQuery.isLoading,
+    auditLogQuery.data,
   ]);
 
   // Return a UseQueryResult-like object
   const isLoading =
     componentsQuery.isLoading ||
     needsReviewQuery.isLoading ||
-    packageReadinessQuery.isLoading;
+    packageReadinessQuery.isLoading ||
+    auditLogQuery.isLoading;
 
   const isError =
     componentsQuery.isError ||
     needsReviewQuery.isError ||
-    packageReadinessQuery.isError;
+    packageReadinessQuery.isError ||
+    !!auditLogQuery.error;
 
   const error =
     componentsQuery.error ||
     needsReviewQuery.error ||
-    packageReadinessQuery.error;
+    packageReadinessQuery.error ||
+    auditLogQuery.error;
 
   return {
     data,
@@ -150,6 +216,7 @@ export function useDashboardMetrics(
         componentsQuery.refetch(),
         needsReviewQuery.refetch(),
         packageReadinessQuery.refetch(),
+        auditLogQuery.isLoading ? Promise.resolve() : Promise.resolve(),
       ]);
       return { data, error: error || null } as any;
     },

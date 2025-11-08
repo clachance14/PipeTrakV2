@@ -12,7 +12,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 2" (1)')
+      expect(result).toBe('VBALU-001 2"')
     })
 
     it('formats component with fractional size', () => {
@@ -23,7 +23,7 @@ describe('formatIdentityKey', () => {
         seq: 2
       }
       const result = formatIdentityKey(key, 'fitting')
-      expect(result).toBe('EL90-150 1X2 (2)')
+      expect(result).toBe('EL90-150 1X2')
     })
 
     it('omits size when NOSIZE', () => {
@@ -34,7 +34,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'support')
-      expect(result).toBe('SUPPORT-001 (1)')
+      expect(result).toBe('SUPPORT-001')
     })
 
     it('handles seq values greater than 1', () => {
@@ -45,7 +45,7 @@ describe('formatIdentityKey', () => {
         seq: 42
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 2" (42)')
+      expect(result).toBe('VBALU-001 2"')
     })
   })
 
@@ -93,7 +93,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'misc_component')
-      expect(result).toBe('MISC-001 (1)')
+      expect(result).toBe('MISC-001')
     })
 
     it('trims extra whitespace from result', () => {
@@ -104,7 +104,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 (1)')
+      expect(result).toBe('VBALU-001')
       expect(result).not.toContain('  ') // No double spaces
     })
 
@@ -123,7 +123,7 @@ describe('formatIdentityKey', () => {
 
       nonInstrumentTypes.forEach(type => {
         const result = formatIdentityKey(key, type)
-        expect(result).toBe('TEST-001 2" (1)')
+        expect(result).toBe('TEST-001 2"')
       })
 
       const instrumentResult = formatIdentityKey(key, 'instrument')
@@ -162,8 +162,76 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 1X2 (1)')
+      expect(result).toBe('VBALU-001 1X2')
       expect(result).not.toContain('"')
+    })
+  })
+
+  describe('formatIdentityKey with totalCount', () => {
+    it('shows "1 of 2" format when totalCount is 2', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'VBALU-001',
+        size: '2',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'valve', 2)
+      expect(result).toBe('VBALU-001 2" 1 of 2')
+    })
+
+    it('shows clean format when totalCount is 1', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'VBALU-001',
+        size: '2',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'valve', 1)
+      expect(result).toBe('VBALU-001 2"')
+    })
+
+    it('shows clean format when totalCount is undefined', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'VBALU-001',
+        size: '2',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'valve')
+      expect(result).toBe('VBALU-001 2"')
+    })
+
+    it('handles multiple instances with fractional size', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'EL90-150',
+        size: '1X2',
+        seq: 2
+      }
+      const result = formatIdentityKey(key, 'fitting', 3)
+      expect(result).toBe('EL90-150 1X2 2 of 3')
+    })
+
+    it('handles NOSIZE with totalCount', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'SUPPORT-001',
+        size: 'NOSIZE',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'support', 5)
+      expect(result).toBe('SUPPORT-001 1 of 5')
+    })
+
+    it('ignores totalCount for instruments', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'ME-55402',
+        size: '1X2',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'instrument', 2)
+      expect(result).toBe('ME-55402 1X2')
     })
   })
 })

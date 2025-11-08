@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 interface DrawingBulkActionsProps {
   /** Number of drawings selected */
   selectedCount: number;
-  /** Callback when "Assign Metadata" button clicked */
+  /** Callback when "Assign Details" button clicked */
   onAssignMetadata: () => void;
   /** Callback when "Clear Selection" button clicked */
   onClearSelection: () => void;
@@ -45,7 +45,7 @@ export function DrawingBulkActions({
           Clear Selection
         </Button>
         <Button size="sm" onClick={onAssignMetadata}>
-          Assign Metadata
+          Assign Details
         </Button>
       </div>
     </div>

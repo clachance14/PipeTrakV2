@@ -170,7 +170,7 @@ describe('Contract: Sync Behavior & Retry Logic', () => {
       expect(supabase.rpc).toHaveBeenCalledWith('update_component_milestone', {
         p_component_id: 'c1',
         p_milestone_name: 'Receive',
-        p_new_value: true,
+        p_new_value: 1, // Boolean true should be converted to numeric 1
         p_user_id: 'user-1',
       })
 

@@ -289,6 +289,91 @@ export function calculateNextRepairWeldId(
   return baseWeldId + nextRepairSequence / 10;
 }
 
+/**
+ * Validates a metadata name for creation (Areas, Systems, Test Packages)
+ *
+ * Checks for empty names and duplicate entries (case-insensitive comparison).
+ *
+ * @param name - The name to validate (will be trimmed)
+ * @param existingNames - Array of existing names to check against (case-insensitive)
+ * @returns Validation result object with isValid boolean and optional error message
+ *
+ * @example
+ * validateMetadataName('Area A', ['Area B', 'Area C'])
+ * // { isValid: true }
+ *
+ * validateMetadataName('Area A', ['Area A', 'Area B'])
+ * // { isValid: false, error: 'A metadata entry named "Area A" already exists' }
+ *
+ * validateMetadataName('   ', [])
+ * // { isValid: false, error: 'Name cannot be empty' }
+ */
+export function validateMetadataName(
+  name: string,
+  existingNames: string[]
+): { isValid: boolean; error?: string } {
+  const trimmedName = name.trim();
+
+  // Check if empty
+  if (trimmedName.length === 0) {
+    return { isValid: false, error: 'Name cannot be empty' };
+  }
+
+  // Check for duplicate (case-insensitive)
+  const isDuplicate = existingNames.some(
+    (existing) => existing.trim().toLowerCase() === trimmedName.toLowerCase()
+  );
+
+  if (isDuplicate) {
+    return {
+      isValid: false,
+      error: `A metadata entry named "${trimmedName}" already exists`,
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Checks if a name already exists in a list (case-insensitive, trimmed)
+ *
+ * Useful for quick duplicate checks without full validation.
+ *
+ * @param name - The name to check
+ * @param existingNames - Array of existing names to check against
+ * @returns true if name exists, false otherwise
+ *
+ * @example
+ * isDuplicateName('Area A', ['Area A', 'Area B']) // true
+ * isDuplicateName('area a', ['Area A', 'Area B']) // true (case-insensitive)
+ * isDuplicateName('Area C', ['Area A', 'Area B']) // false
+ */
+export function isDuplicateName(
+  name: string,
+  existingNames: string[]
+): boolean {
+  const trimmedName = name.trim().toLowerCase();
+  return existingNames.some(
+    (existing) => existing.trim().toLowerCase() === trimmedName
+  );
+}
+
+/**
+ * Normalizes a name for comparison (trim + lowercase)
+ *
+ * Useful for consistent name matching and storage.
+ *
+ * @param name - The name to normalize
+ * @returns Normalized name (trimmed and lowercase)
+ *
+ * @example
+ * normalizeName('  Area A  ') // 'area a'
+ * normalizeName('SYSTEM X') // 'system x'
+ */
+export function normalizeName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -303,6 +388,9 @@ export const validationUtils = {
   validatePercentComplete,
   validateWeldIdNumber,
   calculateNextRepairWeldId,
+  validateMetadataName,
+  isDuplicateName,
+  normalizeName,
 };
 
 export default validationUtils;

@@ -49,9 +49,9 @@ export function useComponents(
         .select(`
           *,
           drawings(drawing_no_norm),
-          areas(name),
-          systems(name),
-          test_packages(name)
+          areas(id, name),
+          systems(id, name),
+          test_packages(id, name)
         `)
         .eq('project_id', projectId);
 
@@ -249,6 +249,62 @@ export function useUpdateComponentMilestones(): UseMutationResult<
       // TODO: Create milestone_event and audit_log entries
       // TODO: Check for out-of-sequence milestones and create needs_review
       // These will be implemented when those hooks are available
+    },
+  });
+}
+
+/**
+ * Update component metadata (area, system, test_package)
+ * Uses optimistic locking via version field to detect concurrent edits
+ *
+ * Feature: 020-component-metadata-editing
+ * Requires can_update_metadata permission (enforced by RLS policy)
+ */
+export function useUpdateComponentMetadata(): UseMutationResult<
+  Component,
+  Error,
+  {
+    componentId: string;
+    version: number;
+    area_id: string | null;
+    system_id: string | null;
+    test_package_id: string | null;
+  }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ componentId, version, area_id, system_id, test_package_id }) => {
+      const { data, error } = await supabase
+        .from('components')
+        .update({
+          area_id,
+          system_id,
+          test_package_id,
+          last_updated_at: new Date().toISOString(),
+        })
+        .eq('id', componentId)
+        .eq('version', version)
+        .select()
+        .single();
+
+      if (error) {
+        // Check for concurrent update (version mismatch)
+        if (error.code === 'PGRST116') {
+          throw new Error('Component was updated by another user. Please refresh and try again.');
+        }
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      // Invalidate component cache
+      queryClient.invalidateQueries({
+        queryKey: ['components', data.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['projects', data.project_id, 'components'],
+      });
     },
   });
 }

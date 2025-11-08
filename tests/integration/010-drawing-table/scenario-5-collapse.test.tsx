@@ -109,7 +109,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
           { name: 'Test', weight: 50, order: 3, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'VBALU-001 2" (1)',
+      identityDisplay: 'VBALU-001 2"',
       canUpdate: true,
       created_at: '2025-10-19T00:00:00Z',
       last_updated_at: '2025-10-19T01:00:00Z',
@@ -139,7 +139,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
           { name: 'Install', weight: 50, order: 2, is_partial: false, requires_welder: false },
         ],
       },
-      identityDisplay: 'FELBOW-001 2" (1)',
+      identityDisplay: 'FELBOW-001 2"',
       canUpdate: true,
       created_at: '2025-10-19T00:00:00Z',
       last_updated_at: '2025-10-19T00:00:00Z',
@@ -227,8 +227,8 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
     await waitFor(() => {
       const chevron = screen.getByLabelText(/collapse drawing p-001/i).querySelector('svg')
       expect(chevron).toHaveClass('rotate-90')
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
-      expect(screen.getByText('FELBOW-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
+      expect(screen.getByText('FELBOW-001 2"')).toBeInTheDocument()
     })
 
     // Verify URL contains expanded parameter
@@ -246,8 +246,8 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // ASSERTION 2: Component rows disappear
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
-      expect(screen.queryByText('FELBOW-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
+      expect(screen.queryByText('FELBOW-001 2"')).not.toBeInTheDocument()
     })
 
     // ASSERTION 3: URL updates to remove drawing ID
@@ -290,7 +290,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for expanded drawing with components
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Verify component shows updated milestone (Receive is checked from earlier scenario)
@@ -303,7 +303,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for collapse
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
 
     // Re-expand the drawing
@@ -312,7 +312,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for components to reappear
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // ASSERTION: Milestone updates persist (Receive checkbox still checked)
@@ -354,7 +354,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for components to appear
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Find the scrollable container
@@ -375,7 +375,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for collapse
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
 
     // ASSERTION: Scroll position maintained (within reasonable threshold)
@@ -424,7 +424,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
             { name: 'Test', weight: 50, order: 3, is_partial: false, requires_welder: false },
           ],
         },
-        identityDisplay: 'VGATE-002 1" (1)',
+        identityDisplay: 'VGATE-002 1"',
         canUpdate: true,
         created_at: '2025-10-19T00:00:00Z',
         last_updated_at: '2025-10-19T00:00:00Z',
@@ -496,8 +496,8 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for components from both drawings to appear
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
-      expect(screen.getByText('VGATE-002 1" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
+      expect(screen.getByText('VGATE-002 1"')).toBeInTheDocument()
     })
 
     // Verify URL has both drawings
@@ -509,12 +509,12 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // ASSERTION 1: P-001 components disappear
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
-      expect(screen.queryByText('FELBOW-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
+      expect(screen.queryByText('FELBOW-001 2"')).not.toBeInTheDocument()
     })
 
     // ASSERTION 2: P-002 components remain visible
-    expect(screen.getByText('VGATE-002 1" (1)')).toBeInTheDocument()
+    expect(screen.getByText('VGATE-002 1"')).toBeInTheDocument()
 
     // ASSERTION 3: P-002 chevron still rotated
     const drawing2Chevron = screen.getByLabelText(/collapse drawing p-002/i).querySelector('svg')
@@ -551,7 +551,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for expanded drawing
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Focus on drawing row and press Enter
@@ -561,7 +561,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // ASSERTION: Drawing collapses
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
 
     // Verify URL updated
@@ -595,7 +595,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // Wait for expanded drawing
     await waitFor(() => {
-      expect(screen.getByText('VBALU-001 2" (1)')).toBeInTheDocument()
+      expect(screen.getByText('VBALU-001 2"')).toBeInTheDocument()
     })
 
     // Focus on drawing row and press Space
@@ -605,7 +605,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
 
     // ASSERTION: Drawing collapses
     await waitFor(() => {
-      expect(screen.queryByText('VBALU-001 2" (1)')).not.toBeInTheDocument()
+      expect(screen.queryByText('VBALU-001 2"')).not.toBeInTheDocument()
     })
 
     // Verify URL updated

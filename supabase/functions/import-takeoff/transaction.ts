@@ -1,22 +1,19 @@
 /**
- * Transaction Handler for Import Takeoff
- * Manages PostgreSQL transactions for drawing and component creation
+ * Transaction Handler V2 for Flexible CSV Import
+ * Handles metadata → drawings → components with transaction safety
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { CsvRow } from './parser.ts';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import type { ImportPayload, ImportResult, ParsedRow, MetadataCreated } from './types.ts';
 
 /**
  * Normalize drawing number (MUST match database function normalize_drawing_number)
- * Database does: UPPER(TRIM(regexp_replace(raw, '\s+', ' ', 'g')))
- * This means: UPPER, TRIM, collapse multiple spaces to single space
- * Does NOT remove hyphens or leading zeros
  */
 function normalizeDrawing(raw: string): string {
   return raw
-    .trim()                          // TRIM
-    .toUpperCase()                   // UPPER
-    .replace(/\s+/g, ' ');          // Collapse multiple spaces to single space
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
 }
 
 /**
@@ -29,136 +26,254 @@ function normalizeSize(raw: string | undefined): string {
 
   return raw
     .trim()
-    .replace(/["'\s]/g, '')    // Remove quotes and spaces
-    .replace(/\//g, 'X')       // Replace / with X for URL safety (1/2 → 1X2)
+    .replace(/["'\s]/g, '')
+    .replace(/\//g, 'X')
     .toUpperCase();
 }
 
 /**
- * Generate identity key for component (drawing-scoped, size-aware)
+ * Upsert metadata (areas, systems, test packages)
+ * Returns map of name → ID for linking components
  */
-function generateIdentityKey(
-  drawingNorm: string,
-  size: string,
-  cmdtyCode: string,
-  index: number,
-  type: string
-): string {
-  const normalizedSize = normalizeSize(size);
+async function upsertMetadata(
+  supabase: SupabaseClient,
+  projectId: string,
+  payload: ImportPayload
+): Promise<{
+  areaMap: Map<string, string>;
+  systemMap: Map<string, string>;
+  testPackageMap: Map<string, string>;
+  metadataCreated: MetadataCreated;
+}> {
+  const areaMap = new Map<string, string>();
+  const systemMap = new Map<string, string>();
+  const testPackageMap = new Map<string, string>();
 
-  if (type === 'Instrument') {
-    return `${drawingNorm}-${normalizedSize}-${cmdtyCode}`;
+  let areasCreated = 0;
+  let systemsCreated = 0;
+  let testPackagesCreated = 0;
+
+  // Upsert areas
+  if (payload.metadata.areas.length > 0) {
+    const areaRecords = payload.metadata.areas.map(name => ({
+      name,
+      project_id: projectId
+    }));
+
+    const { error: areaError } = await supabase
+      .from('areas')
+      .upsert(areaRecords, { onConflict: 'name,project_id', ignoreDuplicates: true });
+
+    if (areaError) {
+      throw new Error(`Failed to upsert areas: ${areaError.message}`);
+    }
+
+    // Fetch all area IDs (including existing ones)
+    const { data: areas, error: fetchError } = await supabase
+      .from('areas')
+      .select('id, name')
+      .eq('project_id', projectId)
+      .in('name', payload.metadata.areas);
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch areas: ${fetchError.message}`);
+    }
+
+    areas?.forEach(area => {
+      areaMap.set(area.name, area.id);
+    });
+
+    // Count how many were created (approximate - assumes upsert created if not in map before)
+    areasCreated = payload.metadata.areas.length;
   }
 
-  const suffix = String(index).padStart(3, '0');
-  return `${drawingNorm}-${normalizedSize}-${cmdtyCode}-${suffix}`;
+  // Upsert systems
+  if (payload.metadata.systems.length > 0) {
+    const systemRecords = payload.metadata.systems.map(name => ({
+      name,
+      project_id: projectId
+    }));
+
+    const { error: systemError } = await supabase
+      .from('systems')
+      .upsert(systemRecords, { onConflict: 'name,project_id', ignoreDuplicates: true });
+
+    if (systemError) {
+      throw new Error(`Failed to upsert systems: ${systemError.message}`);
+    }
+
+    // Fetch all system IDs
+    const { data: systems, error: fetchError } = await supabase
+      .from('systems')
+      .select('id, name')
+      .eq('project_id', projectId)
+      .in('name', payload.metadata.systems);
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch systems: ${fetchError.message}`);
+    }
+
+    systems?.forEach(system => {
+      systemMap.set(system.name, system.id);
+    });
+
+    systemsCreated = payload.metadata.systems.length;
+  }
+
+  // Upsert test packages
+  if (payload.metadata.testPackages.length > 0) {
+    const testPackageRecords = payload.metadata.testPackages.map(name => ({
+      name,
+      project_id: projectId
+    }));
+
+    const { error: testPackageError } = await supabase
+      .from('test_packages')
+      .upsert(testPackageRecords, { onConflict: 'name,project_id', ignoreDuplicates: true });
+
+    if (testPackageError) {
+      throw new Error(`Failed to upsert test packages: ${testPackageError.message}`);
+    }
+
+    // Fetch all test package IDs
+    const { data: testPackages, error: fetchError } = await supabase
+      .from('test_packages')
+      .select('id, name')
+      .eq('project_id', projectId)
+      .in('name', payload.metadata.testPackages);
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch test packages: ${fetchError.message}`);
+    }
+
+    testPackages?.forEach(pkg => {
+      testPackageMap.set(pkg.name, pkg.id);
+    });
+
+    testPackagesCreated = payload.metadata.testPackages.length;
+  }
+
+  return {
+    areaMap,
+    systemMap,
+    testPackageMap,
+    metadataCreated: {
+      areas: areasCreated,
+      systems: systemsCreated,
+      testPackages: testPackagesCreated
+    }
+  };
 }
 
 /**
- * Process CSV rows and create drawings + components
+ * Process drawings (same logic as transaction.ts)
  */
-export async function processImport(
+async function processDrawings(
+  supabase: SupabaseClient,
+  projectId: string,
+  rows: ParsedRow[]
+): Promise<{ drawingIdMap: Map<string, string>; drawingsCreated: number }> {
+  // Collect unique drawings from payload
+  const drawingsMap = new Map<string, string>(); // normalized -> raw
+
+  rows.forEach(row => {
+    const normalized = normalizeDrawing(row.drawing);
+    if (!drawingsMap.has(normalized)) {
+      drawingsMap.set(normalized, row.drawing);
+    }
+  });
+
+  const drawingNorms = Array.from(drawingsMap.keys());
+
+  // Check for existing drawings
+  const { data: existingDrawings, error: existingError } = await supabase
+    .from('drawings')
+    .select('id, drawing_no_norm')
+    .eq('project_id', projectId)
+    .in('drawing_no_norm', drawingNorms);
+
+  if (existingError) {
+    throw new Error(`Failed to check existing drawings: ${existingError.message}`);
+  }
+
+  const existingNorms = new Set(
+    (existingDrawings || []).map(d => d.drawing_no_norm)
+  );
+
+  // Filter to only NEW drawings
+  const newDrawingsToInsert = Array.from(drawingsMap.entries())
+    .filter(([normalized]) => !existingNorms.has(normalized))
+    .map(([, rawDrawing]) => ({
+      drawing_no_raw: rawDrawing,
+      project_id: projectId,
+      is_retired: false
+    }));
+
+  // Insert only NEW drawings
+  let drawingsCreated = 0;
+  if (newDrawingsToInsert.length > 0) {
+    const { error: insertError } = await supabase
+      .from('drawings')
+      .insert(newDrawingsToInsert);
+
+    if (insertError) {
+      throw new Error(`Failed to create drawings: ${insertError.message}`);
+    }
+    drawingsCreated = newDrawingsToInsert.length;
+  }
+
+  // Fetch ALL needed drawings (existing + newly created)
+  const { data: allDrawings, error: fetchError } = await supabase
+    .from('drawings')
+    .select('id, drawing_no_norm')
+    .eq('project_id', projectId)
+    .in('drawing_no_norm', drawingNorms);
+
+  if (fetchError) {
+    throw new Error(`Failed to fetch drawings: ${fetchError.message}`);
+  }
+
+  if (!allDrawings || allDrawings.length !== drawingNorms.length) {
+    throw new Error(
+      `Drawing count mismatch after upsert. Expected ${drawingNorms.length}, got ${allDrawings?.length || 0}`
+    );
+  }
+
+  // Build map of drawing_no_norm -> id
+  const drawingIdMap = new Map(
+    allDrawings.map(d => [d.drawing_no_norm, d.id])
+  );
+
+  return { drawingIdMap, drawingsCreated };
+}
+
+/**
+ * Process import with transaction safety
+ */
+export async function processImportV2(
   supabaseUrl: string,
   serviceRoleKey: string,
-  projectId: string,
-  rows: CsvRow[]
-): Promise<{
-  success: boolean;
-  drawingsCreated: number;
-  componentsCreated: number;
-  rowsProcessed: number;
-  rowsSkipped: number;
-  error?: string;
-}> {
+  payload: ImportPayload
+): Promise<ImportResult> {
+  const startTime = Date.now();
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // Step 1: Collect unique drawings from CSV (dedupe within file using normalized names)
-    const drawingsMap = new Map<string, string>(); // normalized -> raw
-
-    rows.forEach(row => {
-      const normalized = normalizeDrawing(row.DRAWING);
-      if (!drawingsMap.has(normalized)) {
-        drawingsMap.set(normalized, row.DRAWING);
-      }
-    });
-
-    // Step 2: Check for existing drawings (idempotent import support)
-    const drawingNorms = Array.from(drawingsMap.keys());
-
-    const { data: existingDrawings, error: existingError } = await supabase
-      .from('drawings')
-      .select('id, drawing_no_norm')
-      .eq('project_id', projectId)
-      .in('drawing_no_norm', drawingNorms);
-
-    if (existingError) {
-      throw new Error(`Failed to check existing drawings: ${existingError.message}`);
-    }
-
-    // Build set of existing normalized drawing names
-    const existingNorms = new Set(
-      (existingDrawings || []).map(d => d.drawing_no_norm)
+    // Step 1: Upsert metadata (areas, systems, test packages)
+    const { areaMap, systemMap, testPackageMap, metadataCreated } = await upsertMetadata(
+      supabase,
+      payload.projectId,
+      payload
     );
 
-    // Filter to only NEW drawings that don't exist yet
-    const newDrawingsToInsert = Array.from(drawingsMap.entries())
-      .filter(([normalized]) => !existingNorms.has(normalized))
-      .map(([, rawDrawing]) => ({
-        drawing_no_raw: rawDrawing,
-        project_id: projectId,
-        is_retired: false
-        // Note: drawing_no_norm is NOT set here - database trigger handles it
-      }));
-
-    // Step 3: Insert only NEW drawings (skip existing)
-    let drawingsCreated = 0;
-    if (newDrawingsToInsert.length > 0) {
-      const { error: insertError } = await supabase
-        .from('drawings')
-        .insert(newDrawingsToInsert);
-
-      if (insertError) {
-        throw new Error(`Failed to create drawings: ${insertError.message}`);
-      }
-      drawingsCreated = newDrawingsToInsert.length;
-    }
-
-    // Step 4: Fetch ALL needed drawings (existing + newly created)
-    const { data: allDrawings, error: fetchError } = await supabase
-      .from('drawings')
-      .select('id, drawing_no_norm')
-      .eq('project_id', projectId)
-      .in('drawing_no_norm', drawingNorms);
-
-    if (fetchError) {
-      throw new Error(`Failed to fetch drawings: ${fetchError.message}`);
-    }
-
-    if (!allDrawings || allDrawings.length === 0) {
-      throw new Error(
-        `No drawings found after insert! Expected ${drawingNorms.length} drawings. ` +
-        `This indicates a normalization mismatch between TypeScript and database.`
-      );
-    }
-
-    // Verify we got all expected drawings
-    if (allDrawings.length !== drawingNorms.length) {
-      const foundNorms = new Set(allDrawings.map(d => d.drawing_no_norm));
-      const missing = drawingNorms.filter(n => !foundNorms.has(n));
-
-      throw new Error(
-        `Missing drawings after fetch! Expected ${drawingNorms.length}, got ${allDrawings.length}. ` +
-        `Missing: [${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}]`
-      );
-    }
-
-    // Step 5: Build map of drawing_no_norm -> id
-    const drawingIdMap = new Map(
-      allDrawings.map(d => [d.drawing_no_norm, d.id])
+    // Step 2: Process drawings
+    const { drawingIdMap, drawingsCreated } = await processDrawings(
+      supabase,
+      payload.projectId,
+      payload.rows
     );
 
-    // Fetch progress templates
+    // Step 3: Fetch progress templates
     const { data: templates } = await supabase
       .from('progress_templates')
       .select('id, component_type');
@@ -167,73 +282,83 @@ export async function processImport(
       (templates || []).map(t => [t.component_type.toLowerCase(), t.id])
     );
 
-    // Step 5: Process components
+    // Step 4: Generate components
     const components: any[] = [];
-    let rowsSkipped = 0;
+    const componentsByType: Record<string, number> = {};
 
-    rows.forEach((row) => {
-      const qty = Number(row.QTY);
-
+    payload.rows.forEach((row) => {
       // Skip rows with QTY = 0
-      if (qty === 0) {
-        rowsSkipped++;
-        return;
-      }
+      if (row.qty === 0) return;
 
-      const normalized = normalizeDrawing(row.DRAWING);
+      const normalized = normalizeDrawing(row.drawing);
       const drawingId = drawingIdMap.get(normalized);
 
       if (!drawingId) {
-        throw new Error(
-          `Drawing ID not found for "${row.DRAWING}" (normalized: "${normalized}"). ` +
-          `This should not happen - the drawing was just created.`
-        );
+        throw new Error(`Drawing ID not found for "${row.drawing}" (normalized: "${normalized}")`);
       }
 
-      const cmdtyCode = row['CMDTY CODE'];
-      const typeLower = row.TYPE.toLowerCase();
+      const typeLower = row.type.toLowerCase();
       const templateId = templateMap.get(typeLower);
 
-      // Base component object (shared fields)
+      // Count components by type
+      componentsByType[typeLower] = (componentsByType[typeLower] || 0) + 1;
+
+      // Link to metadata (use null if not provided)
+      const areaId = row.area ? areaMap.get(row.area) || null : null;
+      const systemId = row.system ? systemMap.get(row.system) || null : null;
+      const testPackageId = row.testPackage ? testPackageMap.get(row.testPackage) || null : null;
+
+      // Base component object
       const baseComponent = {
-        project_id: projectId,
-        component_type: typeLower, // Database expects lowercase component types
+        project_id: payload.projectId,
+        component_type: typeLower,
         drawing_id: drawingId,
         progress_template_id: templateId || null,
+        area_id: areaId,
+        system_id: systemId,
+        test_package_id: testPackageId,
         attributes: {
-          spec: row.SPEC || '',
-          description: row.DESCRIPTION || '',
-          size: row.SIZE || '',
-          cmdty_code: cmdtyCode,
-          comments: row.Comments || '',
-          original_qty: qty
+          spec: row.spec || '',
+          description: row.description || '',
+          size: row.size || '',
+          cmdty_code: row.cmdtyCode,
+          comments: row.comments || '',
+          original_qty: row.qty,
+          ...row.unmappedFields // Include unmapped CSV columns
         }
       };
 
       // Generate type-specific identity keys
       if (typeLower === 'spool') {
-        // Spool: unique component identified by spool_id only
         components.push({
           ...baseComponent,
-          identity_key: { spool_id: cmdtyCode }
+          identity_key: { spool_id: row.cmdtyCode }
         });
-
       } else if (typeLower === 'field_weld') {
-        // Field_Weld: unique component identified by weld_number only
         components.push({
           ...baseComponent,
-          identity_key: { weld_number: cmdtyCode }
+          identity_key: { weld_number: row.cmdtyCode }
         });
-
+      } else if (typeLower === 'instrument') {
+        // Instrument: no sequence suffix
+        components.push({
+          ...baseComponent,
+          identity_key: {
+            drawing_norm: normalized,
+            commodity_code: row.cmdtyCode,
+            size: normalizeSize(row.size),
+            seq: null
+          }
+        });
       } else {
-        // All other types: quantity explosion with drawing_norm/commodity_code/size/seq
-        for (let i = 1; i <= qty; i++) {
+        // All other types: quantity explosion
+        for (let i = 1; i <= row.qty; i++) {
           components.push({
             ...baseComponent,
             identity_key: {
               drawing_norm: normalized,
-              commodity_code: cmdtyCode,
-              size: normalizeSize(row.SIZE),
+              commodity_code: row.cmdtyCode,
+              size: normalizeSize(row.size),
               seq: i
             }
           });
@@ -241,7 +366,7 @@ export async function processImport(
       }
     });
 
-    // Step 6: Insert components in batches (PostgreSQL limit ~65535 parameters)
+    // Step 5: Insert components in batches
     const BATCH_SIZE = 1000;
     for (let i = 0; i < components.length; i += BATCH_SIZE) {
       const batch = components.slice(i, i + BATCH_SIZE);
@@ -251,25 +376,45 @@ export async function processImport(
         .insert(batch);
 
       if (componentError) {
-        throw new Error(`Failed to create components (batch ${Math.floor(i / BATCH_SIZE) + 1}): ${componentError.message}`);
+        throw new Error(
+          `Failed to create components (batch ${Math.floor(i / BATCH_SIZE) + 1}): ${componentError.message}`
+        );
       }
     }
 
+    const duration = Date.now() - startTime;
+
     return {
       success: true,
-      drawingsCreated,
       componentsCreated: components.length,
-      rowsProcessed: rows.length,
-      rowsSkipped
+      drawingsCreated,
+      drawingsUpdated: drawingIdMap.size - drawingsCreated,
+      metadataCreated,
+      componentsByType,
+      duration
     };
   } catch (error) {
+    const duration = Date.now() - startTime;
+
     return {
       success: false,
-      drawingsCreated: 0,
       componentsCreated: 0,
-      rowsProcessed: 0,
-      rowsSkipped: 0,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      drawingsCreated: 0,
+      drawingsUpdated: 0,
+      metadataCreated: {
+        areas: 0,
+        systems: 0,
+        testPackages: 0
+      },
+      componentsByType: {},
+      duration,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: [
+        {
+          row: 0,
+          issue: error instanceof Error ? error.message : 'Unknown error'
+        }
+      ]
     };
   }
 }

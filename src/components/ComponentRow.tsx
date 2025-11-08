@@ -30,11 +30,15 @@ export function ComponentRow({ component, style, onClick }: ComponentRowProps) {
   // Format identity key based on component type
   let identityDisplay: string;
   if (component.component_type === 'field_weld') {
-    // Field welds use weld_id from identity_key
+    // Field welds use weld_number from identity_key
     identityDisplay = formatFieldWeldKey(
       component.identity_key as Record<string, unknown>,
       component.component_type
     );
+  } else if (component.component_type === 'spool') {
+    // Spools use spool_id from identity_key
+    const key = component.identity_key as Record<string, unknown>;
+    identityDisplay = (key?.spool_id as string) || 'Unknown Spool';
   } else {
     // Other components use commodity_code, size, seq format
     identityDisplay = formatDrawingComponentKey(
