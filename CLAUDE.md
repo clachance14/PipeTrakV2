@@ -39,13 +39,7 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 - 🔍 Affected: Field weld components and other component types with discrete milestones
 - 📋 Files: `useAssignWelder.ts`, `WelderAssignDialog.tsx`, `ComponentDetailView.tsx`
 
-**Bug Fix**: Team Management - Remove Member Functionality (2025-11-05)
-- ✅ Fixed Remove Member button being disabled for owners/admins
-- ✅ Added RLS policy allowing owners/admins to soft-delete users in their organization
-- ✅ Fixed missing `currentUserRole` prop in TeamManagement page
-- 📁 Migration: `supabase/migrations/00081_allow_admins_to_remove_members.sql`
-- 📝 Root Cause: Two-layer issue (database RLS + missing UI prop)
-- 🔍 Files Modified: `src/pages/TeamManagement.tsx`, database migration, test coverage
+**See**: `docs/BUG-FIXES.md` for complete bug fix history and resolved issues
 
 **Feature 022**: Mobile Weld Log Optimization (2025-11-02) - **IN PROGRESS**
 - ✅ Mobile-optimized 3-column weld log table (Weld ID, Drawing, Date Welded) for ≤1024px viewports

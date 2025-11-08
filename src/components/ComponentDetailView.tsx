@@ -226,9 +226,9 @@ export function ComponentDetailView({
           <div>
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-semibold">Progress</h3>
-              <span className="text-2xl font-bold">{component.percent_complete.toFixed(1)}%</span>
+              <span className="text-2xl font-bold">{(component.percent_complete ?? 0).toFixed(1)}%</span>
             </div>
-            <Progress value={component.percent_complete} className="h-3" />
+            <Progress value={component.percent_complete ?? 0} className="h-3" />
             <p className="text-sm text-muted-foreground mt-2">
               Last updated: {component.last_updated_at
                 ? new Date(component.last_updated_at).toLocaleString()
@@ -529,9 +529,9 @@ export function ComponentDetailView({
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold">Progress</h3>
-                <span className="text-2xl font-bold">{component.percent_complete.toFixed(1)}%</span>
+                <span className="text-2xl font-bold">{(component.percent_complete ?? 0).toFixed(1)}%</span>
               </div>
-              <Progress value={component.percent_complete} className="h-3" />
+              <Progress value={component.percent_complete ?? 0} className="h-3" />
               <p className="text-sm text-muted-foreground mt-2">
                 Last updated: {component.last_updated_at
                   ? new Date(component.last_updated_at).toLocaleString()
