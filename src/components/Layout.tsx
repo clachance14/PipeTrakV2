@@ -56,7 +56,7 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
   }
 
   return (
-    <div className={fixedHeight ? "h-screen flex flex-col bg-gray-50" : "min-h-screen bg-gray-50"}>
+    <div className={fixedHeight ? "h-dvh flex flex-col bg-gray-50" : "min-h-screen bg-gray-50"}>
       {/* Top Navigation Bar */}
       <nav className={cn(
         "sticky top-0 z-50 bg-slate-800 text-white shadow-lg",
