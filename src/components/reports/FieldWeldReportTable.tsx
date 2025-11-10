@@ -170,9 +170,7 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
                   className={`grid grid-cols-[2fr_1fr_1fr] lg:grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-4 px-4 py-3 border-b text-sm ${
                     isGrandTotal
                       ? 'font-bold bg-slate-700 dark:bg-slate-800 text-white border-t-2'
-                      : virtualRow.index % 2 === 0
-                        ? ''
-                        : 'bg-slate-50 dark:bg-slate-900'
+                      : ''
                   }`}
                   style={{
                     position: 'absolute',
