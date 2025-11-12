@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
+import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { useProject } from '@/contexts/ProjectContext';
 import { useAreas, useCreateArea } from '@/hooks/useAreas';
 import { useSystems, useCreateSystem } from '@/hooks/useSystems';
@@ -47,18 +48,16 @@ export default function MetadataManagementPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-6 space-y-8">
-        <h1 className="text-3xl font-bold">Metadata Management</h1>
-        <p className="text-slate-600">
-          Manage areas, systems, and test packages for your project.
-        </p>
-
+      <SettingsLayout
+        title="Metadata Management"
+        description="Create and manage Areas, Systems, and Test Packages used to organize and categorize components across your project."
+      >
         <div className="grid gap-6 md:grid-cols-3">
           <AreaManager projectId={selectedProjectId} />
           <SystemManager projectId={selectedProjectId} />
           <TestPackageManager projectId={selectedProjectId} />
         </div>
-      </div>
+      </SettingsLayout>
     </Layout>
   );
 }
