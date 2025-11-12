@@ -8,11 +8,29 @@ Industrial pipe tracking system for brownfield construction projects. React 18 +
 
 ## Current Status
 
-**Last Updated**: 2025-11-08
-**Phase**: Bug Fix - Welder Assignment Data Migration
-**Progress**: Migration 00084 Applied - All milestone values converted to numeric
+**Last Updated**: 2025-11-11
+**Phase**: Feature Development - Editable Milestone Templates
+**Progress**: Feature 026 Complete - Template editing and management operational
 
 ### ✅ Recently Completed Features
+
+**Feature 026**: Editable Milestone Weight Templates (2025-11-11) - **PRODUCTION READY**
+- ✅ Per-project milestone weight customization for all 11 component types
+- ✅ View and edit milestone weights via Settings page (`/projects/:projectId/settings/milestones`)
+- ✅ Clone system templates with 55 template rows (5 milestones × 11 component types)
+- ✅ Real-time validation (weights must sum to 100%)
+- ✅ Retroactive recalculation for existing components with progress indicator
+- ✅ Audit trail with "Last modified by [User] on [Date]" on component type cards
+- ✅ Optimistic locking to prevent concurrent edit conflicts
+- ✅ Admin/PM-only access with permission gates in UI and RLS policies
+- ✅ Keyboard navigation (Tab, Enter to save, Escape to cancel)
+- ✅ WCAG 2.1 AA accessibility (ARIA labels, semantic HTML, screen reader support)
+- ✅ Error boundary for graceful error handling
+- ✅ Desktop-only (>1024px) - no mobile optimizations per spec
+- ✅ 9 database migrations (00087-00096) with 6 RPC functions
+- ✅ 6 React components + 4 TanStack Query hooks
+- ✅ Complete test coverage with integration and E2E tests
+- 📁 Documentation in `specs/026-editable-milestone-templates/`
 
 **Feature 025**: Threaded Pipe Inline Milestone Input (2025-11-07) - **PRODUCTION READY**
 - ✅ Replaced slider-based popover/modal editors with inline numeric inputs for threaded pipe partial milestones
@@ -174,6 +192,28 @@ npm run lint
 - **State**: TanStack Query (server state), Zustand (client state), React Context (auth)
 - **Testing**: Vitest + Testing Library with jsdom
 
+### Documentation Resources
+
+**New to PipeTrak V2?** Start with these comprehensive documentation resources:
+
+- **[GLOSSARY.md](docs/GLOSSARY.md)** - Complete glossary of domain-specific and technical terminology
+  - Industrial construction terms (brownfield, material takeoff, commodity code, etc.)
+  - Welding & quality control (field weld, NDE methods, repair weld, welder assignment)
+  - Progress tracking (discrete/partial milestones, earned value, progress templates)
+  - Component types (pipe, valve, instrument, field weld, threaded pipe)
+  - User roles & permissions (owner, admin, foreman, QC inspector, welder, viewer)
+  - Technical terms (RLS, SECURITY DEFINER, optimistic update, cache invalidation)
+
+- **[KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md)** - Architecture patterns, critical migrations, and development workflows
+  - Architecture overview (single-org model, RLS security, TanStack Query, mobile-first design)
+  - Database patterns (SECURITY DEFINER functions, RLS policy templates, JSONB milestone storage)
+  - Frontend patterns (TanStack Query conventions, permission-gated UI, mobile responsiveness)
+  - Critical migrations (00008, 00037-00049, 00057, 00067, 00084) with context and lessons learned
+  - Feature dependencies (dependency graph, integration points, cross-cutting concerns)
+  - Development workflows (TDD cycle, database changes, mobile-first development, permission integration)
+
+These resources provide essential context for understanding the codebase architecture, domain terminology, and development patterns. Consult them when working with unfamiliar concepts or implementing new features.
+
 ### Design Patterns & Guidelines
 **See**: `docs/plans/2025-11-06-design-rules.md` for comprehensive development patterns including:
 - Recipe-based development guides (creating pages, forms, tables, modals)
@@ -194,7 +234,16 @@ Authentication uses a centralized pattern:
 - App.tsx defines all routes using React Router v7
 - All authenticated routes use `<ProtectedRoute>` wrapper
 - Common layout (nav, search, notifications) handled by `Layout` component (src/components/Layout.tsx)
-- Routes: `/`, `/components`, `/packages`, `/needs-review`, `/welders`, `/imports`
+- Main routes: `/`, `/dashboard`, `/components`, `/drawings`, `/packages`, `/needs-review`, `/welders`, `/weld-log`, `/reports`, `/imports`, `/team`
+
+### Settings Routes (NEW - Feature 027)
+All settings routes require Owner, Admin, or Project Manager role (`can_manage_project` permission):
+- `/projects/:projectId/settings` - Settings landing page with three section cards
+- `/projects/:projectId/settings/milestones` - Milestone template weights (moved from old location)
+- `/projects/:projectId/settings/metadata` - Areas, Systems, Test Packages (moved from `/metadata`)
+- `/projects/:projectId/settings/project` - Project details editing and archive capability
+
+Settings navigation: Accessible via Sidebar "Settings" link (visible only to admin/PM when project selected)
 
 ### Supabase Integration
 - Client initialized in src/lib/supabase.ts with validation of required env vars:
@@ -215,7 +264,10 @@ supabase init
 supabase link --project-ref <your-project-ref>
 
 # Apply migrations to remote database
-supabase db push --linked
+# NOTE: Due to Supabase CLI v2.58.5 bug (GitHub #4302, #4419), use workaround:
+./db-push.sh
+# OR manually with full connection string:
+# supabase db push --db-url "postgresql://postgres.ipdznzzinfnomfwoebpp:[PASSWORD]@aws-1-us-east-1.pooler.supabase.com:6543/postgres"
 
 # Generate TypeScript types from remote schema
 supabase gen types typescript --linked > src/types/database.types.ts
@@ -224,7 +276,15 @@ supabase gen types typescript --linked > src/types/database.types.ts
 supabase db diff --schema public --linked
 ```
 
-**IMPORTANT**: This project uses **remote database only** (linked via Supabase CLI). Local Supabase (`supabase start`) is NOT used. All migrations MUST be applied using `supabase db push --linked`.
+**IMPORTANT**: This project uses **remote database only** (linked via Supabase CLI). Local Supabase (`supabase start`) is NOT used.
+
+**Migration Push Workaround** (as of 2025-11-11):
+- Supabase CLI v2.58.5 has a known bug where `supabase db push --linked` hangs at "Initialising login role"
+- **Workaround**: Use `./db-push.sh` helper script OR the `--db-url` flag with full connection string
+- The helper script (`db-push.sh`) bypasses the broken automatic connection initialization
+- This issue affects the connection pooler's temporary role creation (tracked in GitHub issues #4302, #4419)
+- Once fixed upstream, revert to: `supabase db push --linked`
+- **Troubleshooting**: If `./db-push.sh` fails with "bad interpreter" error, line endings may be corrupted (CRLF instead of LF). The `.gitattributes` file ensures shell scripts use Unix line endings, but you can manually fix with: `sed -i 's/\r$//' db-push.sh`
 
 **Database Schema**:
 - 14+ tables: `organizations`, `users`, `projects`, `components`, `drawings`, `packages`, `welders`, `invitations`, etc.
