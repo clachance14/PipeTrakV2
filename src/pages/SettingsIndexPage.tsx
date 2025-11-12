@@ -11,9 +11,9 @@ interface SettingsCard {
 
 export function SettingsIndexPage() {
   const { projectId } = useParams<{ projectId: string }>()
-  const { can_manage_project } = usePermissions()
+  const { canManageProject } = usePermissions()
 
-  if (!can_manage_project) {
+  if (!canManageProject) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

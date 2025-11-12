@@ -16,11 +16,14 @@ describe('SettingsLayout', () => {
   beforeEach(() => {
     vi.mocked(usePermissions).mockReturnValue({
       role: 'admin',
-      can_manage_project: true,
-      can_manage_team: false,
-      can_update_milestones: true,
-      can_edit_metadata: true,
-      can_view_reports: true,
+      canManageProject: true,
+      canManageTeam: false,
+      canUpdateMilestones: true,
+      canManageWelders: false,
+      canViewDashboards: true,
+      canImportWeldLog: false,
+      canResolveReviews: false,
+      hasPermission: vi.fn(),
     })
   })
 
@@ -41,11 +44,14 @@ describe('SettingsLayout', () => {
   it('shows access denied for unauthorized users', () => {
     vi.mocked(usePermissions).mockReturnValue({
       role: 'viewer',
-      can_manage_project: false,
-      can_manage_team: false,
-      can_update_milestones: false,
-      can_edit_metadata: false,
-      can_view_reports: true,
+      canManageProject: false,
+      canManageTeam: false,
+      canUpdateMilestones: false,
+      canManageWelders: false,
+      canViewDashboards: true,
+      canImportWeldLog: false,
+      canResolveReviews: false,
+      hasPermission: vi.fn(),
     })
 
     render(

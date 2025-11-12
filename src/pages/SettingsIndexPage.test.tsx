@@ -16,11 +16,14 @@ describe('SettingsIndexPage', () => {
   beforeEach(() => {
     vi.mocked(usePermissions).mockReturnValue({
       role: 'admin',
-      can_manage_project: true,
-      can_manage_team: false,
-      can_update_milestones: true,
-      can_edit_metadata: true,
-      can_view_reports: true,
+      canManageProject: true,
+      canManageTeam: false,
+      canUpdateMilestones: true,
+      canManageWelders: false,
+      canViewDashboards: true,
+      canImportWeldLog: false,
+      canResolveReviews: false,
+      hasPermission: vi.fn(),
     })
   })
 

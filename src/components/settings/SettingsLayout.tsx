@@ -10,10 +10,10 @@ interface SettingsLayoutProps {
 }
 
 export function SettingsLayout({ title, description, children }: SettingsLayoutProps) {
-  const { can_manage_project } = usePermissions()
+  const { canManageProject } = usePermissions()
   const { projectId } = useParams<{ projectId: string }>()
 
-  if (!can_manage_project) {
+  if (!canManageProject) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

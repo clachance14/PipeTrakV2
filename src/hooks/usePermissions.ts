@@ -16,6 +16,7 @@ export interface UsePermissionsReturn {
   canResolveReviews: boolean;
   canViewDashboards: boolean;
   canManageTeam: boolean;
+  canManageProject: boolean;
 
   // Function to check arbitrary permission
   hasPermission: (permission: Permission) => boolean;
@@ -58,6 +59,7 @@ export function usePermissions(): UsePermissionsReturn {
       canResolveReviews: false,
       canViewDashboards: false,
       canManageTeam: false,
+      canManageProject: false,
       hasPermission: () => false,
       role: null,
     };
@@ -73,6 +75,7 @@ export function usePermissions(): UsePermissionsReturn {
     canResolveReviews: false, // Not a defined permission yet
     canViewDashboards: permissions.includes('view_reports'),
     canManageTeam: permissions.includes('manage_team'),
+    canManageProject: permissions.includes('manage_projects'),
     hasPermission: (permission: Permission) => checkPermission(userRole, permission),
     role: userRole,
   };
