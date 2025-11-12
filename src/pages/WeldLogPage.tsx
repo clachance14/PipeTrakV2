@@ -255,21 +255,7 @@ export function WeldLogPage() {
               projectId: projectId,
             }}
             open={isRepairDialogOpen}
-            onOpenChange={(open) => {
-              if (!open) {
-                console.log('[WeldLogPage] Closing repair dialog')
-              } else {
-                console.log('[WeldLogPage] Opening repair dialog with weld:', {
-                  id: selectedWeld.id,
-                  weld_type: selectedWeld.weld_type,
-                  weld_size: selectedWeld.weld_size,
-                  schedule: selectedWeld.schedule,
-                  base_metal: selectedWeld.base_metal,
-                  spec: selectedWeld.spec,
-                })
-              }
-              setIsRepairDialogOpen(open)
-            }}
+            onOpenChange={setIsRepairDialogOpen}
           />
         </>
       )}

@@ -55,7 +55,6 @@ export function CreateRepairWeldDialog({
   // Pre-fill form with original weld data when dialog opens
   useEffect(() => {
     if (open && originalWeldData) {
-      console.log('[CreateRepairWeldDialog] Pre-filling form with:', originalWeldData)
       setWeldType(originalWeldData.weldType || '')
       setWeldSize(originalWeldData.weldSize || '')
       setSchedule(originalWeldData.schedule || '')

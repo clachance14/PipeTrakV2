@@ -117,7 +117,6 @@ export function WelderList({ projectId }: WelderListProps) {
                   className="hover:bg-slate-50 cursor-pointer transition-colors"
                   onClick={() => {
                     // TODO: Open edit dialog when implemented
-                    console.log('Edit welder:', welder.id)
                   }}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">

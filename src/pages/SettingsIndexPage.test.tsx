@@ -34,7 +34,7 @@ describe('SettingsIndexPage', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByText('Milestone Templates')).toBeInTheDocument()
+    expect(screen.getByText('Rules of Credit')).toBeInTheDocument()
     expect(screen.getByText('Metadata Management')).toBeInTheDocument()
     expect(screen.getByText('Project Details')).toBeInTheDocument()
   })

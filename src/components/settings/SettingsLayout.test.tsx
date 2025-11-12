@@ -69,13 +69,13 @@ describe('SettingsLayout', () => {
   it('renders breadcrumb navigation', () => {
     render(
       <BrowserRouter>
-        <SettingsLayout title="Milestone Templates" description="Test description">
+        <SettingsLayout title="Rules of Credit" description="Test description">
           <div>Content</div>
         </SettingsLayout>
       </BrowserRouter>
     )
 
     expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Milestone Templates' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Rules of Credit' })).toBeInTheDocument()
   })
 })

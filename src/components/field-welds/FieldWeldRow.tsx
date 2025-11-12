@@ -47,8 +47,6 @@ export function FieldWeldRow({
   const [isRepairHistoryOpen, setIsRepairHistoryOpen] = useState(false)
   const [isAssigningWelder, setIsAssigningWelder] = useState(false)
 
-  console.log('[FieldWeldRow] RENDERING - Component type:', component.component_type, 'ID:', component.id)
-
   if (!component.id || component.id.includes(':')) {
     console.error('[FieldWeldRow] Invalid component ID:', component.id, 'Full component:', component)
   }
@@ -57,26 +55,14 @@ export function FieldWeldRow({
   const assignWelderMutation = useAssignWelder()
   const { user } = useAuth()
 
-  console.log('[FieldWeldRow] fieldWeld data:', fieldWeld, 'isLoading:', isLoading)
-  console.log('[FieldWeldRow] isRejected check:', {
-    status: fieldWeld?.status,
-    isRejected: fieldWeld?.status === 'rejected',
-    componentId: component.id,
-    weldNumber: component.identityDisplay
-  })
-
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
-    console.log('[FieldWeldRow] Milestone changed:', { milestoneName, value, hasFieldWeld: !!fieldWeld })
-
     // Special handling for "Weld Complete" milestone - trigger inline welder assignment
     if (milestoneName === 'Weld Complete' && value === true && fieldWeld) {
-      console.log('[FieldWeldRow] Triggering inline welder assignment')
       setIsAssigningWelder(true)
       setIsExpanded(true) // Ensure milestones are visible
       return
     }
 
-    console.log('[FieldWeldRow] Calling parent onMilestoneUpdate')
     onMilestoneUpdate(component.id, milestoneName, value)
   }
 
@@ -277,10 +263,6 @@ export function FieldWeldRow({
         {/* Expanded milestones section */}
         {isExpanded && component.template?.milestones_config && component.template.milestones_config.length > 0 && (
           <div className="pl-16 pr-4 py-3 bg-slate-50 border-t border-slate-200">
-            {(() => {
-              console.log('[FieldWeldRow] Render expanded section:', { isAssigningWelder, isExpanded })
-              return null
-            })()}
             {isAssigningWelder ? (
               /* Show inline welder assignment UI */
               <InlineWelderAssignment

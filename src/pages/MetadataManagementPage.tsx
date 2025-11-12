@@ -5,7 +5,6 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
 import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { useProject } from '@/contexts/ProjectContext';
 import { useAreas, useCreateArea } from '@/hooks/useAreas';
@@ -25,40 +24,39 @@ export default function MetadataManagementPage() {
 
   if (!selectedProjectId) {
     return (
-      <Layout>
-        <div className="container mx-auto p-6">
-          <Alert className="max-w-2xl">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="ml-2">
-              <p className="font-semibold mb-2">No Project Selected</p>
-              <p className="mb-4">
-                You need to create or select a project before managing metadata.
-              </p>
-              <Link to="/projects">
-                <Button>
-                  Go to Projects
-                </Button>
-              </Link>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </Layout>
+      <SettingsLayout
+        title="Metadata Management"
+        description="Create and manage Areas, Systems, and Test Packages"
+      >
+        <Alert className="max-w-2xl">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="ml-2">
+            <p className="font-semibold mb-2">No Project Selected</p>
+            <p className="mb-4">
+              You need to create or select a project before managing metadata.
+            </p>
+            <Link to="/projects">
+              <Button>
+                Go to Projects
+              </Button>
+            </Link>
+          </AlertDescription>
+        </Alert>
+      </SettingsLayout>
     );
   }
 
   return (
-    <Layout>
-      <SettingsLayout
-        title="Metadata Management"
-        description="Create and manage Areas, Systems, and Test Packages used to organize and categorize components across your project."
-      >
-        <div className="grid gap-6 md:grid-cols-3">
-          <AreaManager projectId={selectedProjectId} />
-          <SystemManager projectId={selectedProjectId} />
-          <TestPackageManager projectId={selectedProjectId} />
-        </div>
-      </SettingsLayout>
-    </Layout>
+    <SettingsLayout
+      title="Metadata Management"
+      description="Create and manage Areas, Systems, and Test Packages used to organize and categorize components across your project."
+    >
+      <div className="grid gap-6 md:grid-cols-3">
+        <AreaManager projectId={selectedProjectId} />
+        <SystemManager projectId={selectedProjectId} />
+        <TestPackageManager projectId={selectedProjectId} />
+      </div>
+    </SettingsLayout>
   );
 }
 

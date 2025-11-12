@@ -92,35 +92,19 @@ export function TemplateEditor({
   const canSave = isValid && !hasInvalidWeight && !updateMutation.isPending;
 
   const handleWeightChange = (milestoneName: string, newWeight: number) => {
-    console.log(`Weight change: ${milestoneName} = ${newWeight}`);
-    setWeights(prevWeights => {
-      const oldWeight = prevWeights.find(w => w.milestone_name === milestoneName)?.weight;
-      console.log(`  Old value: ${oldWeight} → New value: ${newWeight}`);
-
-      const newWeights = prevWeights.map(w =>
+    setWeights(prevWeights =>
+      prevWeights.map(w =>
         w.milestone_name === milestoneName
           ? { ...w, weight: newWeight }
           : w
-      );
-
-      const oldSum = prevWeights.reduce((sum, w) => sum + w.weight, 0);
-      const newSum = newWeights.reduce((sum, w) => sum + w.weight, 0);
-      console.log(`  Total: ${oldSum} → ${newSum}`);
-
-      return newWeights;
-    });
+      )
+    );
   };
 
   const handleSave = () => {
     if (!canSave) {
       return;
     }
-
-    // DEBUG: Log the weights at save time
-    console.log('=== handleSave called ===');
-    console.log('Weights state:', JSON.stringify(weights, null, 2));
-    console.log('Sum:', weights.reduce((sum, w) => sum + w.weight, 0));
-    console.log('========================');
 
     updateMutation.mutate(
       {

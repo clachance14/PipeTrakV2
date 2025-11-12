@@ -25,7 +25,7 @@ interface SidebarStore {
 export const useSidebarStore = create<SidebarStore>()(
   persist(
     (set) => ({
-      isCollapsed: false,
+      isCollapsed: true,
       isMobileOpen: false,
       isHovering: false,
 

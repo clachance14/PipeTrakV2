@@ -66,8 +66,7 @@ export function ProjectDetailsPage() {
       { projectId, name, description: description || null },
       {
         onSuccess: () => {
-          // Show success toast (implement toast later)
-          console.log('Project updated successfully')
+          // Success - mutation hook will handle cache invalidation
         },
       }
     )

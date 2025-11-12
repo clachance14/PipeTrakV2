@@ -55,10 +55,8 @@ export function DrawingComponentTablePage() {
   // Component metadata editing modal state
   const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null)
 
-  // Validated component click handler with logging
+  // Validated component click handler
   const handleComponentClick = (componentId: string) => {
-    console.log('[DrawingComponentTablePage] Component clicked:', componentId)
-
     // Validate component ID format (must be UUID, not contain colons)
     if (!componentId || componentId.includes(':') || componentId.length < 10) {
       console.error('[DrawingComponentTablePage] Invalid component ID detected:', {

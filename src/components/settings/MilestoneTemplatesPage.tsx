@@ -62,14 +62,14 @@ function TemplateCardWithChanges({
 export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProps) {
   const { data: templates, isLoading, error } = useProjectTemplates(projectId)
   const cloneMutation = useCloneTemplates()
-  const permissions = usePermissions()
+  const { canManageProject } = usePermissions()
 
   // State for template editor modal
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedComponentType, setSelectedComponentType] = useState<string | null>(null)
 
-  // Check if user can edit templates (owner, admin, or project_manager)
-  const canEdit = permissions.role === 'owner' || permissions.role === 'admin' || permissions.role === 'project_manager'
+  // Check if user can edit templates (requires manage_projects permission)
+  const canEdit = canManageProject
 
   const handleClone = () => {
     cloneMutation.mutate(
@@ -116,7 +116,8 @@ export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProp
 
   // Get templates for selected component type
   const selectedTemplates = selectedComponentType ? (templatesByType[selectedComponentType] || []) : []
-  const lastUpdated = selectedTemplates[0]?.updated_at
+  // Use server timestamp if available, otherwise use epoch (never updated sentinel)
+  const lastUpdated = selectedTemplates[0]?.updated_at || '1970-01-01T00:00:00Z'
 
   const handleEditClick = (componentType: string) => {
     setSelectedComponentType(componentType)
@@ -125,7 +126,7 @@ export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProp
 
   return (
     <SettingsLayout
-      title="Milestone Templates"
+      title="Rules of Credit"
       description="Customize progress tracking weights for each component type. Changes apply to all existing and future components."
     >
       {!hasTemplates ? (
@@ -161,7 +162,7 @@ export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProp
                 milestone_name: t.milestone_name,
                 weight: t.weight,
               }))}
-              lastUpdated={lastUpdated || new Date().toISOString()}
+              lastUpdated={lastUpdated}
             />
           )}
         </>

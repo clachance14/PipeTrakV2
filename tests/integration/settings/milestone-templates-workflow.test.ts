@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 // This test would require a real Supabase connection
 // For now, we'll create a test skeleton that demonstrates the workflow
 
-describe('Milestone Templates Workflow (US3 & US4)', () => {
+describe('Rules of Credit Workflow (US3 & US4)', () => {
   // Mock Supabase client for testing
   const supabase = {
     from: vi.fn(),

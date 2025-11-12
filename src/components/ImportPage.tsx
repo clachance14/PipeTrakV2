@@ -85,12 +85,9 @@ export function ImportPage({ projectId }: ImportPageProps) {
         skipFirstNLines: 0
       });
 
-      // Papa Parse errors are logged but NEVER block import
+      // Papa Parse errors do not block import
       // Papa Parse is very good at recovering from malformed CSV - trust it
-      if (parseResult.errors && parseResult.errors.length > 0) {
-        console.log('Papa Parse handled these issues automatically:', parseResult.errors);
-        // Continue processing - Papa Parse recovered from these issues
-      }
+      // Continue processing even if there were recoverable issues
 
       // Filter out any empty rows that Papa Parse may have created
       // (Can happen with multi-line quoted fields or trailing commas)
@@ -255,21 +252,11 @@ export function ImportPage({ projectId }: ImportPageProps) {
       }
     };
 
-    console.log('Sending import payload:', {
-      rowCount: validRows.length,
-      metadataCount: {
-        areas: uniqueAreas.size,
-        systems: uniqueSystems.size,
-        testPackages: uniqueTestPackages.size
-      }
-    });
-
     // Call import mutation with JSON payload
     importCsv(
       payload as any,
       {
         onSuccess: (data) => {
-          console.log('Import response:', data);
           setImportResult(data);
           setPreviewState(null);
           setSelectedFile(null);
