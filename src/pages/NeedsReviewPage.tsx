@@ -65,7 +65,7 @@ export function NeedsReviewPage() {
     }
   };
 
-  const handleSubmitResolve = async (status: 'resolved' | 'ignored', note?: string) => {
+  const handleSubmitResolve = async (_status: 'resolved' | 'ignored', _note?: string) => {
     // TODO: Implement resolve mutation when useNeedsReview provides it
     setIsResolveModalOpen(false);
     setSelectedItem(null);
