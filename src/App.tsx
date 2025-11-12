@@ -33,6 +33,10 @@ import { ReportViewPage } from '@/pages/ReportViewPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { HomePage } from '@/pages/HomePage'
 import { DemoSignupPage } from '@/pages/DemoSignupPage'
+import { MilestoneTemplatesPage } from '@/components/settings/MilestoneTemplatesPage'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { SettingsIndexPage } from '@/pages/SettingsIndexPage'
+import { ProjectDetailsPage } from '@/pages/ProjectDetailsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -207,14 +211,6 @@ function App() {
               }
             />
             <Route
-              path="/metadata"
-              element={
-                <ProtectedRoute>
-                  <MetadataManagementPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/projects/:projectId/components"
               element={
                 <ProtectedRoute>
@@ -227,6 +223,39 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DrawingComponentTablePage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Settings routes (Feature 027) */}
+            <Route
+              path="/projects/:projectId/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsIndexPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId/settings/milestones"
+              element={
+                <ProtectedRoute>
+                  <MilestoneTemplatesPageWrapper />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId/settings/metadata"
+              element={
+                <ProtectedRoute>
+                  <MetadataManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId/settings/project"
+              element={
+                <ProtectedRoute>
+                  <ProjectDetailsPage />
                 </ProtectedRoute>
               }
             />
@@ -273,6 +302,19 @@ function DrawingsPageWrapper() {
   }
   // Feature 010: Drawing-centered component progress table
   return <DrawingComponentTablePage />
+}
+
+function MilestoneTemplatesPageWrapper() {
+  const { selectedProjectId } = useProject()
+  if (!selectedProjectId) {
+    return <Navigate to="/projects" replace />
+  }
+  // Feature 026: Editable milestone weight templates
+  return (
+    <ErrorBoundary>
+      <MilestoneTemplatesPage projectId={selectedProjectId} />
+    </ErrorBoundary>
+  )
 }
 
 export default App
