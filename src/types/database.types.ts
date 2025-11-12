@@ -543,6 +543,13 @@ export type Database = {
             foreignKeyName: "field_welds_component_id_fkey"
             columns: ["component_id"]
             isOneToOne: true
+            referencedRelation: "component_effective_templates"
+            referencedColumns: ["component_id"]
+          },
+          {
+            foreignKeyName: "field_welds_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: true
             referencedRelation: "components"
             referencedColumns: ["id"]
           },
@@ -669,6 +676,13 @@ export type Database = {
             foreignKeyName: "milestone_events_component_id_fkey"
             columns: ["component_id"]
             isOneToOne: false
+            referencedRelation: "component_effective_templates"
+            referencedColumns: ["component_id"]
+          },
+          {
+            foreignKeyName: "milestone_events_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
             referencedRelation: "components"
             referencedColumns: ["id"]
           },
@@ -722,6 +736,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "needs_review_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "component_effective_templates"
+            referencedColumns: ["component_id"]
+          },
           {
             foreignKeyName: "needs_review_component_id_fkey"
             columns: ["component_id"]
@@ -806,9 +827,108 @@ export type Database = {
         }
         Relationships: []
       }
+      project_progress_templates: {
+        Row: {
+          component_type: string
+          created_at: string
+          id: string
+          is_partial: boolean
+          milestone_name: string
+          milestone_order: number
+          project_id: string
+          requires_welder: boolean
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          id?: string
+          is_partial?: boolean
+          milestone_name: string
+          milestone_order: number
+          project_id: string
+          requires_welder?: boolean
+          updated_at?: string
+          weight: number
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          id?: string
+          is_partial?: boolean
+          milestone_name?: string
+          milestone_order?: number
+          project_id?: string
+          requires_welder?: boolean
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_progress_templates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_template_changes: {
+        Row: {
+          affected_component_count: number
+          applied_to_existing: boolean
+          changed_at: string
+          changed_by: string | null
+          component_type: string
+          id: string
+          new_weights: Json
+          old_weights: Json
+          project_id: string
+        }
+        Insert: {
+          affected_component_count: number
+          applied_to_existing: boolean
+          changed_at?: string
+          changed_by?: string | null
+          component_type: string
+          id?: string
+          new_weights: Json
+          old_weights: Json
+          project_id: string
+        }
+        Update: {
+          affected_component_count?: number
+          applied_to_existing?: boolean
+          changed_at?: string
+          changed_by?: string | null
+          component_type?: string
+          id?: string
+          new_weights?: Json
+          old_weights?: Json
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_template_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_template_changes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           id: string
           name: string
@@ -817,6 +937,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name: string
@@ -825,6 +946,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -1114,6 +1236,32 @@ export type Database = {
       }
     }
     Views: {
+      component_effective_templates: {
+        Row: {
+          component_id: string | null
+          component_type: string | null
+          milestones_config: Json | null
+          progress_template_id: string | null
+          project_id: string | null
+          uses_project_templates: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "components_progress_template_id_fkey"
+            columns: ["progress_template_id"]
+            isOneToOne: false
+            referencedRelation: "progress_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mv_drawing_progress: {
         Row: {
           area_id: string | null
@@ -1489,10 +1637,20 @@ export type Database = {
         Args: { date_end: string; date_start: string }
         Returns: number
       }
-      calculate_component_percent: {
-        Args: { p_current_milestones: Json; p_template_id: string }
-        Returns: number
-      }
+      calculate_component_percent:
+        | {
+            Args: { p_current_milestones: Json; p_template_id: string }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_component_type?: string
+              p_current_milestones: Json
+              p_project_id?: string
+              p_template_id: string
+            }
+            Returns: number
+          }
       calculate_earned_milestone_value: {
         Args: {
           p_component_type: string
@@ -1514,6 +1672,14 @@ export type Database = {
       check_email_has_organization: {
         Args: { check_email: string }
         Returns: boolean
+      }
+      clone_system_templates_for_project: {
+        Args: { target_project_id: string }
+        Returns: number
+      }
+      create_demo_skeleton: {
+        Args: { p_org_id: string; p_project_id: string; p_user_id: string }
+        Returns: undefined
       }
       create_field_weld_snapshot: {
         Args: {
@@ -1547,6 +1713,10 @@ export type Database = {
       }
       get_current_user_email: { Args: never; Returns: string }
       get_current_user_org_id: { Args: never; Returns: string }
+      get_project_template_summary: {
+        Args: { target_project_id: string }
+        Returns: Json
+      }
       get_user_org_role: {
         Args: { org_uuid: string; user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1564,7 +1734,12 @@ export type Database = {
       }
       is_super_admin: { Args: never; Returns: boolean }
       normalize_drawing_number: { Args: { raw: string }; Returns: string }
+      recalculate_components_with_template: {
+        Args: { target_component_type: string; target_project_id: string }
+        Returns: number
+      }
       refresh_materialized_views: { Args: never; Returns: undefined }
+      refresh_mv_drawing_progress: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_component_milestone: {
@@ -1573,6 +1748,16 @@ export type Database = {
           p_milestone_name: string
           p_new_value: number
           p_user_id: string
+        }
+        Returns: Json
+      }
+      update_project_template_weights: {
+        Args: {
+          p_apply_to_existing: boolean
+          p_component_type: string
+          p_last_updated: string
+          p_new_weights: Json
+          p_project_id: string
         }
         Returns: Json
       }
