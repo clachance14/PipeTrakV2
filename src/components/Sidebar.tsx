@@ -9,14 +9,16 @@ import {
   ClipboardCheck,
   Upload,
   Users,
-  Settings,
   ChevronLeft,
   ChevronRight,
-  BarChart3
+  BarChart3,
+  Sliders
 } from 'lucide-react';
 import { useSidebarStore } from '@/stores/useSidebarStore';
 import { PermissionGate } from '@/components/PermissionGate';
 import { cn } from '@/lib/utils';
+import { useProject } from '@/contexts/ProjectContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type Permission =
   | 'can_update_milestones'
@@ -36,6 +38,8 @@ interface NavItem {
 export function Sidebar() {
   const { isCollapsed, isMobileOpen, isHovering, toggle, setMobileOpen, setHovering } = useSidebarStore();
   const location = useLocation();
+  const { selectedProjectId } = useProject();
+  const { role } = usePermissions();
 
   const navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -47,7 +51,6 @@ export function Sidebar() {
     { path: '/weld-log', label: 'Weld Log', icon: ClipboardCheck },
     { path: '/reports', label: 'Reports', icon: BarChart3 },
     { path: '/imports', label: 'Imports', icon: Upload },
-    { path: '/metadata', label: 'Details', icon: Settings },
     { path: '/team', label: 'Team', icon: Users, permission: 'can_manage_team' }
   ];
 
@@ -154,6 +157,27 @@ export function Sidebar() {
 
             return navLink;
           })}
+
+          {/* Settings - Only for owner/admin/PM with selected project */}
+          {selectedProjectId && (role === 'owner' || role === 'admin' || role === 'project_manager') && (
+            <Link
+              to={`/projects/${selectedProjectId}/settings`}
+              onClick={handleNavClick}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                isActive(`/projects/${selectedProjectId}/settings`)
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100',
+                isCollapsed && !isHovering ? 'md:justify-center' : ''
+              )}
+              title={isCollapsed && !isHovering ? 'Settings' : undefined}
+            >
+              <Sliders className={cn('flex-shrink-0', isCollapsed && !isHovering ? 'md:h-5 md:w-5 h-6 w-6' : 'h-5 w-5')} />
+              {((!isCollapsed || isHovering) || isMobileOpen) && (
+                <span className="flex-1 text-sm font-medium whitespace-nowrap overflow-hidden">Settings</span>
+              )}
+            </Link>
+          )}
         </nav>
       </div>
     </>
