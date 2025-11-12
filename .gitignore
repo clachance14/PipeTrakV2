@@ -48,3 +48,6 @@ backup_pre_*.sql
 
 # Git worktrees
 .worktrees/
+
+# Database utility scripts (contain credentials)
+db-push.sh

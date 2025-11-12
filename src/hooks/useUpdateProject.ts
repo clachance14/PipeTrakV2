@@ -8,9 +8,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { Database } from '@/types/database.types'
-
-type Project = Database['public']['Tables']['projects']['Row']
 
 interface UpdateProjectParams {
   projectId: string

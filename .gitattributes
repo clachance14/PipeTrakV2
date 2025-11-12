@@ -1,0 +1,3 @@
+# Ensure shell scripts always use Unix line endings (LF)
+# Prevents "bad interpreter" errors when running scripts on Linux/WSL
+*.sh text eol=lf

@@ -131,6 +131,32 @@ export function useComponent(id: string): UseQueryResult<Component, Error> {
 }
 
 /**
+ * Query effective milestone template for a component
+ * Uses project-specific templates when available (Feature 026),
+ * falls back to system templates otherwise
+ * Fetches from component_effective_templates view
+ */
+export function useEffectiveTemplate(componentId: string): UseQueryResult<{
+  milestones_config: any;
+  uses_project_templates: boolean | null;
+} | null, Error> {
+  return useQuery({
+    queryKey: ['effective-template', componentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('component_effective_templates')
+        .select('milestones_config, uses_project_templates')
+        .eq('component_id', componentId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+}
+
+/**
  * Create a new component
  * Validates identity_key structure via FR-041
  * Sets current_milestones = {}, percent_complete = 0.00

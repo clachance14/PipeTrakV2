@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 // import { MilestoneButton } from './MilestoneButton'; // TODO: Will be used in Phase 5
 // import { MilestoneEventHistory } from './MilestoneEventHistory'; // TODO: Will be used in Phase 6
-import { useComponent } from '@/hooks/useComponents';
+import { useComponent, useEffectiveTemplate } from '@/hooks/useComponents';
 import { useUpdateMilestone } from '@/hooks/useMilestones';
 import { Button } from '@/components/ui/button';
 import { useAreas } from '@/hooks/useAreas';
@@ -55,6 +55,7 @@ export function ComponentDetailView({
   const [welderDialogOpen, setWelderDialogOpen] = useState(false);
 
   const { data: componentData, isLoading } = useComponent(componentId);
+  const { data: effectiveTemplate } = useEffectiveTemplate(componentId);
   const updateMilestoneMutation = useUpdateMilestone();
   const { data: history = [], isLoading: historyLoading } = useMilestoneHistory(componentId, 50);
 
@@ -194,7 +195,9 @@ export function ComponentDetailView({
   }
 
   // Calculate milestone stats
-  const template = component.progress_template;
+  // Use effective_template (project-specific) if available, fallback to progress_template (system default)
+  // Feature 026: effective_template comes from useEffectiveTemplate hook
+  const template = effectiveTemplate || component.progress_template;
   const totalMilestones = template?.milestones_config?.length || 0;
   const currentMilestones = (component.current_milestones as Record<string, boolean | number>) || {};
   const completedMilestones = Object.values(currentMilestones).filter(
