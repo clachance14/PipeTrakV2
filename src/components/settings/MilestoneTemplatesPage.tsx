@@ -1,0 +1,171 @@
+/**
+ * MilestoneTemplatesPage component (Feature 026 - US1)
+ * Main settings page for viewing and managing milestone templates
+ */
+
+import { useState } from 'react'
+import { useProjectTemplates } from '@/hooks/useProjectTemplates'
+import { useCloneTemplates } from '@/hooks/useCloneTemplates'
+import { useTemplateChanges } from '@/hooks/useTemplateChanges'
+import { TemplateCard } from './TemplateCard'
+import { CloneTemplatesBanner } from './CloneTemplatesBanner'
+import { TemplateEditor } from './TemplateEditor'
+import { SettingsLayout } from './SettingsLayout'
+import { toast } from 'sonner'
+import { usePermissions } from '@/hooks/usePermissions'
+
+interface MilestoneTemplatesPageProps {
+  projectId: string
+}
+
+/**
+ * Wrapper component that calls useTemplateChanges hook at the top level
+ * to avoid React hooks rules violation
+ */
+interface TemplateCardWithChangesProps {
+  projectId: string
+  componentType: string
+  milestoneCount: number
+  hasTemplates: boolean
+  onEdit: () => void
+  canEdit: boolean
+}
+
+function TemplateCardWithChanges({
+  projectId,
+  componentType,
+  milestoneCount,
+  hasTemplates,
+  onEdit,
+  canEdit,
+}: TemplateCardWithChangesProps) {
+  const { data: lastMod } = useTemplateChanges(projectId, componentType, 1)
+  const lastModified = lastMod?.[0]
+    ? {
+        userName: null, // TODO: Fetch user name separately
+        date: lastMod[0].changed_at,
+      }
+    : undefined
+
+  return (
+    <TemplateCard
+      componentType={componentType}
+      milestoneCount={milestoneCount}
+      hasTemplates={hasTemplates}
+      onEdit={onEdit}
+      canEdit={canEdit}
+      lastModified={lastModified}
+    />
+  )
+}
+
+export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProps) {
+  const { data: templates, isLoading, error } = useProjectTemplates(projectId)
+  const cloneMutation = useCloneTemplates()
+  const permissions = usePermissions()
+
+  // State for template editor modal
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [selectedComponentType, setSelectedComponentType] = useState<string | null>(null)
+
+  // Check if user can edit templates (owner, admin, or project_manager)
+  const canEdit = permissions.role === 'owner' || permissions.role === 'admin' || permissions.role === 'project_manager'
+
+  const handleClone = () => {
+    cloneMutation.mutate(
+      { projectId },
+      {
+        onSuccess: (data) => {
+          toast.success(`Successfully cloned ${data.templates_created} templates`)
+        },
+        onError: (error) => {
+          toast.error(`Failed to clone templates: ${error.message}`)
+        },
+      }
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-600">Loading templates...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-red-600">Error loading templates: {error.message}</div>
+      </div>
+    )
+  }
+
+  // Group templates by component type
+  type TemplateArray = NonNullable<typeof templates>;
+  const templatesByType = (templates || []).reduce<Record<string, TemplateArray>>((acc, template) => {
+    if (!acc[template.component_type]) {
+      acc[template.component_type] = []
+    }
+    acc[template.component_type]!.push(template)
+    return acc
+  }, {})
+
+  const componentTypes = Object.keys(templatesByType)
+  const hasTemplates = componentTypes.length > 0
+
+  // Get templates for selected component type
+  const selectedTemplates = selectedComponentType ? (templatesByType[selectedComponentType] || []) : []
+  const lastUpdated = selectedTemplates[0]?.updated_at
+
+  const handleEditClick = (componentType: string) => {
+    setSelectedComponentType(componentType)
+    setEditorOpen(true)
+  }
+
+  return (
+    <SettingsLayout
+      title="Milestone Templates"
+      description="Customize progress tracking weights for each component type. Changes apply to all existing and future components."
+    >
+      {!hasTemplates ? (
+        <CloneTemplatesBanner onClone={handleClone} isCloning={cloneMutation.isPending} />
+      ) : (
+        <>
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            role="region"
+            aria-label="Component type templates"
+          >
+            {componentTypes.map((componentType) => (
+              <TemplateCardWithChanges
+                key={componentType}
+                projectId={projectId}
+                componentType={componentType}
+                milestoneCount={templatesByType[componentType]?.length || 0}
+                hasTemplates={true}
+                onEdit={() => handleEditClick(componentType)}
+                canEdit={canEdit}
+              />
+            ))}
+          </div>
+
+          {/* Template Editor Modal (US2) */}
+          {selectedComponentType && (
+            <TemplateEditor
+              open={editorOpen}
+              onOpenChange={setEditorOpen}
+              projectId={projectId}
+              componentType={selectedComponentType}
+              weights={selectedTemplates.map((t) => ({
+                milestone_name: t.milestone_name,
+                weight: t.weight,
+              }))}
+              lastUpdated={lastUpdated || new Date().toISOString()}
+            />
+          )}
+        </>
+      )}
+    </SettingsLayout>
+  )
+}
