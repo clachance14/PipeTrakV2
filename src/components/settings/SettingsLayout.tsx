@@ -1,0 +1,51 @@
+import { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
+import { usePermissions } from '@/hooks/usePermissions'
+
+interface SettingsLayoutProps {
+  title: string
+  description: string
+  children: ReactNode
+}
+
+export function SettingsLayout({ title, description, children }: SettingsLayoutProps) {
+  const { can_manage_project } = usePermissions()
+  const projectId = window.location.pathname.split('/')[2] // Extract from URL
+
+  if (!can_manage_project) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-2">Access Denied</h2>
+          <p className="text-slate-600">You don't have permission to access project settings.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-[1400px] mx-auto p-6 md:p-8">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm text-slate-600 mb-6" aria-label="Breadcrumb">
+        <Link
+          to={`/projects/${projectId}/settings`}
+          className="hover:text-slate-900 transition-colors"
+        >
+          Settings
+        </Link>
+        <ChevronRight className="w-4 h-4" />
+        <span className="text-slate-900">{title}</span>
+      </nav>
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">{title}</h1>
+        <p className="text-slate-600">{description}</p>
+      </div>
+
+      {/* Content */}
+      <div>{children}</div>
+    </div>
+  )
+}
