@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 
@@ -11,7 +11,7 @@ interface SettingsLayoutProps {
 
 export function SettingsLayout({ title, description, children }: SettingsLayoutProps) {
   const { can_manage_project } = usePermissions()
-  const projectId = window.location.pathname.split('/')[2] // Extract from URL
+  const { projectId } = useParams<{ projectId: string }>()
 
   if (!can_manage_project) {
     return (

@@ -4,6 +4,13 @@ import { SettingsLayout } from './SettingsLayout'
 import { usePermissions } from '@/hooks/usePermissions'
 
 vi.mock('@/hooks/usePermissions')
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useParams: () => ({ projectId: 'test-project-id' }),
+  }
+})
 
 describe('SettingsLayout', () => {
   beforeEach(() => {
