@@ -5,7 +5,6 @@ import { Layout } from '@/components/Layout'
 import { DrawingTable, type DrawingTableHandle } from '@/components/drawing-table/DrawingTable'
 import { DrawingSearchInput } from '@/components/drawing-table/DrawingSearchInput'
 import { StatusFilterDropdown } from '@/components/drawing-table/StatusFilterDropdown'
-import { CollapseAllButton } from '@/components/drawing-table/CollapseAllButton'
 import { MobileFilterStack } from '@/components/drawing-table/MobileFilterStack'
 import { EmptyDrawingsState } from '@/components/drawing-table/EmptyDrawingsState'
 import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
@@ -75,7 +74,7 @@ export function DrawingComponentTablePage() {
   const { data: drawings, isLoading, isError, error, refetch } = useDrawingsWithProgress(selectedProjectId!)
 
   // Manage expansion state
-  const { expandedDrawingIds, toggleDrawing, collapseAll } = useExpandedDrawings()
+  const { expandedDrawingId, toggleDrawing } = useExpandedDrawings()
 
   // Manage filters and sorting
   const { searchTerm, statusFilter, sortField, sortDirection, setSearch, setStatusFilter, setSort, filterAndSortDrawings } = useDrawingFilters()
@@ -97,7 +96,10 @@ export function DrawingComponentTablePage() {
   const { data: testPackages = [] } = useTestPackages(selectedProjectId!)
 
   // Fetch components for expanded drawings (using useQueries pattern)
-  const expandedDrawingIdsArray = useMemo(() => Array.from(expandedDrawingIds), [expandedDrawingIds])
+  const expandedDrawingIdsArray = useMemo(
+    () => expandedDrawingId ? [expandedDrawingId] : [],
+    [expandedDrawingId]
+  )
   const { componentsMap } = useComponentsByDrawings(expandedDrawingIdsArray)
 
   // Ref for DrawingTable to enable programmatic scrolling
@@ -112,19 +114,15 @@ export function DrawingComponentTablePage() {
     // Wait for data to load
     if (isLoading || !drawings?.length) return
 
-    // Check if there are expanded drawings from URL
-    if (expandedDrawingIds.size === 0) return
-
-    // Get first expanded drawing ID
-    const firstExpandedId = Array.from(expandedDrawingIds)[0]
-    if (!firstExpandedId) return // Type guard for TypeScript
+    // Check if there is an expanded drawing from URL
+    if (!expandedDrawingId) return
 
     // Find the index of this drawing in the drawings array
-    const drawingIndex = drawings.findIndex(d => d.id === firstExpandedId)
+    const drawingIndex = drawings.findIndex(d => d.id === expandedDrawingId)
     if (drawingIndex === -1) return
 
     // Wait for components to be fetched for the expanded drawing
-    if (!componentsMap.has(firstExpandedId)) return
+    if (!componentsMap.has(expandedDrawingId)) return
 
     // Scroll after short delay to allow expand animation to complete
     const timeoutId = setTimeout(() => {
@@ -133,7 +131,7 @@ export function DrawingComponentTablePage() {
     }, 200)
 
     return () => clearTimeout(timeoutId)
-  }, [expandedDrawingIds, drawings, componentsMap, isLoading])
+  }, [expandedDrawingId, drawings, componentsMap, isLoading])
 
   // Handle milestone update
   const handleMilestoneUpdate = (componentId: string, milestoneName: string, value: boolean | number) => {
@@ -223,10 +221,10 @@ export function DrawingComponentTablePage() {
       <Layout fixedHeight>
         <div className="flex flex-col h-full overflow-hidden">
           <h1 className="text-2xl font-bold mb-6 px-2 md:px-4 py-8">Component Progress</h1>
-          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-2 md:mx-4 mb-4">
+          <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-2 md:px-4 mb-4">
             <DrawingTable
               drawings={[]}
-              expandedDrawingIds={new Set()}
+              expandedDrawingId={null}
               componentsMap={new Map()}
               sortField={sortField}
               sortDirection={sortDirection}
@@ -293,8 +291,6 @@ export function DrawingComponentTablePage() {
               onSearchChange={setSearch}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
-              onCollapseAll={collapseAll}
-              collapseAllDisabled={expandedDrawingIds.size === 0}
               selectionMode={selectionMode}
               onToggleSelectionMode={handleToggleSelectionMode}
               showingCount={displayDrawings.length}
@@ -308,10 +304,6 @@ export function DrawingComponentTablePage() {
                 placeholder="Search by drawing number..."
               />
               <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
-              <CollapseAllButton
-                onClick={collapseAll}
-                disabled={expandedDrawingIds.size === 0}
-              />
 
               {/* Feature 011: Selection Mode Toggle (T034) */}
               <Button
@@ -356,7 +348,7 @@ export function DrawingComponentTablePage() {
           <DrawingTable
             ref={tableRef}
             drawings={displayDrawings}
-            expandedDrawingIds={expandedDrawingIds}
+            expandedDrawingId={expandedDrawingId}
             componentsMap={componentsMap}
             sortField={sortField}
             sortDirection={sortDirection}

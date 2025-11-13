@@ -8,7 +8,7 @@ import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, So
 
 export interface DrawingTableProps {
   drawings: DrawingRowType[]
-  expandedDrawingIds: Set<string>
+  expandedDrawingId: string | null
   componentsMap: Map<string, ComponentRowType[]>
   sortField: SortField
   sortDirection: SortDirection
@@ -45,7 +45,7 @@ type VirtualRow =
  */
 export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(function DrawingTable({
   drawings,
-  expandedDrawingIds,
+  expandedDrawingId,
   componentsMap,
   sortField,
   sortDirection,
@@ -71,7 +71,7 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
       rows.push({ type: 'drawing', data: drawing })
 
       // Add component rows if expanded
-      if (expandedDrawingIds.has(drawing.id)) {
+      if (drawing.id === expandedDrawingId) {
         const components = componentsMap.get(drawing.id) || []
         components.forEach((component) => {
           rows.push({ type: 'component', data: component, drawingId: drawing.id })
@@ -80,7 +80,7 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
     })
 
     return rows
-  }, [drawings, expandedDrawingIds, componentsMap])
+  }, [drawings, expandedDrawingId, componentsMap])
 
   // Set up virtualizer
   // Mobile: reduce overscan (10 → 5), increase component row height for milestone cards with wrapping
@@ -173,7 +173,7 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
               >
                 <DrawingRow
                   drawing={row.data}
-                  isExpanded={expandedDrawingIds.has(row.data.id)}
+                  isExpanded={expandedDrawingId === row.data.id}
                   onToggle={() => onToggleDrawing(row.data.id)}
                   selectionMode={selectionMode}
                   isSelected={selectedDrawingIds.has(row.data.id)}

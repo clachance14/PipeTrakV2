@@ -8,7 +8,6 @@
 import { useState, useEffect } from 'react'
 import { DrawingSearchInput } from './DrawingSearchInput'
 import { StatusFilterDropdown } from './StatusFilterDropdown'
-import { CollapseAllButton } from './CollapseAllButton'
 import { Button } from '@/components/ui/button'
 import { CheckSquare, Square, ChevronDown } from 'lucide-react'
 import type { StatusFilter } from '@/types/drawing-table.types'
@@ -20,8 +19,6 @@ interface MobileFilterStackProps {
   onSearchChange: (value: string) => void
   statusFilter: StatusFilter
   onStatusFilterChange: (value: StatusFilter) => void
-  onCollapseAll: () => void
-  collapseAllDisabled: boolean
   selectionMode: boolean
   onToggleSelectionMode: () => void
   showingCount: number
@@ -33,8 +30,6 @@ export function MobileFilterStack({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  onCollapseAll,
-  collapseAllDisabled,
   selectionMode,
   onToggleSelectionMode,
   showingCount,
@@ -114,32 +109,25 @@ export function MobileFilterStack({
               onChange={onStatusFilterChange}
             />
 
-            {/* Action buttons row */}
-            <div className="flex gap-2">
-              <CollapseAllButton
-                onClick={onCollapseAll}
-                disabled={collapseAllDisabled}
-              />
-
-              <Button
-                variant={selectionMode ? 'default' : 'outline'}
-                size="sm"
-                onClick={onToggleSelectionMode}
-                className="flex items-center gap-2 min-h-[44px] flex-1"
-              >
-                {selectionMode ? (
-                  <>
-                    <CheckSquare className="h-4 w-4" />
-                    <span className="text-sm">Exit Select</span>
-                  </>
-                ) : (
-                  <>
-                    <Square className="h-4 w-4" />
-                    <span className="text-sm">Select</span>
-                  </>
-                )}
-              </Button>
-            </div>
+            {/* Selection Mode Toggle - full width */}
+            <Button
+              variant={selectionMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={onToggleSelectionMode}
+              className="flex items-center gap-2 min-h-[44px] w-full"
+            >
+              {selectionMode ? (
+                <>
+                  <CheckSquare className="h-4 w-4" />
+                  <span className="text-sm">Exit Select</span>
+                </>
+              ) : (
+                <>
+                  <Square className="h-4 w-4" />
+                  <span className="text-sm">Select</span>
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>

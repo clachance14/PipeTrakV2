@@ -16,7 +16,7 @@ export function useExpandedDrawings(): UseExpandedDrawingsResult {
     if (!param) return null
 
     // Handle legacy multi-ID URLs (take first ID)
-    const firstId = param.split(',')[0].trim()
+    const firstId = param.split(',')[0]?.trim()
     return firstId || null
   }, [searchParams])
 
