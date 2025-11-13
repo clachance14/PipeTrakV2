@@ -187,7 +187,7 @@ describe('WeldLogTable', () => {
     })
 
     it('renders action buttons on desktop for active welds', () => {
-      // Create a weld without welder assigned to show "Assign Welder" button
+      // Create a weld without welder assigned to show "Update Weld" button
       const weldWithoutWelder = createMockWeld({
         id: 'weld-no-welder',
         welder_id: null,
@@ -197,9 +197,9 @@ describe('WeldLogTable', () => {
 
       renderWithRouter(<WeldLogTable welds={[weldWithoutWelder]} userRole="admin" />)
 
-      // Should have "Assign Welder" button for active weld without welder
-      const assignButton = screen.getByText(/Assign Welder/i)
-      expect(assignButton).toBeInTheDocument()
+      // Should have "Update Weld" button for active weld without welder
+      const updateButton = screen.getByText(/Update Weld/i)
+      expect(updateButton).toBeInTheDocument()
     })
   })
 
@@ -252,7 +252,7 @@ describe('WeldLogTable', () => {
 
       const drawingLink = screen.getByRole('link', { name: 'P-1001-A' })
       expect(drawingLink).toBeInTheDocument()
-      expect(drawingLink).toHaveAttribute('href', '/components?drawing=test-drawing-id')
+      expect(drawingLink).toHaveAttribute('href', '/drawings?expanded=test-drawing-id')
     })
 
     it('does not apply horizontal scroll wrapper on mobile', () => {
@@ -274,7 +274,7 @@ describe('WeldLogTable', () => {
       renderWithRouter(<WeldLogTable welds={mockWelds} />)
 
       const drawingLink = screen.getByRole('link', { name: 'P-1001-A' })
-      expect(drawingLink).toHaveAttribute('href', '/components?drawing=test-drawing-id')
+      expect(drawingLink).toHaveAttribute('href', '/drawings?expanded=test-drawing-id')
     })
 
     it('drawing link navigates to correct route on desktop', () => {
@@ -282,7 +282,7 @@ describe('WeldLogTable', () => {
       renderWithRouter(<WeldLogTable welds={mockWelds} />)
 
       const drawingLink = screen.getByRole('link', { name: 'P-1001-A' })
-      expect(drawingLink).toHaveAttribute('href', '/components?drawing=test-drawing-id')
+      expect(drawingLink).toHaveAttribute('href', '/drawings?expanded=test-drawing-id')
     })
   })
 

@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { DrawingRow } from './DrawingRow'
 import { ComponentRow } from './ComponentRow'
@@ -27,6 +27,10 @@ export interface DrawingTableProps {
   onComponentClick?: (componentId: string) => void
 }
 
+export interface DrawingTableHandle {
+  scrollToDrawingIndex: (index: number) => void
+}
+
 type VirtualRow =
   | { type: 'drawing'; data: DrawingRowType }
   | { type: 'component'; data: ComponentRowType; drawingId: string }
@@ -39,7 +43,7 @@ type VirtualRow =
  * Overscan: 10 rows desktop, 5 rows mobile for smooth scrolling.
  * Row height: Drawing 64px, Component 60px desktop | 64px mobile.
  */
-export function DrawingTable({
+export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(function DrawingTable({
   drawings,
   expandedDrawingIds,
   componentsMap,
@@ -55,7 +59,7 @@ export function DrawingTable({
   onSelectAll,
   isMobile = false,
   onComponentClick,
-}: DrawingTableProps) {
+}, ref) {
   const parentRef = useRef<HTMLDivElement>(null)
 
   // Calculate visible rows (drawings + expanded components)
@@ -111,6 +115,16 @@ export function DrawingTable({
     },
     overscan: isMobile ? 5 : 10,
   })
+
+  // Expose scroll method to parent via ref
+  useImperativeHandle(ref, () => ({
+    scrollToDrawingIndex: (index: number) => {
+      virtualizer.scrollToIndex(index, {
+        align: 'start',
+        behavior: 'smooth',
+      })
+    },
+  }), [virtualizer])
 
   if (loading) {
     return <DrawingTableSkeleton rowCount={10} />
@@ -201,4 +215,4 @@ export function DrawingTable({
       </div>
     </div>
   )
-}
+})

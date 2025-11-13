@@ -386,7 +386,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify link exists and has correct href
       expect(drawingLink).toBeInTheDocument()
-      expect(drawingLink).toHaveAttribute('href', '/components?drawing=test-drawing-1')
+      expect(drawingLink).toHaveAttribute('href', '/drawings?expanded=test-drawing-1')
     })
 
     it('should apply min-h-[44px] to mobile rows for touch targets', async () => {
@@ -498,9 +498,9 @@ describe('Weld Log Mobile Integration Tests', () => {
         expect(screen.getByText('Weld Details')).toBeInTheDocument()
       })
 
-      // Click "Assign Welder" button
-      const assignWelderButton = screen.getByRole('button', { name: /assign welder/i })
-      await user.click(assignWelderButton)
+      // Click "Update Weld" button (mobile modal shows this, not "Assign Welder")
+      const updateWeldButton = screen.getByRole('button', { name: /update weld/i })
+      await user.click(updateWeldButton)
 
       // Verify Welder dialog opens by checking for unique welder dialog element
       await screen.findByLabelText(/select welder/i)
@@ -546,8 +546,8 @@ describe('Weld Log Mobile Integration Tests', () => {
         expect(recordNDEButton).not.toBeInTheDocument()
       }
 
-      // Verify "Assign Welder" button is still present
-      expect(screen.getByRole('button', { name: /assign welder/i })).toBeInTheDocument()
+      // Verify "Update Weld" button is still present (mobile modal shows this)
+      expect(screen.getByRole('button', { name: /update weld/i })).toBeInTheDocument()
     })
 
     it('should close action dialogs without affecting main modal', async () => {
@@ -1021,6 +1021,113 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify component state is correct
       expect(screen.getByText(/Update Weld:/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('Desktop Update Weld Flow', () => {
+    it('should route desktop "Update Weld" button through UpdateWeldDialog with interception', async () => {
+      // Set desktop viewport
+      mockDesktop()
+
+      // Create mock weld without welder assigned yet
+      const mockWeld = createMockWeld({
+        id: 'test-weld-desktop',
+        welder_id: null,
+        date_welded: null,
+        status: 'active', // Must be 'active' for "Update Weld" button to show
+      })
+
+      // Mock component with milestones not yet complete
+      mockWeld.component.current_milestones = {
+        'Fit-up': 0,
+        'Weld Complete': 0,
+      }
+      mockWeld.component.percent_complete = 0
+
+      // Set up user interaction
+      const user = userEvent.setup()
+
+      // Mock WeldLogPage orchestration
+      const mockOnAssignWelder = vi.fn()
+      const mockOnUpdateWeld = vi.fn()
+      const mockOnTriggerWelderDialog = vi.fn()
+
+      // Import components
+      const { WeldLogTable } = await import('@/components/weld-log/WeldLogTable')
+      const { UpdateWeldDialog } = await import('@/components/field-welds/UpdateWeldDialog')
+      const { WelderAssignDialog } = await import('@/components/field-welds/WelderAssignDialog')
+
+      // Render desktop table with mock weld
+      const { rerender } = render(
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <WeldLogTable
+              welds={[mockWeld]}
+              userRole="admin"
+              isMobile={false}
+              onAssignWelder={mockOnAssignWelder}
+            />
+          </BrowserRouter>
+        </QueryClientProvider>
+      )
+
+      // Wait for table to render
+      await waitFor(() => {
+        expect(screen.getByText('Weld ID')).toBeInTheDocument()
+      })
+
+      // Find and click "Update Weld" button in desktop table
+      const updateWeldButton = screen.getByRole('button', { name: /update weld/i })
+      await user.click(updateWeldButton)
+
+      // Verify mockOnAssignWelder was called with correct weld ID
+      expect(mockOnAssignWelder).toHaveBeenCalledWith('test-weld-desktop')
+
+      // Simulate WeldLogPage opening UpdateWeldDialog (as per our code change)
+      const [isUpdateDialogOpen, setIsUpdateDialogOpen] = [true, vi.fn()]
+
+      // Rerender with UpdateWeldDialog open
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <WeldLogTable
+              welds={[mockWeld]}
+              userRole="admin"
+              isMobile={false}
+              onAssignWelder={mockOnAssignWelder}
+            />
+            <UpdateWeldDialog
+              weld={mockWeld}
+              open={true}
+              onOpenChange={vi.fn()}
+              onTriggerWelderDialog={mockOnTriggerWelderDialog}
+            />
+          </BrowserRouter>
+        </QueryClientProvider>
+      )
+
+      // Verify UpdateWeldDialog opened
+      await waitFor(() => {
+        expect(screen.getByText(/Update Weld:/i)).toBeInTheDocument()
+      })
+
+      // Check "Weld Complete" milestone for first time
+      const weldCompleteCheckbox = screen.getByLabelText(/weld complete/i)
+      await user.click(weldCompleteCheckbox)
+
+      // Click Save button
+      const saveButton = screen.getByRole('button', { name: /save/i })
+      await user.click(saveButton)
+
+      // Verify interception logic triggered welder dialog callback
+      await waitFor(() => {
+        expect(mockOnTriggerWelderDialog).toHaveBeenCalled()
+      })
+
+      // NOTE: In real app flow, WeldLogPage would:
+      // 1. Close UpdateWeldDialog
+      // 2. Open WelderAssignDialog
+      // This test verifies the interception callback is triggered correctly
     })
   })
 })

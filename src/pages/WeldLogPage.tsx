@@ -189,7 +189,7 @@ export function WeldLogPage() {
               const weld = filteredWelds.find((w) => w.id === weldId)
               if (weld) {
                 setSelectedWeld(weld)
-                setIsWelderDialogOpen(true)
+                setIsUpdateDialogOpen(true)
               }
             }}
             onRecordNDE={(weldId) => {

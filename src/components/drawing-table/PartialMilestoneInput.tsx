@@ -124,6 +124,7 @@ export function PartialMilestoneInput({
     if (e.key === 'Enter') {
       // Save and move to next input
       e.preventDefault()
+      e.stopPropagation() // Prevent event from bubbling to parent ComponentRow
 
       // Round decimal values
       const roundedValue = Math.round(localValue)
@@ -162,6 +163,7 @@ export function PartialMilestoneInput({
     } else if (e.key === 'Escape') {
       // Cancel edit and revert to previous value
       e.preventDefault()
+      e.stopPropagation() // Prevent event from bubbling to parent ComponentRow
       setLocalValue(currentValue)
       setHasError(false)
       if (revertTimerRef.current) {

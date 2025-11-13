@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { useProject } from '@/contexts/ProjectContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { Layout } from '@/components/Layout'
-import { DrawingTable } from '@/components/drawing-table/DrawingTable'
+import { DrawingTable, type DrawingTableHandle } from '@/components/drawing-table/DrawingTable'
 import { DrawingSearchInput } from '@/components/drawing-table/DrawingSearchInput'
 import { StatusFilterDropdown } from '@/components/drawing-table/StatusFilterDropdown'
 import { CollapseAllButton } from '@/components/drawing-table/CollapseAllButton'
@@ -99,6 +99,40 @@ export function DrawingComponentTablePage() {
   // Fetch components for expanded drawings (using useQueries pattern)
   const expandedDrawingIdsArray = useMemo(() => Array.from(expandedDrawingIds), [expandedDrawingIds])
   const { componentsMap } = useComponentsByDrawings(expandedDrawingIdsArray)
+
+  // Ref for DrawingTable to enable programmatic scrolling
+  const tableRef = useRef<DrawingTableHandle>(null)
+  const hasScrolledRef = useRef(false)
+
+  // Auto-scroll to expanded drawing when arriving from external link (e.g., weld log)
+  useEffect(() => {
+    // Only scroll once on initial mount
+    if (hasScrolledRef.current) return
+
+    // Wait for data to load
+    if (isLoading || !drawings?.length) return
+
+    // Check if there are expanded drawings from URL
+    if (expandedDrawingIds.size === 0) return
+
+    // Get first expanded drawing ID
+    const firstExpandedId = Array.from(expandedDrawingIds)[0]
+
+    // Find the index of this drawing in the drawings array
+    const drawingIndex = drawings.findIndex(d => d.id === firstExpandedId)
+    if (drawingIndex === -1) return
+
+    // Wait for components to be fetched for the expanded drawing
+    if (!componentsMap.has(firstExpandedId)) return
+
+    // Scroll after short delay to allow expand animation to complete
+    const timeoutId = setTimeout(() => {
+      tableRef.current?.scrollToDrawingIndex(drawingIndex)
+      hasScrolledRef.current = true
+    }, 200)
+
+    return () => clearTimeout(timeoutId)
+  }, [expandedDrawingIds, drawings, componentsMap, isLoading])
 
   // Handle milestone update
   const handleMilestoneUpdate = (componentId: string, milestoneName: string, value: boolean | number) => {
@@ -319,6 +353,7 @@ export function DrawingComponentTablePage() {
         {/* Table - Scrollable fills remaining space */}
         <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-4 mb-4">
           <DrawingTable
+            ref={tableRef}
             drawings={displayDrawings}
             expandedDrawingIds={expandedDrawingIds}
             componentsMap={componentsMap}

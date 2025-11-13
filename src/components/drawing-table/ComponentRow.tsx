@@ -152,6 +152,20 @@ export function ComponentRow({
         tabIndex={onClick ? 0 : undefined}
         onKeyDown={onClick ? (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
+            // Don't trigger row keyboard action if event came from interactive elements
+            const target = e.target as HTMLElement
+            if (
+              target.tagName === 'BUTTON' ||
+              target.tagName === 'INPUT' ||
+              target.tagName === 'LABEL' ||
+              target.closest('button') ||
+              target.closest('input') ||
+              target.closest('label') ||
+              target.closest('[role="checkbox"]')
+            ) {
+              return
+            }
+
             e.preventDefault()
             onClick(component.id)
           }
@@ -220,6 +234,20 @@ export function ComponentRow({
         tabIndex={onClick ? 0 : undefined}
         onKeyDown={onClick ? (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
+            // Don't trigger row keyboard action if event came from interactive elements
+            const target = e.target as HTMLElement
+            if (
+              target.tagName === 'BUTTON' ||
+              target.tagName === 'INPUT' ||
+              target.tagName === 'LABEL' ||
+              target.closest('button') ||
+              target.closest('input') ||
+              target.closest('label') ||
+              target.closest('[role="checkbox"]')
+            ) {
+              return
+            }
+
             e.preventDefault()
             onClick(component.id)
           }

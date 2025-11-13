@@ -187,7 +187,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                 {/* Drawing (clickable link) */}
                 <td className={`px-3 py-2 text-sm text-slate-900 ${isMobile ? 'truncate max-w-0' : 'whitespace-nowrap'}`}>
                   <Link
-                    to={`/components?drawing=${weld.drawing.id}`}
+                    to={`/drawings?expanded=${weld.drawing.id}`}
                     className="text-blue-600 hover:underline"
                   >
                     {weld.drawing.drawing_no_norm}
@@ -285,7 +285,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                           onClick={() => onAssignWelder?.(weld.id)}
                           className="h-7 text-xs"
                         >
-                          Assign Welder
+                          Update Weld
                         </Button>
                       )}
                       {showRecordNDE && (
