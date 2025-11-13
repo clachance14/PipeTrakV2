@@ -117,6 +117,7 @@ export function DrawingComponentTablePage() {
 
     // Get first expanded drawing ID
     const firstExpandedId = Array.from(expandedDrawingIds)[0]
+    if (!firstExpandedId) return // Type guard for TypeScript
 
     // Find the index of this drawing in the drawings array
     const drawingIndex = drawings.findIndex(d => d.id === firstExpandedId)
