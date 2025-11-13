@@ -44,9 +44,9 @@ export function MobileFilterStack({
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      return stored !== null ? JSON.parse(stored) : true // Default to expanded
+      return stored !== null ? JSON.parse(stored) : false // Default to collapsed
     } catch {
-      return true // Graceful degradation if localStorage fails
+      return false // Graceful degradation if localStorage fails
     }
   })
 

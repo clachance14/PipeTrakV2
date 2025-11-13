@@ -42,9 +42,9 @@ export function WeldLogFilters({
     if (!isMobile) return true // Always expanded on desktop
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      return stored !== null ? JSON.parse(stored) : true // Default to expanded
+      return stored !== null ? JSON.parse(stored) : false // Default to collapsed
     } catch {
-      return true
+      return false
     }
   })
 
