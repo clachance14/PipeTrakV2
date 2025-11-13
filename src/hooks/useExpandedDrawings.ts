@@ -1,88 +1,57 @@
 import { useSearchParams } from 'react-router-dom'
-import { useMemo, useCallback } from 'react'
-import { toast } from 'sonner'
+import { useCallback, useMemo } from 'react'
 
-const MAX_EXPANDED_DRAWINGS = 50
+export interface UseExpandedDrawingsResult {
+  expandedDrawingId: string | null
+  toggleDrawing: (drawingId: string) => void
+  collapseDrawing: () => void
+  isExpanded: (drawingId: string) => boolean
+}
 
-/**
- * Custom hook to manage drawing expansion state via URL params
- *
- * Syncs expanded drawing IDs with URL search params for:
- * - Shareable links
- * - Browser back/forward navigation
- * - State persistence across page reloads
- *
- * @returns Expansion state and control functions
- */
-export function useExpandedDrawings() {
+export function useExpandedDrawings(): UseExpandedDrawingsResult {
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Parse expanded drawing IDs from URL
-  const expandedDrawingIds = useMemo(() => {
-    const expanded = searchParams.get('expanded')
-    if (!expanded) {
-      return new Set<string>()
-    }
-    return new Set(expanded.split(',').filter(Boolean))
+  const expandedDrawingId = useMemo(() => {
+    const param = searchParams.get('expanded')
+    if (!param) return null
+
+    // Handle legacy multi-ID URLs (take first ID)
+    const firstId = param.split(',')[0].trim()
+    return firstId || null
   }, [searchParams])
 
-  // Toggle a drawing's expanded state
-  const toggleDrawing = useCallback(
-    (drawingId: string) => {
-      setSearchParams((prev) => {
-        const current = new Set(
-          prev.get('expanded')?.split(',').filter(Boolean) || []
-        )
+  const toggleDrawing = useCallback((drawingId: string) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev)
 
-        if (current.has(drawingId)) {
-          // Collapse: remove from set
-          current.delete(drawingId)
-        } else {
-          // Expand: add to set (with limit check)
-          if (current.size >= MAX_EXPANDED_DRAWINGS) {
-            toast.warning(
-              `Maximum ${MAX_EXPANDED_DRAWINGS} drawings can be expanded at once`
-            )
-            return prev
-          }
-          current.add(drawingId)
-        }
+      // If clicking already expanded drawing, collapse it
+      if (expandedDrawingId === drawingId) {
+        newParams.delete('expanded')
+      } else {
+        // Otherwise, expand new drawing (auto-closes previous)
+        newParams.set('expanded', drawingId)
+      }
 
-        // Update URL params while preserving other params
-        const newParams = new URLSearchParams(prev)
-        if (current.size > 0) {
-          newParams.set('expanded', Array.from(current).join(','))
-        } else {
-          newParams.delete('expanded')
-        }
+      return newParams
+    })
+  }, [expandedDrawingId, setSearchParams])
 
-        return newParams
-      })
-    },
-    [setSearchParams]
-  )
-
-  // Collapse all drawings
-  const collapseAll = useCallback(() => {
-    setSearchParams((prev) => {
+  const collapseDrawing = useCallback(() => {
+    setSearchParams(prev => {
       const newParams = new URLSearchParams(prev)
       newParams.delete('expanded')
       return newParams
     })
   }, [setSearchParams])
 
-  // Check if a drawing is expanded
-  const isExpanded = useCallback(
-    (drawingId: string) => {
-      return expandedDrawingIds.has(drawingId)
-    },
-    [expandedDrawingIds]
-  )
+  const isExpanded = useCallback((drawingId: string) => {
+    return expandedDrawingId === drawingId
+  }, [expandedDrawingId])
 
   return {
-    expandedDrawingIds,
+    expandedDrawingId,
     toggleDrawing,
-    collapseAll,
-    isExpanded,
+    collapseDrawing,
+    isExpanded
   }
 }
