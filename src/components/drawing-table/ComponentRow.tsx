@@ -98,6 +98,7 @@ export function ComponentRow({
           onUpdate={(value) => handleMilestoneChange(milestoneConfig.name, value)}
           disabled={!component.canUpdate}
           isMobile={isMobile}
+          abbreviate={isMobile}
         />
       )
     }
@@ -105,14 +106,14 @@ export function ComponentRow({
     // Discrete milestone (checkbox) - increase hit area on mobile
     // Database stores 1 (complete) or 0 (incomplete) as numeric values
     return (
-      <div className={isMobile ? 'min-w-[44px] min-h-[44px] flex items-center justify-center' : ''}>
-        <MilestoneCheckbox
-          milestone={milestoneConfig}
-          checked={currentValue === 1 || currentValue === true}
-          onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked)}
-          disabled={!component.canUpdate}
-        />
-      </div>
+      <MilestoneCheckbox
+        milestone={milestoneConfig}
+        checked={currentValue === 1 || currentValue === true}
+        onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked)}
+        disabled={!component.canUpdate}
+        abbreviate={isMobile}
+        isMobile={isMobile}
+      />
     )
   }
 
@@ -146,7 +147,7 @@ export function ComponentRow({
         style={style}
         onClick={handleRowClick}
         className={cn(
-          "flex flex-col gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100",
+          "flex flex-col gap-1 px-3 py-1 -my-1 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100",
           onClick && "cursor-pointer"
         )}
         tabIndex={onClick ? 0 : undefined}
@@ -172,27 +173,19 @@ export function ComponentRow({
         } : undefined}
         aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
       >
-        {/* Line 1: Component type + identity */}
-        <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-base text-slate-900">
-            {formatComponentType(component.component_type)}:
+        {/* Line 1: Component type + identity (single line with bullet separators) */}
+        <div className="flex items-baseline gap-1.5 text-sm">
+          <span className="font-semibold text-slate-900 whitespace-nowrap">
+            {formatComponentType(component.component_type)}
           </span>
-          <span className="font-mono text-sm text-slate-700">
+          <span className="text-slate-400">·</span>
+          <span className="font-mono text-slate-700 truncate">
             {component.identityDisplay}
           </span>
         </div>
 
-        {/* Line 2: Milestone controls (grid layout for better space efficiency) */}
-        <div className="grid grid-cols-3 gap-x-2 gap-y-2 w-full">
-          {component.template.milestones_config.map((milestone) => (
-            <div key={milestone.name} className="flex items-center justify-center">
-              {getMilestoneControl(milestone)}
-            </div>
-          ))}
-        </div>
-
-        {/* Line 3: Metadata cells */}
-        <div className="flex flex-wrap gap-2 text-xs">
+        {/* Line 2: Metadata badges */}
+        <div className="flex flex-wrap gap-1.5 text-xs">
           <MetadataCell
             value={area}
             drawingValue={drawing?.area}
@@ -214,6 +207,15 @@ export function ComponentRow({
             componentId={component.id}
             isMobile={true}
           />
+        </div>
+
+        {/* Line 3: Milestone controls (grid layout for better space efficiency) */}
+        <div className="grid grid-cols-3 gap-2 w-full">
+          {component.template.milestones_config.map((milestone) => (
+            <div key={milestone.name} className="flex">
+              {getMilestoneControl(milestone)}
+            </div>
+          ))}
         </div>
       </div>
     )

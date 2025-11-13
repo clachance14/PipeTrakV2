@@ -93,7 +93,7 @@ export const MetadataCell = ({
     return <span className="inline-block px-2 py-1">{value.name}</span>
   }
 
-  // Override: amber background + warning icon
+  // Override: inline warning icon without background
   if (state === 'override') {
     const tooltipContent = `${fieldName}: ${value.name} (overrides drawing's ${drawingValue?.name})`
 
@@ -104,14 +104,14 @@ export const MetadataCell = ({
             <div
               role="status"
               aria-label={tooltipContent}
-              className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-1 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 rounded"
               tabIndex={0}
             >
               <AlertTriangle
-                className="h-3.5 w-3.5 flex-shrink-0 text-amber-600"
+                className="h-3 w-3 flex-shrink-0 text-amber-600"
                 aria-hidden="true"
               />
-              <span className="truncate">{value.name}</span>
+              <span className="truncate text-slate-700">{value.name}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -122,7 +122,7 @@ export const MetadataCell = ({
     )
   }
 
-  // Assigned: blue background + plus icon
+  // Assigned: inline plus icon without background
   if (state === 'assigned') {
     const tooltipContent = `${fieldName}: ${value.name} (assigned to component)`
 
@@ -133,14 +133,14 @@ export const MetadataCell = ({
             <div
               role="status"
               aria-label={tooltipContent}
-              className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-1 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 rounded"
               tabIndex={0}
             >
               <PlusCircle
-                className="h-3.5 w-3.5 flex-shrink-0 text-blue-600"
+                className="h-3 w-3 flex-shrink-0 text-blue-600"
                 aria-hidden="true"
               />
-              <span className="truncate">{value.name}</span>
+              <span className="truncate text-slate-700">{value.name}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent>

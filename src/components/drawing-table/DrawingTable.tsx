@@ -96,16 +96,16 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
       // Desktop: Check if component has partial milestones (threaded pipes need extra height for labels + inputs)
       //   - With partial milestones: 100px (py-5 padding + milestone label + input)
       //   - Discrete milestones only: 60px (py-3 padding + checkbox)
-      // Mobile: Dynamic height based on milestone count (grid layout wraps at 3 columns)
-      //   - 6 milestones = 2 rows: 220px (identity + 2 milestone rows + metadata)
-      //   - 3 milestones = 1 row: 150px
+      // Mobile: Moderately compact layout with button-based milestone controls
+      //   - 5 milestones (2 rows): 176px (identity + metadata + 2 milestone rows + padding)
+      //   - 3 milestones (1 row): 123px (identity + metadata + 1 milestone row + padding)
       if (row?.type === 'component') {
         if (isMobile) {
           const milestoneCount = row.data.template.milestones_config.length
           // Calculate rows needed (3 milestones per row in grid)
           const milestoneRows = Math.ceil(milestoneCount / 3)
-          // Base height (identity + metadata) + milestone row height
-          return 100 + (milestoneRows * 60)
+          // Moderately reduced height for mobile button layout
+          return 70 + (milestoneRows * 53)
         }
         // Check if component has any partial milestones
         const hasPartialMilestones = row.data.template.milestones_config.some(m => m.is_partial)

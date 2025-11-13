@@ -17,6 +17,19 @@ export interface PartialMilestoneInputProps {
 
   /** Whether to use mobile sizing (≥48px height) */
   isMobile?: boolean
+
+  /** Whether to abbreviate label for mobile (Receive → Recv, Install → Inst, Restore → Rest) */
+  abbreviate?: boolean
+}
+
+/**
+ * Abbreviation map for mobile milestone labels
+ */
+const LABEL_ABBREVIATIONS: Record<string, string> = {
+  'Receive': 'Recv',
+  'Install': 'Inst',
+  'Restore': 'Rest',
+  // 'Punch' and 'Test' are already short
 }
 
 /**
@@ -41,7 +54,11 @@ export function PartialMilestoneInput({
   onUpdate,
   disabled,
   isMobile = false,
+  abbreviate = false,
 }: PartialMilestoneInputProps) {
+  const displayLabel = abbreviate && LABEL_ABBREVIATIONS[milestone.name]
+    ? LABEL_ABBREVIATIONS[milestone.name]
+    : milestone.name
   const [localValue, setLocalValue] = useState(currentValue)
   const [hasError, setHasError] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -181,7 +198,7 @@ export function PartialMilestoneInput({
         htmlFor={`milestone-${milestone.name}-${currentValue}`}
         className={`text-slate-700 font-medium text-center ${isMobile ? 'text-xs' : 'text-xs'}`}
       >
-        {milestone.name}
+        {displayLabel}
       </label>
 
       {/* Input with % suffix */}
