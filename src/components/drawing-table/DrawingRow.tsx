@@ -53,9 +53,7 @@ export function DrawingRow({
     <div
       data-drawing-id={drawing.id}
       style={style}
-      className={`group flex items-center ${isMobile ? 'gap-2 px-2' : 'gap-4 px-5'} py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md ${
-        isExpanded ? 'sticky top-[64px] z-10' : ''
-      }`}
+      className={`group flex items-center ${isMobile ? 'gap-2 px-2' : 'gap-4 px-5'} py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md`}
     >
       {/* Selection checkbox (shown only in selection mode) */}
       {selectionMode && onSelect && (

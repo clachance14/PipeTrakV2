@@ -206,7 +206,7 @@ describe('Drawing Accordion Integration', () => {
     })
   })
 
-  it('applies sticky CSS when drawing expanded', async () => {
+  it('renders sticky header when drawing expanded', async () => {
     const user = userEvent.setup()
 
     renderWithProviders(<DrawingComponentTablePage />)
@@ -221,11 +221,10 @@ describe('Drawing Accordion Integration', () => {
     await user.click(chevron)
 
     await waitFor(() => {
-      // Find the expanded drawing row (has collapse label)
-      const expandedRow = screen.getByLabelText(/collapse drawing/i).closest('[data-drawing-id]')
-      expect(expandedRow).toBeInTheDocument()
-      expect(expandedRow).toHaveClass('sticky')
-      expect(expandedRow).toHaveClass('z-10')
+      // Should have a sticky header container for the expanded drawing
+      const stickyContainer = screen.getByLabelText(/collapse drawing/i).closest('.sticky')
+      expect(stickyContainer).toBeInTheDocument()
+      expect(stickyContainer).toHaveClass('z-20')
     })
   })
 

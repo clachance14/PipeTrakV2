@@ -96,15 +96,18 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
     prevExpandedIdRef.current = expandedDrawingId
   }, [expandedDrawingId])
 
+  // Find expanded drawing for sticky header
+  const expandedDrawing = useMemo(() => {
+    if (!expandedDrawingId) return null
+    return drawings.find(d => d.id === expandedDrawingId) || null
+  }, [drawings, expandedDrawingId])
+
   // Calculate visible rows (drawings + expanded components)
   const visibleRows = useMemo<VirtualRow[]>(() => {
     const rows: VirtualRow[] = []
 
     drawings.forEach((drawing) => {
-      // Always render drawing row
-      rows.push({ type: 'drawing', data: drawing })
-
-      // If expanded, include component rows
+      // If this drawing is expanded, only show its components (header renders separately)
       if (drawing.id === expandedDrawingId) {
         const components = componentsMap.get(drawing.id) || []
         components.forEach((component) => {
@@ -114,6 +117,9 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
             drawingId: drawing.id
           })
         })
+      } else {
+        // Collapsed drawings show as rows
+        rows.push({ type: 'drawing', data: drawing })
       }
     })
 
@@ -179,6 +185,21 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
         onSelectAll={onSelectAll}
         isMobile={isMobile}
       />
+
+      {/* Sticky Expanded Drawing Header */}
+      {expandedDrawing && (
+        <div className="sticky top-[64px] z-20 bg-white border-b border-slate-200 shadow-md">
+          <DrawingRow
+            drawing={expandedDrawing}
+            isExpanded={true}
+            onToggle={() => onToggleDrawing(expandedDrawing.id)}
+            selectionMode={selectionMode}
+            isSelected={selectedDrawingIds.has(expandedDrawing.id)}
+            onSelect={onToggleSelection}
+            isMobile={isMobile}
+          />
+        </div>
+      )}
 
       {/* Virtualized Content */}
       <div
