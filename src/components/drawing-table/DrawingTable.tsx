@@ -96,18 +96,15 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
     prevExpandedIdRef.current = expandedDrawingId
   }, [expandedDrawingId])
 
-  // Find expanded drawing for sticky header
-  const expandedDrawing = useMemo(() => {
-    if (!expandedDrawingId) return null
-    return drawings.find(d => d.id === expandedDrawingId) || null
-  }, [drawings, expandedDrawingId])
-
   // Calculate visible rows (drawings + expanded components)
   const visibleRows = useMemo<VirtualRow[]>(() => {
     const rows: VirtualRow[] = []
 
     drawings.forEach((drawing) => {
-      // If this drawing is expanded, only show its components (header renders separately)
+      // Always render drawing row at its natural position
+      rows.push({ type: 'drawing', data: drawing })
+
+      // If expanded, include component rows below it
       if (drawing.id === expandedDrawingId) {
         const components = componentsMap.get(drawing.id) || []
         components.forEach((component) => {
@@ -117,9 +114,6 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
             drawingId: drawing.id
           })
         })
-      } else {
-        // Collapsed drawings show as rows
-        rows.push({ type: 'drawing', data: drawing })
       }
     })
 
@@ -186,21 +180,6 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
         isMobile={isMobile}
       />
 
-      {/* Sticky Expanded Drawing Header */}
-      {expandedDrawing && (
-        <div className="sticky top-[64px] z-20 bg-white border-b border-slate-200 shadow-md">
-          <DrawingRow
-            drawing={expandedDrawing}
-            isExpanded={true}
-            onToggle={() => onToggleDrawing(expandedDrawing.id)}
-            selectionMode={selectionMode}
-            isSelected={selectedDrawingIds.has(expandedDrawing.id)}
-            onSelect={onToggleSelection}
-            isMobile={isMobile}
-          />
-        </div>
-      )}
-
       {/* Virtualized Content */}
       <div
         ref={parentRef}
@@ -219,20 +198,35 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
           if (!row) return null
 
           if (row.type === 'drawing') {
+            const isExpanded = expandedDrawingId === row.data.id
+
             return (
               <div
                 key={virtualRow.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
+                style={
+                  isExpanded
+                    ? {
+                        // Expanded drawing: use sticky positioning
+                        position: 'sticky',
+                        top: '64px', // Stick below table header
+                        zIndex: 10,
+                        backgroundColor: 'white',
+                        // Still need to position it at the right scroll location initially
+                        marginTop: `${virtualRow.start}px`,
+                      }
+                    : {
+                        // Collapsed drawings: use absolute positioning for virtualization
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }
+                }
               >
                 <DrawingRow
                   drawing={row.data}
-                  isExpanded={expandedDrawingId === row.data.id}
+                  isExpanded={isExpanded}
                   onToggle={() => onToggleDrawing(row.data.id)}
                   selectionMode={selectionMode}
                   isSelected={selectedDrawingIds.has(row.data.id)}
