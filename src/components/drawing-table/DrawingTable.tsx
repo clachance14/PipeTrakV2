@@ -67,14 +67,19 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
     const rows: VirtualRow[] = []
 
     drawings.forEach((drawing) => {
-      // Add drawing row
-      rows.push({ type: 'drawing', data: drawing })
-
-      // Add component rows if expanded
-      if (drawing.id === expandedDrawingId) {
+      // Exclude expanded drawing from virtualizer (rendered in portal)
+      if (drawing.id !== expandedDrawingId) {
+        // Render collapsed drawing row
+        rows.push({ type: 'drawing', data: drawing })
+      } else {
+        // Include component rows for expanded drawing
         const components = componentsMap.get(drawing.id) || []
         components.forEach((component) => {
-          rows.push({ type: 'component', data: component, drawingId: drawing.id })
+          rows.push({
+            type: 'component',
+            data: component,
+            drawingId: drawing.id
+          })
         })
       }
     })
