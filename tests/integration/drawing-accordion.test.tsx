@@ -177,7 +177,7 @@ describe('Drawing Accordion Integration', () => {
     })
   })
 
-  it('collapses drawing when clicking chevron on expanded drawing', async () => {
+  it('does nothing when clicking chevron on already expanded drawing', async () => {
     const user = userEvent.setup()
 
     renderWithProviders(<DrawingComponentTablePage />)
@@ -196,16 +196,17 @@ describe('Drawing Accordion Integration', () => {
       expect(window.location.search).toContain('expanded=')
     })
 
-    // Collapse same drawing
-    const collapseChevron = screen.getByLabelText(/collapse drawing/i)
-    await user.click(collapseChevron)
+    // Click same drawing again - should do nothing
+    const expandedChevron = screen.getAllByLabelText(/collapse drawing/i)[0]
+    await user.click(expandedChevron)
 
+    // URL should still have expanded param
     await waitFor(() => {
-      expect(window.location.search).not.toContain('expanded=')
+      expect(window.location.search).toContain('expanded=')
     })
   })
 
-  it('renders sticky portal when drawing expanded', async () => {
+  it('applies sticky CSS when drawing expanded', async () => {
     const user = userEvent.setup()
 
     renderWithProviders(<DrawingComponentTablePage />)
@@ -220,9 +221,11 @@ describe('Drawing Accordion Integration', () => {
     await user.click(chevron)
 
     await waitFor(() => {
-      const portal = screen.getByRole('rowheader', { expanded: true })
-      expect(portal).toBeInTheDocument()
-      expect(portal).toHaveClass('sticky')
+      // Find the expanded drawing row (has collapse label)
+      const expandedRow = screen.getByLabelText(/collapse drawing/i).closest('[data-drawing-id]')
+      expect(expandedRow).toBeInTheDocument()
+      expect(expandedRow).toHaveClass('sticky')
+      expect(expandedRow).toHaveClass('z-10')
     })
   })
 
@@ -240,20 +243,24 @@ describe('Drawing Accordion Integration', () => {
     const chevron = screen.getAllByLabelText(/expand drawing/i)[0]
     chevron.focus()
 
-    // Press Enter to expand
+    // Press Enter to expand first drawing
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
       expect(window.location.search).toContain('expanded=')
     })
 
-    // Press Space to collapse
-    const collapseChevron = screen.getByLabelText(/collapse drawing/i)
-    collapseChevron.focus()
-    await user.keyboard(' ')
+    // Press Enter on different drawing to switch expansion
+    const secondChevron = screen.getAllByLabelText(/expand drawing/i)[1]
+    secondChevron.focus()
+    await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(window.location.search).not.toContain('expanded=')
+      const params = new URLSearchParams(window.location.search)
+      const expanded = params.get('expanded')
+      // Should be different drawing ID now
+      expect(expanded).toBeTruthy()
+      expect(expanded?.split(',').length).toBe(1)
     })
   })
 

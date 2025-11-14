@@ -4,7 +4,6 @@ import { DrawingRow } from './DrawingRow'
 import { ComponentRow } from './ComponentRow'
 import { DrawingTableSkeleton } from './DrawingTableSkeleton'
 import { DrawingTableHeader } from './DrawingTableHeader'
-import { StickyDrawingPortal } from './StickyDrawingPortal'
 import { isElementVisible, shouldScrollToElement, scrollToElement } from '@/utils/scroll-helpers'
 import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, SortField, SortDirection } from '@/types/drawing-table.types'
 
@@ -97,12 +96,11 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
     const rows: VirtualRow[] = []
 
     drawings.forEach((drawing) => {
-      // Exclude expanded drawing from virtualizer (rendered in portal)
-      if (drawing.id !== expandedDrawingId) {
-        // Render collapsed drawing row
-        rows.push({ type: 'drawing', data: drawing })
-      } else {
-        // Include component rows for expanded drawing
+      // Always render drawing row
+      rows.push({ type: 'drawing', data: drawing })
+
+      // If expanded, include component rows
+      if (drawing.id === expandedDrawingId) {
         const components = componentsMap.get(drawing.id) || []
         components.forEach((component) => {
           rows.push({
@@ -116,12 +114,6 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
 
     return rows
   }, [drawings, expandedDrawingId, componentsMap])
-
-  // Find expanded drawing for sticky portal
-  const expandedDrawing = useMemo(() => {
-    if (!expandedDrawingId) return null
-    return drawings.find(d => d.id === expandedDrawingId) || null
-  }, [drawings, expandedDrawingId])
 
   // Set up virtualizer
   // Mobile: reduce overscan (10 → 5), increase component row height for milestone cards with wrapping
@@ -180,14 +172,6 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
         onSort={onSort}
         selectionMode={selectionMode}
         onSelectAll={onSelectAll}
-        isMobile={isMobile}
-      />
-
-      {/* Sticky Portal for Expanded Drawing */}
-      <StickyDrawingPortal
-        drawing={expandedDrawing}
-        isExpanded={!!expandedDrawingId}
-        onToggle={onToggleDrawing}
         isMobile={isMobile}
       />
 

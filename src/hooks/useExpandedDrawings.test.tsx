@@ -29,7 +29,7 @@ describe('useExpandedDrawings - Accordion Mode', () => {
     expect(result.current.isExpanded('drawing-1')).toBe(true)
   })
 
-  it('collapses drawing when toggling already expanded drawing', () => {
+  it('does nothing when toggling already expanded drawing', () => {
     const { result } = renderHook(() => useExpandedDrawings(), { wrapper })
 
     act(() => {
@@ -40,8 +40,8 @@ describe('useExpandedDrawings - Accordion Mode', () => {
       result.current.toggleDrawing('drawing-1')
     })
 
-    expect(result.current.expandedDrawingId).toBeNull()
-    expect(result.current.isExpanded('drawing-1')).toBe(false)
+    expect(result.current.expandedDrawingId).toBe('drawing-1')
+    expect(result.current.isExpanded('drawing-1')).toBe(true)
   })
 
   it('auto-closes previous drawing when expanding new one', () => {

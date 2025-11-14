@@ -24,14 +24,13 @@ export function useExpandedDrawings(): UseExpandedDrawingsResult {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev)
 
-      // If clicking already expanded drawing, collapse it
+      // If clicking already expanded drawing, do nothing
       if (expandedDrawingId === drawingId) {
-        newParams.delete('expanded')
-      } else {
-        // Otherwise, expand new drawing (auto-closes previous)
-        newParams.set('expanded', drawingId)
+        return prev
       }
 
+      // Expand new drawing (auto-closes previous)
+      newParams.set('expanded', drawingId)
       return newParams
     })
   }, [expandedDrawingId, setSearchParams])
