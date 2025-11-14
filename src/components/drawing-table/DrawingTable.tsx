@@ -69,23 +69,28 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
     if (!parentRef.current) return
 
     const isExpanding = expandedDrawingId && expandedDrawingId !== prevExpandedIdRef.current
-    const isCollapsing = !expandedDrawingId && prevExpandedIdRef.current
 
-    // Find the drawing row element
-    const targetDrawingId = isExpanding ? expandedDrawingId : (isCollapsing ? prevExpandedIdRef.current : null)
+    // Only scroll when expanding (not collapsing)
+    if (isExpanding) {
+      // Small delay to allow DOM to update with expanded state
+      const timeoutId = setTimeout(() => {
+        if (!parentRef.current) return
 
-    if (targetDrawingId) {
-      const drawingElement = parentRef.current.querySelector(
-        `[data-drawing-id="${targetDrawingId}"]`
-      ) as HTMLElement
+        const drawingElement = parentRef.current.querySelector(
+          `[data-drawing-id="${expandedDrawingId}"]`
+        ) as HTMLElement
 
-      if (drawingElement && parentRef.current) {
-        const isVisible = isElementVisible(drawingElement, parentRef.current)
+        if (drawingElement && parentRef.current) {
+          const isVisible = isElementVisible(drawingElement, parentRef.current)
 
-        if (shouldScrollToElement(isVisible)) {
-          scrollToElement(drawingElement, parentRef.current)
+          if (shouldScrollToElement(isVisible)) {
+            scrollToElement(drawingElement, parentRef.current)
+          }
         }
-      }
+      }, 50) // Short delay for DOM update
+
+      prevExpandedIdRef.current = expandedDrawingId
+      return () => clearTimeout(timeoutId)
     }
 
     prevExpandedIdRef.current = expandedDrawingId

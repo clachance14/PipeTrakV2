@@ -5,13 +5,11 @@ describe('scroll-helpers', () => {
   describe('isElementVisible', () => {
     it('returns true when element is fully visible in viewport', () => {
       const element = {
-        offsetTop: 200,
-        offsetHeight: 64
+        getBoundingClientRect: () => ({ top: 100, bottom: 164 })
       } as HTMLElement
 
       const container = {
-        scrollTop: 100,
-        clientHeight: 500
+        getBoundingClientRect: () => ({ top: 0, bottom: 600 })
       } as HTMLElement
 
       expect(isElementVisible(element, container)).toBe(true)
@@ -19,13 +17,11 @@ describe('scroll-helpers', () => {
 
     it('returns false when element is above viewport', () => {
       const element = {
-        offsetTop: 50,
-        offsetHeight: 64
+        getBoundingClientRect: () => ({ top: -100, bottom: -36 })
       } as HTMLElement
 
       const container = {
-        scrollTop: 200,
-        clientHeight: 500
+        getBoundingClientRect: () => ({ top: 0, bottom: 600 })
       } as HTMLElement
 
       expect(isElementVisible(element, container)).toBe(false)
@@ -33,13 +29,11 @@ describe('scroll-helpers', () => {
 
     it('returns false when element is below viewport', () => {
       const element = {
-        offsetTop: 800,
-        offsetHeight: 64
+        getBoundingClientRect: () => ({ top: 700, bottom: 764 })
       } as HTMLElement
 
       const container = {
-        scrollTop: 100,
-        clientHeight: 500
+        getBoundingClientRect: () => ({ top: 0, bottom: 600 })
       } as HTMLElement
 
       expect(isElementVisible(element, container)).toBe(false)
@@ -47,16 +41,14 @@ describe('scroll-helpers', () => {
 
     it('returns true when element is partially visible', () => {
       const element = {
-        offsetTop: 550,
-        offsetHeight: 100
+        getBoundingClientRect: () => ({ top: 550, bottom: 650 })
       } as HTMLElement
 
       const container = {
-        scrollTop: 100,
-        clientHeight: 500
+        getBoundingClientRect: () => ({ top: 0, bottom: 600 })
       } as HTMLElement
 
-      // Element starts at 550, viewport ends at 600 (100 + 500)
+      // Element bottom at 650, viewport ends at 600
       // Element is partially visible (50px visible)
       expect(isElementVisible(element, container)).toBe(true)
     })
