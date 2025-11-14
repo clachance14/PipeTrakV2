@@ -203,36 +203,36 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
             return (
               <div
                 key={virtualRow.key}
-                style={
-                  isExpanded
-                    ? {
-                        // Expanded drawing: use sticky positioning
-                        position: 'sticky',
-                        top: '64px', // Stick below table header
-                        zIndex: 10,
-                        backgroundColor: 'white',
-                        // Still need to position it at the right scroll location initially
-                        marginTop: `${virtualRow.start}px`,
-                      }
-                    : {
-                        // Collapsed drawings: use absolute positioning for virtualization
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        transform: `translateY(${virtualRow.start}px)`,
-                      }
-                }
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
               >
-                <DrawingRow
-                  drawing={row.data}
-                  isExpanded={isExpanded}
-                  onToggle={() => onToggleDrawing(row.data.id)}
-                  selectionMode={selectionMode}
-                  isSelected={selectedDrawingIds.has(row.data.id)}
-                  onSelect={onToggleSelection}
-                  isMobile={isMobile}
-                />
+                <div
+                  style={
+                    isExpanded
+                      ? {
+                          position: 'sticky',
+                          top: '64px',
+                          zIndex: 10,
+                          backgroundColor: 'white',
+                        }
+                      : undefined
+                  }
+                >
+                  <DrawingRow
+                    drawing={row.data}
+                    isExpanded={isExpanded}
+                    onToggle={() => onToggleDrawing(row.data.id)}
+                    selectionMode={selectionMode}
+                    isSelected={selectedDrawingIds.has(row.data.id)}
+                    onSelect={onToggleSelection}
+                    isMobile={isMobile}
+                  />
+                </div>
               </div>
             )
           }
