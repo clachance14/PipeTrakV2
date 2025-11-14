@@ -29,7 +29,7 @@ describe('useExpandedDrawings - Accordion Mode', () => {
     expect(result.current.isExpanded('drawing-1')).toBe(true)
   })
 
-  it('does nothing when toggling already expanded drawing', () => {
+  it('can call toggleDrawing with same ID multiple times', () => {
     const { result } = renderHook(() => useExpandedDrawings(), { wrapper })
 
     act(() => {
@@ -40,6 +40,7 @@ describe('useExpandedDrawings - Accordion Mode', () => {
       result.current.toggleDrawing('drawing-1')
     })
 
+    // Hook just sets the ID - it's up to the page to decide what ID to pass
     expect(result.current.expandedDrawingId).toBe('drawing-1')
     expect(result.current.isExpanded('drawing-1')).toBe(true)
   })

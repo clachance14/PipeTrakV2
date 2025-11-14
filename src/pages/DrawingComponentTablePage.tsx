@@ -74,7 +74,7 @@ export function DrawingComponentTablePage() {
   const { data: drawings, isLoading, isError, error, refetch } = useDrawingsWithProgress(selectedProjectId!)
 
   // Manage expansion state
-  const { expandedDrawingId, toggleDrawing } = useExpandedDrawings()
+  const { expandedDrawingId, toggleDrawing, collapseDrawing } = useExpandedDrawings()
 
   // Manage filters and sorting
   const { searchTerm, statusFilter, sortField, sortDirection, setSearch, setStatusFilter, setSort, filterAndSortDrawings } = useDrawingFilters()
@@ -199,6 +199,25 @@ export function DrawingComponentTablePage() {
 
   // Apply filters and sorting
   const displayDrawings = filterAndSortDrawings(drawings || [])
+
+  // Handle drawing toggle with auto-open previous behavior
+  const handleToggleDrawing = useCallback((drawingId: string) => {
+    // If clicking the currently expanded drawing, close it and open the one above
+    if (expandedDrawingId === drawingId) {
+      const currentIndex = displayDrawings.findIndex(d => d.id === drawingId)
+      if (currentIndex > 0) {
+        // Open the drawing above it
+        const drawingAbove = displayDrawings[currentIndex - 1]
+        toggleDrawing(drawingAbove.id)
+      } else {
+        // First drawing - just collapse
+        collapseDrawing()
+      }
+    } else {
+      // Clicking a different drawing - expand it (auto-closes current)
+      toggleDrawing(drawingId)
+    }
+  }, [expandedDrawingId, displayDrawings, toggleDrawing, collapseDrawing])
 
   // Feature 011: Get selected drawing for dialog (single-selection mode)
   const selectedDrawing = useMemo(() => {
@@ -352,7 +371,7 @@ export function DrawingComponentTablePage() {
             componentsMap={componentsMap}
             sortField={sortField}
             sortDirection={sortDirection}
-            onToggleDrawing={toggleDrawing}
+            onToggleDrawing={handleToggleDrawing}
             onMilestoneUpdate={handleMilestoneUpdate}
             onSort={setSort}
             selectionMode={selectionMode}

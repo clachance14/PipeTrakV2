@@ -177,7 +177,7 @@ describe('Drawing Accordion Integration', () => {
     })
   })
 
-  it('does nothing when clicking chevron on already expanded drawing', async () => {
+  it('opens drawing above when clicking already expanded drawing', async () => {
     const user = userEvent.setup()
 
     renderWithProviders(<DrawingComponentTablePage />)
@@ -185,24 +185,24 @@ describe('Drawing Accordion Integration', () => {
     // Wait for drawings to render by checking for expand buttons
     await waitFor(() => {
       const expandButtons = screen.getAllByLabelText(/expand drawing/i)
-      expect(expandButtons.length).toBeGreaterThan(0)
+      expect(expandButtons.length).toBeGreaterThan(1) // Need at least 2 drawings
     })
 
-    // Expand drawing
-    const chevron = screen.getAllByLabelText(/expand drawing/i)[0]
-    await user.click(chevron)
+    // Expand second drawing
+    const secondChevron = screen.getAllByLabelText(/expand drawing/i)[1]
+    await user.click(secondChevron)
 
     await waitFor(() => {
-      expect(window.location.search).toContain('expanded=')
+      expect(window.location.search).toContain('expanded=dwg-2')
     })
 
-    // Click same drawing again - should do nothing
-    const expandedChevron = screen.getAllByLabelText(/collapse drawing/i)[0]
+    // Click same drawing again - should open the one above it (dwg-1)
+    const expandedChevron = screen.getByLabelText(/collapse drawing dwg-002/i)
     await user.click(expandedChevron)
 
-    // URL should still have expanded param
+    // URL should now have dwg-1 expanded
     await waitFor(() => {
-      expect(window.location.search).toContain('expanded=')
+      expect(window.location.search).toContain('expanded=dwg-1')
     })
   })
 

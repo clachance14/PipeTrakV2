@@ -23,17 +23,11 @@ export function useExpandedDrawings(): UseExpandedDrawingsResult {
   const toggleDrawing = useCallback((drawingId: string) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev)
-
-      // If clicking already expanded drawing, do nothing
-      if (expandedDrawingId === drawingId) {
-        return prev
-      }
-
-      // Expand new drawing (auto-closes previous)
+      // Always expand the specified drawing (auto-closes previous)
       newParams.set('expanded', drawingId)
       return newParams
     })
-  }, [expandedDrawingId, setSearchParams])
+  }, [setSearchParams])
 
   const collapseDrawing = useCallback(() => {
     setSearchParams(prev => {
