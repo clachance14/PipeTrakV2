@@ -1,9 +1,11 @@
-import { useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useMemo, forwardRef, useImperativeHandle, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { DrawingRow } from './DrawingRow'
 import { ComponentRow } from './ComponentRow'
 import { DrawingTableSkeleton } from './DrawingTableSkeleton'
 import { DrawingTableHeader } from './DrawingTableHeader'
+import { StickyDrawingPortal } from './StickyDrawingPortal'
+import { isElementVisible, shouldScrollToElement, scrollToElement } from '@/utils/scroll-helpers'
 import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, SortField, SortDirection } from '@/types/drawing-table.types'
 
 export interface DrawingTableProps {
@@ -61,6 +63,34 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
   onComponentClick,
 }, ref) {
   const parentRef = useRef<HTMLDivElement>(null)
+  const prevExpandedIdRef = useRef<string | null>(null)
+
+  // Smart scroll when expansion changes
+  useEffect(() => {
+    if (!parentRef.current) return
+
+    const isExpanding = expandedDrawingId && expandedDrawingId !== prevExpandedIdRef.current
+    const isCollapsing = !expandedDrawingId && prevExpandedIdRef.current
+
+    // Find the drawing row element
+    const targetDrawingId = isExpanding ? expandedDrawingId : (isCollapsing ? prevExpandedIdRef.current : null)
+
+    if (targetDrawingId) {
+      const drawingElement = parentRef.current.querySelector(
+        `[data-drawing-id="${targetDrawingId}"]`
+      ) as HTMLElement
+
+      if (drawingElement && parentRef.current) {
+        const isVisible = isElementVisible(drawingElement, parentRef.current)
+
+        if (shouldScrollToElement(isVisible)) {
+          scrollToElement(drawingElement, parentRef.current)
+        }
+      }
+    }
+
+    prevExpandedIdRef.current = expandedDrawingId
+  }, [expandedDrawingId])
 
   // Calculate visible rows (drawings + expanded components)
   const visibleRows = useMemo<VirtualRow[]>(() => {
@@ -86,6 +116,12 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
 
     return rows
   }, [drawings, expandedDrawingId, componentsMap])
+
+  // Find expanded drawing for sticky portal
+  const expandedDrawing = useMemo(() => {
+    if (!expandedDrawingId) return null
+    return drawings.find(d => d.id === expandedDrawingId) || null
+  }, [drawings, expandedDrawingId])
 
   // Set up virtualizer
   // Mobile: reduce overscan (10 → 5), increase component row height for milestone cards with wrapping
@@ -144,6 +180,14 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
         onSort={onSort}
         selectionMode={selectionMode}
         onSelectAll={onSelectAll}
+        isMobile={isMobile}
+      />
+
+      {/* Sticky Portal for Expanded Drawing */}
+      <StickyDrawingPortal
+        drawing={expandedDrawing}
+        isExpanded={!!expandedDrawingId}
+        onToggle={onToggleDrawing}
         isMobile={isMobile}
       />
 
