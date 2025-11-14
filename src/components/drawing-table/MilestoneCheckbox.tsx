@@ -115,8 +115,27 @@ export function MilestoneCheckbox({
                 : 'bg-white border-slate-300'
             )}
             aria-label={`${milestone.name} milestone`}
+            aria-checked={checked}
+            role="checkbox"
           >
-            {content}
+            <Checkbox
+              checked={checked}
+              disabled={disabled}
+              aria-hidden="true"
+              tabIndex={-1}
+              className={cn(
+                disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                'h-5 w-5 pointer-events-none'
+              )}
+            />
+            <span
+              className={cn(
+                'text-xs font-medium truncate',
+                disabled ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer'
+              )}
+            >
+              {displayLabel}
+            </span>
           </button>
         </TooltipTrigger>
         <TooltipContent>
