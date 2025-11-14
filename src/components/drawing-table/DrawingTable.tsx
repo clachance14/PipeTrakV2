@@ -203,13 +203,22 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
             return (
               <div
                 key={virtualRow.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
+                style={
+                  isExpanded
+                    ? {
+                        // Expanded: use margin for positioning (no transform)
+                        position: 'relative',
+                        marginTop: `${virtualRow.start}px`,
+                      }
+                    : {
+                        // Collapsed: use transform for virtualization
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }
+                }
               >
                 <div
                   style={
