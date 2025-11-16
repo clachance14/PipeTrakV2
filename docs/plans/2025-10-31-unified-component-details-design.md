@@ -4,6 +4,8 @@
 **Status**: Design Approved
 **Feature**: Unified Component Details & Metadata Editing
 
+> **📝 NOTE**: This design was implemented with slider-based milestone editors. The milestone editing UI was later refactored in **Feature 025** (2025-11-07) to use inline percentage input boxes for improved mobile UX and faster workflow.
+
 ## Overview
 
 Combine the read-only ComponentDetailView (components page) with the edit-only ComponentAssignDialog (drawings page) into a single, unified component details form that supports:

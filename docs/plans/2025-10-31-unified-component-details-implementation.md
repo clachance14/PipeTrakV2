@@ -4,6 +4,8 @@
 **Design Doc**: `docs/plans/2025-10-31-unified-component-details-design.md`
 **Estimated Total Time**: 4-6 hours
 
+> **📝 NOTE**: This implementation plan was executed with slider-based milestone editors. The milestone editing implementation was later refactored in **Feature 025** (2025-11-07) to use inline percentage input boxes instead of sliders. References to `slider` component and slider-based interactions below reflect the original implementation.
+
 ## Overview
 
 Enhance ComponentDetailView to become a unified form supporting view, edit metadata, interactive milestones, and history display. Replace ComponentAssignDialog usage with the enhanced ComponentDetailView across both drawings and components pages.

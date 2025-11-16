@@ -180,7 +180,7 @@ Historical record of milestone changes stored in `milestone_events` table. Track
 Used for milestone history timeline in Component Details modal.
 
 ### Partial Milestone
-Percentage-based milestone (0-100%) represented as numeric input or slider in UI. Used for components with gradual completion tracking.
+Percentage-based milestone (0-100%) represented as numeric input in UI. Used for components with gradual completion tracking.
 
 Examples:
 - Pipe: Receive (50%), Install (50%)
