@@ -20,6 +20,7 @@ import { useAreas } from '@/hooks/useAreas'
 import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
+import { useMobileFilterState } from '@/hooks/useMobileFilterState'
 
 /**
  * Drawing-Centered Component Progress Table Page
@@ -38,6 +39,9 @@ export function DrawingComponentTablePage() {
 
   // Feature 015: Mobile detection
   const isMobile = useMobileDetection()
+
+  // Feature 015: Mobile filter expand/collapse state
+  const { isExpanded, handleToggle } = useMobileFilterState()
 
   // Feature 011: Selection mode and dialog state
   const [selectionMode, setSelectionMode] = useState(false)
@@ -232,7 +236,9 @@ export function DrawingComponentTablePage() {
     onToggleSelectionMode: handleToggleSelectionMode,
     showingCount: displayDrawings.length,
     totalCount: drawings?.length || 0,
-  }), [searchTerm, statusFilter, selectionMode, displayDrawings.length, drawings?.length, setSearch, setStatusFilter, handleToggleSelectionMode])
+    isExpanded,
+    onToggle: handleToggle,
+  }), [searchTerm, statusFilter, selectionMode, displayDrawings.length, drawings?.length, setSearch, setStatusFilter, handleToggleSelectionMode, isExpanded, handleToggle])
 
   // Loading state
   if (isLoading) {
