@@ -38,17 +38,26 @@ export type ComponentType =
 /**
  * Identity key structure (stored as JSONB in database)
  * Used to uniquely identify components with size awareness
+ *
+ * - Standard format: drawing_norm + commodity_code + size + seq
+ * - Spool format: spool_id only
+ * - Field weld format: weld_number only
+ * - Threaded pipe aggregate format: pipe_id only (format: "{drawing}-{size}-{cmdty}-AGG")
  */
-export interface IdentityKey {
-  /** Normalized drawing number (uppercase, trimmed) */
-  drawing_norm: string
-  /** Commodity code from material takeoff */
-  commodity_code: string
-  /** Size (e.g., "2", "1X2", "NOSIZE") */
-  size: string
-  /** Sequential number for duplicate commodity codes on same drawing */
-  seq: number
-}
+export type IdentityKey =
+  | { spool_id: string }  // Spools
+  | { weld_number: string }  // Field welds
+  | { pipe_id: string }  // Threaded pipe aggregates
+  | {  // Standard components (valve, support, fitting, etc.)
+      /** Normalized drawing number (uppercase, trimmed) */
+      drawing_norm: string
+      /** Commodity code from material takeoff */
+      commodity_code: string
+      /** Size (e.g., "2", "1X2", "NOSIZE") */
+      size: string
+      /** Sequential number for duplicate commodity codes on same drawing */
+      seq: number
+    }
 
 // ============================================================================
 // Progress Template Structure
@@ -147,7 +156,14 @@ export interface ComponentRow {
   /** Component type (determines which template is used) */
   component_type: ComponentType
   /** Identity key (JSONB) - uniquely identifies component */
-  identity_key: IdentityKey
+  identity_key: IdentityKey | { pipe_id: string }
+  /** Attributes (JSONB) - component-specific data */
+  attributes?: {
+    total_linear_feet?: number
+    original_qty?: number
+    line_numbers?: string[]
+    [key: string]: any
+  }
   /** Current milestone states (JSONB): { "Receive": true, "Install": false, "Fabricate": 50, ... } */
   current_milestones: Record<string, boolean | number>
   /** Calculated percentage complete (0.00 to 100.00) */

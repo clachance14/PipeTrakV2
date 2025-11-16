@@ -497,6 +497,9 @@ export interface ImportResult {
   /** Count of components inserted (0 if success=false) */
   componentsCreated: number;
 
+  /** Count of components updated (Feature 027: aggregate threaded pipe quantity summing) */
+  componentsUpdated?: number;
+
   /** Count of new drawings created */
   drawingsCreated: number;
 
