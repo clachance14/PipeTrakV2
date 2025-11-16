@@ -77,6 +77,7 @@ export interface MetadataCreated {
 export interface ImportResult {
   success: boolean;
   componentsCreated: number;
+  componentsUpdated?: number; // For threaded_pipe aggregate updates (Feature 027)
   drawingsCreated: number;
   drawingsUpdated: number;
   metadataCreated: MetadataCreated;
