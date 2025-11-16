@@ -71,6 +71,24 @@ export function mapColumns(csvColumns: string[]): ColumnMappingResult {
 }
 
 /**
+ * Normalizes a CSV column name by removing common marker characters
+ *
+ * Strips trailing asterisks, plus signs, exclamation marks, and hash symbols
+ * that are often used to mark required fields in templates.
+ *
+ * @param columnName - Raw column name from CSV header
+ * @returns Normalized column name
+ *
+ * @example
+ * normalizeColumnName('DRAWING*') → 'DRAWING'
+ * normalizeColumnName('TYPE**') → 'TYPE'
+ * normalizeColumnName('QTY+') → 'QTY'
+ */
+function normalizeColumnName(columnName: string): string {
+  return columnName.trim().replace(/[*+!#]+$/g, '');
+}
+
+/**
  * Detects mapping for a single CSV column using three-tier algorithm
  *
  * @param csvColumn - Trimmed CSV column header
@@ -83,13 +101,17 @@ function detectColumnMapping(
   expectedFields: ExpectedField[],
   alreadyMapped: Set<ExpectedField>
 ): ColumnMapping | null {
+  // Normalize column name by removing trailing marker characters (*, +, !, #)
+  const normalizedColumn = normalizeColumnName(csvColumn);
+  const normalizedUpper = normalizedColumn.toUpperCase();
+
   // Tier 1: Exact match (100% confidence)
   for (const expectedField of expectedFields) {
     if (alreadyMapped.has(expectedField)) {
       continue;
     }
 
-    if (csvColumn === expectedField) {
+    if (normalizedColumn === expectedField) {
       return {
         csvColumn,
         expectedField,
@@ -100,13 +122,12 @@ function detectColumnMapping(
   }
 
   // Tier 2: Case-insensitive match (95% confidence)
-  const csvColumnUpper = csvColumn.toUpperCase();
   for (const expectedField of expectedFields) {
     if (alreadyMapped.has(expectedField)) {
       continue;
     }
 
-    if (csvColumnUpper === expectedField) {
+    if (normalizedUpper === expectedField) {
       return {
         csvColumn,
         expectedField,
@@ -126,7 +147,7 @@ function detectColumnMapping(
     if (synonyms) {
       // Check if CSV column matches any synonym (case-insensitive)
       const matchesSynonym = synonyms.some(
-        synonym => synonym.toUpperCase() === csvColumnUpper
+        synonym => synonym.toUpperCase() === normalizedUpper
       );
 
       if (matchesSynonym) {

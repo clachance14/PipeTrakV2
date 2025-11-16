@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PartialMilestoneInput } from './PartialMilestoneInput'
-import type { MilestoneConfig } from '@/types/drawing-table.types'
+import type { MilestoneConfig, ComponentRow } from '@/types/drawing-table.types'
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -300,6 +300,289 @@ describe('PartialMilestoneInput - Event Propagation', () => {
 
       // Should show error state
       expect(input).toHaveAttribute('aria-invalid', 'true')
+    })
+  })
+})
+
+describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
+  const mockMilestone: MilestoneConfig = {
+    name: 'Install',
+    weight: 20,
+    order: 2,
+    is_partial: true,
+    requires_welder: false,
+  }
+
+  const mockOnUpdate = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // T034: Test helper text rendering for aggregate threaded pipe
+  describe('Helper Text Rendering', () => {
+    it('should show helper text for aggregate threaded pipe components', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      // Helper text should be visible
+      expect(screen.getByText('50 LF of 100 LF')).toBeInTheDocument()
+    })
+
+    it('should update helper text when user types new value', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      // Initial helper text
+      expect(screen.getByText('50 LF of 100 LF')).toBeInTheDocument()
+
+      // Change value
+      const input = screen.getByRole('spinbutton')
+      fireEvent.change(input, { target: { value: '75' } })
+
+      // Helper text should update immediately
+      expect(screen.getByText('75 LF of 100 LF')).toBeInTheDocument()
+      expect(screen.queryByText('50 LF of 100 LF')).not.toBeInTheDocument()
+    })
+  })
+
+  // T035: Test helper text calculation (75% of 100 = 75 LF)
+  describe('Helper Text Calculation', () => {
+    it('should calculate linear feet correctly (75% of 100 = 75 LF)', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={75}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      expect(screen.getByText('75 LF of 100 LF')).toBeInTheDocument()
+    })
+
+    it('should round linear feet to nearest integer (50% of 150 = 75 LF)', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 150,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      expect(screen.getByText('75 LF of 150 LF')).toBeInTheDocument()
+    })
+
+    it('should handle decimal percentages (33% of 100 = 33 LF)', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={33}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      expect(screen.getByText('33 LF of 100 LF')).toBeInTheDocument()
+    })
+
+    it('should show 0 LF for 0% complete', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={0}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      expect(screen.getByText('0 LF of 100 LF')).toBeInTheDocument()
+    })
+
+    it('should show full LF for 100% complete', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={100}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      expect(screen.getByText('100 LF of 100 LF')).toBeInTheDocument()
+    })
+  })
+
+  // T036: Test helper text hidden for non-aggregate components
+  describe('Helper Text Visibility', () => {
+    it('should hide helper text for non-aggregate threaded pipe (no -AGG suffix)', () => {
+      const regularComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1' }, // No -AGG suffix
+        attributes: {
+          total_linear_feet: 100,
+        },
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={regularComponent as ComponentRow}
+        />
+      )
+
+      // Helper text should NOT be visible
+      expect(screen.queryByText(/LF of/)).not.toBeInTheDocument()
+    })
+
+    it('should hide helper text for non-threaded pipe components', () => {
+      const valveComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'valve',
+        identity_key: {
+          drawing_norm: 'P-001',
+          commodity_code: 'VBALL-001',
+          size: '2',
+          seq: 1,
+        },
+        attributes: {},
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={valveComponent as ComponentRow}
+        />
+      )
+
+      // Helper text should NOT be visible
+      expect(screen.queryByText(/LF of/)).not.toBeInTheDocument()
+    })
+
+    it('should hide helper text when component prop is not provided', () => {
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+        />
+      )
+
+      // Helper text should NOT be visible (backward compatibility)
+      expect(screen.queryByText(/LF of/)).not.toBeInTheDocument()
+    })
+
+    it('should hide helper text when total_linear_feet is missing', () => {
+      const aggregateComponent: Partial<ComponentRow> = {
+        id: 'component-1',
+        component_type: 'threaded_pipe',
+        identity_key: { pipe_id: '1-AGG' },
+        attributes: {}, // Missing total_linear_feet
+      }
+
+      render(
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+          component={aggregateComponent as ComponentRow}
+        />
+      )
+
+      // Helper text should NOT be visible
+      expect(screen.queryByText(/LF of/)).not.toBeInTheDocument()
     })
   })
 })

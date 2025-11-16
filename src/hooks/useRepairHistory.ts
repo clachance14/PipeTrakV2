@@ -55,7 +55,7 @@ export function useRepairHistory(fieldWeldId: string | null) {
       if (!currentWeld) return null
 
       // Find the original weld (either current weld or traverse up the chain)
-      let originalWeldId = currentWeld.original_weld_id || currentWeld.id
+      const originalWeldId = currentWeld.original_weld_id || currentWeld.id
 
       // Fetch the original weld
       const { data: originalWeld, error: originalError } = await supabase

@@ -83,14 +83,27 @@ export function validateRows(
       return;
     }
 
-    // Validate quantity
-    const qtyValidation = validateQuantity(qtyRaw, rowNumber);
+    // Validate component type FIRST (needed for quantity validation)
+    const typeValidation = validateComponentType(type, rowNumber);
+    if (typeValidation.status !== 'valid') {
+      results.push(typeValidation);
+      return;
+    }
+
+    // Use the matched type from validation (with correct casing and underscores)
+    const validatedType = typeValidation.matchedType!;
+
+    // Validate quantity (allow decimal for Threaded_Pipe)
+    const qtyValidation = validateQuantity(qtyRaw, rowNumber, validatedType);
     if (qtyValidation.status !== 'valid') {
       results.push(qtyValidation);
       return;
     }
 
-    const qty = parseInt(qtyRaw ?? '0', 10);
+    // Parse quantity (float for Threaded_Pipe, int for others)
+    const qty = validatedType === 'Threaded_Pipe'
+      ? parseFloat(qtyRaw ?? '0')
+      : parseInt(qtyRaw ?? '0', 10);
 
     // Skip zero quantity rows
     if (qty === 0) {
@@ -102,16 +115,6 @@ export function validateRows(
       });
       return;
     }
-
-    // Validate component type
-    const typeValidation = validateComponentType(type, rowNumber);
-    if (typeValidation.status !== 'valid') {
-      results.push(typeValidation);
-      return;
-    }
-
-    // Type assertion is safe here because we just validated the type exists in validTypes
-    const validatedType = type.trim() as ComponentType;
 
     // Normalize values
     const drawingNorm = normalizeDrawing(drawing);
@@ -128,7 +131,8 @@ export function validateRows(
     );
 
     // Check for duplicate identity keys
-    if (identityKeys.has(identityKey)) {
+    // EXCEPTION: Allow duplicates for Threaded_Pipe (will be summed in Edge Function)
+    if (identityKeys.has(identityKey) && validatedType.toLowerCase() !== 'threaded_pipe') {
       results.push({
         rowNumber,
         status: 'error',
@@ -176,8 +180,13 @@ export function validateRows(
 
 /**
  * Validates quantity field
+ * Threaded_Pipe allows decimal values (linear feet), all other types require integers
  */
-function validateQuantity(qtyRaw: string | undefined, rowNumber: number): ValidationResult {
+function validateQuantity(
+  qtyRaw: string | undefined,
+  rowNumber: number,
+  componentType: ComponentType
+): ValidationResult {
   if (!qtyRaw || qtyRaw.trim() === '') {
     return {
       rowNumber,
@@ -207,7 +216,9 @@ function validateQuantity(qtyRaw: string | undefined, rowNumber: number): Valida
     };
   }
 
-  if (!Number.isInteger(qty)) {
+  // Allow decimal quantities for Threaded_Pipe (linear feet)
+  // Require integer quantities for all other component types
+  if (componentType !== 'Threaded_Pipe' && !Number.isInteger(qty)) {
     return {
       rowNumber,
       status: 'error',
@@ -224,15 +235,16 @@ function validateQuantity(qtyRaw: string | undefined, rowNumber: number): Valida
 
 /**
  * Validates component type against supported types
+ * Returns the matched type (with correct casing and underscores) for storage
  */
 function validateComponentType(
   type: string,
   rowNumber: number
-): ValidationResult {
+): ValidationResult & { matchedType?: ComponentType } {
   const validTypes = DEFAULT_VALIDATION_RULES.validTypes;
 
-  // Case-insensitive comparison
-  const normalizedType = type.trim();
+  // Normalize: trim, replace spaces with underscores, case-insensitive comparison
+  const normalizedType = type.trim().replace(/\s+/g, '_');
   const matchedType = validTypes.find(
     validType => validType.toLowerCase() === normalizedType.toLowerCase()
   );
@@ -248,7 +260,8 @@ function validateComponentType(
 
   return {
     rowNumber,
-    status: 'valid'
+    status: 'valid',
+    matchedType
   };
 }
 

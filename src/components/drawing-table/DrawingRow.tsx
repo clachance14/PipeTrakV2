@@ -41,9 +41,10 @@ export function DrawingRow({
   const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 
-  // Mobile: single-line summary "DRAIN-1 · A1 · S1 · 100%"
+  // Mobile: single-line summary "DRAIN-1 · ES-03 · A1 · S1 · 100%"
   const mobileSummary = [
     drawing.drawing_no_norm,
+    drawing.spec || '—',
     drawing.area?.name || '—',
     drawing.system?.name || '—',
     `${Math.round(drawing.avg_percent_complete)}%`
@@ -103,13 +104,13 @@ export function DrawingRow({
             {drawing.drawing_no_norm}
           </div>
 
-          {/* Title */}
-          <div className="flex-1 text-sm text-slate-600">
-            {drawing.title || '—'}
+          {/* Spec (most common from components) */}
+          <div className="min-w-[80px] text-sm text-slate-600 truncate">
+            {drawing.spec || '—'}
           </div>
 
           {/* Area (with inline edit pencil) */}
-          <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600 truncate">
+          <div className="min-w-[60px] flex items-center gap-1.5 text-sm text-slate-600 truncate ml-auto">
             <span className="truncate">{drawing.area?.name || '—'}</span>
             {onEditMetadata && (
               <button
@@ -126,7 +127,7 @@ export function DrawingRow({
           </div>
 
           {/* System (with inline edit pencil) */}
-          <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600 truncate">
+          <div className="min-w-[60px] flex items-center gap-1.5 text-sm text-slate-600 truncate">
             <span className="truncate">{drawing.system?.name || '—'}</span>
             {onEditMetadata && (
               <button
@@ -143,7 +144,7 @@ export function DrawingRow({
           </div>
 
           {/* Test Package (with inline edit pencil) */}
-          <div className="min-w-[120px] flex items-center gap-1.5 text-sm text-slate-600">
+          <div className="min-w-[80px] flex items-center gap-1.5 text-sm text-slate-600">
             <span>{drawing.test_package?.name || '—'}</span>
             {onEditMetadata && (
               <button

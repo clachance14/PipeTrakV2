@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils'
 import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculateDuplicateCounts'
+import { naturalCompare } from '@/lib/natural-sort'
 import type { ComponentRow } from '@/types/drawing-table.types'
 
 /**
@@ -84,7 +85,13 @@ export function useComponentsByDrawings(drawingIds: string[]) {
           }
         })
 
-        return components
+        // Apply natural sorting by identity display for proper alphanumeric order
+        // (e.g., SPOOL1, SPOOL2, SPOOL3 instead of SPOOL1, SPOOL10, SPOOL2)
+        const sortedComponents = components.sort((a, b) =>
+          naturalCompare(a.identityDisplay, b.identityDisplay)
+        )
+
+        return sortedComponents
       },
       staleTime: 2 * 60 * 1000, // 2 minutes
       enabled: !!drawingId,

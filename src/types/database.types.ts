@@ -1713,6 +1713,13 @@ export type Database = {
       }
       get_current_user_email: { Args: never; Returns: string }
       get_current_user_org_id: { Args: never; Returns: string }
+      get_most_common_spec_per_drawing: {
+        Args: { p_project_id: string }
+        Returns: {
+          drawing_id: string
+          most_common_spec: string
+        }[]
+      }
       get_project_template_summary: {
         Args: { target_project_id: string }
         Returns: Json

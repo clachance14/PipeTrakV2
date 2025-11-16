@@ -125,7 +125,8 @@ export function validateRows(payload: ImportPayload): PayloadValidationResult {
         issue: `Invalid qty data type: expected number, got ${typeof row.qty}`,
         drawing: row.drawing
       });
-    } else if (!Number.isInteger(row.qty)) {
+    } else if (row.type !== 'Threaded_Pipe' && !Number.isInteger(row.qty)) {
+      // Allow decimal for Threaded_Pipe (linear feet), require integer for all other types
       errors.push({
         row: rowNumber,
         issue: `Invalid qty: must be integer, got ${row.qty}`,
@@ -135,6 +136,13 @@ export function validateRows(payload: ImportPayload): PayloadValidationResult {
       errors.push({
         row: rowNumber,
         issue: `Invalid qty: must be >= 0, got ${row.qty}`,
+        drawing: row.drawing
+      });
+    } else if (row.type === 'Threaded_Pipe' && row.qty === 0) {
+      // Threaded pipe requires QTY > 0 (aggregate tracking requires linear footage)
+      errors.push({
+        row: rowNumber,
+        issue: 'Invalid qty for Threaded_Pipe: must be > 0',
         drawing: row.drawing
       });
     }

@@ -3,8 +3,6 @@ import { useProject } from '@/contexts/ProjectContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { Layout } from '@/components/Layout'
 import { DrawingTable, type DrawingTableHandle } from '@/components/drawing-table/DrawingTable'
-import { DrawingSearchInput } from '@/components/drawing-table/DrawingSearchInput'
-import { StatusFilterDropdown } from '@/components/drawing-table/StatusFilterDropdown'
 import { MobileFilterStack } from '@/components/drawing-table/MobileFilterStack'
 import { EmptyDrawingsState } from '@/components/drawing-table/EmptyDrawingsState'
 import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
@@ -12,7 +10,6 @@ import { DrawingBulkActions } from '@/components/drawing-table/DrawingBulkAction
 import { DrawingAssignDialog } from '@/components/drawing-table/DrawingAssignDialog'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
 import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal'
-import { Button } from '@/components/ui/button'
 import { useDrawingsWithProgress } from '@/hooks/useDrawingsWithProgress'
 import { useComponentsByDrawings } from '@/hooks/useComponentsByDrawings'
 import { useExpandedDrawings } from '@/hooks/useExpandedDrawings'
@@ -23,7 +20,7 @@ import { useAreas } from '@/hooks/useAreas'
 import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
-import { CheckSquare, Square } from 'lucide-react'
+import { useMobileFilterState } from '@/hooks/useMobileFilterState'
 
 /**
  * Drawing-Centered Component Progress Table Page
@@ -42,6 +39,9 @@ export function DrawingComponentTablePage() {
 
   // Feature 015: Mobile detection
   const isMobile = useMobileDetection()
+
+  // Feature 015: Mobile filter expand/collapse state
+  const { isExpanded, handleToggle } = useMobileFilterState()
 
   // Feature 011: Selection mode and dialog state
   const [selectionMode, setSelectionMode] = useState(false)
@@ -226,12 +226,26 @@ export function DrawingComponentTablePage() {
     [displayDrawings]
   )
 
+  // Filter controls (called once to maintain shared state)
+  const filterControls = useMemo(() => MobileFilterStack({
+    searchTerm,
+    onSearchChange: setSearch,
+    statusFilter,
+    onStatusFilterChange: setStatusFilter,
+    selectionMode,
+    onToggleSelectionMode: handleToggleSelectionMode,
+    showingCount: displayDrawings.length,
+    totalCount: drawings?.length || 0,
+    isExpanded,
+    onToggle: handleToggle,
+  }), [searchTerm, statusFilter, selectionMode, displayDrawings.length, drawings?.length, setSearch, setStatusFilter, handleToggleSelectionMode, isExpanded, handleToggle])
+
   // Loading state
   if (isLoading) {
     return (
       <Layout fixedHeight>
         <div className="flex flex-col h-full overflow-hidden">
-          <h1 className="text-2xl font-bold mb-6 px-2 md:px-4 py-8">Component Progress</h1>
+          <h1 className="text-2xl font-bold mb-2 px-2 md:px-4 py-3 md:py-4">Component Progress</h1>
           <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-2 md:px-4 mb-4">
             <DrawingTable
               drawings={[]}
@@ -256,7 +270,7 @@ export function DrawingComponentTablePage() {
     return (
       <Layout fixedHeight>
         <div className="flex flex-col h-full overflow-hidden">
-          <h1 className="text-2xl font-bold mb-6 px-2 md:px-4 py-8">Component Progress</h1>
+          <h1 className="text-2xl font-bold mb-2 px-2 md:px-4 py-3 md:py-4">Component Progress</h1>
           <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto mx-2 md:mx-4 mb-4">
             <div className="p-4">
               <DrawingTableError error={error} onRetry={() => refetch()} />
@@ -272,7 +286,7 @@ export function DrawingComponentTablePage() {
     return (
       <Layout fixedHeight>
         <div className="flex flex-col h-full overflow-hidden">
-          <h1 className="text-2xl font-bold mb-6 px-2 md:px-4 py-8">Component Progress</h1>
+          <h1 className="text-2xl font-bold mb-2 px-2 md:px-4 py-3 md:py-4">Component Progress</h1>
           <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-auto mx-2 md:mx-4 mb-4">
             <div className="p-4">
               <EmptyDrawingsState
@@ -292,55 +306,19 @@ export function DrawingComponentTablePage() {
     <Layout fixedHeight>
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header - Fixed */}
-        <div className="flex-shrink-0 mb-3 md:mb-6 px-2 md:px-4 py-3 md:py-8">
-          <h1 className="text-lg md:text-2xl font-bold mb-2 md:mb-4">Component Progress</h1>
+        <div className="flex-shrink-0 mb-2 px-2 md:px-4 py-3 md:py-4">
+          {/* Heading row with toggle button */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4 mb-2">
+            <h1 className="text-lg md:text-2xl font-bold">Component Progress</h1>
 
-          {/* Filters - Mobile: vertical stack, Desktop: horizontal */}
-          {isMobile ? (
-            <MobileFilterStack
-              searchTerm={searchTerm}
-              onSearchChange={setSearch}
-              statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
-              selectionMode={selectionMode}
-              onToggleSelectionMode={handleToggleSelectionMode}
-              showingCount={displayDrawings.length}
-              totalCount={drawings?.length || 0}
-            />
-          ) : (
-            <div className="flex flex-wrap gap-4 items-center">
-              <DrawingSearchInput
-                value={searchTerm}
-                onChange={setSearch}
-                placeholder="Search by drawing number..."
-              />
-              <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
-
-              {/* Feature 011: Selection Mode Toggle (T034) */}
-              <Button
-                variant={selectionMode ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleToggleSelectionMode}
-                className="flex items-center gap-2"
-              >
-                {selectionMode ? (
-                  <>
-                    <CheckSquare className="h-4 w-4" />
-                    Exit Select Mode
-                  </>
-                ) : (
-                  <>
-                    <Square className="h-4 w-4" />
-                    Select Mode
-                  </>
-                )}
-              </Button>
-
-              <div className="ml-auto text-sm text-slate-600">
-                Showing {displayDrawings.length} of {drawings?.length || 0} drawings
-              </div>
+            {/* Toggle button - inline on desktop */}
+            <div className="flex-shrink-0 md:min-w-fit">
+              {filterControls.toggleButton}
             </div>
-          )}
+          </div>
+
+          {/* Collapsible content - full width below */}
+          {filterControls.collapsibleContent}
         </div>
 
         {/* Feature 011: Bulk Actions Toolbar (T036) - Fixed */}

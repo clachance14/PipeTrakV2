@@ -214,6 +214,31 @@ describe('csv-validator', () => {
         expect(result.status).toBe('valid');
       });
     });
+
+    it('should normalize spaces to underscores in component types', () => {
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Threaded Pipe', QTY: '10', 'CMDTY CODE': 'PIPE-001' },
+        { DRAWING: 'P-002', TYPE: 'Field Weld', QTY: '5', 'CMDTY CODE': 'WELD-001' },
+        { DRAWING: 'P-003', TYPE: 'Misc Component', QTY: '3', 'CMDTY CODE': 'MISC-001' }
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      expect(results).toHaveLength(3);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[0]?.data?.type).toBe('Threaded_Pipe');
+      expect(results[1]?.status).toBe('valid');
+      expect(results[1]?.data?.type).toBe('Field_Weld');
+      expect(results[2]?.status).toBe('valid');
+      expect(results[2]?.data?.type).toBe('Misc_Component');
+    });
   });
 
   describe('Quantity Validation', () => {
@@ -317,6 +342,31 @@ describe('csv-validator', () => {
       expect(results[0]?.status).toBe('error');
       expect(results[0]?.category).toBe('invalid_quantity');
       expect(results[0]?.reason).toContain('must be an integer');
+    });
+
+    it('should allow decimal quantities for Threaded_Pipe (linear feet)', () => {
+      const rows = [
+        { DRAWING: 'A-26C09', TYPE: 'Threaded_Pipe', QTY: '6.6', 'CMDTY CODE': 'PIPE-001' },
+        { DRAWING: 'A-26E09', TYPE: 'Threaded Pipe', QTY: '11.7', 'CMDTY CODE': 'PIPE-002' },
+        { DRAWING: 'A-26G09', TYPE: 'threaded_pipe', QTY: '10.5', 'CMDTY CODE': 'PIPE-003' }
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      expect(results).toHaveLength(3);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[0]?.data?.qty).toBe(6.6);
+      expect(results[1]?.status).toBe('valid');
+      expect(results[1]?.data?.qty).toBe(11.7);
+      expect(results[2]?.status).toBe('valid');
+      expect(results[2]?.data?.qty).toBe(10.5);
     });
   });
 
@@ -585,6 +635,157 @@ describe('csv-validator', () => {
       expect(results[0]?.rowNumber).toBe(1);
       expect(results[1]?.rowNumber).toBe(2);
       expect(results[2]?.rowNumber).toBe(3);
+    });
+  });
+
+  describe('T041: Threaded_Pipe Duplicate Handling Exception (Feature 027)', () => {
+    it('should ALLOW duplicate Threaded_Pipe identities (will be summed in Edge Function)', () => {
+      // Feature 027: Threaded pipe duplicates are intentionally allowed
+      // because the Edge Function will sum their quantities
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '1"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' },
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '1"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' } // Duplicate identity
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      // Both rows should be marked VALID (not error)
+      expect(results).toHaveLength(2);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[1]?.status).toBe('valid');
+      expect(results[0]?.data?.type).toBe('Threaded_Pipe');
+      expect(results[1]?.data?.type).toBe('Threaded_Pipe');
+    });
+
+    it('should REJECT duplicate Valve identities (existing behavior preserved)', () => {
+      // All other component types still enforce duplicate detection
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Valve', SIZE: '1"', QTY: '1', 'CMDTY CODE': 'GATE-150' },
+        { DRAWING: 'P-001', TYPE: 'Valve', SIZE: '1"', QTY: '1', 'CMDTY CODE': 'GATE-150' } // Duplicate
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      // First row valid, second row error
+      expect(results).toHaveLength(2);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[1]?.status).toBe('error');
+      expect(results[1]?.category).toBe('duplicate_identity_key');
+      expect(results[1]?.reason).toContain('Duplicate identity key');
+    });
+
+    it('should REJECT duplicate Spool identities (existing behavior preserved)', () => {
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Spool', SIZE: '3"', QTY: '1', 'CMDTY CODE': 'SPOOL-001' },
+        { DRAWING: 'P-001', TYPE: 'Spool', SIZE: '3"', QTY: '1', 'CMDTY CODE': 'SPOOL-001' } // Duplicate
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      expect(results).toHaveLength(2);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[1]?.status).toBe('error');
+      expect(results[1]?.category).toBe('duplicate_identity_key');
+    });
+
+    it('should handle mixed duplicate Threaded_Pipe (valid) and duplicate Valve (error)', () => {
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '1"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' },
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '1"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' }, // Allowed
+        { DRAWING: 'P-001', TYPE: 'Valve', SIZE: '1"', QTY: '1', 'CMDTY CODE': 'GATE-150' },
+        { DRAWING: 'P-001', TYPE: 'Valve', SIZE: '1"', QTY: '1', 'CMDTY CODE': 'GATE-150' } // Rejected
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      expect(results).toHaveLength(4);
+      expect(results[0]?.status).toBe('valid'); // Threaded_Pipe #1
+      expect(results[1]?.status).toBe('valid'); // Threaded_Pipe #2 (duplicate allowed)
+      expect(results[2]?.status).toBe('valid'); // Valve #1
+      expect(results[3]?.status).toBe('error'); // Valve #2 (duplicate rejected)
+      expect(results[3]?.category).toBe('duplicate_identity_key');
+    });
+
+    it('should allow multiple Threaded_Pipe rows with same identity (triple import)', () => {
+      // Simulate importing same threaded pipe identity three times
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '2"', QTY: '30', 'CMDTY CODE': 'PIPE-SCH80' },
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '2"', QTY: '40', 'CMDTY CODE': 'PIPE-SCH80' },
+        { DRAWING: 'P-001', TYPE: 'Threaded_Pipe', SIZE: '2"', QTY: '30', 'CMDTY CODE': 'PIPE-SCH80' }
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      // All three should be valid
+      expect(results).toHaveLength(3);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[1]?.status).toBe('valid');
+      expect(results[2]?.status).toBe('valid');
+
+      // Edge Function would sum these: 30 + 40 + 30 = 100 LF
+    });
+
+    it('should handle case-insensitive Threaded_Pipe duplicate exception', () => {
+      // Verify case variations are handled correctly
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'threaded_pipe', SIZE: '1"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' },
+        { DRAWING: 'P-001', TYPE: 'THREADED_PIPE', SIZE: '1"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' }
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      // Both should be valid (case-insensitive match)
+      expect(results).toHaveLength(2);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[1]?.status).toBe('valid');
     });
   });
 });

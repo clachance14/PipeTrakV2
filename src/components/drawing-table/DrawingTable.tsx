@@ -132,7 +132,7 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
       }
       // Component rows:
       // Desktop: Check if component has partial milestones (threaded pipes need extra height for labels + inputs)
-      //   - With partial milestones: 100px (py-5 padding + milestone label + input)
+      //   - With partial milestones: 140px initial estimate (actual height measured dynamically via measureElement)
       //   - Discrete milestones only: 60px (py-3 padding + checkbox)
       // Mobile: Moderately compact layout with button-based milestone controls
       //   - 5 milestones (2 rows): 176px (identity + metadata + 2 milestone rows + padding)
@@ -145,12 +145,24 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
           // Moderately reduced height for mobile button layout
           return 70 + (milestoneRows * 53)
         }
+        // Check for aggregate threaded pipe (Title-cell layout)
+        const isAggregateThreadedPipe =
+          row.data.component_type === 'threaded_pipe' &&
+          row.data.identity_key &&
+          'pipe_id' in row.data.identity_key &&
+          row.data.identity_key.pipe_id?.endsWith('-AGG')
+        if (isAggregateThreadedPipe) {
+          // Card layout: type (14px) + size/LF (12px) + progress (12px) + gaps (8px) + padding (24px) = ~70px
+          return 70
+        }
         // Check if component has any partial milestones
         const hasPartialMilestones = row.data.template.milestones_config.some(m => m.is_partial)
-        return hasPartialMilestones ? 100 : 60
+        return hasPartialMilestones ? 140 : 60
       }
       return 60 // fallback
     },
+    // Dynamically measure actual row heights to accommodate flex-wrap milestone layouts
+    measureElement: (element) => element.getBoundingClientRect().height,
     overscan: isMobile ? 5 : 10,
   })
 
@@ -203,6 +215,8 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
             return (
               <div
                 key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -244,6 +258,8 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
           return (
             <div
               key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
               style={{
                 position: 'absolute',
                 top: 0,

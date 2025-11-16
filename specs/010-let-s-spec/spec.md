@@ -5,6 +5,8 @@
 **Status**: Draft
 **Input**: User description: "Let's spec out the drawing table"
 
+> **📝 IMPLEMENTATION NOTE**: This specification was designed and implemented with slider-based milestone editors for partial milestones. The implementation evolved in **Feature 025** (2025-11-07) to use inline percentage input boxes instead of slider-based popover editors. Current implementation uses direct numeric input for faster, more mobile-friendly updates.
+
 ## Execution Flow (main)
 ```
 1. Parse user description from Input

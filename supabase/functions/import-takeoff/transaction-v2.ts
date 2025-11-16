@@ -284,9 +284,13 @@ export async function processImportV2(
 
     // Step 4: Generate components
     const components: any[] = [];
+    const componentsToUpdate: any[] = [];
     const componentsByType: Record<string, number> = {};
 
-    payload.rows.forEach((row) => {
+    // For threaded_pipe: Track existing aggregates to update
+    const threadedPipeAggregates = new Map<string, any>(); // pipe_id -> component data
+
+    payload.rows.forEach((row, index) => {
       // Skip rows with QTY = 0
       if (row.qty === 0) return;
 
@@ -317,6 +321,7 @@ export async function processImportV2(
         area_id: areaId,
         system_id: systemId,
         test_package_id: testPackageId,
+        current_milestones: {}, // Initialize empty milestones (DB default but explicit for clarity)
         attributes: {
           spec: row.spec || '',
           description: row.description || '',
@@ -350,6 +355,45 @@ export async function processImportV2(
             seq: 1
           }
         });
+      } else if (typeLower === 'threaded_pipe') {
+        // Threaded pipe: aggregate model (one component per drawing+size+commodity)
+        const sizeNorm = normalizeSize(row.size);
+        const pipeId = `${normalized}-${sizeNorm}-${row.cmdtyCode}-AGG`;
+        const lineNumber = String(index + 1); // CSV row number (1-indexed)
+
+        // Check if we've already seen this pipe_id in this import batch
+        if (threadedPipeAggregates.has(pipeId)) {
+          // Update existing aggregate in this batch
+          const existing = threadedPipeAggregates.get(pipeId);
+          existing.attributes.total_linear_feet += row.qty;
+          if (!existing.attributes.line_numbers.includes(lineNumber)) {
+            existing.attributes.line_numbers.push(lineNumber);
+          }
+        } else {
+          // Add to batch (will check database for existing component later)
+          const newAggregate = {
+            ...baseComponent,
+            identity_key: {
+              pipe_id: pipeId
+            },
+            attributes: {
+              ...baseComponent.attributes,
+              total_linear_feet: row.qty,
+              line_numbers: [lineNumber]
+            },
+            current_milestones: {
+              Fabricate_LF: 0,
+              Install_LF: 0,
+              Erect_LF: 0,
+              Connect_LF: 0,
+              Support_LF: 0,
+              Punch: false,
+              Test: false,
+              Restore: false
+            }
+          };
+          threadedPipeAggregates.set(pipeId, newAggregate);
+        }
       } else {
         // All other types: quantity explosion
         for (let i = 1; i <= row.qty; i++) {
@@ -366,7 +410,98 @@ export async function processImportV2(
       }
     });
 
-    // Step 5: Insert components in batches
+    // Step 4.5: Process threaded_pipe aggregates (check for existing components)
+    if (threadedPipeAggregates.size > 0) {
+      const pipeIds = Array.from(threadedPipeAggregates.keys());
+      const pipeIdSet = new Set(pipeIds);
+
+      // Query ALL threaded_pipe components for this project
+      // (Cannot use .in() with JSONB path in PostgREST, so filter client-side)
+      const { data: allComponents, error: queryError } = await supabase
+        .from('components')
+        .select('id, identity_key, attributes, current_milestones')
+        .eq('project_id', payload.projectId)
+        .eq('component_type', 'threaded_pipe');
+
+      if (queryError) {
+        throw new Error(`Failed to query existing threaded_pipe components: ${queryError.message}`);
+      }
+
+      // Filter components to only those with matching pipe_ids
+      const existingComponents = (allComponents || []).filter(comp => {
+        const pipeId = comp.identity_key?.pipe_id;
+        return pipeId && pipeIdSet.has(pipeId);
+      });
+
+      // Build map of existing components by pipe_id
+      const existingMap = new Map<string, any>();
+      existingComponents.forEach(comp => {
+        const pipeId = comp.identity_key?.pipe_id;
+        if (pipeId) {
+          existingMap.set(pipeId, comp);
+        }
+      });
+
+      // Process each aggregate: update existing or create new
+      for (const [pipeId, newAggregate] of threadedPipeAggregates.entries()) {
+        const existing = existingMap.get(pipeId);
+
+        if (existing) {
+          // UPDATE: Sum quantities and append line numbers
+          const existingTotal = existing.attributes?.total_linear_feet || 0;
+          const existingLineNumbers = existing.attributes?.line_numbers || [];
+          const newLineNumbers = newAggregate.attributes.line_numbers;
+
+          // Sum total_linear_feet
+          const updatedTotal = existingTotal + newAggregate.attributes.total_linear_feet;
+
+          // Append new line numbers (avoid duplicates)
+          const updatedLineNumbers = [...existingLineNumbers];
+          newLineNumbers.forEach((lineNum: string) => {
+            if (!updatedLineNumbers.includes(lineNum)) {
+              updatedLineNumbers.push(lineNum);
+            }
+          });
+
+          // Track for update (preserve current_milestones)
+          componentsToUpdate.push({
+            id: existing.id,
+            attributes: {
+              ...existing.attributes,
+              total_linear_feet: updatedTotal,
+              line_numbers: updatedLineNumbers
+            }
+            // Note: current_milestones is NOT updated (preserved)
+          });
+
+          // Count as updated
+          componentsByType[newAggregate.component_type] = (componentsByType[newAggregate.component_type] || 0);
+        } else {
+          // CREATE: New aggregate component
+          components.push(newAggregate);
+          componentsByType[newAggregate.component_type] = (componentsByType[newAggregate.component_type] || 0) + 1;
+        }
+      }
+    }
+
+    // Step 5: Update existing threaded_pipe aggregates
+    if (componentsToUpdate.length > 0) {
+      for (const update of componentsToUpdate) {
+        const { error: updateError } = await supabase
+          .from('components')
+          .update({
+            attributes: update.attributes
+            // Note: current_milestones preserved (not updated)
+          })
+          .eq('id', update.id);
+
+        if (updateError) {
+          throw new Error(`Failed to update component ${update.id}: ${updateError.message}`);
+        }
+      }
+    }
+
+    // Step 6: Insert new components in batches
     const BATCH_SIZE = 1000;
     for (let i = 0; i < components.length; i += BATCH_SIZE) {
       const batch = components.slice(i, i + BATCH_SIZE);
@@ -387,6 +522,7 @@ export async function processImportV2(
     return {
       success: true,
       componentsCreated: components.length,
+      componentsUpdated: componentsToUpdate.length,
       drawingsCreated,
       drawingsUpdated: drawingIdMap.size - drawingsCreated,
       metadataCreated,
@@ -399,6 +535,7 @@ export async function processImportV2(
     return {
       success: false,
       componentsCreated: 0,
+      componentsUpdated: 0,
       drawingsCreated: 0,
       drawingsUpdated: 0,
       metadataCreated: {

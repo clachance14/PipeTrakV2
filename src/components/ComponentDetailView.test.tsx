@@ -39,6 +39,78 @@ vi.mock('@/hooks/useComponents', () => ({
       }
     }
 
+    // Component with attributes (comp-with-attrs)
+    if (componentId === 'comp-with-attrs') {
+      return {
+        data: {
+          id: 'comp-with-attrs',
+          project_id: 'proj-1',
+          component_type: 'threaded_pipe',
+          identity_key: { size: '1"' },
+          percent_complete: 25,
+          current_milestones: {},
+          progress_template: {
+            milestones_config: []
+          },
+          attributes: {
+            spec: 'A106B',
+            description: 'Blind Flange 2" 150# RF A105',
+            size: '2',
+            cmdty_code: 'FBLAG2DFA2351215',
+            comments: 'Test comments',
+          },
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+        },
+        isLoading: false,
+      }
+    }
+
+    // Component with null attributes (comp-null-attrs)
+    if (componentId === 'comp-null-attrs') {
+      return {
+        data: {
+          id: 'comp-null-attrs',
+          project_id: 'proj-1',
+          component_type: 'valve',
+          identity_key: { commodity_code: 'VALVE-001', size: '3', seq: 1 },
+          percent_complete: 0,
+          current_milestones: {},
+          progress_template: {
+            milestones_config: []
+          },
+          attributes: null,
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+        },
+        isLoading: false,
+      }
+    }
+
+    // Component with empty attributes object (comp-empty-attrs)
+    if (componentId === 'comp-empty-attrs') {
+      return {
+        data: {
+          id: 'comp-empty-attrs',
+          project_id: 'proj-1',
+          component_type: 'valve',
+          identity_key: { commodity_code: 'VALVE-002', size: '4', seq: 1 },
+          percent_complete: 0,
+          current_milestones: {},
+          progress_template: {
+            milestones_config: []
+          },
+          attributes: {},
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+        },
+        isLoading: false,
+      }
+    }
+
     // Default valve mock
     return {
       data: {
@@ -57,7 +129,11 @@ vi.mock('@/hooks/useComponents', () => ({
       },
       isLoading: false,
     }
-  }
+  },
+  useEffectiveTemplate: () => ({
+    data: null,
+    isLoading: false,
+  })
 }))
 
 vi.mock('@/hooks/useMilestoneHistory', () => ({
@@ -357,5 +433,111 @@ describe('ComponentDetailView - Field Weld Auto-Open Welder Dialog', () => {
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
+  })
+})
+
+describe('ComponentDetailView - Attributes Display', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('displays spec when present in attributes', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-with-attrs"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Should display the spec from attributes
+    expect(screen.getByText('A106B')).toBeInTheDocument()
+  })
+
+  it('displays description when present in attributes', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-with-attrs"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Should display the description from attributes
+    expect(screen.getByText('Blind Flange 2" 150# RF A105')).toBeInTheDocument()
+  })
+
+  it('shows "Not specified" when attributes is null', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-null-attrs"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Should show "Not specified" for both spec and description
+    const notSpecifiedElements = screen.getAllByText('Not specified')
+    expect(notSpecifiedElements.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('shows "Not specified" when attributes object is empty', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-empty-attrs"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Should show "Not specified" for both spec and description
+    const notSpecifiedElements = screen.getAllByText('Not specified')
+    expect(notSpecifiedElements.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('displays attributes section label', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-with-attrs"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Should have labels for Spec and Description
+    expect(screen.getByText('Spec')).toBeInTheDocument()
+    expect(screen.getByText('Description')).toBeInTheDocument()
   })
 })

@@ -38,14 +38,37 @@ export function useDrawingsWithProgress(projectId: string) {
 
       if (progressError) throw progressError
 
+      // Fetch most common spec per drawing
+      // Use RPC to execute custom SQL for finding mode (most frequent value)
+      const { data: specData, error: specError } = await supabase.rpc(
+        'get_most_common_spec_per_drawing',
+        { p_project_id: projectId }
+      )
+
+      if (specError) {
+        // If RPC doesn't exist yet, continue without spec data
+        // This allows gradual rollout without breaking existing functionality
+        console.warn('Could not fetch spec data:', specError)
+      }
+
       // Create progress lookup map
       const progressMap = new Map(
         progressData?.map((p) => [p.drawing_id, p]) || []
       )
 
-      // Merge drawings with progress data
+      // Create spec lookup map - handle both array and non-array responses
+      const specArray = Array.isArray(specData) ? specData : []
+      const specMap = new Map<string, string | null>(
+        specArray.map((s: { drawing_id: string; most_common_spec: string | null }) => [
+          s.drawing_id,
+          s.most_common_spec,
+        ])
+      )
+
+      // Merge drawings with progress data and spec data
       const drawings: DrawingRow[] = drawingsData.map((drawing) => {
         const progress = progressMap.get(drawing.id)
+        const spec = specMap.get(drawing.id) ?? null
         return {
           id: drawing.id,
           project_id: drawing.project_id,
@@ -57,6 +80,7 @@ export function useDrawingsWithProgress(projectId: string) {
           area: drawing.area || null,
           system: drawing.system || null,
           test_package: drawing.test_package || null,
+          spec,
           total_components: progress?.total_components || 0,
           completed_components: progress?.completed_components || 0,
           avg_percent_complete: progress?.avg_percent_complete || 0,

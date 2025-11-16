@@ -29,6 +29,32 @@ export function formatIdentityKey(
     return (key as any).weld_number || 'Unknown Weld'
   }
 
+  // Threaded pipe aggregates have pipe_id - show only size
+  if (type === 'threaded_pipe' && 'pipe_id' in key) {
+    const pipeId = (key as any).pipe_id || 'Unknown Pipe'
+    // Format: "{drawing}-{size}-{cmdty}-AGG"
+    // Parse from right: remove -AGG, then extract second-to-last segment as size
+    if (pipeId.endsWith('-AGG')) {
+      const withoutAgg = pipeId.slice(0, -4) // Remove "-AGG"
+      const lastDashIndex = withoutAgg.lastIndexOf('-')
+      if (lastDashIndex > 0) {
+        const secondLastDashIndex = withoutAgg.lastIndexOf('-', lastDashIndex - 1)
+        if (secondLastDashIndex > 0) {
+          const size = withoutAgg.substring(secondLastDashIndex + 1, lastDashIndex)
+          // Add inch symbol for numeric sizes
+          const isNumericSize = /^\d+$/.test(size)
+          return isNumericSize ? `${size}"` : size
+        }
+      }
+    }
+    return pipeId // Fallback to full pipe_id if parsing fails
+  }
+
+  // At this point, we know it's a standard identity key with commodity_code, size, seq
+  if (!('commodity_code' in key)) {
+    return 'Unknown Component'
+  }
+
   const { commodity_code, size, seq } = key
 
   // Check if size should be displayed

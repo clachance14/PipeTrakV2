@@ -31,7 +31,60 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**Type Safety (Principle I):**
+- [ ] TypeScript strict mode enabled (`strict: true`)
+- [ ] No type assertions (`as` keyword) without justification
+- [ ] `noUncheckedIndexedAccess: true` enforced
+- [ ] Path aliases (`@/*`) used for cross-directory imports
+- [ ] Database types auto-generated from Supabase schema
+
+**Component-Driven Development (Principle II):**
+- [ ] UI components use shadcn/ui and Radix UI primitives
+- [ ] Single responsibility composition verified
+- [ ] TanStack Query for server state, Zustand for client state
+
+**Testing Discipline (Principle III):**
+- [ ] TDD workflow planned (Red-Green-Refactor)
+- [ ] Integration tests cover spec acceptance scenarios
+- [ ] Hotfix test debt tracking (if applicable)
+
+**Supabase Integration (Principle IV):**
+- [ ] RLS enabled on all new tables
+- [ ] RLS patterns remain multi-tenant-safe (`organization_id`/`user_id` filtering)
+- [ ] TanStack Query wraps all Supabase calls
+- [ ] AuthContext used for auth state (no direct component access)
+
+**Specify Workflow (Principle V):**
+- [ ] Feature documented in `specs/###-feature-name/` directory
+- [ ] Constitution gates verified before planning
+- [ ] Tasks ordered with tests before implementation
+
+**Migration Rules (Principle VI):**
+- [ ] New sequential migration planned (if schema changes)
+- [ ] Migration idempotency verified or marked irreversible
+- [ ] RLS rules updated in same migration as table changes
+- [ ] Data migration reversibility documented (if applicable)
+- [ ] TypeScript types regeneration planned
+- [ ] Backward-compatibility notes documented
+
+**Performance Standards (Principle VII):**
+- [ ] Table rendering target <100ms for 10k rows (virtualization strategy)
+- [ ] Database query index strategy documented
+- [ ] No `select *` in production code
+- [ ] TanStack Query pagination/virtualization planned
+
+**UI Standards (Principle VIII):**
+- [ ] Mobile layout planned (1024px breakpoint)
+- [ ] Touch targets ≥44px (WCAG 2.1 AA)
+- [ ] Keyboard accessibility planned (Tab, Enter, Escape)
+- [ ] shadcn/ui and Radix patterns followed
+- [ ] No inline styles (Tailwind CSS only)
+
+**Test Coverage (Principle IX):**
+- [ ] Unit tests planned for business logic
+- [ ] Integration tests planned for data flow
+- [ ] At least one acceptance test per spec scenario
+- [ ] Coverage targets verified (≥70% overall, ≥80% lib, ≥60% components)
 
 ## Project Structure
 

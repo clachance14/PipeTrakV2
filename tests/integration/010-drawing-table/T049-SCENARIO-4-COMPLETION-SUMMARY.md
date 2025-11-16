@@ -1,5 +1,7 @@
 # T049: Integration Test - Scenario 4: Update Partial Milestone (Percentage Slider)
 
+> **⚠️ HISTORICAL DOCUMENTATION**: This test documents the legacy slider-based milestone implementation (Feature 010). The UI was later refactored in **Feature 025** (2025-11-07) to use inline percentage input boxes instead of slider-based popover editors. The test cases below describe the old implementation.
+
 **Status**: ✅ COMPLETE
 **Date**: 2025-10-19
 **File**: `tests/integration/010-drawing-table/scenario-4-update-partial.test.tsx`

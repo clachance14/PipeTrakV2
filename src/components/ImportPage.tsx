@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { useImport } from '@/hooks/useImport';
 import { ImportPreview } from './ImportPreview';
 import { ImportPreviewErrorBoundary } from './ImportPreviewErrorBoundary';
@@ -260,6 +261,14 @@ export function ImportPage({ projectId }: ImportPageProps) {
           setImportResult(data);
           setPreviewState(null);
           setSelectedFile(null);
+
+          // T042: Show warning toast when components are updated (Feature 027 - aggregate threaded pipe)
+          if (data.componentsUpdated && data.componentsUpdated > 0) {
+            toast.warning('Quantity Updated', {
+              description: 'Milestone values preserved. Review progress for updated quantities.',
+              duration: 5000
+            });
+          }
         },
         onError: (error) => {
           console.error('Import error:', error);

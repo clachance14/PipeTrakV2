@@ -1,11 +1,24 @@
 import { MilestoneCheckbox } from './MilestoneCheckbox'
 import { PartialMilestoneInput } from './PartialMilestoneInput'
 import { MetadataCell } from './MetadataCell'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useOfflineQueue } from '@/hooks/useOfflineQueue'
 import { cn } from '@/lib/utils'
+import { formatIdentityKey } from '@/lib/formatIdentityKey'
 import type { ComponentRow as ComponentRowType, MilestoneConfig } from '@/types/drawing-table.types'
+
+/**
+ * Milestone label abbreviations for compact display
+ */
+const LABEL_ABBREVIATIONS: Record<string, string> = {
+  'Fabricate': 'FAB',
+  'Install': 'INST',
+  'Erect': 'ER',
+  'Connect': 'CONN',
+  'Support': 'SUP',
+}
 
 export interface ComponentRowProps {
   component: ComponentRowType
@@ -85,6 +98,46 @@ export function ComponentRow({
     onMilestoneUpdate(component.id, milestoneName, value)
   }
 
+  // Aggregate threaded pipe display logic (Feature 027)
+  const isAggregateThreadedPipe =
+    component.component_type === 'threaded_pipe' &&
+    component.identity_key &&
+    'pipe_id' in component.identity_key &&
+    component.identity_key.pipe_id?.endsWith('-AGG')
+
+  const getIdentityDisplay = () => {
+    if (!isAggregateThreadedPipe) {
+      return component.identityDisplay
+    }
+
+    // Aggregate threaded pipe: show size and linear feet (e.g., "1" • 6.6 LF")
+    const totalLF = component.attributes?.total_linear_feet ?? component.attributes?.original_qty ?? 0
+    const sizeDisplay = formatIdentityKey(
+      component.identity_key,
+      component.component_type,
+      undefined
+    )
+
+    return `${sizeDisplay} • ${totalLF} LF`
+  }
+
+  const getLineNumberTooltip = () => {
+    if (!isAggregateThreadedPipe) {
+      return undefined
+    }
+
+    const lineNumbers = component.attributes?.line_numbers || []
+    if (lineNumbers.length === 0) {
+      return undefined
+    }
+
+    // Show line numbers and full pipe_id on hover
+    const pipeId = 'pipe_id' in component.identity_key ? component.identity_key.pipe_id : ''
+    return `Line numbers: ${lineNumbers.join(', ')}\nPipe ID: ${pipeId}`
+  }
+
+  const identityDisplay = getIdentityDisplay()
+  const lineNumberTooltip = getLineNumberTooltip()
 
   const getMilestoneControl = (milestoneConfig: MilestoneConfig) => {
     const currentValue = component.current_milestones[milestoneConfig.name]
@@ -99,6 +152,7 @@ export function ComponentRow({
           disabled={!component.canUpdate}
           isMobile={isMobile}
           abbreviate={isMobile}
+          component={component}
         />
       )
     }
@@ -116,11 +170,6 @@ export function ComponentRow({
       />
     )
   }
-
-  // Check if component has partial milestones (for taller row height)
-  const hasPartialMilestones = component.template.milestones_config.some(
-    (m) => m.is_partial
-  )
 
   // Handle row click
   const handleRowClick = (e: React.MouseEvent) => {
@@ -147,7 +196,7 @@ export function ComponentRow({
         style={style}
         onClick={handleRowClick}
         className={cn(
-          "flex flex-col gap-1 px-3 py-1 -my-1 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100",
+          "flex flex-col gap-1 px-3 py-1 -my-1 mb-2 bg-slate-50 border-b border-slate-200 hover:bg-white transition-all duration-100",
           onClick && "cursor-pointer"
         )}
         tabIndex={onClick ? 0 : undefined}
@@ -171,7 +220,7 @@ export function ComponentRow({
             onClick(component.id)
           }
         } : undefined}
-        aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
+        aria-label={onClick ? `Edit metadata for ${identityDisplay}` : undefined}
       >
         {/* Line 1: Component type + identity (single line with bullet separators) */}
         <div className="flex items-baseline gap-1.5 text-sm">
@@ -179,8 +228,11 @@ export function ComponentRow({
             {formatComponentType(component.component_type)}
           </span>
           <span className="text-slate-400">·</span>
-          <span className="font-mono text-slate-700 truncate">
-            {component.identityDisplay}
+          <span
+            className="font-mono text-slate-700 truncate"
+            title={lineNumberTooltip}
+          >
+            {identityDisplay}
           </span>
         </div>
 
@@ -221,116 +273,14 @@ export function ComponentRow({
     )
   }
 
-  // Desktop table row layout
-  // Two-row layout for components with partial milestones to avoid horizontal scrolling
-  if (hasPartialMilestones) {
-    return (
-      <div
-        role="row"
-        style={style}
-        onClick={handleRowClick}
-        className={cn(
-          "flex flex-col gap-2 px-5 pl-6 py-4 bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100",
-          onClick && "cursor-pointer"
-        )}
-        tabIndex={onClick ? 0 : undefined}
-        onKeyDown={onClick ? (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            // Don't trigger row keyboard action if event came from interactive elements
-            const target = e.target as HTMLElement
-            if (
-              target.tagName === 'BUTTON' ||
-              target.tagName === 'INPUT' ||
-              target.tagName === 'LABEL' ||
-              target.closest('button') ||
-              target.closest('input') ||
-              target.closest('label') ||
-              target.closest('[role="checkbox"]')
-            ) {
-              return
-            }
-
-            e.preventDefault()
-            onClick(component.id)
-          }
-        } : undefined}
-        aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
-      >
-        {/* Row 1: Component identity + milestone controls + progress */}
-        <div className="flex items-start gap-4">
-          {/* Spacer for chevron */}
-          <div className="w-3 flex-shrink-0" />
-
-          {/* Component type and identity */}
-          <div className="min-w-[280px] text-sm pt-1 flex-shrink-0">
-            <span className="font-medium text-slate-600">
-              {formatComponentType(component.component_type)}:
-            </span>
-            <span className="ml-2 font-mono text-slate-700">
-              {component.identityDisplay}
-            </span>
-          </div>
-
-          {/* Milestone controls */}
-          <div className="flex items-start gap-3 flex-1">
-            {component.template.milestones_config.map((milestone) => (
-              <div
-                key={milestone.name}
-                className="flex items-center justify-center"
-              >
-                {getMilestoneControl(milestone)}
-              </div>
-            ))}
-          </div>
-
-          {/* Progress percentage */}
-          <div className="min-w-[80px] text-sm font-semibold text-slate-800 text-right pt-1 flex-shrink-0">
-            {component.percent_complete.toFixed(0)}%
-          </div>
-        </div>
-
-        {/* Row 2: Metadata cells */}
-        <div className="flex items-center gap-4 pl-[calc(0.75rem+280px)]">
-          <div className="min-w-[100px]">
-            <MetadataCell
-              value={area}
-              drawingValue={drawing?.area}
-              fieldName="Area"
-              componentId={component.id}
-              isMobile={false}
-            />
-          </div>
-          <div className="min-w-[100px]">
-            <MetadataCell
-              value={system}
-              drawingValue={drawing?.system}
-              fieldName="System"
-              componentId={component.id}
-              isMobile={false}
-            />
-          </div>
-          <div className="min-w-[120px]">
-            <MetadataCell
-              value={testPackage}
-              drawingValue={drawing?.test_package}
-              fieldName="Test Package"
-              componentId={component.id}
-              isMobile={false}
-            />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Single-row layout for components with only discrete milestones
+  // Desktop single-row layout (all components except mobile)
   return (
     <div
       role="row"
       style={style}
       onClick={handleRowClick}
       className={cn(
-        "flex gap-4 px-5 pl-6 py-3 items-center bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100",
+        "flex gap-4 px-5 pl-6 py-3 mb-2 items-center bg-slate-50 border-b border-slate-100 hover:bg-white transition-all duration-100",
         onClick && "cursor-pointer"
       )}
       tabIndex={onClick ? 0 : undefined}
@@ -346,27 +296,109 @@ export function ComponentRow({
       <div className="w-3 flex-shrink-0" />
 
       {/* Component type and identity display */}
-      <div className="w-[380px] text-sm truncate pr-4 flex-shrink-0">
-        <span className="font-medium text-slate-600">
-          {formatComponentType(component.component_type)}:
-        </span>
-        <span className="ml-2 font-mono text-slate-700">
-          {component.identityDisplay}
-        </span>
-      </div>
-
-      {/* Milestone controls - component-specific milestones only */}
-      {component.template.milestones_config.map((milestone) => (
-        <div
-          key={milestone.name}
-          className="flex items-center justify-center min-w-[80px]"
-        >
-          {getMilestoneControl(milestone)}
+      {isAggregateThreadedPipe ? (
+        <div className="w-[280px] pr-4 flex-shrink-0">
+          <div className="flex flex-col">
+            {/* Component type */}
+            <div className="text-sm font-medium text-slate-600">
+              Threaded Pipe
+            </div>
+            {/* Size and total LF */}
+            <div className="font-mono text-xs text-slate-700" title={lineNumberTooltip}>
+              {identityDisplay}
+            </div>
+            {/* Progress percentage */}
+            <div className="text-xs font-semibold text-slate-800">
+              {component.percent_complete.toFixed(0)}%
+            </div>
+          </div>
         </div>
-      ))}
+      ) : (
+        <div className="w-[280px] text-sm truncate pr-4 flex-shrink-0">
+          <span className="font-medium text-slate-600">
+            {formatComponentType(component.component_type)}:
+          </span>
+          <span
+            className="ml-2 font-mono text-slate-700"
+            title={lineNumberTooltip}
+          >
+            {identityDisplay}
+          </span>
+        </div>
+      )}
+
+      {/* Milestone controls */}
+      {isAggregateThreadedPipe ? (
+        // Single merged milestone area spanning all milestone columns
+        <div className="flex items-center gap-1 px-2">
+          {/* Partial milestones (5 inputs) */}
+          {component.template.milestones_config
+            .filter(m => m.is_partial)
+            .map((milestone) => {
+              const currentValue = component.current_milestones[milestone.name]
+              const percentValue = typeof currentValue === 'number' ? currentValue : 0
+              const abbreviation = LABEL_ABBREVIATIONS[milestone.name] || milestone.name
+
+              return (
+                <div key={milestone.name} className="flex items-center gap-0.5">
+                  <span className="text-[9px] font-medium text-muted-foreground uppercase">
+                    {abbreviation}
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={percentValue}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10)
+                        if (!isNaN(val) && val >= 0 && val <= 100) {
+                          handleMilestoneChange(milestone.name, val)
+                        }
+                      }}
+                      disabled={!component.canUpdate}
+                      className="w-14 h-6 text-xs text-center rounded border border-input pr-3 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-muted-foreground pointer-events-none">%</span>
+                  </div>
+                </div>
+              )
+            })}
+
+          {/* QA checkboxes (3 discrete milestones) */}
+          {component.template.milestones_config
+            .filter(m => !m.is_partial)
+            .map((milestone) => {
+              const currentValue = component.current_milestones[milestone.name]
+              const checked = currentValue === 1 || currentValue === true
+              const abbreviation = LABEL_ABBREVIATIONS[milestone.name] || milestone.name
+
+              return (
+                <label key={milestone.name} className="inline-flex items-center gap-1 cursor-pointer">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(checkedState) => handleMilestoneChange(milestone.name, checkedState === true)}
+                    disabled={!component.canUpdate}
+                    className={cn('h-3 w-3', !component.canUpdate && 'cursor-not-allowed')}
+                  />
+                  <span className="text-[10px] font-medium text-slate-600">{abbreviation}</span>
+                </label>
+              )
+            })}
+        </div>
+      ) : (
+        // Regular milestone columns for non-aggregate components
+        component.template.milestones_config.map((milestone) => (
+          <div
+            key={milestone.name}
+            className="flex items-center justify-center min-w-[80px]"
+          >
+            {getMilestoneControl(milestone)}
+          </div>
+        ))
+      )}
 
       {/* Area - ml-auto pushes this and subsequent metadata columns to the right edge */}
-      <div className="min-w-[100px] shrink-0 ml-auto">
+      <div className="min-w-[60px] shrink-0 ml-auto">
         <MetadataCell
           value={area}
           drawingValue={drawing?.area}
@@ -377,7 +409,7 @@ export function ComponentRow({
       </div>
 
       {/* System */}
-      <div className="min-w-[100px]">
+      <div className="min-w-[60px]">
         <MetadataCell
           value={system}
           drawingValue={drawing?.system}
@@ -388,7 +420,7 @@ export function ComponentRow({
       </div>
 
       {/* Test Package */}
-      <div className="min-w-[120px]">
+      <div className="min-w-[80px]">
         <MetadataCell
           value={testPackage}
           drawingValue={drawing?.test_package}
@@ -398,9 +430,9 @@ export function ComponentRow({
         />
       </div>
 
-      {/* Progress percentage */}
+      {/* Progress percentage (hidden for aggregate threaded pipe, shown in Title column) */}
       <div className="min-w-[130px] text-sm font-semibold text-slate-800">
-        {component.percent_complete.toFixed(0)}%
+        {!isAggregateThreadedPipe && `${component.percent_complete.toFixed(0)}%`}
       </div>
 
       {/* Spacer for Items column (component rows don't show item count) */}

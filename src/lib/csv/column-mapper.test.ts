@@ -304,4 +304,118 @@ describe('column-mapper', () => {
       expect(cmdtyMapping).toBeDefined();
     });
   });
+
+  describe('Column Name Normalization (Marker Characters)', () => {
+    it('should strip trailing asterisks from column names', () => {
+      const csvColumns = ['DRAWING*', 'TYPE*', 'QTY*', 'CMDTY CODE*'];
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+      expect(result.missingRequiredFields).toHaveLength(0);
+      expect(result.mappings).toHaveLength(4);
+
+      // Verify all required fields mapped with original column names preserved
+      const drawingMapping = result.mappings.find(m => m.expectedField === 'DRAWING');
+      expect(drawingMapping).toBeDefined();
+      expect(drawingMapping?.csvColumn).toBe('DRAWING*'); // Original column name preserved
+      expect(drawingMapping?.confidence).toBe(100); // Exact match after normalization
+      expect(drawingMapping?.matchTier).toBe('exact');
+    });
+
+    it('should strip multiple trailing asterisks', () => {
+      const csvColumns = ['DRAWING**', 'TYPE***', 'QTY*', 'CMDTY CODE'];
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+
+      const drawingMapping = result.mappings.find(m => m.expectedField === 'DRAWING');
+      expect(drawingMapping?.csvColumn).toBe('DRAWING**');
+      expect(drawingMapping?.confidence).toBe(100);
+    });
+
+    it('should strip trailing plus signs', () => {
+      const csvColumns = ['DRAWING+', 'TYPE+', 'QTY', 'CMDTY CODE'];
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+
+      const drawingMapping = result.mappings.find(m => m.expectedField === 'DRAWING');
+      expect(drawingMapping?.csvColumn).toBe('DRAWING+');
+    });
+
+    it('should strip trailing exclamation marks and hash symbols', () => {
+      const csvColumns = ['DRAWING!', 'TYPE#', 'QTY!#', 'CMDTY CODE'];
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+
+      const drawingMapping = result.mappings.find(m => m.expectedField === 'DRAWING');
+      expect(drawingMapping?.csvColumn).toBe('DRAWING!');
+
+      const typeMapping = result.mappings.find(m => m.expectedField === 'TYPE');
+      expect(typeMapping?.csvColumn).toBe('TYPE#');
+    });
+
+    it('should handle mixed marker characters', () => {
+      const csvColumns = ['DRAWING*+', 'TYPE#!', 'QTY*#!+', 'CMDTY CODE**'];
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+      expect(result.mappings).toHaveLength(4);
+    });
+
+    it('should strip markers while preserving case-insensitive matching', () => {
+      const csvColumns = ['drawing*', 'type*', 'qty*', 'cmdty code*'];
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+
+      result.mappings.forEach(mapping => {
+        expect(mapping.confidence).toBe(95);
+        expect(mapping.matchTier).toBe('case-insensitive');
+      });
+    });
+
+    it('should not strip asterisks from middle of column name', () => {
+      const csvColumns = ['DRAW*ING', 'TYPE', 'QTY', 'CMDTY CODE'];
+      const result = mapColumns(csvColumns);
+
+      // DRAW*ING should not match DRAWING (asterisk is in the middle)
+      expect(result.hasAllRequiredFields).toBe(false);
+      expect(result.missingRequiredFields).toContain('DRAWING');
+      expect(result.unmappedColumns).toContain('DRAW*ING');
+    });
+
+    it('should handle real-world material takeoff template with asterisks', () => {
+      // Mimics the user's actual CSV file structure
+      const csvColumns = [
+        'DRAWING*',
+        'TYPE*',
+        'QTY*',
+        'CMDTY CODE*',
+        'SIZE',
+        'SPEC',
+        'DESCRIPTION',
+        'COMMENTS',
+        'AREA',
+        'SYSTEM',
+        'TEST_PACKAGE'
+      ];
+
+      const result = mapColumns(csvColumns);
+
+      expect(result.hasAllRequiredFields).toBe(true);
+      expect(result.missingRequiredFields).toHaveLength(0);
+      expect(result.unmappedColumns).toHaveLength(0);
+      expect(result.mappings).toHaveLength(11);
+
+      // Verify required fields all mapped correctly
+      const requiredFields = ['DRAWING', 'TYPE', 'QTY', 'CMDTY CODE'];
+      requiredFields.forEach(field => {
+        const mapping = result.mappings.find(m => m.expectedField === field);
+        expect(mapping).toBeDefined();
+        expect(mapping?.csvColumn).toBe(`${field}*`);
+      });
+    });
+  });
 });
