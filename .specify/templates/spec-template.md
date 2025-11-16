@@ -113,3 +113,21 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+
+## Spec Completion Checklist *(Constitution v2.0.0)*
+
+<!--
+  Before moving to /plan, verify this spec meets exit criteria from Constitution.
+  A spec is complete when ALL items below are satisfied.
+-->
+
+**Documentation Completeness:**
+- [ ] All user flows documented (mobile AND desktop where applicable)
+- [ ] All acceptance criteria written in testable "Given/When/Then" format
+- [ ] All edge cases listed with expected behavior
+
+**Validation:**
+- [ ] No unresolved questions remain in `/clarify` (or clarifications marked as deferred with justification)
+- [ ] All dependencies on other features or systems listed explicitly
+
+**Constitution Note:** Incomplete specs lead to vague plans and implementation churn. Exit criteria prevent premature planning.
