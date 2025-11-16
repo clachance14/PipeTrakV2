@@ -1,0 +1,382 @@
+{
+  "name": "import-takeoff",
+  "description": "CSV Material Takeoff Import Edge Function with Aggregate Threaded Pipe Support",
+  "version": "2.0.0",
+  "endpoint": "https://[PROJECT_REF].supabase.co/functions/v1/import-takeoff",
+  "method": "POST",
+  "authentication": "Bearer token (Supabase Auth)",
+  "changes_in_v2": [
+    "Threaded_pipe components now use aggregate model (pipe_id with -AGG suffix)",
+    "Quantity summing for duplicate threaded_pipe identities",
+    "total_linear_feet stored in attributes for threaded_pipe",
+    "line_numbers array tracks all contributing line numbers",
+    "Milestones stored as absolute LF (Fabricate_LF, Install_LF, etc.) not percentages",
+    "CSV validator allows duplicate threaded_pipe identities",
+    "Validation: QTY > 0 enforced for threaded_pipe"
+  ],
+  "request": {
+    "headers": {
+      "Authorization": {
+        "type": "string",
+        "required": true,
+        "description": "Bearer [access_token] from Supabase Auth",
+        "example": "Bearer eyJhbGci..."
+      },
+      "Content-Type": {
+        "type": "string",
+        "required": true,
+        "value": "application/json"
+      }
+    },
+    "body": {
+      "projectId": {
+        "type": "string (UUID)",
+        "required": true,
+        "description": "Target project ID for import",
+        "example": "abc12345-6789-def0-1234-56789abcdef0"
+      },
+      "rows": {
+        "type": "array",
+        "required": true,
+        "description": "Parsed CSV rows with component data",
+        "minItems": 1,
+        "maxItems": 10000,
+        "items": {
+          "type": "object",
+          "required": ["type", "drawing", "lineNumber", "cmdtyCode", "size", "qty"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "Spool",
+                "Field_Weld",
+                "Valve",
+                "Instrument",
+                "Support",
+                "Pipe",
+                "Fitting",
+                "Flange",
+                "Tubing",
+                "Hose",
+                "Misc_Component",
+                "Threaded_Pipe"
+              ],
+              "description": "Component type (case-insensitive)",
+              "example": "Threaded_Pipe"
+            },
+            "drawing": {
+              "type": "string",
+              "description": "Drawing number (will be normalized)",
+              "example": "P-001"
+            },
+            "lineNumber": {
+              "type": "string",
+              "description": "Line number from CSV",
+              "example": "101"
+            },
+            "cmdtyCode": {
+              "type": "string",
+              "description": "Commodity code (becomes part of identity key)",
+              "example": "PIPE-SCH40"
+            },
+            "size": {
+              "type": "string",
+              "description": "Pipe/component size (will be normalized)",
+              "example": "1\""
+            },
+            "qty": {
+              "type": "number",
+              "description": "Quantity to import (linear feet for threaded_pipe, count for others)",
+              "minimum": 1,
+              "example": 100
+            },
+            "area": {
+              "type": "string",
+              "required": false,
+              "description": "Area assignment (optional)",
+              "example": "Reactor Building"
+            },
+            "system": {
+              "type": "string",
+              "required": false,
+              "description": "System assignment (optional)",
+              "example": "Cooling Water"
+            },
+            "testPackage": {
+              "type": "string",
+              "required": false,
+              "description": "Test package assignment (optional)",
+              "example": "PKG-001"
+            }
+          }
+        }
+      }
+    },
+    "example": {
+      "projectId": "abc12345-6789-def0-1234-56789abcdef0",
+      "rows": [
+        {
+          "type": "Threaded_Pipe",
+          "drawing": "P-001",
+          "lineNumber": "101",
+          "cmdtyCode": "PIPE-SCH40",
+          "size": "1\"",
+          "qty": 100,
+          "area": "Reactor Building",
+          "system": "Cooling Water"
+        },
+        {
+          "type": "Valve",
+          "drawing": "P-001",
+          "lineNumber": "102",
+          "cmdtyCode": "GATE-150",
+          "size": "1\"",
+          "qty": 3
+        }
+      ]
+    }
+  },
+  "response": {
+    "success": {
+      "status": 200,
+      "body": {
+        "success": {
+          "type": "boolean",
+          "value": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Summary of import results",
+          "example": "Import successful: 2 drawings, 103 components (1 aggregate threaded_pipe, 102 discrete)"
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "drawingsCreated": {
+              "type": "number",
+              "description": "Count of new drawings created",
+              "example": 2
+            },
+            "componentsCreated": {
+              "type": "number",
+              "description": "Count of components created (1 for each aggregate threaded_pipe)",
+              "example": 103
+            },
+            "componentsUpdated": {
+              "type": "number",
+              "description": "Count of aggregate threaded_pipe components updated (quantity summed)",
+              "example": 0
+            },
+            "aggregateThreadedPipe": {
+              "type": "number",
+              "description": "Count of aggregate threaded_pipe components affected",
+              "example": 1
+            }
+          }
+        }
+      },
+      "example": {
+        "success": true,
+        "message": "Import successful: 2 drawings, 103 components (1 aggregate threaded_pipe, 102 discrete)",
+        "summary": {
+          "drawingsCreated": 2,
+          "componentsCreated": 103,
+          "componentsUpdated": 0,
+          "aggregateThreadedPipe": 1
+        }
+      }
+    },
+    "validation_error": {
+      "status": 400,
+      "body": {
+        "success": {
+          "type": "boolean",
+          "value": false
+        },
+        "error": {
+          "type": "string",
+          "description": "Error type identifier",
+          "example": "VALIDATION_ERROR"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message",
+          "example": "Invalid quantity for threaded pipe at row 1: QTY must be > 0"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional error context",
+          "properties": {
+            "rowIndex": {
+              "type": "number",
+              "description": "Zero-indexed row number with error",
+              "example": 0
+            },
+            "field": {
+              "type": "string",
+              "description": "Field name with validation error",
+              "example": "qty"
+            },
+            "value": {
+              "type": "any",
+              "description": "Invalid value provided",
+              "example": 0
+            }
+          }
+        }
+      },
+      "example": {
+        "success": false,
+        "error": "VALIDATION_ERROR",
+        "message": "Invalid quantity for threaded pipe at row 1: QTY must be > 0",
+        "details": {
+          "rowIndex": 0,
+          "field": "qty",
+          "value": 0
+        }
+      }
+    },
+    "authorization_error": {
+      "status": 403,
+      "body": {
+        "success": false,
+        "error": "AUTHORIZATION_ERROR",
+        "message": "User does not have permission to import to this project"
+      }
+    },
+    "transaction_error": {
+      "status": 500,
+      "body": {
+        "success": false,
+        "error": "TRANSACTION_ERROR",
+        "message": "Import failed: {database error details}. All changes rolled back."
+      }
+    }
+  },
+  "behavior_changes": {
+    "threaded_pipe_aggregate_model": {
+      "description": "Threaded_pipe components now use aggregate model instead of discrete instances",
+      "before": {
+        "component_count": "QTY value (e.g., QTY=100 creates 100 components)",
+        "identity_key": "{pipe_id: 'P001-1-PIPE-SCH40-001' through 'P001-1-PIPE-SCH40-100'}",
+        "attributes": "{original_qty: 1}",
+        "milestones": "{Fabricate: 0.75} (percentage 0-1)"
+      },
+      "after": {
+        "component_count": "1 (always creates 1 component per unique drawing+commodity+size)",
+        "identity_key": "{pipe_id: 'P001-1-PIPE-SCH40-AGG'}",
+        "attributes": "{total_linear_feet: 100, original_qty: 100, line_numbers: ['101', '205']}",
+        "milestones": "{Fabricate_LF: 75, Install_LF: 50} (absolute linear feet)"
+      },
+      "example": {
+        "input": {
+          "type": "Threaded_Pipe",
+          "drawing": "P-001",
+          "cmdtyCode": "PIPE-SCH40",
+          "size": "1\"",
+          "qty": 100
+        },
+        "output": {
+          "component_type": "threaded_pipe",
+          "identity_key": {
+            "pipe_id": "P001-1-PIPE-SCH40-AGG"
+          },
+          "attributes": {
+            "total_linear_feet": 100,
+            "original_qty": 100,
+            "line_numbers": ["101"]
+          },
+          "current_milestones": {
+            "Fabricate_LF": 0,
+            "Install_LF": 0,
+            "Erect_LF": 0,
+            "Connect_LF": 0,
+            "Support_LF": 0,
+            "Punch": false,
+            "Test": false,
+            "Restore": false
+          }
+        }
+      }
+    },
+    "quantity_summing": {
+      "description": "Re-importing threaded_pipe with same identity sums quantities instead of creating duplicates",
+      "scenario": "Import threaded_pipe twice with same drawing+commodity+size",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Import P-001, PIPE-SCH40, 1\", QTY=50",
+          "result": "1 component created with total_linear_feet=50"
+        },
+        {
+          "step": 2,
+          "action": "Import P-001, PIPE-SCH40, 1\", QTY=50 again",
+          "result": "Existing component updated to total_linear_feet=100 (50+50)"
+        }
+      ],
+      "milestone_preservation": "Existing milestone absolute LF values preserved during quantity update (user warned to review progress). Example: Fabricate_LF remains 50 when total_linear_feet updates from 100 to 150 (percentage display recalculates from 100% to 67%)"
+    },
+    "non_threaded_pipe_unchanged": {
+      "description": "All other component types continue using discrete instance model",
+      "component_types": [
+        "Spool",
+        "Field_Weld",
+        "Valve",
+        "Instrument",
+        "Support",
+        "Pipe",
+        "Fitting",
+        "Flange",
+        "Tubing",
+        "Hose",
+        "Misc_Component"
+      ],
+      "behavior": "Quantity explosion (QTY=3 valves creates 3 components with seq: 1, 2, 3)"
+    }
+  },
+  "validation_rules": {
+    "threaded_pipe_specific": [
+      {
+        "rule": "QTY must be > 0",
+        "error_code": "VALIDATION_ERROR",
+        "message": "Invalid quantity for threaded pipe: QTY must be > 0"
+      },
+      {
+        "rule": "TYPE must be exactly 'Threaded_Pipe' (case-insensitive)",
+        "error_code": "VALIDATION_ERROR",
+        "message": "Invalid component type: {value}"
+      }
+    ],
+    "general": [
+      {
+        "rule": "projectId must be valid UUID",
+        "error_code": "VALIDATION_ERROR"
+      },
+      {
+        "rule": "rows array must not be empty",
+        "error_code": "VALIDATION_ERROR"
+      },
+      {
+        "rule": "User must have 'can_import' permission for project",
+        "error_code": "AUTHORIZATION_ERROR"
+      }
+    ]
+  },
+  "transaction_guarantees": [
+    "All-or-nothing: If any row fails validation or database error occurs, entire import is rolled back",
+    "Atomicity: Metadata upsert + drawing creation + component creation happen in single transaction",
+    "Isolation: Concurrent imports to same project are serialized (SERIALIZABLE isolation level)",
+    "Durability: Committed imports persist even if Edge Function crashes after response"
+  ],
+  "performance_characteristics": {
+    "target_latency": "< 5 seconds for 1000 rows",
+    "max_payload_size": "10MB (approximately 50,000 rows)",
+    "concurrent_imports": "Serialized per project (one at a time)",
+    "memory_usage": "O(n) where n = row count (bulk insert minimizes round-trips)"
+  },
+  "backwards_compatibility": {
+    "existing_threaded_pipe": "Legacy discrete threaded_pipe components (seq: 1, 2, 3) can coexist with new aggregate components (seq: null)",
+    "api_contract": "Request/response format unchanged (internal logic only)",
+    "frontend": "Frontend must detect aggregate vs discrete by checking identity_key.seq === null"
+  }
+}

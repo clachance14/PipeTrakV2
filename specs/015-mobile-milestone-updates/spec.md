@@ -5,6 +5,8 @@
 **Status**: Draft
 **Input**: User description: "Lets creat the mobile milestone feature"
 
+> **📝 IMPLEMENTATION NOTE**: This specification was designed with slider-based milestone editors. The implementation evolved in **Feature 025** (2025-11-07) to use inline percentage input boxes instead of slider-based popover/modal editors for improved mobile UX (50% faster workflow, better keyboard support). References to "sliders" below reflect the original design intent.
+
 ## Clarifications
 
 ### Session 2025-10-24
