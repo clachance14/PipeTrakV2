@@ -51,7 +51,7 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
     // INTERCEPTION LOGIC (T019): Check if Weld Complete is being checked for the first time
     // If Weld Complete is being checked (true) AND current value is false/0 (first time)
     // Then trigger welder assignment dialog instead of updating milestone
-    const isWeldMadeFirstTime = weldCompleteChecked && !Boolean(currentMilestones['Weld Complete'])
+    const isWeldMadeFirstTime = weldCompleteChecked && !currentMilestones['Weld Complete']
 
     if (isWeldMadeFirstTime && onTriggerWelderDialog) {
       // Trigger welder dialog and return early (don't update milestone)

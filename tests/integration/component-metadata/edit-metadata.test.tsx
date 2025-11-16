@@ -1077,8 +1077,8 @@ describe('Component Metadata Editing - User Story 1', () => {
 
       const mockUpdate = vi.fn()
 
-      let initialVersion = 1
-      let currentVersion = 5 // Simulates another user updating the component
+      const initialVersion = 1
+      const currentVersion = 5 // Simulates another user updating the component
 
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'components') {
