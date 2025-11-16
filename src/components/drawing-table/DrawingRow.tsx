@@ -103,13 +103,8 @@ export function DrawingRow({
             {drawing.drawing_no_norm}
           </div>
 
-          {/* Title */}
-          <div className="flex-1 text-sm text-slate-600">
-            {drawing.title || '—'}
-          </div>
-
           {/* Area (with inline edit pencil) */}
-          <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600 truncate">
+          <div className="min-w-[60px] flex items-center gap-1.5 text-sm text-slate-600 truncate ml-auto">
             <span className="truncate">{drawing.area?.name || '—'}</span>
             {onEditMetadata && (
               <button
@@ -126,7 +121,7 @@ export function DrawingRow({
           </div>
 
           {/* System (with inline edit pencil) */}
-          <div className="min-w-[100px] flex items-center gap-1.5 text-sm text-slate-600 truncate">
+          <div className="min-w-[60px] flex items-center gap-1.5 text-sm text-slate-600 truncate">
             <span className="truncate">{drawing.system?.name || '—'}</span>
             {onEditMetadata && (
               <button
@@ -143,7 +138,7 @@ export function DrawingRow({
           </div>
 
           {/* Test Package (with inline edit pencil) */}
-          <div className="min-w-[120px] flex items-center gap-1.5 text-sm text-slate-600">
+          <div className="min-w-[80px] flex items-center gap-1.5 text-sm text-slate-600">
             <span>{drawing.test_package?.name || '—'}</span>
             {onEditMetadata && (
               <button

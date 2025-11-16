@@ -386,55 +386,57 @@ export function ComponentDetailView({
               </p>
             )}
 
-            <div className="space-y-4">
-              {template?.milestones_config
-                ?.sort((a: any, b: any) => a.order - b.order)
-                .map((milestone: any) => {
-                  const currentValue = currentMilestones[milestone.name];
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-4">
+                {template?.milestones_config
+                  ?.sort((a: any, b: any) => a.order - b.order)
+                  .map((milestone: any) => {
+                    const currentValue = currentMilestones[milestone.name];
 
-                  return (
-                    <div
-                      key={milestone.name}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{milestone.name}</span>
-                          <Badge variant="outline">{milestone.weight}%</Badge>
-                        </div>
-                        {milestone.is_partial && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Current: {typeof currentValue === 'number' ? currentValue : 0}%
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {milestone.is_partial ? (
-                          <div className="w-48">
-                            <Slider
-                              value={[typeof currentValue === 'number' ? currentValue : 0]}
-                              onValueCommit={(val) => handleSliderChange(milestone.name, val)}
-                              min={0}
-                              max={100}
-                              step={1}
-                              disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-                              className="min-h-[44px]"
-                            />
+                    return (
+                      <div
+                        key={milestone.name}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{milestone.name}</span>
+                            <Badge variant="outline">{milestone.weight}%</Badge>
                           </div>
-                        ) : (
-                          <Checkbox
-                            checked={currentValue === 1 || currentValue === true}
-                            onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
-                            disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-                            className="h-6 w-6"
-                          />
-                        )}
+                          {milestone.is_partial && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Current: {typeof currentValue === 'number' ? currentValue : 0}%
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {milestone.is_partial ? (
+                            <div className="w-48">
+                              <Slider
+                                value={[typeof currentValue === 'number' ? currentValue : 0]}
+                                onValueCommit={(val) => handleSliderChange(milestone.name, val)}
+                                min={0}
+                                max={100}
+                                step={1}
+                                disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                                className="min-h-[44px]"
+                              />
+                            </div>
+                          ) : (
+                            <Checkbox
+                              checked={currentValue === 1 || currentValue === true}
+                              onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
+                              disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                              className="h-6 w-6"
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
+                    );
+                  })}
+              </div>
+            </ScrollArea>
 
             {template?.milestones_config?.length === 0 && (
               <p className="text-sm text-muted-foreground">No milestones configured for this component type.</p>
@@ -688,55 +690,57 @@ export function ComponentDetailView({
               </p>
             )}
 
-            <div className="space-y-4">
-              {template?.milestones_config
-                ?.sort((a: any, b: any) => a.order - b.order)
-                .map((milestone: any) => {
-                  const currentValue = currentMilestones[milestone.name];
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-4">
+                {template?.milestones_config
+                  ?.sort((a: any, b: any) => a.order - b.order)
+                  .map((milestone: any) => {
+                    const currentValue = currentMilestones[milestone.name];
 
-                  return (
-                    <div
-                      key={milestone.name}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{milestone.name}</span>
-                          <Badge variant="outline">{milestone.weight}%</Badge>
-                        </div>
-                        {milestone.is_partial && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Current: {typeof currentValue === 'number' ? currentValue : 0}%
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {milestone.is_partial ? (
-                          <div className="w-48">
-                            <Slider
-                              value={[typeof currentValue === 'number' ? currentValue : 0]}
-                              onValueCommit={(val) => handleSliderChange(milestone.name, val)}
-                              min={0}
-                              max={100}
-                              step={1}
-                              disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-                              className="min-h-[44px]"
-                            />
+                    return (
+                      <div
+                        key={milestone.name}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{milestone.name}</span>
+                            <Badge variant="outline">{milestone.weight}%</Badge>
                           </div>
-                        ) : (
-                          <Checkbox
-                            checked={currentValue === 1 || currentValue === true}
-                            onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
-                            disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-                            className="h-6 w-6"
-                          />
-                        )}
+                          {milestone.is_partial && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Current: {typeof currentValue === 'number' ? currentValue : 0}%
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {milestone.is_partial ? (
+                            <div className="w-48">
+                              <Slider
+                                value={[typeof currentValue === 'number' ? currentValue : 0]}
+                                onValueCommit={(val) => handleSliderChange(milestone.name, val)}
+                                min={0}
+                                max={100}
+                                step={1}
+                                disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                                className="min-h-[44px]"
+                              />
+                            </div>
+                          ) : (
+                            <Checkbox
+                              checked={currentValue === 1 || currentValue === true}
+                              onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
+                              disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                              className="h-6 w-6"
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
+                    );
+                  })}
+              </div>
+            </ScrollArea>
 
             {template?.milestones_config?.length === 0 && (
               <p className="text-sm text-muted-foreground">No milestones configured for this component type.</p>

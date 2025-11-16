@@ -56,21 +56,8 @@ export function DrawingTableHeader({
         />
       </div>
 
-      {/* Title - Hidden on mobile */}
-      {!isMobile && (
-        <div className="flex-1">
-          <SortableColumnHeader
-            label="Title"
-            field="title"
-            currentSortField={sortField}
-            currentSortDirection={sortDirection}
-            onSort={onSort}
-          />
-        </div>
-      )}
-
       {/* Area */}
-      <div className={isMobile ? 'flex-1' : 'min-w-[100px]'}>
+      <div className={isMobile ? 'flex-1' : 'min-w-[60px] ml-auto'}>
         <SortableColumnHeader
           label="Area"
           field="area"
@@ -81,7 +68,7 @@ export function DrawingTableHeader({
       </div>
 
       {/* System */}
-      <div className={isMobile ? 'flex-1' : 'min-w-[100px]'}>
+      <div className={isMobile ? 'flex-1' : 'min-w-[60px]'}>
         <SortableColumnHeader
           label="System"
           field="system"
@@ -93,7 +80,7 @@ export function DrawingTableHeader({
 
       {/* Test Package - Hidden on mobile */}
       {!isMobile && (
-        <div className="min-w-[120px]">
+        <div className="min-w-[80px]">
           <SortableColumnHeader
             label="Test Package"
             field="test_package"

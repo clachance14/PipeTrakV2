@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import type { MilestoneConfig } from '@/types/drawing-table.types'
+import type { MilestoneConfig, ComponentRow } from '@/types/drawing-table.types'
 
 export interface PartialMilestoneInputProps {
   /** Milestone configuration from progress template */
@@ -20,14 +20,24 @@ export interface PartialMilestoneInputProps {
 
   /** Whether to abbreviate label for mobile (Receive → Recv, Install → Inst, Restore → Rest) */
   abbreviate?: boolean
+
+  /** Component data (optional, for aggregate threaded pipe helper text - Feature 027) */
+  component?: ComponentRow
+
+  /** Display variant - 'default' or 'compact' for card grid layout */
+  variant?: 'default' | 'compact'
 }
 
 /**
- * Abbreviation map for mobile milestone labels
+ * Abbreviation map for milestone labels
  */
 const LABEL_ABBREVIATIONS: Record<string, string> = {
   'Receive': 'Recv',
-  'Install': 'Inst',
+  'Fabricate': 'FAB',
+  'Install': 'INST',
+  'Erect': 'ER',
+  'Connect': 'CONN',
+  'Support': 'SUP',
   'Restore': 'Rest',
   // 'Punch' and 'Test' are already short
 }
@@ -55,14 +65,25 @@ export function PartialMilestoneInput({
   disabled,
   isMobile = false,
   abbreviate = false,
+  component,
+  variant = 'default',
 }: PartialMilestoneInputProps) {
-  const displayLabel = abbreviate && LABEL_ABBREVIATIONS[milestone.name]
-    ? LABEL_ABBREVIATIONS[milestone.name]
-    : milestone.name
   const [localValue, setLocalValue] = useState(currentValue)
   const [hasError, setHasError] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const revertTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Feature 027: Aggregate threaded pipe helper text
+  const isAggregateThreadedPipe =
+    component?.component_type === 'threaded_pipe' &&
+    component.identity_key &&
+    'pipe_id' in component.identity_key &&
+    component.identity_key.pipe_id?.endsWith('-AGG')
+
+  const totalLF = component?.attributes?.total_linear_feet
+  const linearFeet = totalLF && isAggregateThreadedPipe
+    ? Math.round((localValue / 100) * totalLF)
+    : null
 
   // Sync local value when currentValue prop changes
   useEffect(() => {
@@ -191,14 +212,22 @@ export function PartialMilestoneInput({
     }
   }
 
+  // Force abbreviations for aggregate threaded pipe
+  const shouldAbbreviate = abbreviate || isAggregateThreadedPipe
+  const finalLabel = shouldAbbreviate && LABEL_ABBREVIATIONS[milestone.name]
+    ? LABEL_ABBREVIATIONS[milestone.name]
+    : milestone.name
+
+  const compact = variant === 'compact'
+
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className={compact ? "flex flex-col gap-0.5 items-start" : "flex flex-col items-center gap-0.5"}>
       {/* Milestone name label */}
       <label
         htmlFor={`milestone-${milestone.name}-${currentValue}`}
-        className={`text-slate-700 font-medium text-center ${isMobile ? 'text-xs' : 'text-xs'}`}
+        className={`text-[10px] font-medium tracking-wide ${compact ? '' : 'uppercase text-muted-foreground'} ${isMobile ? 'text-xs' : ''}`}
       >
-        {displayLabel}
+        {finalLabel}
       </label>
 
       {/* Input with % suffix */}
@@ -222,20 +251,28 @@ export function PartialMilestoneInput({
           aria-valuenow={currentValue}
           aria-invalid={hasError}
           className={`
-            rounded text-center font-medium transition-colors
+            rounded-md border text-center text-xs transition-colors
             ${hasError
-              ? 'border-2 border-red-500 ring-2 ring-red-500 animate-shake'
-              : 'border border-slate-300'
+              ? 'border-red-500 ring-1 ring-red-500 animate-shake'
+              : 'border-input'
             }
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-            disabled:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed
-            ${isMobile ? 'w-12 h-12 text-base' : 'w-14 h-8 text-sm'}
+            focus:outline-none focus:ring-1
+            disabled:cursor-not-allowed disabled:opacity-50
+            ${isMobile ? 'w-12 h-12 text-base' : compact ? 'w-10 h-7' : 'w-10 h-7'}
           `}
         />
-        <span className={`text-slate-600 ${isMobile ? 'text-base' : 'text-sm'}`}>
+        <span className={`text-[10px] text-muted-foreground ${isMobile ? 'text-base' : ''}`}>
           %
         </span>
       </div>
+
+      {/* Helper text: Linear feet for aggregate threaded pipe (Feature 027) */}
+      {/* Only show in compact mode when value > 0 and totalLF > 0 */}
+      {compact && linearFeet !== null && localValue > 0 && totalLF && totalLF > 0 && (
+        <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+          {linearFeet} / {totalLF} LF
+        </span>
+      )}
     </div>
   )
 }

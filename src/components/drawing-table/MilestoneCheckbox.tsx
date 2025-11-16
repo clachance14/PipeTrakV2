@@ -17,6 +17,8 @@ export interface MilestoneCheckboxProps {
   abbreviate?: boolean
   /** Whether this is rendered on mobile (affects hit area sizing) */
   isMobile?: boolean
+  /** Compact variant for card grid layout */
+  compact?: boolean
 }
 
 /**
@@ -43,6 +45,7 @@ export function MilestoneCheckbox({
   disabled,
   abbreviate = false,
   isMobile = false,
+  compact = false,
 }: MilestoneCheckboxProps) {
   const displayLabel = abbreviate && LABEL_ABBREVIATIONS[milestone.name]
     ? LABEL_ABBREVIATIONS[milestone.name]
@@ -57,12 +60,13 @@ export function MilestoneCheckbox({
         aria-label={`${milestone.name} milestone`}
         className={cn(
           disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-          isMobile ? 'h-5 w-5' : ''
+          isMobile ? 'h-5 w-5' : compact ? 'h-3 w-3' : ''
         )}
       />
       <span
         className={cn(
-          'text-xs font-medium truncate',
+          compact ? 'text-[11px]' : 'text-xs',
+          'font-medium truncate',
           disabled ? 'cursor-not-allowed text-muted-foreground' : 'cursor-pointer'
         )}
       >
@@ -94,15 +98,13 @@ export function MilestoneCheckbox({
     )
   }
 
-  // Mobile: big button with visual feedback
+  // Mobile: big touch-friendly container with visual feedback
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={() => onChange(!checked)}
-            disabled={disabled}
+          <div
+            onClick={() => !disabled && onChange(!checked)}
             className={cn(
               'flex items-center gap-2 w-full',
               'rounded-md border px-2 py-2',
@@ -111,21 +113,18 @@ export function MilestoneCheckbox({
               disabled
                 ? 'opacity-50 cursor-not-allowed bg-slate-100 border-slate-200'
                 : checked
-                ? 'bg-blue-50 border-blue-400'
-                : 'bg-white border-slate-300'
+                ? 'bg-blue-50 border-blue-400 cursor-pointer'
+                : 'bg-white border-slate-300 cursor-pointer'
             )}
-            aria-label={`${milestone.name} milestone`}
-            aria-checked={checked}
-            role="checkbox"
           >
             <Checkbox
               checked={checked}
+              onCheckedChange={onChange}
               disabled={disabled}
-              aria-hidden="true"
-              tabIndex={-1}
+              aria-label={`${milestone.name} milestone`}
               className={cn(
                 disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-                'h-5 w-5 pointer-events-none'
+                'h-5 w-5'
               )}
             />
             <span
@@ -136,7 +135,7 @@ export function MilestoneCheckbox({
             >
               {displayLabel}
             </span>
-          </button>
+          </div>
         </TooltipTrigger>
         <TooltipContent>
           <p>{milestone.weight}% of total progress</p>
