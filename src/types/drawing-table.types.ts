@@ -128,6 +128,10 @@ export interface DrawingRow {
   /** Test package metadata (optional) */
   test_package: { id: string; name: string } | null
 
+  // Aggregated from components
+  /** Most common spec from components on this drawing (optional) */
+  spec: string | null
+
   // From mv_drawing_progress view
   /** Total count of components on this drawing */
   total_components: number

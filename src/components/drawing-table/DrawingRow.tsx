@@ -41,9 +41,10 @@ export function DrawingRow({
   const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 
-  // Mobile: single-line summary "DRAIN-1 · A1 · S1 · 100%"
+  // Mobile: single-line summary "DRAIN-1 · ES-03 · A1 · S1 · 100%"
   const mobileSummary = [
     drawing.drawing_no_norm,
+    drawing.spec || '—',
     drawing.area?.name || '—',
     drawing.system?.name || '—',
     `${Math.round(drawing.avg_percent_complete)}%`
@@ -101,6 +102,11 @@ export function DrawingRow({
           {/* Drawing number */}
           <div className="min-w-[140px] text-base font-semibold text-slate-900 truncate">
             {drawing.drawing_no_norm}
+          </div>
+
+          {/* Spec (most common from components) */}
+          <div className="min-w-[80px] text-sm text-slate-600 truncate">
+            {drawing.spec || '—'}
           </div>
 
           {/* Area (with inline edit pencil) */}
