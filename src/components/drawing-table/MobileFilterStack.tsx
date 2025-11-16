@@ -1,8 +1,8 @@
 /**
  * MobileFilterStack Component
  * Feature: 015-mobile-milestone-updates
- * Purpose: Vertical stack layout for filters on mobile devices (≤1024px)
- * Enhancement: Collapsible filters to maximize table space (2025-11-02)
+ * Purpose: Collapsible filter controls that work on all screen sizes
+ * Enhancement: Inline toggle button with full-width collapsible content (2025-11-16)
  */
 
 import { useState, useEffect } from 'react'
@@ -60,14 +60,13 @@ export function MobileFilterStack({
     setIsExpanded(prev => !prev)
   }
 
-  return (
-    <div className="flex flex-col gap-2">
-      {/* Toggle Button with Count */}
+  return {
+    toggleButton: (
       <Button
         variant="outline"
         size="sm"
         onClick={handleToggle}
-        className="flex items-center justify-between min-h-[44px] w-full px-3 py-2"
+        className="flex items-center justify-between min-h-[44px] w-full md:w-auto md:min-w-[200px] px-3 py-2"
         aria-expanded={isExpanded}
         aria-controls="mobile-filters-content"
         aria-label={isExpanded ? "Hide filter controls" : "Show filter controls"}
@@ -87,10 +86,10 @@ export function MobileFilterStack({
           {showingCount}/{totalCount}
         </span>
       </Button>
-
-      {/* Collapsible Container */}
+    ),
+    collapsibleContent: (
       <div
-        className="collapsible-grid"
+        className="collapsible-grid w-full"
         data-expanded={isExpanded}
         id="mobile-filters-content"
       >
@@ -131,6 +130,6 @@ export function MobileFilterStack({
           </div>
         </div>
       </div>
-    </div>
-  )
+    ),
+  }
 }
