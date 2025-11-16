@@ -35,5 +35,5 @@ AS $$
 $$;
 
 -- Comment explaining the fix
-COMMENT ON FUNCTION get_most_common_spec_per_drawing IS
+COMMENT ON FUNCTION get_most_common_spec_per_drawing(uuid) IS
   'Returns the most frequently occurring non-empty spec value from component attributes for each drawing. Empty strings and NULL values are excluded from the calculation.';

@@ -51,8 +51,9 @@ for (const component of existingComponents) {
     continue
   }
 
+  const baseAttributes = component.attributes ?? {}
   const updatedAttributes = {
-    ...component.attributes,
+    ...baseAttributes,
     line_numbers: component.attributes?.line_number
       ? [String(component.attributes.line_number)]
       : []
