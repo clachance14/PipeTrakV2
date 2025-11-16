@@ -194,6 +194,15 @@ export function ComponentDetailView({
     );
   }
 
+  // Extract attributes with type safety
+  const attributes = component?.attributes as {
+    spec?: string;
+    description?: string;
+    [key: string]: unknown;
+  } | null;
+  const spec = attributes?.spec || 'Not specified';
+  const description = attributes?.description || 'Not specified';
+
   // Calculate milestone stats
   // Use effective_template (project-specific) if available, fallback to progress_template (system default)
   // Feature 026: effective_template comes from useEffectiveTemplate hook
@@ -223,6 +232,21 @@ export function ComponentDetailView({
               <span className="text-2xl font-mono">{identityDisplay}</span>
               <Badge variant="secondary">{component.component_type}</Badge>
             </div>
+          </div>
+
+          {/* Component Attributes */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Attributes</h3>
+            <dl className="space-y-2">
+              <div className="flex flex-col sm:flex-row sm:gap-4">
+                <dt className="text-sm font-medium text-muted-foreground min-w-[120px]">Spec</dt>
+                <dd className="text-sm">{spec}</dd>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:gap-4">
+                <dt className="text-sm font-medium text-muted-foreground min-w-[120px]">Description</dt>
+                <dd className="text-sm">{description}</dd>
+              </div>
+            </dl>
           </div>
 
           {/* Progress */}
@@ -528,6 +552,21 @@ export function ComponentDetailView({
                 <span className="text-2xl font-mono">{identityDisplay}</span>
                 <Badge variant="secondary">{component.component_type}</Badge>
               </div>
+            </div>
+
+            {/* Component Attributes */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Attributes</h3>
+              <dl className="space-y-2">
+                <div className="flex flex-col sm:flex-row sm:gap-4">
+                  <dt className="text-sm font-medium text-muted-foreground min-w-[120px]">Spec</dt>
+                  <dd className="text-sm">{spec}</dd>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:gap-4">
+                  <dt className="text-sm font-medium text-muted-foreground min-w-[120px]">Description</dt>
+                  <dd className="text-sm">{description}</dd>
+                </div>
+              </dl>
             </div>
 
             {/* Progress */}
