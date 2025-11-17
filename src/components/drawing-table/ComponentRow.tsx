@@ -350,9 +350,26 @@ export function ComponentRow({
                       inputMode="numeric"
                       value={percentValue}
                       onChange={(e) => {
-                        const val = parseInt(e.target.value, 10)
+                        const value = e.target.value
+                        // Allow empty string (user clearing field)
+                        if (value === '') {
+                          handleMilestoneChange(milestone.name, 0)
+                          return
+                        }
+                        const val = parseInt(value, 10)
                         if (!isNaN(val) && val >= 0 && val <= 100) {
                           handleMilestoneChange(milestone.name, val)
+                        }
+                      }}
+                      onFocus={(e) => {
+                        // Select all text for easy replacement
+                        e.target.select()
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          // Prevent Enter from bubbling to parent ComponentRow
+                          e.preventDefault()
+                          e.stopPropagation()
                         }
                       }}
                       disabled={!component.canUpdate}

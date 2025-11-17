@@ -432,6 +432,136 @@ describe('ComponentRow', () => {
   })
 
   describe('Aggregate Threaded Pipe Display (Feature 027)', () => {
+    describe('Inline Milestone Input Editing', () => {
+      const mockOnClick = vi.fn()
+
+      const aggregateThreadedPipeComponent: ComponentRowType = {
+        ...mockComponent,
+        component_type: 'threaded_pipe',
+        identity_key: {
+          pipe_id: 'P001-1-PIPE-SCH40-AGG'
+        },
+        identityDisplay: 'P001-1-PIPE-SCH40-AGG',
+        attributes: {
+          total_linear_feet: 100,
+          original_qty: 100,
+          line_numbers: ['101', '205']
+        },
+        current_milestones: {
+          Fabricate: 50,
+          Install: 30,
+          Erect: 0,
+          Connect: 0,
+          Support: 0
+        },
+        template: {
+          milestones_config: [
+            { name: 'Fabricate', label: 'Fabricate', is_partial: true, order: 1 },
+            { name: 'Install', label: 'Install', is_partial: true, order: 2 },
+            { name: 'Erect', label: 'Erect', is_partial: true, order: 3 },
+            { name: 'Connect', label: 'Connect', is_partial: false, order: 4 },
+            { name: 'Support', label: 'Support', is_partial: false, order: 5 }
+          ]
+        }
+      }
+
+      beforeEach(() => {
+        mockOnClick.mockClear()
+        mockOnMilestoneUpdate.mockClear()
+      })
+
+      // BUG FIX TEST: Enter key should NOT open component detail page
+      it('does NOT trigger onClick when Enter pressed on aggregate threaded pipe milestone input', () => {
+        render(
+          <ComponentRow
+            component={aggregateThreadedPipeComponent}
+            drawing={mockDrawing}
+            area={aggregateThreadedPipeComponent.area}
+            system={aggregateThreadedPipeComponent.system}
+            testPackage={aggregateThreadedPipeComponent.test_package}
+            onMilestoneUpdate={mockOnMilestoneUpdate}
+            onClick={mockOnClick}
+          />
+        )
+
+        // Find the Fabricate input (first partial milestone in aggregate threaded pipe)
+        const inputs = screen.getAllByRole('spinbutton')
+        expect(inputs.length).toBeGreaterThan(0)
+
+        const fabricateInput = inputs[0] as HTMLInputElement
+
+        // Focus and press Enter
+        fabricateInput.focus()
+        fabricateInput.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'Enter',
+            bubbles: true,
+            cancelable: true
+          })
+        )
+
+        // Enter should NOT trigger row click
+        expect(mockOnClick).not.toHaveBeenCalled()
+      })
+
+      // BUG FIX TEST: Should allow clearing/deleting value
+      it('allows clearing value in aggregate threaded pipe milestone input', () => {
+        render(
+          <ComponentRow
+            component={aggregateThreadedPipeComponent}
+            drawing={mockDrawing}
+            area={aggregateThreadedPipeComponent.area}
+            system={aggregateThreadedPipeComponent.system}
+            testPackage={aggregateThreadedPipeComponent.test_package}
+            onMilestoneUpdate={mockOnMilestoneUpdate}
+          />
+        )
+
+        // Find the Fabricate input (currently 50%)
+        const inputs = screen.getAllByRole('spinbutton')
+        const fabricateInput = inputs[0] as HTMLInputElement
+
+        expect(fabricateInput.value).toBe('50')
+
+        // Clear the value (simulate user deleting all text)
+        fabricateInput.focus()
+        fabricateInput.value = ''
+        fabricateInput.dispatchEvent(new Event('change', { bubbles: true }))
+
+        // Input should accept empty value and convert to 0
+        expect(fabricateInput.value).toBe('')
+      })
+
+      // BUG FIX TEST: Should select all text on focus for easy replacement
+      it('selects all text on focus in aggregate threaded pipe milestone input', () => {
+        const selectSpy = vi.fn()
+
+        render(
+          <ComponentRow
+            component={aggregateThreadedPipeComponent}
+            drawing={mockDrawing}
+            area={aggregateThreadedPipeComponent.area}
+            system={aggregateThreadedPipeComponent.system}
+            testPackage={aggregateThreadedPipeComponent.test_package}
+            onMilestoneUpdate={mockOnMilestoneUpdate}
+          />
+        )
+
+        // Find the Fabricate input
+        const inputs = screen.getAllByRole('spinbutton')
+        const fabricateInput = inputs[0] as HTMLInputElement
+
+        // Spy on select() method before focusing
+        fabricateInput.select = selectSpy
+
+        // Focus the input - should trigger onFocus handler
+        fabricateInput.focus()
+
+        // Should call select() to highlight all text
+        expect(selectSpy).toHaveBeenCalled()
+      })
+    })
+
     // T027: Component test - Aggregate display with "+X more (X LF)" format
     it('displays aggregate threaded pipe with multiple line numbers in "+X more (X LF)" format', () => {
       const aggregateComponent: ComponentRowType = {
