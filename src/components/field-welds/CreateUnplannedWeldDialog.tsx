@@ -61,7 +61,9 @@ export function CreateUnplannedWeldDialog({
   // Auto-generate next weld number when dialog opens
   useEffect(() => {
     if (open && projectId) {
-      generateWeldNumber()
+      // Clear previous value to avoid submitting with a stale weld number
+      setWeldNumber('')
+      void generateWeldNumber()
     }
   }, [open, projectId])
 
