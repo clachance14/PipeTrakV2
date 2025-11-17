@@ -474,8 +474,7 @@ export async function processImportV2(
             // Note: current_milestones is NOT updated (preserved)
           });
 
-          // Count as updated
-          componentsByType[newAggregate.component_type] = (componentsByType[newAggregate.component_type] || 0);
+          // componentsByType already incremented in main loop (line 308)
         } else {
           // CREATE: New aggregate component
           components.push(newAggregate);
