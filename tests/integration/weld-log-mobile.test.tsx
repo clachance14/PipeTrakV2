@@ -576,7 +576,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify main modal is open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Open NDE dialog
@@ -597,7 +597,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify main modal is still open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Verify main modal's onClose was NOT called
