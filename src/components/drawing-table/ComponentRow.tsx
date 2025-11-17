@@ -140,7 +140,22 @@ export function ComponentRow({
   const lineNumberTooltip = getLineNumberTooltip()
 
   const getMilestoneControl = (milestoneConfig: MilestoneConfig) => {
-    const currentValue = component.current_milestones[milestoneConfig.name]
+    // For aggregate threaded pipe, database stores milestones with "_LF" suffix
+    // We need to convert absolute LF values back to percentages for display
+    let currentValue = component.current_milestones[milestoneConfig.name]
+
+    if (isAggregateThreadedPipe && milestoneConfig.is_partial) {
+      const lfKey = `${milestoneConfig.name}_LF`
+      const lfValue = component.current_milestones[lfKey]
+      const totalLF = component.attributes?.total_linear_feet ?? 0
+
+      if (typeof lfValue === 'number' && totalLF > 0) {
+        // Convert absolute LF to percentage: (LF / total) * 100
+        currentValue = Math.round((lfValue / totalLF) * 100)
+      } else {
+        currentValue = 0
+      }
+    }
 
     // Partial milestone (percentage) - inline numeric input
     if (milestoneConfig.is_partial) {
@@ -331,53 +346,34 @@ export function ComponentRow({
       {isAggregateThreadedPipe ? (
         // Single merged milestone area spanning all milestone columns
         <div className="flex items-center gap-1 px-2">
-          {/* Partial milestones (5 inputs) */}
+          {/* Partial milestones (5 inputs) - Use PartialMilestoneInput to prevent onChange saves */}
           {component.template.milestones_config
             .filter(m => m.is_partial)
             .map((milestone) => {
-              const currentValue = component.current_milestones[milestone.name]
-              const percentValue = typeof currentValue === 'number' ? currentValue : 0
-              const abbreviation = LABEL_ABBREVIATIONS[milestone.name] || milestone.name
+              // For aggregate threaded pipe, database stores milestones with "_LF" suffix
+              // We need to convert absolute LF values back to percentages for display
+              const lfKey = `${milestone.name}_LF`
+              const lfValue = component.current_milestones[lfKey]
+              const totalLF = component.attributes?.total_linear_feet ?? 0
+
+              let percentValue = 0
+              if (typeof lfValue === 'number' && totalLF > 0) {
+                // Convert absolute LF to percentage: (LF / total) * 100
+                percentValue = Math.round((lfValue / totalLF) * 100)
+              }
 
               return (
-                <div key={milestone.name} className="flex items-center gap-0.5">
-                  <span className="text-[9px] font-medium text-muted-foreground uppercase">
-                    {abbreviation}
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={percentValue}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        // Allow empty string (user clearing field)
-                        if (value === '') {
-                          handleMilestoneChange(milestone.name, 0)
-                          return
-                        }
-                        const val = parseInt(value, 10)
-                        if (!isNaN(val) && val >= 0 && val <= 100) {
-                          handleMilestoneChange(milestone.name, val)
-                        }
-                      }}
-                      onFocus={(e) => {
-                        // Select all text for easy replacement
-                        e.target.select()
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          // Prevent Enter from bubbling to parent ComponentRow
-                          e.preventDefault()
-                          e.stopPropagation()
-                        }
-                      }}
-                      disabled={!component.canUpdate}
-                      className="w-14 h-6 text-xs text-center rounded border border-input pr-3 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                    <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-muted-foreground pointer-events-none">%</span>
-                  </div>
-                </div>
+                <PartialMilestoneInput
+                  key={milestone.name}
+                  milestone={milestone}
+                  currentValue={percentValue}
+                  onUpdate={(value) => handleMilestoneChange(milestone.name, value)}
+                  disabled={!component.canUpdate}
+                  abbreviate={true}
+                  component={component}
+                  variant="compact"
+                  showLinearFeetHelper={false}
+                />
               )
             })}
 

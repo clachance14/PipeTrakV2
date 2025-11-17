@@ -26,6 +26,9 @@ export interface PartialMilestoneInputProps {
 
   /** Display variant - 'default' or 'compact' for card grid layout */
   variant?: 'default' | 'compact'
+
+  /** Whether to show linear feet helper text (default: true) */
+  showLinearFeetHelper?: boolean
 }
 
 /**
@@ -67,11 +70,13 @@ export function PartialMilestoneInput({
   abbreviate = false,
   component,
   variant = 'default',
+  showLinearFeetHelper = true,
 }: PartialMilestoneInputProps) {
   const [localValue, setLocalValue] = useState(currentValue)
   const [hasError, setHasError] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const revertTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const justSavedRef = useRef(false)
 
   // Feature 027: Aggregate threaded pipe helper text
   const isAggregateThreadedPipe =
@@ -128,6 +133,12 @@ export function PartialMilestoneInput({
   }
 
   const handleBlur = () => {
+    // Skip if we just saved via Enter key (prevents duplicate save)
+    if (justSavedRef.current) {
+      justSavedRef.current = false
+      return
+    }
+
     // Handle empty input - revert silently
     if (localValue === 0 && currentValue !== 0) {
       setLocalValue(currentValue)
@@ -181,12 +192,15 @@ export function PartialMilestoneInput({
         return
       }
 
+      // Set flag to prevent handleBlur from saving again when we focus next input
+      justSavedRef.current = true
+
       if (roundedValue !== currentValue) {
         onUpdate(roundedValue)
         toast.success(`${milestone.name} updated to ${roundedValue}%`)
       }
 
-      // Find next input and focus it
+      // Find next input and focus it (this triggers blur on current input)
       const currentInput = inputRef.current
       if (currentInput) {
         const allInputs = Array.from(
@@ -196,6 +210,9 @@ export function PartialMilestoneInput({
         const nextInput = allInputs[currentIndex + 1]
         if (nextInput) {
           nextInput.focus()
+        } else {
+          // If no next input, reset flag since blur won't be triggered
+          justSavedRef.current = false
         }
       }
     } else if (e.key === 'Escape') {
@@ -267,8 +284,8 @@ export function PartialMilestoneInput({
       </div>
 
       {/* Helper text: Linear feet for aggregate threaded pipe (Feature 027) */}
-      {/* Only show in compact mode when value > 0 and totalLF > 0 */}
-      {compact && linearFeet !== null && localValue > 0 && totalLF && totalLF > 0 && (
+      {/* Only show in compact mode when value > 0 and totalLF > 0 and showLinearFeetHelper is true */}
+      {showLinearFeetHelper && compact && linearFeet !== null && localValue > 0 && totalLF && totalLF > 0 && (
         <span className="text-[9px] text-muted-foreground whitespace-nowrap">
           {linearFeet} / {totalLF} LF
         </span>

@@ -59,6 +59,7 @@ export function useComponentsByDrawings(drawingIds: string[]) {
             component_type: component.component_type as any, // Type assertion for component_type
             identity_key: component.identity_key as any, // Type assertion for identity_key
             current_milestones: component.current_milestones as any,
+            attributes: component.attributes as any, // Include attributes for aggregate threaded pipe (total_linear_feet)
             percent_complete: component.percent_complete,
             created_at: component.created_at,
             last_updated_at: component.last_updated_at,
