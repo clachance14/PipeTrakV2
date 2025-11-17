@@ -28,7 +28,7 @@ SET attributes = jsonb_set(
   true -- create if not exists
 )
 WHERE component_type = 'threaded_pipe'
-  AND NOT (attributes ? 'line_numbers'); -- Only update if line_numbers doesn't exist
+  AND NOT COALESCE(attributes ? 'line_numbers', false); -- Only update if line_numbers doesn't exist
 
 -- ============================================================================
 -- Part 2: Update calculate_component_percent to handle aggregate threaded pipe

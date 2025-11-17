@@ -284,8 +284,9 @@ export async function processImportV2(
 
     // Step 4: Generate components
     const components: any[] = [];
-    const componentsToUpdate: any[] = [];
     const componentsByType: Record<string, number> = {};
+    let componentsCreated = 0;
+    let componentsUpdated = 0;
 
     // For threaded_pipe: Track existing aggregates to update
     const threadedPipeAggregates = new Map<string, any>(); // pipe_id -> component data
@@ -410,95 +411,48 @@ export async function processImportV2(
       }
     });
 
-    // Step 4.5: Process threaded_pipe aggregates (check for existing components)
+    // Step 4.5: Process threaded_pipe aggregates using atomic upsert RPC
+    // (Prevents race conditions via SELECT...FOR UPDATE row-level locking)
     if (threadedPipeAggregates.size > 0) {
-      const pipeIds = Array.from(threadedPipeAggregates.keys());
-      const pipeIdSet = new Set(pipeIds);
-
-      // Query ALL threaded_pipe components for this project
-      // (Cannot use .in() with JSONB path in PostgREST, so filter client-side)
-      const { data: allComponents, error: queryError } = await supabase
-        .from('components')
-        .select('id, identity_key, attributes, current_milestones')
-        .eq('project_id', payload.projectId)
-        .eq('component_type', 'threaded_pipe');
-
-      if (queryError) {
-        throw new Error(`Failed to query existing threaded_pipe components: ${queryError.message}`);
-      }
-
-      // Filter components to only those with matching pipe_ids
-      const existingComponents = (allComponents || []).filter(comp => {
-        const pipeId = comp.identity_key?.pipe_id;
-        return pipeId && pipeIdSet.has(pipeId);
-      });
-
-      // Build map of existing components by pipe_id
-      const existingMap = new Map<string, any>();
-      existingComponents.forEach(comp => {
-        const pipeId = comp.identity_key?.pipe_id;
-        if (pipeId) {
-          existingMap.set(pipeId, comp);
-        }
-      });
-
-      // Process each aggregate: update existing or create new
       for (const [pipeId, newAggregate] of threadedPipeAggregates.entries()) {
-        const existing = existingMap.get(pipeId);
+        // For each line number in this aggregate, call the atomic upsert RPC
+        // This ensures concurrent imports don't cause lost updates
+        for (const lineNumber of newAggregate.attributes.line_numbers) {
+          const { data: upsertResult, error: upsertError } = await supabase
+            .rpc('upsert_aggregate_threaded_pipe', {
+              p_project_id: payload.projectId,
+              p_drawing_id: newAggregate.drawing_id,
+              p_template_id: newAggregate.template_id,
+              p_identity_key: newAggregate.identity_key,
+              p_attributes: {
+                ...newAggregate.attributes,
+                line_numbers: [] // RPC will manage line_numbers
+              },
+              p_current_milestones: newAggregate.current_milestones,
+              p_area_id: newAggregate.area_id,
+              p_system_id: newAggregate.system_id,
+              p_test_package_id: newAggregate.test_package_id,
+              p_additional_linear_feet: newAggregate.attributes.total_linear_feet / newAggregate.attributes.line_numbers.length,
+              p_new_line_number: lineNumber
+            });
 
-        if (existing) {
-          // UPDATE: Sum quantities and append line numbers
-          const existingTotal = existing.attributes?.total_linear_feet || 0;
-          const existingLineNumbers = existing.attributes?.line_numbers || [];
-          const newLineNumbers = newAggregate.attributes.line_numbers;
+          if (upsertError) {
+            throw new Error(`Failed to upsert threaded_pipe aggregate ${pipeId}: ${upsertError.message}`);
+          }
 
-          // Sum total_linear_feet
-          const updatedTotal = existingTotal + newAggregate.attributes.total_linear_feet;
-
-          // Append new line numbers (avoid duplicates)
-          const updatedLineNumbers = [...existingLineNumbers];
-          newLineNumbers.forEach((lineNum: string) => {
-            if (!updatedLineNumbers.includes(lineNum)) {
-              updatedLineNumbers.push(lineNum);
+          // Track component creation/update for summary
+          if (upsertResult && upsertResult.length > 0) {
+            const result = upsertResult[0];
+            if (result.was_created) {
+              componentsCreated += 1;
+            } else {
+              componentsUpdated += 1;
             }
-          });
-
-          // Track for update (preserve current_milestones)
-          componentsToUpdate.push({
-            id: existing.id,
-            attributes: {
-              ...existing.attributes,
-              total_linear_feet: updatedTotal,
-              line_numbers: updatedLineNumbers
-            }
-            // Note: current_milestones is NOT updated (preserved)
-          });
-
-          // Count as updated
-          componentsByType[newAggregate.component_type] = (componentsByType[newAggregate.component_type] || 0);
-        } else {
-          // CREATE: New aggregate component
-          components.push(newAggregate);
-          componentsByType[newAggregate.component_type] = (componentsByType[newAggregate.component_type] || 0) + 1;
+          }
         }
       }
-    }
 
-    // Step 5: Update existing threaded_pipe aggregates
-    if (componentsToUpdate.length > 0) {
-      for (const update of componentsToUpdate) {
-        const { error: updateError } = await supabase
-          .from('components')
-          .update({
-            attributes: update.attributes
-            // Note: current_milestones preserved (not updated)
-          })
-          .eq('id', update.id);
-
-        if (updateError) {
-          throw new Error(`Failed to update component ${update.id}: ${updateError.message}`);
-        }
-      }
+      // componentsByType already incremented in main loop (line 308)
     }
 
     // Step 6: Insert new components in batches
@@ -521,8 +475,8 @@ export async function processImportV2(
 
     return {
       success: true,
-      componentsCreated: components.length,
-      componentsUpdated: componentsToUpdate.length,
+      componentsCreated: components.length + componentsCreated,
+      componentsUpdated,
       drawingsCreated,
       drawingsUpdated: drawingIdMap.size - drawingsCreated,
       metadataCreated,

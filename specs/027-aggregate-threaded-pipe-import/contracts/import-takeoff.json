@@ -314,7 +314,7 @@
           "result": "Existing component updated to total_linear_feet=100 (50+50)"
         }
       ],
-      "milestone_preservation": "Existing milestone absolute LF values preserved during quantity update (user warned to review progress). Example: Fabricate_LF remains 50 when total_linear_feet updates from 100 to 150 (percentage display recalculates from 100% to 67%)"
+      "milestone_preservation": "Existing milestone absolute LF values preserved during quantity update (user warned to review progress). Example: Fabricate_LF remains 100 when total_linear_feet updates from 100 to 150 (percentage display recalculates from 100% to 67%)"
     },
     "non_threaded_pipe_unchanged": {
       "description": "All other component types continue using discrete instance model",

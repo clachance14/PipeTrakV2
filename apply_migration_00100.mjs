@@ -16,15 +16,21 @@ envContent.split('\n').forEach(line => {
   }
 })
 
-// Read migration file
-const migrationSQL = readFileSync('supabase/migrations/00100_add_threaded_pipe_identity_validation.sql', 'utf-8')
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Error: Missing required environment variables')
+  console.error('Required: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY')
+  process.exit(1)
+}
+
+// Read migration file (correct path: 00114)
+const migrationSQL = readFileSync('supabase/migrations/00114_add_threaded_pipe_identity_validation.sql', 'utf-8')
 
 // Create client with service role (bypasses RLS)
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { persistSession: false, autoRefreshToken: false }
 })
 
-console.log('Applying migration 00100...')
+console.log('Applying migration 00114...')
 
 // Execute migration
 const { error } = await supabase.rpc('exec_sql', { sql_string: migrationSQL })
@@ -50,9 +56,9 @@ if (error) {
   } else {
     console.error('✗ Function does not support threaded_pipe validation yet')
     console.error('Please apply migration manually via Supabase Dashboard SQL Editor')
-    console.error('File: supabase/migrations/00100_add_threaded_pipe_identity_validation.sql')
+    console.error('File: supabase/migrations/00114_add_threaded_pipe_identity_validation.sql')
     process.exit(1)
   }
 } else {
-  console.log('✓ Migration 00100 applied successfully')
+  console.log('✓ Migration 00114 applied successfully')
 }
