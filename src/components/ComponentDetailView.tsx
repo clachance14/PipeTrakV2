@@ -38,6 +38,7 @@ interface ComponentDetailViewProps {
   canUpdateMilestones?: boolean; // Permission check
   canEditMetadata?: boolean;      // NEW
   onMetadataChange?: () => void;  // NEW
+  defaultTab?: 'overview' | 'details' | 'milestones' | 'history'; // Default tab to show (NEW - mobile support)
 }
 
 /**
@@ -50,8 +51,9 @@ export function ComponentDetailView({
   canUpdateMilestones = false,
   canEditMetadata = false,
   onMetadataChange,
+  defaultTab = 'overview',
 }: ComponentDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>(defaultTab);
   const [welderDialogOpen, setWelderDialogOpen] = useState(false);
 
   const { data: componentData, isLoading } = useComponent(componentId);
