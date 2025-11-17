@@ -11,6 +11,7 @@ import { ComponentAssignDialog } from '@/components/ComponentAssignDialog';
 import { ComponentDetailView } from '@/components/ComponentDetailView';
 import { useComponents } from '@/hooks/useComponents';
 import { useComponentSort } from '@/hooks/useComponentSort';
+import { useMobileDetection } from '@/hooks/useMobileDetection';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,12 +29,16 @@ export function ComponentsPage({
   projectId,
   canUpdateMilestones = false,
 }: ComponentsPageProps) {
+  const isMobile = useMobileDetection();
   const [filters, setFilters] = useState<ComponentFiltersState>({});
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
 
+  // Get filtered components
   const { data: components = [], isLoading } = useComponents(projectId, filters);
+  // Get total component count (unfiltered)
+  const { data: allComponents = [] } = useComponents(projectId, {});
   const { sortField, sortDirection, sortComponents, handleSort } = useComponentSort();
 
   // Sort components using the hook
@@ -55,24 +60,24 @@ export function ComponentsPage({
     <Layout>
       <div className="mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-4">Components</h1>
+        <div className="mb-6 space-y-4">
+          <h1 className="text-2xl font-bold">Components</h1>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <ComponentFilters projectId={projectId} onFilterChange={setFilters} />
+          <ComponentFilters
+            projectId={projectId}
+            onFilterChange={setFilters}
+            filteredCount={sortedComponents.length}
+            totalCount={allComponents.length}
+          />
 
-            {selectedComponentIds.length > 0 && (
-              <Button onClick={() => setShowAssignDialog(true)}>
-                Assign {selectedComponentIds.length} Component
-                {selectedComponentIds.length !== 1 ? 's' : ''}
-              </Button>
-            )}
-
-            <div className="ml-auto text-sm text-slate-600">
-              Showing {sortedComponents.length} component{sortedComponents.length !== 1 ? 's' : ''}
-            </div>
-          </div>
+          {/* Assign Button */}
+          {selectedComponentIds.length > 0 && (
+            <Button onClick={() => setShowAssignDialog(true)}>
+              Assign {selectedComponentIds.length} Component
+              {selectedComponentIds.length !== 1 ? 's' : ''}
+            </Button>
+          )}
         </div>
 
         {/* Component List */}
@@ -101,6 +106,7 @@ export function ComponentsPage({
                 componentId={selectedComponentId}
                 canUpdateMilestones={canUpdateMilestones}
                 canEditMetadata={true}
+                defaultTab={isMobile ? 'milestones' : 'overview'}
                 onMetadataChange={() => {
                   // Optionally refetch components list
                 }}

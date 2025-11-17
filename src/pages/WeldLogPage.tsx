@@ -16,6 +16,10 @@ import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
 import { CreateRepairWeldDialog } from '@/components/field-welds/CreateRepairWeldDialog'
 import { WeldDetailModal } from '@/components/weld-log/WeldDetailModal'
 import { UpdateWeldDialog } from '@/components/field-welds/UpdateWeldDialog'
+import { CreateUnplannedWeldDialog } from '@/components/field-welds/CreateUnplannedWeldDialog'
+import { Button } from '@/components/ui/button'
+import { canCreateFieldWeld } from '@/lib/permissions'
+import { Plus } from 'lucide-react'
 
 export function WeldLogPage() {
   const { user } = useAuth()
@@ -37,6 +41,7 @@ export function WeldLogPage() {
   const [isWelderDialogOpen, setIsWelderDialogOpen] = useState(false)
   const [isNDEDialogOpen, setIsNDEDialogOpen] = useState(false)
   const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false)
+  const [isCreateUnplannedDialogOpen, setIsCreateUnplannedDialogOpen] = useState(false)
 
   // Extract unique drawings, welders, packages, and systems for filter dropdowns
   const drawings = useMemo(() => {
@@ -160,10 +165,23 @@ export function WeldLogPage() {
       <div className="flex flex-col h-full mx-auto max-w-[1920px] px-4 py-3 md:py-8 sm:px-6 lg:px-8">
         {/* Page Header - Fixed */}
         <div className="flex-shrink-0 mb-3 md:mb-6">
-          <h1 className="text-lg md:text-3xl font-bold text-slate-900">Weld Log</h1>
-          <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-600">
-            QC tracking for all project field welds - Sortable table with advanced filtering
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg md:text-3xl font-bold text-slate-900">Weld Log</h1>
+              <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-600">
+                QC tracking for all project field welds - Sortable table with advanced filtering
+              </p>
+            </div>
+            {user?.role && canCreateFieldWeld(user.role) && (
+              <Button
+                onClick={() => setIsCreateUnplannedDialogOpen(true)}
+                className="min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Weld
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filters - Fixed */}
@@ -259,6 +277,13 @@ export function WeldLogPage() {
           />
         </>
       )}
+
+      {/* Create Unplanned Weld Dialog (Feature 028) */}
+      <CreateUnplannedWeldDialog
+        open={isCreateUnplannedDialogOpen}
+        onOpenChange={setIsCreateUnplannedDialogOpen}
+        projectId={projectId}
+      />
     </Layout>
   )
 }

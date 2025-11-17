@@ -384,3 +384,10 @@ Add components: `npx shadcn@latest add <component>` or manually to `src/componen
 - Coding style or architecture evolves (new testing pattern, new UI pattern)
 
 **Why**: Outdated guidance causes Claude to use old patterns. Keep this file current.
+
+## Active Technologies
+- TypeScript 5 (strict mode), React 18, PostgreSQL 15+ (Supabase) (028-add-unplanned-welds)
+- Supabase PostgreSQL with RLS (028-add-unplanned-welds)
+
+## Recent Changes
+- 028-add-unplanned-welds: Added TypeScript 5 (strict mode), React 18, PostgreSQL 15+ (Supabase)

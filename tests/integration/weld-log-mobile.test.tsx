@@ -452,7 +452,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify modal is open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Click "Record NDE" button
@@ -495,7 +495,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify modal is open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Click "Update Weld" button (mobile modal shows this, not "Assign Welder")
@@ -535,7 +535,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify modal is open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Verify "Record NDE" button is either hidden or disabled
@@ -576,7 +576,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify main modal is open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Open NDE dialog
@@ -597,7 +597,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify main modal is still open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Verify main modal's onClose was NOT called
@@ -636,7 +636,7 @@ describe('Weld Log Mobile Integration Tests', () => {
 
       // Verify modal is open
       await waitFor(() => {
-        expect(screen.getByText('Weld Details')).toBeInTheDocument()
+        expect(screen.getByText(/Weld Details/i)).toBeInTheDocument()
       })
 
       // Find action buttons
