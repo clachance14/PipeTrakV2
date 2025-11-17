@@ -563,4 +563,145 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(updatedComponent!.current_milestones.Fabricate_LF).toBe(100);
     expect(updatedComponent!.current_milestones.Fabricate).toBeUndefined();
   });
+
+  it('T042: atomic upsert RPC prevents lost updates in sequential calls', async () => {
+    // This test verifies the atomic upsert RPC works correctly for sequential calls
+    // (Concurrent testing would require multi-threaded test harness)
+
+    // Skip test if authentication failed
+    if (!testProjectId) {
+      console.warn('Skipping test - no test project created');
+      return;
+    }
+
+    const pipeId = 'P-TEST-1-PIPE-SCH40-AGG';
+    const identityKey = { pipe_id: pipeId };
+
+    // Call 1: Create new aggregate with 50 LF on line "101"
+    const { data: result1, error: error1 } = await supabase.rpc(
+      'upsert_aggregate_threaded_pipe',
+      {
+        p_project_id: testProjectId,
+        p_drawing_id: testDrawingId,
+        p_template_id: threadedPipeTemplateId,
+        p_identity_key: identityKey,
+        p_attributes: {
+          spec: '',
+          description: 'Test pipe',
+          size: '1"',
+          cmdty_code: 'PIPE-SCH40',
+          comments: '',
+          original_qty: 50
+        },
+        p_current_milestones: {
+          Fabricate_LF: 0,
+          Install_LF: 0,
+          Erect_LF: 0,
+          Connect_LF: 0,
+          Support_LF: 0,
+          Punch: false,
+          Test: false,
+          Restore: false
+        },
+        p_area_id: null,
+        p_system_id: null,
+        p_test_package_id: null,
+        p_additional_linear_feet: 50,
+        p_new_line_number: '101'
+      }
+    );
+
+    expect(error1).toBeNull();
+    expect(result1).toBeDefined();
+    expect(result1!.length).toBe(1);
+    expect(result1![0].was_created).toBe(true);
+    expect(result1![0].total_linear_feet).toBe(50);
+    expect(result1![0].line_numbers).toEqual(['101']);
+
+    const componentId = result1![0].component_id;
+
+    // Call 2: Update same aggregate with +30 LF on line "102"
+    const { data: result2, error: error2 } = await supabase.rpc(
+      'upsert_aggregate_threaded_pipe',
+      {
+        p_project_id: testProjectId,
+        p_drawing_id: testDrawingId,
+        p_template_id: threadedPipeTemplateId,
+        p_identity_key: identityKey,
+        p_attributes: {
+          spec: '',
+          description: 'Test pipe',
+          size: '1"',
+          cmdty_code: 'PIPE-SCH40',
+          comments: '',
+          original_qty: 30
+        },
+        p_current_milestones: {
+          Fabricate_LF: 0,
+          Install_LF: 0,
+          Erect_LF: 0,
+          Connect_LF: 0,
+          Support_LF: 0,
+          Punch: false,
+          Test: false,
+          Restore: false
+        },
+        p_area_id: null,
+        p_system_id: null,
+        p_test_package_id: null,
+        p_additional_linear_feet: 30,
+        p_new_line_number: '102'
+      }
+    );
+
+    expect(error2).toBeNull();
+    expect(result2).toBeDefined();
+    expect(result2!.length).toBe(1);
+    expect(result2![0].was_created).toBe(false); // Update, not create
+    expect(result2![0].component_id).toBe(componentId); // Same component
+    expect(result2![0].total_linear_feet).toBe(80); // 50 + 30 = 80
+    expect(result2![0].line_numbers).toEqual(['101', '102']); // Both lines
+
+    // Call 3: Re-import line "101" with +20 LF (should add to total but not duplicate line number)
+    const { data: result3, error: error3 } = await supabase.rpc(
+      'upsert_aggregate_threaded_pipe',
+      {
+        p_project_id: testProjectId,
+        p_drawing_id: testDrawingId,
+        p_template_id: threadedPipeTemplateId,
+        p_identity_key: identityKey,
+        p_attributes: {
+          spec: '',
+          description: 'Test pipe',
+          size: '1"',
+          cmdty_code: 'PIPE-SCH40',
+          comments: '',
+          original_qty: 20
+        },
+        p_current_milestones: {
+          Fabricate_LF: 0,
+          Install_LF: 0,
+          Erect_LF: 0,
+          Connect_LF: 0,
+          Support_LF: 0,
+          Punch: false,
+          Test: false,
+          Restore: false
+        },
+        p_area_id: null,
+        p_system_id: null,
+        p_test_package_id: null,
+        p_additional_linear_feet: 20,
+        p_new_line_number: '101' // Same line as first call
+      }
+    );
+
+    expect(error3).toBeNull();
+    expect(result3).toBeDefined();
+    expect(result3!.length).toBe(1);
+    expect(result3![0].was_created).toBe(false);
+    expect(result3![0].component_id).toBe(componentId);
+    expect(result3![0].total_linear_feet).toBe(100); // 80 + 20 = 100
+    expect(result3![0].line_numbers).toEqual(['101', '102']); // No duplicate "101"
+  });
 });
