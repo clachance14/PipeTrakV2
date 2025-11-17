@@ -132,7 +132,7 @@ data?.forEach((component, index) => {
 Run: `node verify_aggregate_import.mjs`
 
 **Expected Output**:
-```
+```text
 === Threaded Pipe Components ===
 Total count: 2
 
@@ -165,7 +165,7 @@ Total count: 2
 6. **Verify** helper text displays: `"75 LF of 100 LF"` below input
 
 **Screenshot Checkpoint**:
-```
+```text
 ┌───────────────────────────────────────────────┐
 │ Line #  │ Fabricate │ Install │ Erect │ ...   │
 ├───────────────────────────────────────────────┤

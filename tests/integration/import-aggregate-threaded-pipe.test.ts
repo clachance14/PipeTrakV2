@@ -548,17 +548,19 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(fetchError).toBeNull();
     expect(updatedComponent).toBeDefined();
 
-    // BUG REPRODUCTION: This assertion will FAIL because progress is still 0%
-    // Expected: 16% (Fabricate weight is 16% for 100 LF fully fabricated)
-    // Actual: 0% (trigger can't find "Fabricate_LF" in current_milestones)
+    // REGRESSION TEST: Previously this failed (progress was 0%)
+    // Migration 00118 fixed the trigger to convert UI-sent "Fabricate" percentage
+    // to absolute "Fabricate_LF" value for aggregate threaded pipes
 
     // For aggregate threaded pipe with 100 LF:
+    // - UI sends: Fabricate = 100 (percent)
+    // - Trigger converts to: Fabricate_LF = 100 (absolute LF)
     // - Fabricate weight: 16%
-    // - 100% of 100 LF fabricated = 100 LF
-    // - Expected progress: 16% * 1.0 = 16%
+    // - Expected progress: 16% * (100/100) = 16%
     expect(updatedComponent!.percent_complete).toBe(16);
 
-    // Also verify milestone was stored (will be stored as "Fabricate", not "Fabricate_LF")
-    expect(updatedComponent!.current_milestones.Fabricate).toBe(100);
+    // Verify milestone was stored as absolute LF under Fabricate_LF (not percentage under Fabricate)
+    expect(updatedComponent!.current_milestones.Fabricate_LF).toBe(100);
+    expect(updatedComponent!.current_milestones.Fabricate).toBeUndefined();
   });
 });
