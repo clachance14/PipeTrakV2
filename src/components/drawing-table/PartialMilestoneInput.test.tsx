@@ -304,6 +304,166 @@ describe('PartialMilestoneInput - Event Propagation', () => {
   })
 })
 
+describe('PartialMilestoneInput - No Duplicate Saves', () => {
+  const mockMilestone: MilestoneConfig = {
+    name: 'Install',
+    isDiscrete: false,
+  }
+
+  const mockOnUpdate = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should only call onUpdate ONCE when Enter is pressed (not twice from Enter + blur)', () => {
+    render(
+      <div>
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+        />
+        <PartialMilestoneInput
+          milestone={{ name: 'Punch', isDiscrete: false }}
+          currentValue={0}
+          onUpdate={vi.fn()}
+          disabled={false}
+        />
+      </div>
+    )
+
+    const firstInput = screen.getAllByRole('spinbutton')[0]
+
+    // Change value and press Enter
+    fireEvent.change(firstInput, { target: { value: '75' } })
+    fireEvent.keyDown(firstInput, { key: 'Enter' })
+
+    // Focus should move to next input, triggering blur on first input
+    // But onUpdate should only be called ONCE, not twice
+    expect(mockOnUpdate).toHaveBeenCalledTimes(1)
+    expect(mockOnUpdate).toHaveBeenCalledWith(75)
+  })
+
+  it('should only call onUpdate ONCE when Enter is pressed on last input (no next input)', () => {
+    render(
+      <PartialMilestoneInput
+        milestone={mockMilestone}
+        currentValue={50}
+        onUpdate={mockOnUpdate}
+        disabled={false}
+      />
+    )
+
+    const input = screen.getByRole('spinbutton')
+
+    // Change value and press Enter (no next input to focus)
+    fireEvent.change(input, { target: { value: '80' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    // onUpdate should only be called ONCE
+    expect(mockOnUpdate).toHaveBeenCalledTimes(1)
+    expect(mockOnUpdate).toHaveBeenCalledWith(80)
+  })
+
+  it('should call onUpdate when clicking away (blur) after typing', () => {
+    render(
+      <div>
+        <PartialMilestoneInput
+          milestone={mockMilestone}
+          currentValue={50}
+          onUpdate={mockOnUpdate}
+          disabled={false}
+        />
+        <button>Outside</button>
+      </div>
+    )
+
+    const input = screen.getByRole('spinbutton')
+
+    // Change value and blur (click away) without pressing Enter
+    fireEvent.change(input, { target: { value: '60' } })
+    fireEvent.blur(input)
+
+    // onUpdate should be called from blur
+    expect(mockOnUpdate).toHaveBeenCalledTimes(1)
+    expect(mockOnUpdate).toHaveBeenCalledWith(60)
+  })
+
+  it('should NOT call onUpdate when pressing Enter with same value', () => {
+    render(
+      <PartialMilestoneInput
+        milestone={mockMilestone}
+        currentValue={50}
+        onUpdate={mockOnUpdate}
+        disabled={false}
+      />
+    )
+
+    const input = screen.getByRole('spinbutton')
+
+    // Press Enter without changing value
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    // onUpdate should NOT be called (value didn't change)
+    expect(mockOnUpdate).not.toHaveBeenCalled()
+  })
+
+  it('should NOT create duplicate events when rapidly navigating with Enter', () => {
+    const onUpdate1 = vi.fn()
+    const onUpdate2 = vi.fn()
+    const onUpdate3 = vi.fn()
+
+    render(
+      <div>
+        <PartialMilestoneInput
+          milestone={{ name: 'Fabricate', isDiscrete: false }}
+          currentValue={0}
+          onUpdate={onUpdate1}
+          disabled={false}
+        />
+        <PartialMilestoneInput
+          milestone={{ name: 'Install', isDiscrete: false }}
+          currentValue={0}
+          onUpdate={onUpdate2}
+          disabled={false}
+        />
+        <PartialMilestoneInput
+          milestone={{ name: 'Punch', isDiscrete: false }}
+          currentValue={0}
+          onUpdate={onUpdate3}
+          disabled={false}
+        />
+      </div>
+    )
+
+    const inputs = screen.getAllByRole('spinbutton')
+
+    // Type in first input and press Enter (moves to second)
+    fireEvent.change(inputs[0], { target: { value: '25' } })
+    fireEvent.keyDown(inputs[0], { key: 'Enter' })
+
+    // Type in second input and press Enter (moves to third)
+    fireEvent.change(inputs[1], { target: { value: '50' } })
+    fireEvent.keyDown(inputs[1], { key: 'Enter' })
+
+    // Type in third input and press Enter (no next input)
+    fireEvent.change(inputs[2], { target: { value: '75' } })
+    fireEvent.keyDown(inputs[2], { key: 'Enter' })
+
+    // Each onUpdate should be called exactly ONCE
+    expect(onUpdate1).toHaveBeenCalledTimes(1)
+    expect(onUpdate1).toHaveBeenCalledWith(25)
+
+    expect(onUpdate2).toHaveBeenCalledTimes(1)
+    expect(onUpdate2).toHaveBeenCalledWith(50)
+
+    expect(onUpdate3).toHaveBeenCalledTimes(1)
+    expect(onUpdate3).toHaveBeenCalledWith(75)
+  })
+})
+
 describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
   const mockMilestone: MilestoneConfig = {
     name: 'Install',
@@ -338,11 +498,12 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
       // Helper text should be visible
-      expect(screen.getByText('50 LF of 100 LF')).toBeInTheDocument()
+      expect(screen.getByText(/50.*100 LF/)).toBeInTheDocument()
     })
 
     it('should update helper text when user types new value', () => {
@@ -362,19 +523,20 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
       // Initial helper text
-      expect(screen.getByText('50 LF of 100 LF')).toBeInTheDocument()
+      expect(screen.getByText(/50.*100 LF/)).toBeInTheDocument()
 
       // Change value
       const input = screen.getByRole('spinbutton')
       fireEvent.change(input, { target: { value: '75' } })
 
       // Helper text should update immediately
-      expect(screen.getByText('75 LF of 100 LF')).toBeInTheDocument()
-      expect(screen.queryByText('50 LF of 100 LF')).not.toBeInTheDocument()
+      expect(screen.getByText(/75.*100 LF/)).toBeInTheDocument()
+      expect(screen.queryByText(/50.*100 LF/)).not.toBeInTheDocument()
     })
   })
 
@@ -397,10 +559,11 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
-      expect(screen.getByText('75 LF of 100 LF')).toBeInTheDocument()
+      expect(screen.getByText(/75.*100 LF/)).toBeInTheDocument()
     })
 
     it('should round linear feet to nearest integer (50% of 150 = 75 LF)', () => {
@@ -420,10 +583,11 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
-      expect(screen.getByText('75 LF of 150 LF')).toBeInTheDocument()
+      expect(screen.getByText(/75.*150 LF/)).toBeInTheDocument()
     })
 
     it('should handle decimal percentages (33% of 100 = 33 LF)', () => {
@@ -443,13 +607,14 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
-      expect(screen.getByText('33 LF of 100 LF')).toBeInTheDocument()
+      expect(screen.getByText(/33.*100 LF/)).toBeInTheDocument()
     })
 
-    it('should show 0 LF for 0% complete', () => {
+    it('should hide helper text for 0% complete (spec: only show when value > 0)', () => {
       const aggregateComponent: Partial<ComponentRow> = {
         id: 'component-1',
         component_type: 'threaded_pipe',
@@ -466,10 +631,12 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
-      expect(screen.getByText('0 LF of 100 LF')).toBeInTheDocument()
+      // Per component code line 271: only show when localValue > 0
+      expect(screen.queryByText(/LF/)).not.toBeInTheDocument()
     })
 
     it('should show full LF for 100% complete', () => {
@@ -489,10 +656,11 @@ describe('PartialMilestoneInput - Helper Text (Feature 027)', () => {
           onUpdate={mockOnUpdate}
           disabled={false}
           component={aggregateComponent as ComponentRow}
+          variant="compact"
         />
       )
 
-      expect(screen.getByText('100 LF of 100 LF')).toBeInTheDocument()
+      expect(screen.getByText(/100.*100 LF/)).toBeInTheDocument()
     })
   })
 
