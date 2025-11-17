@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import {
   validateNewPassword,
@@ -26,6 +27,18 @@ export function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { setIsInRecoveryMode } = useAuth()
+
+  // Detect recovery token in URL hash
+  useEffect(() => {
+    const hash = window.location.hash
+    const hasRecoveryToken = hash.includes('type=recovery') || hash.includes('type=magiclink')
+
+    if (hasRecoveryToken) {
+      // We have a recovery token - stay on this page
+      setRecoveryState('ready')
+    }
+  }, [])
 
   // Listen for PASSWORD_RECOVERY event
   useEffect(() => {
@@ -36,22 +49,24 @@ export function ResetPasswordPage() {
         } else if (event === 'SIGNED_OUT' && recoveryState === 'verifying') {
           // If signed out and still verifying, token is invalid/expired
           setRecoveryState('expired')
+          setIsInRecoveryMode(false)
         }
       }
     )
 
-    // Set timeout to show expired state if no recovery event after 2 seconds
+    // Set timeout to show expired state if no recovery event after 5 seconds (increased for slow networks)
     const timeout = setTimeout(() => {
       if (recoveryState === 'verifying') {
         setRecoveryState('expired')
+        setIsInRecoveryMode(false)
       }
-    }, 2000)
+    }, 5000)
 
     return () => {
       subscription.unsubscribe()
       clearTimeout(timeout)
     }
-  }, [recoveryState])
+  }, [recoveryState, setIsInRecoveryMode])
 
   const passwordAnalysis = password ? analyzePasswordStrength(password) : null
 
@@ -83,6 +98,9 @@ export function ResetPasswordPage() {
       if (updateError) {
         throw updateError
       }
+
+      // Clear recovery mode
+      setIsInRecoveryMode(false)
 
       // Success! Redirect to dashboard
       navigate('/dashboard')

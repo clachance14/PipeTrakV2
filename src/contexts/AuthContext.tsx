@@ -7,6 +7,8 @@ type AuthContextType = {
   session: Session | null
   user: (User & { role?: Role }) | null
   loading: boolean
+  isInRecoveryMode: boolean
+  setIsInRecoveryMode: (value: boolean) => void
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
@@ -17,6 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<(User & { role?: Role }) | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isInRecoveryMode, setIsInRecoveryMode] = useState(false)
 
   // Fetch user role from public.users table
   const fetchUserRole = async (authUser: User | null) => {
@@ -57,7 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Detect password recovery mode
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsInRecoveryMode(true)
+      }
+
       setSession(session)
       fetchUserRole(session?.user ?? null).finally(() => setLoading(false))
     })
@@ -74,12 +82,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      // If sign out fails (e.g., 403 from recovery session), log but continue
+      // We still want to clear local state and redirect
+      console.warn('Sign out error (continuing anyway):', error)
+    } finally {
+      // Always clear local state, even if Supabase signOut failed
+      setSession(null)
+      setUser(null)
+      setIsInRecoveryMode(false)
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, isInRecoveryMode, setIsInRecoveryMode, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

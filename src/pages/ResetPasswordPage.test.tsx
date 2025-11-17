@@ -27,6 +27,14 @@ vi.mock('@/lib/supabase', () => ({
   },
 }))
 
+// Mock AuthContext
+const mockSetIsInRecoveryMode = vi.fn()
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    setIsInRecoveryMode: mockSetIsInRecoveryMode,
+  }),
+}))
+
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -49,6 +57,7 @@ function renderResetPasswordPage() {
 describe('ResetPasswordPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSetIsInRecoveryMode.mockClear()
   })
 
   it('renders reset password page with title', () => {
@@ -283,5 +292,60 @@ describe('ResetPasswordPage', () => {
     unmount()
 
     expect(unsubscribe).toHaveBeenCalled()
+  })
+
+  it('detects recovery token from URL hash', async () => {
+    const mockOnAuthStateChange = vi.mocked(supabase.auth.onAuthStateChange)
+
+    // Set URL hash to simulate recovery link
+    window.location.hash = '#access_token=some-token&type=recovery'
+
+    mockOnAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    } as any)
+
+    renderResetPasswordPage()
+
+    // Should detect hash and show ready state immediately
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^new password$/i)).toBeInTheDocument()
+    })
+
+    // Clean up hash
+    window.location.hash = ''
+  })
+
+  it('clears recovery mode after successful password reset', async () => {
+    const user = userEvent.setup()
+    const mockOnAuthStateChange = vi.mocked(supabase.auth.onAuthStateChange)
+    const mockUpdateUser = vi.mocked(supabase.auth.updateUser)
+
+    mockOnAuthStateChange.mockImplementation((callback) => {
+      setTimeout(() => callback('PASSWORD_RECOVERY', { user: { id: '123' } } as any), 0)
+      return {
+        data: { subscription: { unsubscribe: vi.fn() } },
+      } as any
+    })
+
+    mockUpdateUser.mockResolvedValue({ data: { user: {} }, error: null } as any)
+
+    renderResetPasswordPage()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^new password$/i)).toBeInTheDocument()
+    })
+
+    const passwordInput = screen.getByLabelText(/^new password$/i)
+    const confirmInput = screen.getByLabelText(/confirm password/i)
+    const submitButton = screen.getByRole('button', { name: /reset password/i })
+
+    await user.type(passwordInput, 'ValidPassword123!')
+    await user.type(confirmInput, 'ValidPassword123!')
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(mockSetIsInRecoveryMode).toHaveBeenCalledWith(false)
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+    })
   })
 })

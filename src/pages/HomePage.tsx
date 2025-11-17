@@ -15,15 +15,18 @@ import { FeaturesCarousel } from '@/components/homepage/FeaturesCarousel'
 import { FeatureDeepDive } from '@/components/homepage/FeatureDeepDive'
 
 export function HomePage() {
-  const { user } = useAuth()
+  const { user, isInRecoveryMode } = useAuth()
   const navigate = useNavigate()
 
   // Auto-redirect authenticated users to dashboard (User Story 3 requirement)
+  // Don't redirect if user is in password recovery mode or on reset-password page
   useEffect(() => {
-    if (user) {
+    const isOnResetPage = window.location.pathname === '/reset-password'
+
+    if (user && !isInRecoveryMode && !isOnResetPage) {
       navigate('/dashboard', { replace: true })
     }
-  }, [user, navigate])
+  }, [user, isInRecoveryMode, navigate])
 
   // SEO Meta Tags (T058)
   useEffect(() => {
@@ -41,7 +44,9 @@ export function HomePage() {
   }, [])
 
   // Don't render homepage content if user is authenticated (will redirect)
-  if (user) {
+  // Unless they're in recovery mode or on reset-password page
+  const isOnResetPage = window.location.pathname === '/reset-password'
+  if (user && !isInRecoveryMode && !isOnResetPage) {
     return null
   }
 
