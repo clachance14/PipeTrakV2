@@ -51,6 +51,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // CRITICAL: Detect recovery token IMMEDIATELY before any async operations
+    // This prevents race condition with HomePage redirect
+    const hash = window.location.hash
+    if (hash.includes('type=recovery') || hash.includes('type=magiclink')) {
+      setIsInRecoveryMode(true)
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)

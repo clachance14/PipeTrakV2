@@ -21,6 +21,15 @@ export function HomePage() {
   // Auto-redirect authenticated users to dashboard (User Story 3 requirement)
   // Don't redirect if user is in password recovery mode or on reset-password page
   useEffect(() => {
+    // BACKUP: If user lands on homepage with recovery token, redirect to reset page
+    const hash = window.location.hash
+    const hasRecoveryToken = hash.includes('type=recovery') || hash.includes('type=magiclink')
+
+    if (hasRecoveryToken) {
+      navigate('/reset-password' + hash, { replace: true })
+      return
+    }
+
     const isOnResetPage = window.location.pathname === '/reset-password'
 
     if (user && !isInRecoveryMode && !isOnResetPage) {
