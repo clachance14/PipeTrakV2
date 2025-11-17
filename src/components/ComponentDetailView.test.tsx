@@ -541,3 +541,35 @@ describe('ComponentDetailView - Attributes Display', () => {
     expect(screen.getByText('Description')).toBeInTheDocument()
   })
 })
+
+describe('ComponentDetailView - Done Button', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('renders Done button in footer', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-1"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Done button should be visible
+    const doneButton = screen.getByRole('button', { name: /done/i })
+    expect(doneButton).toBeInTheDocument()
+  })
+})
