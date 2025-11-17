@@ -9,6 +9,8 @@ import { Register } from '@/pages/Register'
 import { CheckEmail } from '@/pages/CheckEmail'
 import { CompleteSetup } from '@/pages/CompleteSetup'
 import { AcceptInvitation } from '@/pages/AcceptInvitation'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { OnboardingWizard } from '@/components/auth/OnboardingWizard'
 import { TeamManagement } from '@/pages/TeamManagement'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -60,6 +62,8 @@ function App() {
             <Route path="/check-email" element={<CheckEmail />} />
             <Route path="/onboarding/complete-setup" element={<CompleteSetup />} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Legal routes */}
             <Route path="/legal/terms" element={<TermsOfService />} />

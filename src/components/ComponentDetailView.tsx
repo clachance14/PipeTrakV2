@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,6 +40,7 @@ interface ComponentDetailViewProps {
   canEditMetadata?: boolean;      // NEW
   onMetadataChange?: () => void;  // NEW
   defaultTab?: 'overview' | 'details' | 'milestones' | 'history'; // Default tab to show (NEW - mobile support)
+  onClose?: () => void;            // NEW - Close dialog handler
 }
 
 /**
@@ -52,6 +54,7 @@ export function ComponentDetailView({
   canEditMetadata = false,
   onMetadataChange,
   defaultTab = 'overview',
+  onClose,
 }: ComponentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>(defaultTab);
   const [welderDialogOpen, setWelderDialogOpen] = useState(false);
@@ -848,6 +851,18 @@ export function ComponentDetailView({
           </div>
         )}
       </div>
+
+      {/* Sticky Footer with Done Button */}
+      {onClose && (
+        <DialogFooter className="sticky bottom-0 bg-background border-t mt-auto pt-4">
+          <Button
+            onClick={onClose}
+            className="min-h-[44px] w-full sm:w-auto"
+          >
+            Done
+          </Button>
+        </DialogFooter>
+      )}
 
       {/* Welder Assignment Dialog (for field welds) */}
       {component?.component_type === 'field_weld' && (

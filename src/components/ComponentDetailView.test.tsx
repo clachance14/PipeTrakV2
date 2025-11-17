@@ -120,7 +120,7 @@ vi.mock('@/hooks/useComponents', () => ({
         identity_key: { commodity_code: 'VBALU-001', size: '2', seq: 1 },
         percent_complete: 50,
         current_milestones: {},
-        template: {
+        progress_template: {
           milestones_config: []
         },
         area_id: null,
@@ -539,5 +539,44 @@ describe('ComponentDetailView - Attributes Display', () => {
     // Should have labels for Spec and Description
     expect(screen.getByText('Spec')).toBeInTheDocument()
     expect(screen.getByText('Description')).toBeInTheDocument()
+  })
+})
+
+describe('ComponentDetailView - Done Button', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('renders Done button in footer', async () => {
+    const mockOnClose = vi.fn()
+
+    render(
+      <ComponentDetailView
+        componentId="comp-1"
+        canUpdateMilestones={true}
+        onClose={mockOnClose}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Done button should be visible
+    const doneButton = screen.getByRole('button', { name: /done/i })
+    expect(doneButton).toBeInTheDocument()
+
+    // Clicking Done button should call onClose
+    fireEvent.click(doneButton)
+    expect(mockOnClose).toHaveBeenCalledTimes(1)
   })
 })

@@ -110,6 +110,7 @@ export function ComponentsPage({
                 onMetadataChange={() => {
                   // Optionally refetch components list
                 }}
+                onClose={() => setSelectedComponentId(null)}
               />
             )}
           </DialogContent>
