@@ -18,6 +18,9 @@ import * as useComponentsModule from '@/hooks/useComponents'
 import * as useAreasModule from '@/hooks/useAreas'
 import * as useSystemsModule from '@/hooks/useSystems'
 import * as useTestPackagesModule from '@/hooks/useTestPackages'
+import * as useMilestonesModule from '@/hooks/useMilestones'
+import * as useMilestoneHistoryModule from '@/hooks/useMilestoneHistory'
+import * as useComponentAssignmentModule from '@/hooks/useComponentAssignment'
 import type { Component } from '@/types/metadata'
 
 // Mock hooks
@@ -25,6 +28,9 @@ vi.mock('@/hooks/useComponents')
 vi.mock('@/hooks/useAreas')
 vi.mock('@/hooks/useSystems')
 vi.mock('@/hooks/useTestPackages')
+vi.mock('@/hooks/useMilestones')
+vi.mock('@/hooks/useMilestoneHistory')
+vi.mock('@/hooks/useComponentAssignment')
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     user: {
@@ -83,6 +89,14 @@ describe('ComponentMetadataModal', () => {
       error: null
     } as any)
 
+    // Mock effective template query
+    vi.mocked(useComponentsModule.useEffectiveTemplate).mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null
+    } as any)
+
     // Mock update mutation
     vi.mocked(useComponentsModule.useUpdateComponentMetadata).mockReturnValue(
       mockUpdateMutation as any
@@ -105,6 +119,29 @@ describe('ComponentMetadataModal', () => {
 
     vi.mocked(useTestPackagesModule.useTestPackages).mockReturnValue({
       data: [],
+      isLoading: false,
+      isError: false,
+      error: null
+    } as any)
+
+    // Mock milestone hooks
+    vi.mocked(useMilestonesModule.useUpdateMilestone).mockReturnValue({
+      mutate: vi.fn(),
+      isLoading: false,
+      isError: false,
+      error: null
+    } as any)
+
+    vi.mocked(useMilestoneHistoryModule.useMilestoneHistory).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null
+    } as any)
+
+    // Mock component assignment hook
+    vi.mocked(useComponentAssignmentModule.useAssignComponents).mockReturnValue({
+      mutate: vi.fn(),
       isLoading: false,
       isError: false,
       error: null
