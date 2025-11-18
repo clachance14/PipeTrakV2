@@ -374,6 +374,93 @@ export function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/**
+ * Validates email format
+ *
+ * Matches standard email pattern: local@domain.tld
+ * Accepts common TLDs including .ac (academic/company domains)
+ *
+ * @param email - Email address to validate
+ * @returns true if valid format, false otherwise
+ *
+ * @example
+ * validateEmail('user@gmail.com') // true
+ * validateEmail('user@ics.ac') // true (company domain)
+ * validateEmail('invalid') // false
+ */
+export function validateEmail(email: string): boolean {
+  // Standard email regex - accepts common TLDs including .ac
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+/**
+ * Detects common email domain typos and suggests corrections
+ *
+ * Returns the corrected domain if typo detected, null otherwise.
+ * Includes company-specific typo detection (ics.com → ics.ac).
+ *
+ * @param email - Email address to check for typos
+ * @returns Corrected domain string or null if no typo detected
+ *
+ * @example
+ * detectCommonEmailTypos('user@gmial.com') // 'gmail.com'
+ * detectCommonEmailTypos('user@ics.com') // 'ics.ac' (company domain correction)
+ * detectCommonEmailTypos('user@gmail.com') // null (correct)
+ */
+export function detectCommonEmailTypos(email: string): string | null {
+  const commonTypos: Record<string, string> = {
+    // Company domain typos (ics.ac is the correct company domain)
+    'ics.com': 'ics.ac',
+    'ics.ca': 'ics.ac',
+    'ics.co': 'ics.ac',
+    'ics.org': 'ics.ac',
+
+    // Gmail typos
+    'gmial.com': 'gmail.com',
+    'gmai.com': 'gmail.com',
+    'gmil.com': 'gmail.com',
+    'gmal.com': 'gmail.com',
+    'gnail.com': 'gmail.com',
+
+    // Yahoo typos
+    'yahooo.com': 'yahoo.com',
+    'yaho.com': 'yahoo.com',
+    'yhoo.com': 'yahoo.com',
+    'yajoo.com': 'yahoo.com',
+
+    // Outlook/Hotmail typos
+    'outloook.com': 'outlook.com',
+    'outlok.com': 'outlook.com',
+    'putlook.com': 'outlook.com',
+    'hotmial.com': 'hotmail.com',
+    'hotmal.com': 'hotmail.com',
+  }
+
+  const domain = email.split('@')[1]?.toLowerCase()
+  return domain && commonTypos[domain] ? commonTypos[domain] : null
+}
+
+/**
+ * Gets the suggested corrected email if typo detected
+ *
+ * Returns full corrected email or null if no typo detected.
+ *
+ * @param email - Email address to check
+ * @returns Corrected email string or null
+ *
+ * @example
+ * getSuggestedEmail('user@gmial.com') // 'user@gmail.com'
+ * getSuggestedEmail('user@ics.com') // 'user@ics.ac'
+ * getSuggestedEmail('user@gmail.com') // null
+ */
+export function getSuggestedEmail(email: string): string | null {
+  const suggestedDomain = detectCommonEmailTypos(email)
+  if (!suggestedDomain) return null
+
+  const [localPart] = email.split('@')
+  return `${localPart}@${suggestedDomain}`
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -391,6 +478,9 @@ export const validationUtils = {
   validateMetadataName,
   isDuplicateName,
   normalizeName,
+  validateEmail,
+  detectCommonEmailTypos,
+  getSuggestedEmail,
 };
 
 export default validationUtils;

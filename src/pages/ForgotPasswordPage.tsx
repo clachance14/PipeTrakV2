@@ -8,12 +8,30 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
+import { getSuggestedEmail } from '@/lib/validation'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [suggestedEmail, setSuggestedEmail] = useState<string | null>(null)
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value
+    setEmail(newEmail)
+
+    // Check for typos and set suggestion
+    const suggestion = getSuggestedEmail(newEmail)
+    setSuggestedEmail(suggestion)
+  }
+
+  const handleUseSuggestion = () => {
+    if (suggestedEmail) {
+      setEmail(suggestedEmail)
+      setSuggestedEmail(null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,8 +80,13 @@ export function ForgotPasswordPage() {
                   Check your email
                 </h3>
                 <p className="mt-2 text-sm text-green-700">
-                  We've sent a password reset link to <strong>{email}</strong>.
-                  Please check your inbox and click the link to reset your password.
+                  If an account exists for <strong>{email}</strong>, you'll receive a password reset link shortly.
+                </p>
+                <p className="mt-3 text-sm text-green-700">
+                  Please check your inbox and spam folder. Didn't receive an email? Check for typos or{' '}
+                  <Link to="/register" className="font-medium underline">
+                    create a new account
+                  </Link>.
                 </p>
               </div>
             </div>
@@ -88,10 +111,26 @@ export function ForgotPasswordPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="you@example.com"
               />
+
+              {/* Typo Detection Banner */}
+              {suggestedEmail && (
+                <div className="mt-2 rounded bg-yellow-50 border border-yellow-200 p-3">
+                  <p className="text-sm text-yellow-800">
+                    Did you mean{' '}
+                    <button
+                      type="button"
+                      onClick={handleUseSuggestion}
+                      className="font-medium text-yellow-900 underline hover:text-yellow-700"
+                    >
+                      {suggestedEmail}
+                    </button>?
+                  </p>
+                </div>
+              )}
             </div>
 
             <Button
