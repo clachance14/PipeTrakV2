@@ -9,7 +9,7 @@ import { useDropzone } from 'react-dropzone'
 import { useImportFieldWelds } from '@/hooks/useImportFieldWelds'
 import { FieldWeldImportProgress } from './FieldWeldImportProgress'
 import { FieldWeldErrorReport } from './FieldWeldErrorReport'
-import { excelToCsv, isExcelFile } from '@/lib/excel/excel-to-csv'
+import { excelToCsvWithStats, isExcelFile } from '@/lib/excel/excel-to-csv'
 import { generateFieldWeldTemplate } from '@/lib/excel/generate-template'
 
 interface FieldWeldImportPageProps {
@@ -25,6 +25,7 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
   const [importResult, setImportResult] = useState<{
     fileName: string
     totalRows: number
+    skippedRows: number
     successCount: number
     errorCount: number
     errors: Array<{ row: number; column?: string; message: string }>
@@ -52,11 +53,12 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
       try {
         // Convert Excel to CSV if needed
         let csvFile: File = originalFile
+        let skippedRows = 0
 
         if (isExcelFile(originalFile)) {
           setIsConverting(true)
 
-          const csvString = await excelToCsv(originalFile, {
+          const conversionResult = await excelToCsvWithStats(originalFile, {
             applyFieldWeldMapping: true,
             progressInterval: 1000,
             onProgress: (current, total) => {
@@ -64,8 +66,15 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
             },
           })
 
+          skippedRows = conversionResult.skippedRows
+
+          // Log skip statistics
+          if (skippedRows > 0) {
+            console.log(`⚠️ Skipped ${skippedRows} rows with incomplete data (missing Weld ID, Drawing, or Weld Type)`)
+          }
+
           // Create CSV file from converted data
-          csvFile = new File([csvString], originalFile.name.replace(/\.xlsx?$/i, '.csv'), {
+          csvFile = new File([conversionResult.csv], originalFile.name.replace(/\.xlsx?$/i, '.csv'), {
             type: 'text/csv',
           })
 
@@ -84,6 +93,7 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
         setImportResult({
           fileName: originalFile.name,
           totalRows,
+          skippedRows,
           successCount: result.success_count,
           errorCount: result.error_count,
           errors: result.errors,
@@ -98,6 +108,7 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
         setImportResult({
           fileName: originalFile.name,
           totalRows: 0,
+          skippedRows: 0,
           successCount: 0,
           errorCount: 1,
           errors: [{ row: 0, message: error instanceof Error ? error.message : 'Import failed' }],
@@ -196,6 +207,11 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
               </h3>
               <p className="text-green-700">
                 Successfully imported {importResult.successCount} field welds.
+                {importResult.skippedRows > 0 && (
+                  <span className="block mt-1 text-sm">
+                    ({importResult.skippedRows} row{importResult.skippedRows !== 1 ? 's' : ''} skipped due to missing required fields)
+                  </span>
+                )}
               </p>
             </div>
           ) : importResult.successCount > 0 ? (
@@ -206,6 +222,11 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
               <p className="text-amber-700 mb-4">
                 Imported {importResult.successCount} welds successfully.{' '}
                 {importResult.errorCount} row{importResult.errorCount !== 1 ? 's' : ''} failed.
+                {importResult.skippedRows > 0 && (
+                  <span className="block mt-1 text-sm">
+                    ({importResult.skippedRows} row{importResult.skippedRows !== 1 ? 's' : ''} skipped due to missing required fields)
+                  </span>
+                )}
               </p>
               <button
                 onClick={() => setShowErrorReport(true)}

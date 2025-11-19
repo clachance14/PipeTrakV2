@@ -38,6 +38,7 @@ export interface ConversionOptions {
 export interface ConversionResult {
   csv: string
   rowCount: number
+  skippedRows: number
   columnMapping?: MappingResult
   stats?: string
 }
@@ -124,10 +125,18 @@ export async function excelToCsv(
           // Use expected headers as CSV header row
           csvLines = [FIELD_WELD_REQUIRED_HEADERS.join(',')]
 
+          let skippedRows = 0
+
           // Reorder and filter each data row
           for (let i = 0; i < dataRows.length; i++) {
             const sourceRow = dataRows[i] as unknown[]
             const reorderedRow = reorderRow(sourceRow, mappingResult.mappings)
+
+            // Skip rows with missing required fields
+            if (!hasRequiredFields(reorderedRow)) {
+              skippedRows++
+              continue
+            }
 
             // Escape CSV values (handle quotes and commas)
             const escapedRow = reorderedRow.map(escapeCSVValue)
@@ -142,6 +151,11 @@ export async function excelToCsv(
           // Final progress update
           if (onProgress) {
             onProgress(dataRows.length, dataRows.length)
+          }
+
+          // Log skip statistics
+          if (skippedRows > 0) {
+            console.log(`Skipped ${skippedRows} rows with missing required fields (Weld ID, Drawing, or Weld Type)`)
           }
         } else {
           // No mapping - direct CSV conversion (for Material Takeoff)
@@ -232,6 +246,7 @@ export async function excelToCsvWithStats(
 
         let columnMapping: MappingResult | undefined
         let stats: string | undefined
+        let skippedRows = 0
 
         if (options.applyFieldWeldMapping) {
           columnMapping = mapFieldWeldColumns(headers)
@@ -246,6 +261,15 @@ export async function excelToCsvWithStats(
           }
 
           stats = getMappingStats(columnMapping)
+
+          // Count rows that will be skipped
+          for (let i = 0; i < dataRows.length; i++) {
+            const sourceRow = dataRows[i] as unknown[]
+            const reorderedRow = reorderRow(sourceRow, columnMapping.mappings)
+            if (!hasRequiredFields(reorderedRow)) {
+              skippedRows++
+            }
+          }
         }
 
         // Convert using main function
@@ -253,7 +277,8 @@ export async function excelToCsvWithStats(
           .then((csv) => {
             resolve({
               csv,
-              rowCount: dataRows.length,
+              rowCount: dataRows.length - skippedRows, // Only count valid rows
+              skippedRows,
               columnMapping,
               stats,
             })
@@ -274,6 +299,22 @@ export async function excelToCsvWithStats(
 
     reader.readAsArrayBuffer(file)
   })
+}
+
+/**
+ * Check if a row has all required fields populated
+ * Required fields: Weld ID Number, Drawing / Isometric Number, Weld Type
+ */
+function hasRequiredFields(row: string[]): boolean {
+  const weldId = row[0] // Weld ID Number
+  const drawing = row[1] // Drawing / Isometric Number
+  const weldType = row[2] // Weld Type
+
+  return (
+    !!weldId?.trim() &&
+    !!drawing?.trim() &&
+    !!weldType?.trim()
+  )
 }
 
 /**
