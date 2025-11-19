@@ -79,9 +79,22 @@ export async function processTransaction(
           // Validate drawing exists
           const drawingId = drawingMap.get(drawingNoNorm)
           if (!drawingId) {
+            // Check if similar drawings exist (e.g., with sheet numbers)
+            const baseDrawing = drawingNoNorm.split('-')[0] // Get base before first hyphen
+            const similarDrawings = Array.from(drawingMap.keys())
+              .filter(key => key.startsWith(baseDrawing + '-'))
+              .slice(0, 5) // Limit to first 5 matches
+
+            let errorMessage = `Drawing not found: ${row['Drawing / Isometric Number']}`
+            if (similarDrawings.length > 0) {
+              errorMessage += ` (found similar: ${similarDrawings.join(', ')} - did you forget the sheet number?)`
+            } else {
+              errorMessage += ` (normalized: ${drawingNoNorm})`
+            }
+
             errors.push({
               row: rowNumber,
-              message: `Drawing not found: ${row['Drawing / Isometric Number']} (normalized: ${drawingNoNorm})`,
+              message: errorMessage,
             })
             continue
           }
