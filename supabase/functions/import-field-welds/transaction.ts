@@ -134,7 +134,7 @@ export async function processTransaction(
                 weld_id: row['Weld ID Number'],
               },
               percent_complete: 0,
-              progress_state: {},
+              current_milestones: {},
               created_by: userId,
             })
             .select('id')
@@ -217,7 +217,7 @@ export async function processTransaction(
             await supabase
               .from('components')
               .update({
-                progress_state: progressState,
+                current_milestones: progressState,
                 percent_complete: percentComplete,
               })
               .eq('id', component.id)
