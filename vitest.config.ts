@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
       env: {
         VITE_SUPABASE_URL: env.VITE_SUPABASE_URL || '',
         VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY || '',
+        SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY || '',
       },
       coverage: {
       provider: 'v8',
