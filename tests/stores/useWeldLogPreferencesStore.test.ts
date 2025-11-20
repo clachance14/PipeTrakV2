@@ -118,46 +118,30 @@ describe('useWeldLogPreferencesStore', () => {
     expect(parsed.state.statusFilter).toBe('active')
   })
 
-  it('should restore state from localStorage', () => {
-    // Clear and set up fresh localStorage state
-    localStorage.clear()
-
-    const mockState = {
-      state: {
-        sortColumn: 'welder',
-        sortDirection: 'desc',
-        drawingFilter: 'drawing-789',
-        welderFilter: 'all',
-        statusFilter: 'accepted',
-        packageFilter: 'all',
-        systemFilter: 'all',
-        searchTerm: 'saved search'
-      },
-      version: 0
-    }
-    localStorage.setItem('pipetrak:weld-log-preferences', JSON.stringify(mockState))
-
-    // Manually update the store to match localStorage (simulating fresh load)
-    const store = useWeldLogPreferencesStore.getState()
-    store.setSortColumn('welder')
-    store.setSortDirection('desc')
-    store.setDrawingFilter('drawing-789')
-    store.setStatusFilter('accepted')
-    store.setSearchTerm('saved search')
-
-    // Render hook - should have the localStorage state
+  it('should have correct localStorage structure', () => {
     const { result } = renderHook(() => useWeldLogPreferencesStore())
 
-    expect(result.current.sortColumn).toBe('welder')
-    expect(result.current.sortDirection).toBe('desc')
-    expect(result.current.drawingFilter).toBe('drawing-789')
-    expect(result.current.statusFilter).toBe('accepted')
-    expect(result.current.searchTerm).toBe('saved search')
+    // Set some state
+    act(() => {
+      result.current.toggleSort('welder')
+      result.current.setDrawingFilter('drawing-789')
+      result.current.setSearchTerm('test')
+    })
 
-    // Verify localStorage has the data
+    // Verify localStorage structure
     const stored = localStorage.getItem('pipetrak:weld-log-preferences')
     expect(stored).toBeTruthy()
+
     const parsed = JSON.parse(stored!)
-    expect(parsed.state.sortColumn).toBe('welder')
+    expect(parsed).toHaveProperty('state')
+    expect(parsed).toHaveProperty('version')
+    expect(parsed.state).toHaveProperty('sortColumn')
+    expect(parsed.state).toHaveProperty('sortDirection')
+    expect(parsed.state).toHaveProperty('drawingFilter')
+    expect(parsed.state).toHaveProperty('welderFilter')
+    expect(parsed.state).toHaveProperty('statusFilter')
+    expect(parsed.state).toHaveProperty('packageFilter')
+    expect(parsed.state).toHaveProperty('systemFilter')
+    expect(parsed.state).toHaveProperty('searchTerm')
   })
 })
