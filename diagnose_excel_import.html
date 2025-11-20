@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel Import Diagnostic</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Excel Import Diagnostic Tool</h1>
+    <input type="file" id="fileInput" accept=".xls,.xlsx" />
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, {
+                    header: 1,
+                    defval: '',
+                    raw: false,
+                    blankrows: false
+                });
+
+                let output = `<h2>File: ${file.name}</h2>`;
+                output += `<p>Total rows: ${rows.length}</p>`;
+                output += `<p>Sheet name: ${workbook.SheetNames[0]}</p>`;
+
+                output += `<h3>Headers (row 0):</h3><pre>`;
+                if (rows.length > 0) {
+                    rows[0].forEach((h, i) => {
+                        output += `Col ${i}: "${h}"\n`;
+                    });
+                }
+                output += `</pre>`;
+
+                output += `<h3>First 3 data rows:</h3>`;
+                for (let i = 1; i <= Math.min(3, rows.length - 1); i++) {
+                    output += `<h4>Row ${i}:</h4><pre>`;
+                    rows[i].forEach((cell, idx) => {
+                        output += `Col ${idx}: "${cell}"\n`;
+                    });
+                    output += `</pre>`;
+                }
+
+                // Check required fields
+                output += `<h3>Required Field Analysis:</h3><pre>`;
+                const requiredIndexes = [0, 1, 2]; // Weld ID, Drawing, Weld Type
+                const requiredNames = ['Weld ID Number', 'Drawing / Isometric Number', 'Weld Type'];
+
+                let validRows = 0;
+                let invalidRows = 0;
+                const issues = [];
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    const missing = [];
+
+                    requiredIndexes.forEach((idx, pos) => {
+                        if (!row[idx] || !row[idx].toString().trim()) {
+                            missing.push(requiredNames[pos]);
+                        }
+                    });
+
+                    if (missing.length === 0) {
+                        validRows++;
+                    } else {
+                        invalidRows++;
+                        if (issues.length < 5) {
+                            issues.push(`Row ${i}: Missing ${missing.join(', ')}`);
+                        }
+                    }
+                }
+
+                output += `Valid rows (have all 3 required fields): ${validRows}\n`;
+                output += `Invalid rows (missing required fields): ${invalidRows}\n\n`;
+
+                if (issues.length > 0) {
+                    output += `First ${issues.length} issues:\n`;
+                    issues.forEach(issue => output += `  ${issue}\n`);
+                }
+
+                output += `</pre>`;
+
+                document.getElementById('output').innerHTML = output;
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>

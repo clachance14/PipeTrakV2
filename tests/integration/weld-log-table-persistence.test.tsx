@@ -1,3 +1,4 @@
+import type React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { WeldLogTable } from '@/components/weld-log/WeldLogTable'

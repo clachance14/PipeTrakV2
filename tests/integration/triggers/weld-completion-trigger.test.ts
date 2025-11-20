@@ -1,11 +1,9 @@
 // tests/integration/triggers/weld-completion-trigger.test.ts
 //
-// IMPORTANT: These tests currently FAIL due to trigger implementation issues:
-// 1. Trigger checks auth.uid() which is NULL in SECURITY DEFINER context
-// 2. Trigger references c.weld_number but schema has identity_key->>'weld_number'
-// 3. Trigger references d.drawing_number but schema has drawing_no_raw
-//
-// These tests correctly demonstrate the expected behavior once trigger is fixed.
+// Integration tests for the QC weld completion notification trigger.
+// Verifies that needs_review entries are automatically created when date_welded
+// is set on field welds, and that the trigger correctly handles NULL welder_id
+// and prevents duplicate notifications.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
@@ -85,7 +83,8 @@ describe('Weld Completion Trigger', () => {
       .from('drawings')
       .insert({
         project_id: testProjectId,
-        drawing_no_raw: 'DWG-TEST-001'
+        drawing_no_raw: 'DWG-TEST-001',
+        drawing_no_norm: 'DWGTEST001' // Required NOT NULL field
       })
       .select()
       .single();

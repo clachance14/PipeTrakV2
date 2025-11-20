@@ -118,6 +118,7 @@ export function useChangelog(
 
   // Determine if modal should be shown
   const shouldShowModal =
+    userId !== '' &&
     release !== null &&
     release !== undefined &&
     isNewerVersion(release.tag_name, lastViewedRelease)
@@ -125,7 +126,7 @@ export function useChangelog(
   // Mutation to mark release as viewed
   const markAsViewedMutation = useMutation({
     mutationFn: async () => {
-      if (!release) return
+      if (!userId || !release) return
       await updateLastViewedRelease(userId, release.tag_name)
     },
     onSuccess: () => {

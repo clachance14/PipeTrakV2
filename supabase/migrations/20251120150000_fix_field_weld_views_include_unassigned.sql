@@ -39,13 +39,13 @@ SELECT
   -- Milestone progress
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Fit-Up')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Fit-up')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_fitup,
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Weld Made')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Weld Complete')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_weld_complete,
@@ -120,13 +120,13 @@ SELECT
   -- Milestone progress
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Fit-Up')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Fit-up')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_fitup,
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Weld Made')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Weld Complete')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_weld_complete,
@@ -212,13 +212,13 @@ SELECT
   -- Milestone progress
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Fit-Up')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Fit-up')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_fitup,
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Weld Made')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Weld Complete')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_weld_complete,
@@ -293,13 +293,13 @@ SELECT
   -- Milestone progress
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Fit-Up')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Fit-up')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_fitup,
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Weld Made')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Weld Complete')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_weld_complete,
@@ -385,13 +385,13 @@ SELECT
   -- Milestone progress
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Fit-Up')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Fit-up')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_fitup,
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Weld Made')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Weld Complete')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_weld_complete,
@@ -466,13 +466,13 @@ SELECT
   -- Milestone progress
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Fit-Up')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Fit-up')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_fitup,
   ROUND(AVG(
     CASE
-      WHEN (c.current_milestones->>'Weld Made')::numeric = 1 THEN 100
+      WHEN (c.current_milestones->>'Weld Complete')::numeric = 1 THEN 100
       ELSE 0
     END
   )::numeric, 0) AS pct_weld_complete,
