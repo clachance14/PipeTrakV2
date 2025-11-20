@@ -4,6 +4,8 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 import {
   excelToCsv,
   excelToCsvWithStats,
@@ -11,6 +13,11 @@ import {
   estimateConversionTime,
 } from './excel-to-csv'
 import { FIELD_WELD_REQUIRED_HEADERS } from './weld-column-mapper'
+
+// Get fixture path relative to this test file
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const FIXTURE_PATH = join(__dirname, '__fixtures__', 'DK RAIL CAR LOADING WELD LOG - import.xls')
 
 // Helper to create File object from buffer
 function createFileFromBuffer(buffer: Buffer, filename: string): File {
@@ -23,9 +30,7 @@ function createFileFromBuffer(buffer: Buffer, filename: string): File {
 
 describe('excelToCsv', () => {
   it('should convert real DK RAIL CAR LOADING file without mapping', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const csv = await excelToCsv(file, { applyFieldWeldMapping: false })
@@ -42,9 +47,7 @@ describe('excelToCsv', () => {
   })
 
   it('should convert real DK RAIL CAR LOADING file with Field Weld mapping', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const csv = await excelToCsv(file, { applyFieldWeldMapping: true })
@@ -70,9 +73,7 @@ describe('excelToCsv', () => {
   })
 
   it('should handle progress callbacks for large files', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const progressUpdates: Array<{ current: number; total: number }> = []
@@ -94,9 +95,7 @@ describe('excelToCsv', () => {
   })
 
   it('should strip unused columns when mapping is enabled', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const csv = await excelToCsv(file, { applyFieldWeldMapping: true })
@@ -122,9 +121,7 @@ describe('excelToCsv', () => {
     // This test verifies the escapeCSVValue logic is applied
     // We'll test indirectly through the real file which may have these characters
 
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const csv = await excelToCsv(file, { applyFieldWeldMapping: true })
@@ -147,9 +144,7 @@ describe('excelToCsv', () => {
   })
 
   it('should throw error when required columns are missing', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     // Since the real file HAS all required columns, we can't test this directly
@@ -168,9 +163,7 @@ describe('excelToCsv', () => {
 
 describe('excelToCsvWithStats', () => {
   it('should return detailed conversion result', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const result = await excelToCsvWithStats(file, {
@@ -188,9 +181,7 @@ describe('excelToCsvWithStats', () => {
   })
 
   it('should report unmapped columns in stats', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const result = await excelToCsvWithStats(file, {
@@ -258,9 +249,7 @@ describe('estimateConversionTime', () => {
 
 describe('Real file performance', () => {
   it('should convert 20K row file in reasonable time', async () => {
-    const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
-    )
+    const buffer = readFileSync(FIXTURE_PATH)
     const file = createFileFromBuffer(buffer, 'test.xls')
 
     const startTime = Date.now()

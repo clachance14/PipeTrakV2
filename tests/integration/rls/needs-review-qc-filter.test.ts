@@ -1,8 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 // Unmock supabase for integration tests - we need the real client
 vi.unmock('@/lib/supabase');
+
+// Get migration path relative to project root
+const MIGRATION_PATH = resolve(
+  process.cwd(),
+  'supabase/migrations/20251120101651_qc_weld_completion_alerts.sql'
+);
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
@@ -25,10 +32,7 @@ const supabase = createClient<Database>(supabaseUrl, serviceRoleKey, {
 describe('Needs Review RLS - weld_completed filtering', () => {
   it('should verify migration file contains RLS policy for weld_completed filtering', () => {
     // Read the migration file to verify the policy was created
-    const migrationContent = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/supabase/migrations/20251120101651_qc_weld_completion_alerts.sql',
-      'utf-8'
-    );
+    const migrationContent = readFileSync(MIGRATION_PATH, 'utf-8');
 
     // Verify the migration contains the RLS policy
     expect(migrationContent).toContain('CREATE POLICY "Users can view needs_review in their organization"');
@@ -44,10 +48,7 @@ describe('Needs Review RLS - weld_completed filtering', () => {
 
   it('should verify migration file contains weld_completed type constraint', () => {
     // Read the migration file
-    const migrationContent = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/supabase/migrations/20251120101651_qc_weld_completion_alerts.sql',
-      'utf-8'
-    );
+    const migrationContent = readFileSync(MIGRATION_PATH, 'utf-8');
 
     // Verify weld_completed is added to the type constraint
     expect(migrationContent).toContain('ADD CONSTRAINT needs_review_type_check');
@@ -58,10 +59,7 @@ describe('Needs Review RLS - weld_completed filtering', () => {
 
   it('should verify migration file creates trigger function', () => {
     // Read the migration file
-    const migrationContent = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/supabase/migrations/20251120101651_qc_weld_completion_alerts.sql',
-      'utf-8'
-    );
+    const migrationContent = readFileSync(MIGRATION_PATH, 'utf-8');
 
     // Verify trigger function is created
     expect(migrationContent).toContain('CREATE OR REPLACE FUNCTION notify_qc_on_weld_completion()');
@@ -113,10 +111,7 @@ describe('Needs Review RLS - weld_completed filtering', () => {
 
   it('should verify RLS policy logic structure', () => {
     // Read the migration file
-    const migrationContent = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/supabase/migrations/20251120101651_qc_weld_completion_alerts.sql',
-      'utf-8'
-    );
+    const migrationContent = readFileSync(MIGRATION_PATH, 'utf-8');
 
     // Extract the policy definition
     const policyMatch = migrationContent.match(/CREATE POLICY "Users can view needs_review in their organization"[\s\S]*?\);/);
