@@ -241,7 +241,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                 {/* Date Welded */}
                 <td className={`px-3 py-2 text-sm text-slate-900 ${isMobile ? 'truncate max-w-0' : 'whitespace-nowrap'}`}>
                   {weld.date_welded ? (
-                    new Date(weld.date_welded).toLocaleDateString()
+                    new Date(weld.date_welded).toLocaleDateString('en-US', { timeZone: 'UTC' })
                   ) : (
                     <span className="text-slate-400">-</span>
                   )}
