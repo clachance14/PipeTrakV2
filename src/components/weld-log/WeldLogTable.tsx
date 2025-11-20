@@ -39,6 +39,42 @@ type SortColumn =
 
 type SortDirection = 'asc' | 'desc'
 
+/**
+ * Natural sort comparator for strings with embedded numbers
+ * Handles weld IDs like: 1, 2, 10, 100 (not 1, 10, 100, 2)
+ * Also handles: W-1, W-2, W-10 and mixed formats
+ */
+function naturalSort(a: string, b: string): number {
+  const regex = /(\d+)|(\D+)/g
+  const aParts = a.match(regex) || []
+  const bParts = b.match(regex) || []
+
+  for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+    const aPart = aParts[i]!
+    const bPart = bParts[i]!
+
+    // Check if both parts are numbers
+    const aNum = parseInt(aPart, 10)
+    const bNum = parseInt(bPart, 10)
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      // Both are numbers - compare numerically
+      if (aNum !== bNum) {
+        return aNum - bNum
+      }
+    } else {
+      // At least one is not a number - compare as strings
+      const result = aPart.localeCompare(bPart)
+      if (result !== 0) {
+        return result
+      }
+    }
+  }
+
+  // If all parts are equal, compare by length
+  return aParts.length - bParts.length
+}
+
 export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('date_welded')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -81,9 +117,9 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
 
       switch (sortColumn) {
         case 'weld_id':
-          return multiplier * a.identityDisplay.localeCompare(b.identityDisplay)
+          return multiplier * naturalSort(a.identityDisplay, b.identityDisplay)
         case 'drawing':
-          return multiplier * a.drawing.drawing_no_norm.localeCompare(b.drawing.drawing_no_norm)
+          return multiplier * naturalSort(a.drawing.drawing_no_norm, b.drawing.drawing_no_norm)
         case 'welder':
           const welderA = a.welder?.stencil || 'zzz'
           const welderB = b.welder?.stencil || 'zzz'

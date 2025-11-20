@@ -275,6 +275,17 @@ const queryClient = new QueryClient({
 
 ## Development Rules
 
+### Schema Compliance (CRITICAL)
+**Before writing any database insert/update code:**
+1. Check the actual table schema in migrations
+2. Use type-safe helpers (edge functions) or generated types (client)
+3. Never manually construct insert objects
+4. Validate against working examples
+
+**See:** [docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md](docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md)
+
+**Edge function pattern:** Every edge function that inserts data must have a `schema-helpers.ts` file with type-safe builder functions. See `supabase/functions/import-field-welds/schema-helpers.ts` for reference.
+
 ### TypeScript
 - Strict mode enabled
 - Additional checks: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`
