@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase'
 import { useCreateUnplannedWeld } from '@/hooks/useCreateUnplannedWeld'
+import { findNextWeldNumber } from '@/lib/weld-numbering'
 import { toast } from 'sonner'
 
 interface CreateUnplannedWeldDialogProps {
@@ -69,32 +70,33 @@ export function CreateUnplannedWeldDialog({
 
   const generateWeldNumber = async () => {
     try {
+      // Fetch all existing weld numbers for smart numbering
       const { data } = await supabase
         .from('components')
         .select('identity_key')
         .eq('project_id', projectId)
         .eq('component_type', 'field_weld')
-        .order('identity_key->weld_number', { ascending: false })
-        .limit(1)
 
-      if (data && data.length > 0 && data[0]?.identity_key) {
-        const identityKey = data[0].identity_key as Record<string, unknown>
-        const lastWeldNumber = identityKey.weld_number as string | undefined
-        if (lastWeldNumber) {
-          // Extract number from format "W-050" → 50
-          const match = lastWeldNumber.match(/W-(\d+)/)
-          if (match) {
-            const nextNumber = parseInt(match[1]!) + 1
-            setWeldNumber(`W-${String(nextNumber).padStart(3, '0')}`)
-            return
+      // Extract weld numbers from identity keys
+      const existingWeldIds: string[] = []
+      if (data) {
+        for (const component of data) {
+          if (component?.identity_key) {
+            const identityKey = component.identity_key as Record<string, unknown>
+            const weldNumber = identityKey.weld_number
+            if (typeof weldNumber === 'string') {
+              existingWeldIds.push(weldNumber)
+            }
           }
         }
       }
 
-      // Default to W-001 if no welds exist
-      setWeldNumber('W-001')
+      // Use smart numbering to find next available weld number
+      const nextWeldNumber = findNextWeldNumber(existingWeldIds)
+      setWeldNumber(nextWeldNumber)
     } catch (error) {
       console.error('Failed to generate weld number:', error)
+      // Fallback to default pattern on error
       setWeldNumber('W-001')
     }
   }
