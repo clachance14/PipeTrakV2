@@ -2,18 +2,27 @@
 
 Complete project status, feature history, and bug fix documentation for PipeTrak V2.
 
-**Last Updated**: 2025-11-15
+**Last Updated**: 2025-11-20
 
 ---
 
 ## Current Phase
 
 **Phase**: Feature Development - Import Optimizations
-**Progress**: Feature 027 Complete - Aggregate threaded pipe import operational
+**Progress**: Feature 029 Complete - Field weld Excel import and QC completion alerts operational
 
 ---
 
 ## Completed Features
+
+### Feature 029: Excel Import Support & QC Weld Completion Alerts (2025-11-20)
+- **Status**: ✅ Complete
+- **Description**: Excel import for field welds with automatic QC notifications via Needs Review queue when welds are completed
+- **Implementation**: Supabase Edge Function for Excel parsing, PostgreSQL trigger on `field_welds.date_welded` update, RLS filtering to QC inspectors only
+- **Files Modified**: Migration for trigger/RLS, NeedsReviewPage.tsx, WeldLogTable.tsx, database/RLS/frontend tests
+- **Branch**: 029-excel-import-support
+
+---
 
 ### Feature 027: Aggregate Threaded Pipe Import (2025-11-15) - PRODUCTION READY
 
@@ -349,6 +358,9 @@ Development infrastructure and CI/CD.
 
 ## Recent Changes
 
+### 2025-11-20
+- Feature 029 complete: Excel import support and QC weld completion alerts operational
+
 ### 2025-11-15
 - Feature 027 complete: Aggregate threaded pipe import operational
 
@@ -398,3 +410,4 @@ Detailed implementation notes, architecture decisions, and feature-specific docu
 - **Feature 025**: Threaded Pipe Inline Milestone Input - `specs/025-threaded-pipe-inline-input/`
 - **Feature 026**: Editable Milestone Weight Templates - `specs/026-editable-milestone-templates/`
 - **Feature 027**: Aggregate Threaded Pipe Import - `specs/027-aggregate-threaded-pipe-import/`
+- **Feature 029**: Excel Import Support & QC Weld Completion Alerts - `docs/plans/2025-11-20-qc-weld-completion-alerts-plan.md`
