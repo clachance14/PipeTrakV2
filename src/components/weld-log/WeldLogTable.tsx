@@ -3,7 +3,6 @@
  * Flat table displaying all field welds with sorting and inline actions
  */
 
-import { useState } from 'react'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import {
 } from '@/lib/field-weld-utils'
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
+import { useWeldLogPreferencesStore } from '@/stores/useWeldLogPreferencesStore'
 
 interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
@@ -36,8 +36,6 @@ type SortColumn =
   | 'nde_result'
   | 'status'
   | 'progress'
-
-type SortDirection = 'asc' | 'desc'
 
 /**
  * Natural sort comparator for strings with embedded numbers
@@ -76,8 +74,7 @@ function naturalSort(a: string, b: string): number {
 }
 
 export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
-  const [sortColumn, setSortColumn] = useState<SortColumn>('date_welded')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const { sortColumn, sortDirection, toggleSort } = useWeldLogPreferencesStore()
   const isMobileDetected = useMobileDetection()
   const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
 
@@ -85,12 +82,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
   const canRecordNDE = userRole && ['owner', 'admin', 'qc_inspector'].includes(userRole)
 
   const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
+    toggleSort(column)
   }
 
   const sortedWelds = (() => {
