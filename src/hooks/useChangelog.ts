@@ -9,7 +9,7 @@ interface GitHubRelease {
   body: string
 }
 
-const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO || 'clachance14/PipeTrak_V2'
+const GITHUB_REPO = import.meta.env.VITE_GITHUB_REPO || 'clachance14/PipeTrakV2'
 
 /**
  * Fetch latest GitHub release
