@@ -1,7 +1,8 @@
 /**
  * WeldLogFilters Component (Feature 014 - T069)
- * Filter controls for Weld Log page with URL state management
+ * Filter controls for Weld Log page with persistent store state management
  * Enhancement: Collapsible mobile filters (2025-11-02)
+ * Enhancement: Persistent filters via Zustand store (2025-11-20)
  */
 
 import { useState, useEffect, useMemo } from 'react'
@@ -96,7 +97,8 @@ export function WeldLogFilters({
       setLocalSearchTerm(search)
       setSearchTerm(search)
     }
-  }, [setDrawingFilter, setWelderFilter, setStatusFilter, setPackageFilter, setSystemFilter, setSearchTerm])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run once on mount for URL param migration
 
   // Debounce search term (300ms)
   useEffect(() => {
