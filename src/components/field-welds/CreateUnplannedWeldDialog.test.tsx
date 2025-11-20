@@ -98,13 +98,9 @@ describe('CreateUnplannedWeldDialog Component', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockResolvedValue({
-                    data: mockComponents,
-                    error: null,
-                  }),
-                }),
+              eq: vi.fn().mockResolvedValue({
+                data: mockComponents,
+                error: null,
               }),
             }),
           }),
@@ -173,6 +169,151 @@ describe('CreateUnplannedWeldDialog Component', () => {
 
       const weldNumberInput = screen.getByLabelText(/Weld Number/i) as HTMLInputElement
       expect(weldNumberInput.readOnly).toBe(true)
+    })
+
+    it('should use smart numbering to fill gaps in sequence', async () => {
+      // Mock components with gaps: W-001, W-003, W-005
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'drawings') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: mockDrawings,
+                error: null,
+              }),
+            }),
+          } as any
+        }
+
+        if (table === 'components') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: 'comp-1', identity_key: { weld_number: 'W-001' } },
+                    { id: 'comp-3', identity_key: { weld_number: 'W-003' } },
+                    { id: 'comp-5', identity_key: { weld_number: 'W-005' } },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          } as any
+        }
+
+        return { select: vi.fn() } as any
+      })
+
+      renderWithProviders(
+        <CreateUnplannedWeldDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          projectId="project-1"
+        />
+      )
+
+      // Should fill first gap (W-002)
+      await waitFor(() => {
+        const weldNumberInput = screen.getByLabelText(/Weld Number/i)
+        expect(weldNumberInput).toHaveValue('W-002')
+      })
+    })
+
+    it('should detect FW-## pattern from existing welds', async () => {
+      // Mock components with FW-## pattern
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'drawings') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: mockDrawings,
+                error: null,
+              }),
+            }),
+          } as any
+        }
+
+        if (table === 'components') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: 'comp-1', identity_key: { weld_number: 'FW-01' } },
+                    { id: 'comp-2', identity_key: { weld_number: 'FW-02' } },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          } as any
+        }
+
+        return { select: vi.fn() } as any
+      })
+
+      renderWithProviders(
+        <CreateUnplannedWeldDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          projectId="project-1"
+        />
+      )
+
+      // Should continue FW-## pattern
+      await waitFor(() => {
+        const weldNumberInput = screen.getByLabelText(/Weld Number/i)
+        expect(weldNumberInput).toHaveValue('FW-03')
+      })
+    })
+
+    it('should detect numeric-only pattern from existing welds', async () => {
+      // Mock components with numeric-only pattern
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'drawings') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: mockDrawings,
+                error: null,
+              }),
+            }),
+          } as any
+        }
+
+        if (table === 'components') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: 'comp-1', identity_key: { weld_number: '1' } },
+                    { id: 'comp-2', identity_key: { weld_number: '2' } },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          } as any
+        }
+
+        return { select: vi.fn() } as any
+      })
+
+      renderWithProviders(
+        <CreateUnplannedWeldDialog
+          open={true}
+          onOpenChange={vi.fn()}
+          projectId="project-1"
+        />
+      )
+
+      // Should continue numeric pattern
+      await waitFor(() => {
+        const weldNumberInput = screen.getByLabelText(/Weld Number/i)
+        expect(weldNumberInput).toHaveValue('3')
+      })
     })
 
     it('should render all required form fields', () => {

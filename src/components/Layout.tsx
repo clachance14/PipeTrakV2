@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useProject } from '@/contexts/ProjectContext'
 import { useProjects } from '@/hooks/useProjects'
@@ -6,6 +6,9 @@ import { useSidebarStore } from '@/stores/useSidebarStore'
 import { Sidebar } from '@/components/Sidebar'
 import { UserMenu } from '@/components/profile/UserMenu'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { useChangelog } from '@/hooks/useChangelog'
+import { ChangelogModal } from '@/components/ChangelogModal'
 
 interface LayoutProps {
   children: ReactNode
@@ -19,6 +22,27 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
   const { selectedProjectId, setSelectedProjectId } = useProject()
   const { data: projects, isLoading: projectsLoading } = useProjects()
   const { isCollapsed, toggleMobile } = useSidebarStore()
+  const { user } = useAuth()
+
+  // Changelog modal logic
+  const { shouldShowModal, release, markAsViewed } = useChangelog(
+    user?.id || '',
+    user?.last_viewed_release || null
+  )
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Sync local modal state with computed shouldShowModal
+  useEffect(() => {
+    if (shouldShowModal) {
+      setIsModalOpen(true)
+    }
+  }, [shouldShowModal])
+
+  // Handle modal close: close immediately (optimistic UI) and update database
+  const handleModalClose = async () => {
+    setIsModalOpen(false)
+    await markAsViewed()
+  }
 
   // Auto-select first project if none selected and projects loaded
   useEffect(() => {
@@ -177,6 +201,15 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
       >
         {children}
       </main>
+
+      {/* Changelog Modal */}
+      {release && (
+        <ChangelogModal
+          release={release}
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+        />
+      )}
     </div>
   )
 }

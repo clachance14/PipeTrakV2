@@ -6,6 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ParsedRow } from './parser.ts'
 import { normalizeDrawingNumber } from './validator.ts'
+import { buildFieldWeldComponent, buildFieldWeld } from './schema-helpers.ts'
 
 interface ProcessResult {
   success_count: number
@@ -34,10 +35,24 @@ export async function processTransaction(
   let successCount = 0
 
   try {
-    // Step 1: Fetch all drawings for this project (for validation)
+    // Step 0: Fetch progress template for field_weld
+    const { data: progressTemplate, error: templateError } = await supabase
+      .from('progress_templates')
+      .select('id')
+      .eq('component_type', 'field_weld')
+      .limit(1)
+      .single()
+
+    if (templateError || !progressTemplate) {
+      throw new Error('Progress template not found for field_weld component type')
+    }
+
+    const progressTemplateId = progressTemplate.id
+
+    // Step 1: Fetch all drawings for this project (for validation and metadata)
     const { data: drawings, error: drawingsError } = await supabase
       .from('drawings')
-      .select('id, drawing_no_norm')
+      .select('id, drawing_no_norm, area_id, system_id, test_package_id')
       .eq('project_id', projectId)
 
     if (drawingsError) {
@@ -45,7 +60,7 @@ export async function processTransaction(
     }
 
     const drawingMap = new Map(
-      drawings?.map((d) => [d.drawing_no_norm, d.id]) || []
+      drawings?.map((d) => [d.drawing_no_norm, d]) || []
     )
 
     // Step 2: Fetch existing welders for this project
@@ -77,11 +92,24 @@ export async function processTransaction(
           )
 
           // Validate drawing exists
-          const drawingId = drawingMap.get(drawingNoNorm)
-          if (!drawingId) {
+          const drawing = drawingMap.get(drawingNoNorm)
+          if (!drawing) {
+            // Check if similar drawings exist (e.g., with sheet numbers)
+            const baseDrawing = drawingNoNorm.split('-')[0] // Get base before first hyphen
+            const similarDrawings = Array.from(drawingMap.keys())
+              .filter(key => key.startsWith(baseDrawing + '-'))
+              .slice(0, 5) // Limit to first 5 matches
+
+            let errorMessage = `Drawing not found: ${row['Drawing / Isometric Number']}`
+            if (similarDrawings.length > 0) {
+              errorMessage += ` (found similar: ${similarDrawings.join(', ')} - did you forget the sheet number?)`
+            } else {
+              errorMessage += ` (normalized: ${drawingNoNorm})`
+            }
+
             errors.push({
               row: rowNumber,
-              message: `Drawing not found: ${row['Drawing / Isometric Number']} (normalized: ${drawingNoNorm})`,
+              message: errorMessage,
             })
             continue
           }
@@ -123,20 +151,21 @@ export async function processTransaction(
             }
           }
 
-          // Create component first
+          // Create component first (using type-safe helper)
+          const componentData = buildFieldWeldComponent({
+            projectId,
+            drawingId: drawing.id,
+            progressTemplateId,
+            weldNumber: row['Weld ID Number'],
+            areaId: drawing.area_id,
+            systemId: drawing.system_id,
+            testPackageId: drawing.test_package_id,
+            userId,
+          })
+
           const { data: component, error: componentError } = await supabase
             .from('components')
-            .insert({
-              project_id: projectId,
-              drawing_id: drawingId,
-              type: 'field_weld',
-              identity_key: {
-                weld_id: row['Weld ID Number'],
-              },
-              percent_complete: 0,
-              progress_state: {},
-              created_by: userId,
-            })
+            .insert(componentData)
             .select('id')
             .single()
 
@@ -153,25 +182,39 @@ export async function processTransaction(
           const ndeResult = row['NDE Result']?.toUpperCase().trim() || null
           const ndeRequired = !!row['X-RAY %']?.trim()
 
-          // Create field_weld
+          // Validate NDE type if present
+          const validNdeTypes = ['RT', 'UT', 'PT', 'MT', 'VT']
+          const validatedNdeType = ndeType && validNdeTypes.includes(ndeType)
+            ? (ndeType as 'RT' | 'UT' | 'PT' | 'MT' | 'VT')
+            : null
+
+          // Validate NDE result if present
+          const validNdeResults = ['PASS', 'FAIL', 'PENDING']
+          const validatedNdeResult = ndeResult && validNdeResults.includes(ndeResult)
+            ? (ndeResult as 'PASS' | 'FAIL' | 'PENDING')
+            : null
+
+          // Create field_weld (using type-safe helper)
+          const fieldWeldData = buildFieldWeld({
+            componentId: component.id,
+            projectId,
+            weldType: row['Weld Type'].toUpperCase().trim() as 'BW' | 'SW' | 'FW' | 'TW',
+            weldSize: row['Weld Size']?.trim() || null,
+            schedule: row['Schedule']?.trim() || null,
+            baseMetal: row['Base Metal']?.trim() || null,
+            spec: row['SPEC']?.trim() || null,
+            welderId,
+            dateWelded: row['Date Welded']?.trim() || null,
+            ndeRequired,
+            ndeType: validatedNdeType,
+            ndeResult: validatedNdeResult,
+            status: validatedNdeResult === 'FAIL' ? 'rejected' : 'active',
+            userId,
+          })
+
           const { error: fieldWeldError } = await supabase
             .from('field_welds')
-            .insert({
-              component_id: component.id,
-              project_id: projectId,
-              weld_type: row['Weld Type'].toUpperCase().trim(),
-              weld_size: row['Weld Size']?.trim() || null,
-              schedule: row['Schedule']?.trim() || null,
-              base_metal: row['Base Metal']?.trim() || null,
-              spec: row['SPEC']?.trim() || null,
-              welder_id: welderId,
-              date_welded: row['Date Welded']?.trim() || null,
-              nde_required: ndeRequired,
-              nde_type: ndeType,
-              nde_result: ndeResult,
-              status: ndeResult === 'FAIL' ? 'rejected' : 'active',
-              created_by: userId,
-            })
+            .insert(fieldWeldData)
 
           if (fieldWeldError) {
             // Rollback component creation
@@ -217,7 +260,7 @@ export async function processTransaction(
             await supabase
               .from('components')
               .update({
-                progress_state: progressState,
+                current_milestones: progressState,
                 percent_complete: percentComplete,
               })
               .eq('id', component.id)

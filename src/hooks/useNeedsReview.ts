@@ -16,7 +16,8 @@ type ReviewType =
   | 'delta_quantity'
   | 'drawing_change'
   | 'similar_drawing'
-  | 'verify_welder';
+  | 'verify_welder'
+  | 'weld_completed';
 
 interface NeedsReviewFilters {
   status?: ReviewStatus;

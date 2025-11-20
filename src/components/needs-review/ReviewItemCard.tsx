@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PermissionGate } from '@/components/PermissionGate';
 import { cn } from '@/lib/utils';
+import { WeldCompletedPayload } from '@/types/needs-review';
 
 export type ReviewType =
   | 'out_of_sequence'
@@ -10,7 +11,8 @@ export type ReviewType =
   | 'delta_quantity'
   | 'drawing_change'
   | 'similar_drawing'
-  | 'verify_welder';
+  | 'verify_welder'
+  | 'weld_completed';
 
 export interface ReviewItem {
   id: string;
@@ -33,7 +35,8 @@ const typeLabels: Record<ReviewType, string> = {
   delta_quantity: 'Delta Quantity',
   drawing_change: 'Drawing Change',
   similar_drawing: 'Similar Drawing',
-  verify_welder: 'Verify Welder'
+  verify_welder: 'Verify Welder',
+  weld_completed: 'Weld Completed'
 };
 
 const typeBadgeColors: Record<ReviewType, string> = {
@@ -42,7 +45,8 @@ const typeBadgeColors: Record<ReviewType, string> = {
   delta_quantity: 'bg-yellow-100 text-yellow-800',
   drawing_change: 'bg-blue-100 text-blue-800',
   similar_drawing: 'bg-purple-100 text-purple-800',
-  verify_welder: 'bg-amber-100 text-amber-800'
+  verify_welder: 'bg-amber-100 text-amber-800',
+  weld_completed: 'bg-green-100 text-green-800'
 };
 
 /**
@@ -52,6 +56,37 @@ const typeBadgeColors: Record<ReviewType, string> = {
 export function ReviewItemCard({ item, onResolve }: ReviewItemCardProps) {
   const handleResolve = () => {
     onResolve(item.id);
+  };
+
+  // Render custom content for weld_completed type
+  const renderWeldCompletedContent = () => {
+    if (item.type !== 'weld_completed') return null;
+
+    const payload = item.payload as WeldCompletedPayload;
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <strong className="font-semibold">{payload.weld_number}</strong>
+          <span className="text-sm text-muted-foreground">
+            on {payload.drawing_number}
+          </span>
+        </div>
+        <div className="text-sm">
+          Completed on {new Date(payload.date_welded).toLocaleDateString()}
+          {payload.welder_name && (
+            <span className="ml-1">by {payload.welder_name}</span>
+          )}
+        </div>
+        {payload.nde_required && (
+          <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+            NDE Required
+          </span>
+        )}
+        <p className="text-xs text-muted-foreground mt-1">
+          Review created: {new Date(item.createdAt).toLocaleString()}
+        </p>
+      </div>
+    );
   };
 
   return (
@@ -68,13 +103,20 @@ export function ReviewItemCard({ item, onResolve }: ReviewItemCardProps) {
             </span>
           </div>
 
-          {/* Description */}
-          <p className="text-sm text-gray-900 mb-1">{item.description}</p>
+          {/* Custom content for weld_completed or default description */}
+          {item.type === 'weld_completed' ? (
+            renderWeldCompletedContent()
+          ) : (
+            <>
+              {/* Description */}
+              <p className="text-sm text-gray-900 mb-1">{item.description}</p>
 
-          {/* Created timestamp */}
-          <p className="text-xs text-muted-foreground">
-            {new Date(item.createdAt).toLocaleString()}
-          </p>
+              {/* Created timestamp */}
+              <p className="text-xs text-muted-foreground">
+                {new Date(item.createdAt).toLocaleString()}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Resolve button (permission-gated) */}

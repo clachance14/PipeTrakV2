@@ -3,7 +3,6 @@
  * Flat table displaying all field welds with sorting and inline actions
  */
 
-import { useState } from 'react'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import {
 } from '@/lib/field-weld-utils'
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
+import { useWeldLogPreferencesStore } from '@/stores/useWeldLogPreferencesStore'
 
 interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
@@ -37,11 +37,44 @@ type SortColumn =
   | 'status'
   | 'progress'
 
-type SortDirection = 'asc' | 'desc'
+/**
+ * Natural sort comparator for strings with embedded numbers
+ * Handles weld IDs like: 1, 2, 10, 100 (not 1, 10, 100, 2)
+ * Also handles: W-1, W-2, W-10 and mixed formats
+ */
+function naturalSort(a: string, b: string): number {
+  const regex = /(\d+)|(\D+)/g
+  const aParts = a.match(regex) || []
+  const bParts = b.match(regex) || []
+
+  for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+    const aPart = aParts[i]!
+    const bPart = bParts[i]!
+
+    // Check if both parts are numbers
+    const aNum = parseInt(aPart, 10)
+    const bNum = parseInt(bPart, 10)
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      // Both are numbers - compare numerically
+      if (aNum !== bNum) {
+        return aNum - bNum
+      }
+    } else {
+      // At least one is not a number - compare as strings
+      const result = aPart.localeCompare(bPart)
+      if (result !== 0) {
+        return result
+      }
+    }
+  }
+
+  // If all parts are equal, compare by length
+  return aParts.length - bParts.length
+}
 
 export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
-  const [sortColumn, setSortColumn] = useState<SortColumn>('date_welded')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const { sortColumn, sortDirection, toggleSort } = useWeldLogPreferencesStore()
   const isMobileDetected = useMobileDetection()
   const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
 
@@ -49,12 +82,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
   const canRecordNDE = userRole && ['owner', 'admin', 'qc_inspector'].includes(userRole)
 
   const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
+    toggleSort(column)
   }
 
   const sortedWelds = (() => {
@@ -71,8 +99,11 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
         return multiplier * dateA.localeCompare(dateB)
       })
 
-      // Append welds without dates at the end
-      return [...sorted, ...weldsWithoutDates]
+      // Sort welds without dates by weld_id (natural sort), then append
+      const sortedWithoutDates = [...weldsWithoutDates].sort((a, b) =>
+        naturalSort(a.identityDisplay, b.identityDisplay)
+      )
+      return [...sorted, ...sortedWithoutDates]
     }
 
     // Standard sorting for all other columns
@@ -81,9 +112,9 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
 
       switch (sortColumn) {
         case 'weld_id':
-          return multiplier * a.identityDisplay.localeCompare(b.identityDisplay)
+          return multiplier * naturalSort(a.identityDisplay, b.identityDisplay)
         case 'drawing':
-          return multiplier * a.drawing.drawing_no_norm.localeCompare(b.drawing.drawing_no_norm)
+          return multiplier * naturalSort(a.drawing.drawing_no_norm, b.drawing.drawing_no_norm)
         case 'welder':
           const welderA = a.welder?.stencil || 'zzz'
           const welderB = b.welder?.stencil || 'zzz'
@@ -210,7 +241,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                 {/* Date Welded */}
                 <td className={`px-3 py-2 text-sm text-slate-900 ${isMobile ? 'truncate max-w-0' : 'whitespace-nowrap'}`}>
                   {weld.date_welded ? (
-                    new Date(weld.date_welded).toLocaleDateString()
+                    new Date(weld.date_welded).toLocaleDateString('en-US', { timeZone: 'UTC' })
                   ) : (
                     <span className="text-slate-400">-</span>
                   )}

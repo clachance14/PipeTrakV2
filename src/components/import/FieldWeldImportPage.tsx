@@ -1,6 +1,7 @@
 /**
- * FieldWeldImportPage Component (Feature 014 - T046)
+ * FieldWeldImportPage Component (Feature 014 - T046, Feature 029 - Excel Support)
  * Matches Material Takeoff import format
+ * Supports Excel (.xlsx, .xls) and CSV imports
  */
 
 import { useState } from 'react'
@@ -8,6 +9,8 @@ import { useDropzone } from 'react-dropzone'
 import { useImportFieldWelds } from '@/hooks/useImportFieldWelds'
 import { FieldWeldImportProgress } from './FieldWeldImportProgress'
 import { FieldWeldErrorReport } from './FieldWeldErrorReport'
+import { excelToCsvWithStats, isExcelFile } from '@/lib/excel/excel-to-csv'
+import { generateFieldWeldTemplate } from '@/lib/excel/generate-template'
 
 interface FieldWeldImportPageProps {
   projectId: string
@@ -17,9 +20,12 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
   const [showProgress, setShowProgress] = useState(false)
   const [showErrorReport, setShowErrorReport] = useState(false)
   const [currentFile, setCurrentFile] = useState<File | null>(null)
+  const [conversionProgress, setConversionProgress] = useState<number>(0)
+  const [isConverting, setIsConverting] = useState(false)
   const [importResult, setImportResult] = useState<{
     fileName: string
     totalRows: number
+    skippedRows: number
     successCount: number
     errorCount: number
     errors: Array<{ row: number; column?: string; message: string }>
@@ -29,22 +35,55 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
       'text/csv': ['.csv'],
     },
     maxSize: 5 * 1024 * 1024, // 5MB
     multiple: false,
     onDrop: async (acceptedFiles) => {
-      const file = acceptedFiles[0]
-      if (!file) return
+      const originalFile = acceptedFiles[0]
+      if (!originalFile) return
 
-      setCurrentFile(file)
+      setCurrentFile(originalFile)
       setShowProgress(true)
       setImportResult(null) // Clear previous results
+      setConversionProgress(0)
 
       try {
+        // Convert Excel to CSV if needed
+        let csvFile: File = originalFile
+        let skippedRows = 0
+
+        if (isExcelFile(originalFile)) {
+          setIsConverting(true)
+
+          const conversionResult = await excelToCsvWithStats(originalFile, {
+            applyFieldWeldMapping: true,
+            progressInterval: 1000,
+            onProgress: (current, total) => {
+              setConversionProgress(Math.round((current / total) * 100))
+            },
+          })
+
+          skippedRows = conversionResult.skippedRows
+
+          // Log skip statistics
+          if (skippedRows > 0) {
+            console.log(`⚠️ Skipped ${skippedRows} rows with incomplete data (missing Weld ID, Drawing, or Weld Type)`)
+          }
+
+          // Create CSV file from converted data
+          csvFile = new File([conversionResult.csv], originalFile.name.replace(/\.xlsx?$/i, '.csv'), {
+            type: 'text/csv',
+          })
+
+          setIsConverting(false)
+        }
+
         const result = await importMutation.mutateAsync({
           project_id: projectId,
-          csv_file: file,
+          csv_file: csvFile,
         })
 
         // Calculate total rows
@@ -52,8 +91,9 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
 
         // Store result
         setImportResult({
-          fileName: file.name,
+          fileName: originalFile.name,
           totalRows,
+          skippedRows,
           successCount: result.success_count,
           errorCount: result.error_count,
           errors: result.errors,
@@ -66,8 +106,9 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
       } catch (error) {
         // Error already handled by hook's onError
         setImportResult({
-          fileName: file.name,
+          fileName: originalFile.name,
           totalRows: 0,
+          skippedRows: 0,
           successCount: 0,
           errorCount: 1,
           errors: [{ row: 0, message: error instanceof Error ? error.message : 'Import failed' }],
@@ -75,11 +116,17 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
       } finally {
         setShowProgress(false)
         setCurrentFile(null)
+        setIsConverting(false)
+        setConversionProgress(0)
       }
     },
   })
 
-  const downloadTemplate = () => {
+  const downloadExcelTemplate = () => {
+    generateFieldWeldTemplate()
+  }
+
+  const downloadCsvTemplate = () => {
     const sampleCsv = `Weld ID Number,Drawing / Isometric Number,Weld Type,SPEC,Weld Size,Schedule,Base Metal,X-RAY %,Welder Stencil,Date Welded,Type of NDE Performed,NDE Result,Comments
 1,P-26B07,BW,HC05,1",XS,CS,5%,K-07,2024-01-15,RT,PASS,
 2,P-93909,SW,HC05,3",STD,CS,5%,R-05,2024-01-16,UT,PASS,
@@ -102,17 +149,23 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-2">Field Weld Import</h2>
         <p className="text-gray-600">
-          Upload a CSV file to import field welds with welder assignments and NDE results
+          Upload an Excel or CSV file to import field welds with welder assignments and NDE results
         </p>
       </div>
 
-      {/* CSV Template Download */}
-      <div className="mb-6">
+      {/* Template Downloads */}
+      <div className="mb-6 flex gap-3">
         <button
-          onClick={downloadTemplate}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={downloadExcelTemplate}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
         >
-          Download CSV Template
+          Download Excel Template
+        </button>
+        <button
+          onClick={downloadCsvTemplate}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+        >
+          Prefer CSV? Download CSV Template
         </button>
       </div>
 
@@ -126,12 +179,20 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
         }`}
       >
         <input {...getInputProps()} />
-        {isDragActive ? (
-          <p className="text-lg text-blue-600">Drop CSV here</p>
+        {isConverting ? (
+          <div>
+            <p className="text-lg mb-2 text-blue-600">Converting Excel...</p>
+            <p className="text-sm text-gray-500">{conversionProgress}%</p>
+          </div>
+        ) : isDragActive ? (
+          <p className="text-lg text-blue-600">Drop file here</p>
         ) : (
           <div>
-            <p className="text-lg mb-2">Drag CSV or click to upload</p>
-            <p className="text-sm text-gray-500">Maximum file size: 5MB</p>
+            <p className="text-lg mb-2">Drag Excel file or click to upload</p>
+            <p className="text-sm text-gray-500 mb-1">Also supports CSV files</p>
+            <p className="text-xs text-gray-400">
+              Accepts: .xlsx, .xls, .csv • Maximum size: 5MB
+            </p>
           </div>
         )}
       </div>
@@ -146,6 +207,11 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
               </h3>
               <p className="text-green-700">
                 Successfully imported {importResult.successCount} field welds.
+                {importResult.skippedRows > 0 && (
+                  <span className="block mt-1 text-sm">
+                    ({importResult.skippedRows} row{importResult.skippedRows !== 1 ? 's' : ''} skipped due to missing required fields)
+                  </span>
+                )}
               </p>
             </div>
           ) : importResult.successCount > 0 ? (
@@ -156,6 +222,11 @@ export function FieldWeldImportPage({ projectId }: FieldWeldImportPageProps) {
               <p className="text-amber-700 mb-4">
                 Imported {importResult.successCount} welds successfully.{' '}
                 {importResult.errorCount} row{importResult.errorCount !== 1 ? 's' : ''} failed.
+                {importResult.skippedRows > 0 && (
+                  <span className="block mt-1 text-sm">
+                    ({importResult.skippedRows} row{importResult.skippedRows !== 1 ? 's' : ''} skipped due to missing required fields)
+                  </span>
+                )}
               </p>
               <button
                 onClick={() => setShowErrorReport(true)}

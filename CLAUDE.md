@@ -70,6 +70,13 @@ npm run lint             # Lint
 - **State**: TanStack Query (server), Zustand (client), React Context (auth)
 - **Testing**: Vitest, Testing Library, jsdom
 
+### State Management
+- **TanStack Query** (server state)
+- **Zustand** (client state with localStorage persistence)
+  - `useSidebarStore` - Sidebar collapse state
+  - `useWeldLogPreferencesStore` - Weld log sort and filter preferences
+- **React Context** (auth state)
+
 ### Path Aliases
 `@/*` → `./src/*`
 
@@ -275,6 +282,17 @@ const queryClient = new QueryClient({
 
 ## Development Rules
 
+### Schema Compliance (CRITICAL)
+**Before writing any database insert/update code:**
+1. Check the actual table schema in migrations
+2. Use type-safe helpers (edge functions) or generated types (client)
+3. Never manually construct insert objects
+4. Validate against working examples
+
+**See:** [docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md](docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md)
+
+**Edge function pattern:** Every edge function that inserts data must have a `schema-helpers.ts` file with type-safe builder functions. See `supabase/functions/import-field-welds/schema-helpers.ts` for reference.
+
 ### TypeScript
 - Strict mode enabled
 - Additional checks: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`
@@ -317,6 +335,25 @@ Before altering any existing table, you MUST:
 - Semantic HTML, ARIA labels, keyboard navigation
 - Test with screen readers
 - See [docs/plans/2025-11-06-design-rules.md](docs/plans/2025-11-06-design-rules.md)
+
+### Persistent Preferences Pattern
+
+Use Zustand with persist middleware for user preferences that should survive page refreshes:
+
+**Example:** `useWeldLogPreferencesStore`
+- Stores sort and filter state
+- localStorage key: `pipetrak:weld-log-preferences`
+- Automatic sync via Zustand persist middleware
+
+**When to use:**
+- User preferences (UI state, filters, sort)
+- Settings that should persist across sessions
+- State that doesn't need server sync
+
+**When NOT to use:**
+- Server data (use TanStack Query)
+- Auth state (use AuthContext)
+- Form state (use local component state)
 
 ---
 

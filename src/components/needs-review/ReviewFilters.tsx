@@ -16,7 +16,8 @@ export type ReviewType =
   | 'delta_quantity'
   | 'drawing_change'
   | 'similar_drawing'
-  | 'verify_welder';
+  | 'verify_welder'
+  | 'weld_completed';
 
 export interface ReviewFiltersState {
   type?: ReviewType;
@@ -34,7 +35,8 @@ const typeLabels: Record<ReviewType, string> = {
   delta_quantity: 'Delta Quantity',
   drawing_change: 'Drawing Change',
   similar_drawing: 'Similar Drawing',
-  verify_welder: 'Verify Welder'
+  verify_welder: 'Verify Welder',
+  weld_completed: 'Weld Completed'
 };
 
 /**
