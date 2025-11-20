@@ -24,7 +24,7 @@ function createFileFromBuffer(buffer: Buffer, filename: string): File {
 describe('excelToCsv', () => {
   it('should convert real DK RAIL CAR LOADING file without mapping', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -43,7 +43,7 @@ describe('excelToCsv', () => {
 
   it('should convert real DK RAIL CAR LOADING file with Field Weld mapping', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -71,7 +71,7 @@ describe('excelToCsv', () => {
 
   it('should handle progress callbacks for large files', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -95,7 +95,7 @@ describe('excelToCsv', () => {
 
   it('should strip unused columns when mapping is enabled', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -123,7 +123,7 @@ describe('excelToCsv', () => {
     // We'll test indirectly through the real file which may have these characters
 
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -148,7 +148,7 @@ describe('excelToCsv', () => {
 
   it('should throw error when required columns are missing', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -169,7 +169,7 @@ describe('excelToCsv', () => {
 describe('excelToCsvWithStats', () => {
   it('should return detailed conversion result', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -189,7 +189,7 @@ describe('excelToCsvWithStats', () => {
 
   it('should report unmapped columns in stats', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 
@@ -259,7 +259,7 @@ describe('estimateConversionTime', () => {
 describe('Real file performance', () => {
   it('should convert 20K row file in reasonable time', async () => {
     const buffer = readFileSync(
-      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG.xls'
+      '/home/clachance14/projects/PipeTrak_V2/DK RAIL CAR LOADING WELD LOG - import.xls'
     )
     const file = createFileFromBuffer(buffer, 'test.xls')
 

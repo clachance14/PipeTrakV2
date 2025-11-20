@@ -43,6 +43,58 @@ export interface ConversionResult {
   stats?: string
 }
 
+interface ParsedWorkbook {
+  headers: string[]
+  dataRows: unknown[][]
+}
+
+/**
+ * Parse Excel workbook into headers and data rows
+ * @param data - Workbook data as Uint8Array
+ * @returns Parsed headers and data rows
+ * @throws Error if workbook is invalid or empty
+ */
+function parseWorkbook(data: Uint8Array): ParsedWorkbook {
+  // Read workbook
+  const workbook = XLSX.read(data, { type: 'array' })
+
+  if (workbook.SheetNames.length === 0) {
+    throw new Error('Excel file contains no sheets')
+  }
+
+  // Read first sheet only
+  const firstSheetName = workbook.SheetNames[0]
+  if (!firstSheetName) {
+    throw new Error('Excel file contains no sheet names')
+  }
+  const firstSheet = workbook.Sheets[firstSheetName]
+  if (!firstSheet) {
+    throw new Error('Excel file contains no data in first sheet')
+  }
+
+  // Convert to array of arrays
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
+    header: 1,
+    defval: '',
+    raw: false, // Convert all values to strings
+    blankrows: false, // Skip empty rows
+  })
+
+  if (rows.length === 0) {
+    throw new Error('Excel file contains no data')
+  }
+
+  // Extract headers (first row)
+  const headers = rows[0] as string[]
+  const dataRows = rows.slice(1)
+
+  if (dataRows.length === 0) {
+    throw new Error('Excel file contains only headers, no data rows')
+  }
+
+  return { headers, dataRows }
+}
+
 /**
  * Convert Excel file to CSV string
  * @param file - Excel file (.xlsx or .xls)
@@ -62,48 +114,7 @@ export async function excelToCsv(
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
-
-        // Read workbook
-        const workbook = XLSX.read(data, { type: 'array' })
-
-        if (workbook.SheetNames.length === 0) {
-          reject(new Error('Excel file contains no sheets'))
-          return
-        }
-
-        // Read first sheet only
-        const firstSheetName = workbook.SheetNames[0]
-        if (!firstSheetName) {
-          reject(new Error('Excel file contains no sheet names'))
-          return
-        }
-        const firstSheet = workbook.Sheets[firstSheetName]
-        if (!firstSheet) {
-          reject(new Error('Excel file contains no data in first sheet'))
-          return
-        }
-
-        // Convert to array of arrays
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
-          header: 1,
-          defval: '',
-          raw: false, // Convert all values to strings
-          blankrows: false, // Skip empty rows
-        })
-
-        if (rows.length === 0) {
-          reject(new Error('Excel file contains no data'))
-          return
-        }
-
-        // Extract headers (first row)
-        const headers = rows[0] as string[]
-        const dataRows = rows.slice(1)
-
-        if (dataRows.length === 0) {
-          reject(new Error('Excel file contains only headers, no data rows'))
-          return
-        }
+        const { headers, dataRows } = parseWorkbook(data)
 
         let csvLines: string[]
         let mappingResult: MappingResult | undefined
@@ -159,18 +170,18 @@ export async function excelToCsv(
           }
         } else {
           // No mapping - direct CSV conversion (for Material Takeoff)
-          const csv = XLSX.utils.sheet_to_csv(firstSheet, {
-            strip: true, // Remove trailing spaces
-            blankrows: false, // Skip empty rows
-            FS: ',', // Field separator: comma
-            RS: '\n', // Row separator: newline
-          })
+          // Convert headers and data rows to CSV
+          csvLines = [headers.map(escapeCSVValue).join(',')]
 
-          csvLines = csv.split('\n').filter((line) => line.trim())
+          for (const row of dataRows) {
+            const rowArray = row as unknown[]
+            const escapedRow = rowArray.map((cell) => escapeCSVValue(String(cell ?? '')))
+            csvLines.push(escapedRow.join(','))
+          }
 
           // Report progress for large files
           if (onProgress) {
-            const totalRows = csvLines.length - 1 // Exclude header
+            const totalRows = dataRows.length
             onProgress(totalRows, totalRows)
           }
         }
@@ -205,50 +216,22 @@ export async function excelToCsvWithStats(
   file: File,
   options: ConversionOptions = {}
 ): Promise<ConversionResult> {
+  const { onProgress, applyFieldWeldMapping = false, progressInterval = 1000 } = options
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
 
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: 'array' })
-
-        if (workbook.SheetNames.length === 0) {
-          reject(new Error('Excel file contains no sheets'))
-          return
-        }
-
-        const firstSheetName = workbook.SheetNames[0]
-        if (!firstSheetName) {
-          reject(new Error('Excel file contains no sheet names'))
-          return
-        }
-        const firstSheet = workbook.Sheets[firstSheetName]
-        if (!firstSheet) {
-          reject(new Error('Excel file contains no data in first sheet'))
-          return
-        }
-
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
-          header: 1,
-          defval: '',
-          raw: false,
-          blankrows: false,
-        })
-
-        if (rows.length === 0) {
-          reject(new Error('Excel file contains no data'))
-          return
-        }
-
-        const headers = rows[0] as string[]
-        const dataRows = rows.slice(1)
+        const { headers, dataRows } = parseWorkbook(data)
 
         let columnMapping: MappingResult | undefined
         let stats: string | undefined
         let skippedRows = 0
+        let csvLines: string[]
 
-        if (options.applyFieldWeldMapping) {
+        if (applyFieldWeldMapping) {
           columnMapping = mapFieldWeldColumns(headers)
 
           if (columnMapping.missingRequired.length > 0) {
@@ -262,28 +245,65 @@ export async function excelToCsvWithStats(
 
           stats = getMappingStats(columnMapping)
 
-          // Count rows that will be skipped
+          // Use expected headers as CSV header row
+          csvLines = [FIELD_WELD_REQUIRED_HEADERS.join(',')]
+
+          // Process each data row
           for (let i = 0; i < dataRows.length; i++) {
             const sourceRow = dataRows[i] as unknown[]
             const reorderedRow = reorderRow(sourceRow, columnMapping.mappings)
+
+            // Skip rows with missing required fields
             if (!hasRequiredFields(reorderedRow)) {
               skippedRows++
+              continue
             }
+
+            // Escape CSV values (handle quotes and commas)
+            const escapedRow = reorderedRow.map(escapeCSVValue)
+            csvLines.push(escapedRow.join(','))
+
+            // Report progress
+            if (onProgress && (i + 1) % progressInterval === 0) {
+              onProgress(i + 1, dataRows.length)
+            }
+          }
+
+          // Final progress update
+          if (onProgress) {
+            onProgress(dataRows.length, dataRows.length)
+          }
+
+          // Log skip statistics
+          if (skippedRows > 0) {
+            console.log(`Skipped ${skippedRows} rows with missing required fields (Weld ID, Drawing, or Weld Type)`)
+          }
+        } else {
+          // No mapping - direct CSV conversion
+          csvLines = [headers.map(escapeCSVValue).join(',')]
+
+          for (const row of dataRows) {
+            const rowArray = row as unknown[]
+            const escapedRow = rowArray.map((cell) => escapeCSVValue(String(cell ?? '')))
+            csvLines.push(escapedRow.join(','))
+          }
+
+          // Report progress for large files
+          if (onProgress) {
+            const totalRows = dataRows.length
+            onProgress(totalRows, totalRows)
           }
         }
 
-        // Convert using main function
-        excelToCsv(file, options)
-          .then((csv) => {
-            resolve({
-              csv,
-              rowCount: dataRows.length - skippedRows, // Only count valid rows
-              skippedRows,
-              columnMapping,
-              stats,
-            })
-          })
-          .catch(reject)
+        const csv = csvLines.join('\n')
+
+        resolve({
+          csv,
+          rowCount: dataRows.length - skippedRows, // Only count valid rows
+          skippedRows,
+          columnMapping,
+          stats,
+        })
       } catch (error) {
         if (error instanceof Error) {
           reject(new Error(`Failed to parse Excel file: ${error.message}`))
