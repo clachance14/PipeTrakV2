@@ -6,6 +6,9 @@ import { useSidebarStore } from '@/stores/useSidebarStore'
 import { Sidebar } from '@/components/Sidebar'
 import { UserMenu } from '@/components/profile/UserMenu'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { useChangelog } from '@/hooks/useChangelog'
+import { ChangelogModal } from '@/components/ChangelogModal'
 
 interface LayoutProps {
   children: ReactNode
@@ -19,6 +22,13 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
   const { selectedProjectId, setSelectedProjectId } = useProject()
   const { data: projects, isLoading: projectsLoading } = useProjects()
   const { isCollapsed, toggleMobile } = useSidebarStore()
+  const { user } = useAuth()
+
+  // Changelog modal logic
+  const { shouldShowModal, release, markAsViewed } = useChangelog(
+    user?.id || '',
+    user?.last_viewed_release || null
+  )
 
   // Auto-select first project if none selected and projects loaded
   useEffect(() => {
@@ -177,6 +187,15 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
       >
         {children}
       </main>
+
+      {/* Changelog Modal */}
+      {shouldShowModal && release && (
+        <ChangelogModal
+          release={release}
+          isOpen={shouldShowModal}
+          onClose={markAsViewed}
+        />
+      )}
     </div>
   )
 }

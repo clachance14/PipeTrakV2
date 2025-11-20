@@ -5,7 +5,7 @@ import type { Role } from '@/types/team.types'
 
 type AuthContextType = {
   session: Session | null
-  user: (User & { role?: Role }) | null
+  user: (User & { role?: Role; last_viewed_release?: string | null }) | null
   loading: boolean
   isInRecoveryMode: boolean
   setIsInRecoveryMode: (value: boolean) => void
@@ -17,11 +17,11 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<(User & { role?: Role }) | null>(null)
+  const [user, setUser] = useState<(User & { role?: Role; last_viewed_release?: string | null }) | null>(null)
   const [loading, setLoading] = useState(true)
   const [isInRecoveryMode, setIsInRecoveryMode] = useState(false)
 
-  // Fetch user role from public.users table
+  // Fetch user role and last_viewed_release from public.users table
   const fetchUserRole = async (authUser: User | null) => {
     if (!authUser) {
       setUser(null)
@@ -31,22 +31,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('role')
+        .select('role, last_viewed_release')
         .eq('id', authUser.id)
         .single()
 
       if (error) {
-        console.error('Error fetching user role:', error)
-        // If error fetching role, set user without role
-        setUser({ ...authUser, role: undefined } as User & { role?: Role })
+        console.error('Error fetching user data:', error)
+        // If error fetching data, set user without role and last_viewed_release
+        setUser({ ...authUser, role: undefined, last_viewed_release: null })
         return
       }
 
-      // Cast the user with the role to our extended type
-      setUser({ ...authUser, role: data?.role as Role | undefined } as User & { role?: Role })
+      // Cast the user with the role and last_viewed_release to our extended type
+      setUser({
+        ...authUser,
+        role: data?.role as Role | undefined,
+        last_viewed_release: data?.last_viewed_release ?? null
+      })
     } catch (err) {
-      console.error('Error fetching user role:', err)
-      setUser({ ...authUser, role: undefined } as User & { role?: Role })
+      console.error('Error fetching user data:', err)
+      setUser({ ...authUser, role: undefined, last_viewed_release: null })
     }
   }
 

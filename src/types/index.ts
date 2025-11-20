@@ -8,6 +8,7 @@ export type User = {
   full_name: string | null
   organization_id: string | null
   avatar_url: string | null
+  last_viewed_release?: string | null
   created_at?: string
   updated_at?: string
 }

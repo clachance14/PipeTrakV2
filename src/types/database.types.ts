@@ -1041,6 +1041,7 @@ export type Database = {
           id: string
           is_demo_user: boolean
           is_super_admin: boolean
+          last_viewed_release: string | null
           organization_id: string | null
           role: string | null
           terms_accepted_at: string | null
@@ -1057,6 +1058,7 @@ export type Database = {
           id: string
           is_demo_user?: boolean
           is_super_admin?: boolean
+          last_viewed_release?: string | null
           organization_id?: string | null
           role?: string | null
           terms_accepted_at?: string | null
@@ -1073,6 +1075,7 @@ export type Database = {
           id?: string
           is_demo_user?: boolean
           is_super_admin?: boolean
+          last_viewed_release?: string | null
           organization_id?: string | null
           role?: string | null
           terms_accepted_at?: string | null
