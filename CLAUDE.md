@@ -70,6 +70,13 @@ npm run lint             # Lint
 - **State**: TanStack Query (server), Zustand (client), React Context (auth)
 - **Testing**: Vitest, Testing Library, jsdom
 
+### State Management
+- **TanStack Query** (server state)
+- **Zustand** (client state with localStorage persistence)
+  - `useSidebarStore` - Sidebar collapse state
+  - `useWeldLogPreferencesStore` - Weld log sort and filter preferences
+- **React Context** (auth state)
+
 ### Path Aliases
 `@/*` → `./src/*`
 
@@ -328,6 +335,25 @@ Before altering any existing table, you MUST:
 - Semantic HTML, ARIA labels, keyboard navigation
 - Test with screen readers
 - See [docs/plans/2025-11-06-design-rules.md](docs/plans/2025-11-06-design-rules.md)
+
+### Persistent Preferences Pattern
+
+Use Zustand with persist middleware for user preferences that should survive page refreshes:
+
+**Example:** `useWeldLogPreferencesStore`
+- Stores sort and filter state
+- localStorage key: `pipetrak:weld-log-preferences`
+- Automatic sync via Zustand persist middleware
+
+**When to use:**
+- User preferences (UI state, filters, sort)
+- Settings that should persist across sessions
+- State that doesn't need server sync
+
+**When NOT to use:**
+- Server data (use TanStack Query)
+- Auth state (use AuthContext)
+- Form state (use local component state)
 
 ---
 
