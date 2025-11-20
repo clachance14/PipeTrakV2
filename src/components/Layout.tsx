@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useProject } from '@/contexts/ProjectContext'
 import { useProjects } from '@/hooks/useProjects'
@@ -29,6 +29,20 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
     user?.id || '',
     user?.last_viewed_release || null
   )
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Sync local modal state with computed shouldShowModal
+  useEffect(() => {
+    if (shouldShowModal) {
+      setIsModalOpen(true)
+    }
+  }, [shouldShowModal])
+
+  // Handle modal close: close immediately (optimistic UI) and update database
+  const handleModalClose = async () => {
+    setIsModalOpen(false)
+    await markAsViewed()
+  }
 
   // Auto-select first project if none selected and projects loaded
   useEffect(() => {
@@ -189,11 +203,11 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
       </main>
 
       {/* Changelog Modal */}
-      {shouldShowModal && release && (
+      {release && (
         <ChangelogModal
           release={release}
-          isOpen={shouldShowModal}
-          onClose={markAsViewed}
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
         />
       )}
     </div>
