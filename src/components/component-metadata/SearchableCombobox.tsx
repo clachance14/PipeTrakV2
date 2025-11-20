@@ -328,6 +328,11 @@ export function SearchableCombobox({
                   style={{
                     minHeight: `${Math.min(virtualizer.getTotalSize(), 300)}px`
                   }}
+                  onWheel={(e) => {
+                    // Allow wheel events to scroll this container
+                    // Stop propagation to prevent parent elements from scrolling
+                    e.stopPropagation()
+                  }}
                 >
                   {/* Spacer to maintain scroll position */}
                   <div
