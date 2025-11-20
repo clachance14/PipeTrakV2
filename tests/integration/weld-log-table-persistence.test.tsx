@@ -81,4 +81,71 @@ describe('WeldLogTable - Store Integration', () => {
     expect(rows[1]).toHaveTextContent('N-26F07')
     expect(rows[2]).toHaveTextContent('N-26C07')
   })
+
+  it('should sort null-date welds by weld_id when sorting by date', () => {
+    // Create welds with mix of dates and null dates
+    const weldsWithMixedDates: EnrichedFieldWeld[] = [
+      {
+        id: 'weld-1',
+        identityDisplay: '41',
+        drawing: { id: 'drawing-1', drawing_no_norm: 'P-26E11' },
+        welder: null,
+        date_welded: null,
+        weld_type: 'butt',
+        weld_size: '3"',
+        status: 'active',
+        component: { id: 'comp-1', percent_complete: 0 },
+      } as EnrichedFieldWeld,
+      {
+        id: 'weld-2',
+        identityDisplay: '5',
+        drawing: { id: 'drawing-2', drawing_no_norm: 'N-26C07' },
+        welder: null,
+        date_welded: null,
+        weld_type: 'socket',
+        weld_size: '1"',
+        status: 'active',
+        component: { id: 'comp-2', percent_complete: 0 },
+      } as EnrichedFieldWeld,
+      {
+        id: 'weld-3',
+        identityDisplay: '64',
+        drawing: { id: 'drawing-3', drawing_no_norm: 'V-26B01.1' },
+        welder: { id: 'welder-1', stencil: 'G-75', name: 'Jesus Gutierrez' },
+        date_welded: '2025-11-12',
+        weld_type: 'butt',
+        weld_size: '3"',
+        status: 'active',
+        component: { id: 'comp-3', percent_complete: 70 },
+      } as EnrichedFieldWeld,
+      {
+        id: 'weld-4',
+        identityDisplay: '100',
+        drawing: { id: 'drawing-4', drawing_no_norm: 'P-26G01' },
+        welder: null,
+        date_welded: null,
+        weld_type: 'butt',
+        weld_size: '2"',
+        status: 'active',
+        component: { id: 'comp-4', percent_complete: 0 },
+      } as EnrichedFieldWeld,
+    ]
+
+    // Set sort to date_welded ascending
+    const { setSortColumn, setSortDirection } = useWeldLogPreferencesStore.getState()
+    setSortColumn('date_welded')
+    setSortDirection('asc')
+
+    render(<WeldLogTable welds={weldsWithMixedDates} />)
+
+    const rows = screen.getAllByRole('row')
+
+    // First row: weld with date (64 - 2025-11-12)
+    expect(rows[1]).toHaveTextContent('64')
+
+    // Next rows: null dates sorted by weld_id (5, 41, 100)
+    expect(rows[2]).toHaveTextContent('5')
+    expect(rows[3]).toHaveTextContent('41')
+    expect(rows[4]).toHaveTextContent('100')
+  })
 })

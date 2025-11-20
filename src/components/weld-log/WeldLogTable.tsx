@@ -99,8 +99,11 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
         return multiplier * dateA.localeCompare(dateB)
       })
 
-      // Append welds without dates at the end
-      return [...sorted, ...weldsWithoutDates]
+      // Sort welds without dates by weld_id (natural sort), then append
+      const sortedWithoutDates = [...weldsWithoutDates].sort((a, b) =>
+        naturalSort(a.identityDisplay, b.identityDisplay)
+      )
+      return [...sorted, ...sortedWithoutDates]
     }
 
     // Standard sorting for all other columns
