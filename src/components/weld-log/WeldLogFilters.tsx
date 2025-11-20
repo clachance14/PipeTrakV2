@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { Search, X, ChevronDown } from 'lucide-react'
+import { useWeldLogPreferencesStore } from '@/stores/useWeldLogPreferencesStore'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -33,9 +33,22 @@ export function WeldLogFilters({
   onFilteredWeldsChange,
 }: WeldLogFiltersProps) {
   const isMobile = useMobileDetection()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
-  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm)
+  const {
+    drawingFilter,
+    welderFilter,
+    statusFilter,
+    packageFilter,
+    systemFilter,
+    searchTerm,
+    setDrawingFilter,
+    setWelderFilter,
+    setStatusFilter,
+    setPackageFilter,
+    setSystemFilter,
+    setSearchTerm,
+    clearAllFilters,
+  } = useWeldLogPreferencesStore()
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
 
   // Collapse state with localStorage persistence (mobile only)
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
@@ -63,40 +76,44 @@ export function WeldLogFilters({
     setIsExpanded(prev => !prev)
   }
 
-  // Get filter values from URL
-  const drawingFilter = searchParams.get('drawing') || 'all'
-  const welderFilter = searchParams.get('welder') || 'all'
-  const statusFilter = searchParams.get('status') || 'all'
-  const packageFilter = searchParams.get('package') || 'all'
-  const systemFilter = searchParams.get('system') || 'all'
+  // URL param migration (one-time on mount)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const drawing = params.get('drawing')
+    const welder = params.get('welder')
+    const status = params.get('status')
+    const pkg = params.get('package')
+    const system = params.get('system')
+    const search = params.get('search')
+
+    // Apply URL params if they exist (overrides localStorage)
+    if (drawing) setDrawingFilter(drawing)
+    if (welder) setWelderFilter(welder)
+    if (status) setStatusFilter(status)
+    if (pkg) setPackageFilter(pkg)
+    if (system) setSystemFilter(system)
+    if (search) {
+      setLocalSearchTerm(search)
+      setSearchTerm(search)
+    }
+  }, [setDrawingFilter, setWelderFilter, setStatusFilter, setPackageFilter, setSystemFilter, setSearchTerm])
 
   // Debounce search term (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm)
+      setSearchTerm(localSearchTerm)
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchTerm])
-
-  // Update URL when debounced search changes
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams)
-    if (debouncedSearch) {
-      params.set('search', debouncedSearch)
-    } else {
-      params.delete('search')
-    }
-    setSearchParams(params, { replace: true })
-  }, [debouncedSearch])
+  }, [localSearchTerm, setSearchTerm])
 
   // Apply filters with AND logic
   const filteredWelds = useMemo(() => {
     let filtered = welds
 
     // Search filter (weld ID, drawing number, welder name/stencil)
-    if (debouncedSearch) {
-      const searchLower = debouncedSearch.toLowerCase()
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
       filtered = filtered.filter(
         (weld) =>
           weld.identityDisplay.toLowerCase().includes(searchLower) ||
@@ -132,31 +149,20 @@ export function WeldLogFilters({
     }
 
     return filtered
-  }, [welds, debouncedSearch, drawingFilter, welderFilter, statusFilter, packageFilter, systemFilter])
+  }, [welds, searchTerm, drawingFilter, welderFilter, statusFilter, packageFilter, systemFilter])
 
   // Notify parent of filtered results
   useEffect(() => {
     onFilteredWeldsChange(filteredWelds)
   }, [filteredWelds, onFilteredWeldsChange])
 
-  const updateFilter = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams)
-    if (value === 'all') {
-      params.delete(key)
-    } else {
-      params.set(key, value)
-    }
-    setSearchParams(params, { replace: true })
-  }
-
-  const clearAllFilters = () => {
-    setSearchTerm('')
-    setDebouncedSearch('')
-    setSearchParams({}, { replace: true })
+  const handleClearAllFilters = () => {
+    setLocalSearchTerm('')
+    clearAllFilters()
   }
 
   const hasActiveFilters =
-    debouncedSearch ||
+    searchTerm ||
     drawingFilter !== 'all' ||
     welderFilter !== 'all' ||
     statusFilter !== 'all' ||
@@ -207,8 +213,8 @@ export function WeldLogFilters({
                 <Input
                   type="text"
                   placeholder="Search by weld ID, drawing, or welder..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={localSearchTerm}
+                  onChange={(e) => setLocalSearchTerm(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -216,7 +222,7 @@ export function WeldLogFilters({
               {/* Filter Controls - Vertical stack on mobile */}
               <div className="space-y-2">
                 {/* Drawing Filter */}
-                <Select value={drawingFilter} onValueChange={(value) => updateFilter('drawing', value)}>
+                <Select value={drawingFilter} onValueChange={setDrawingFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Drawings" />
                   </SelectTrigger>
@@ -231,7 +237,7 @@ export function WeldLogFilters({
                 </Select>
 
                 {/* Welder Filter */}
-                <Select value={welderFilter} onValueChange={(value) => updateFilter('welder', value)}>
+                <Select value={welderFilter} onValueChange={setWelderFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Welders" />
                   </SelectTrigger>
@@ -246,7 +252,7 @@ export function WeldLogFilters({
                 </Select>
 
                 {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={(value) => updateFilter('status', value)}>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
@@ -259,7 +265,7 @@ export function WeldLogFilters({
                 </Select>
 
                 {/* Package Filter */}
-                <Select value={packageFilter} onValueChange={(value) => updateFilter('package', value)}>
+                <Select value={packageFilter} onValueChange={setPackageFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Packages" />
                   </SelectTrigger>
@@ -274,7 +280,7 @@ export function WeldLogFilters({
                 </Select>
 
                 {/* System Filter */}
-                <Select value={systemFilter} onValueChange={(value) => updateFilter('system', value)}>
+                <Select value={systemFilter} onValueChange={setSystemFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Systems" />
                   </SelectTrigger>
@@ -291,7 +297,7 @@ export function WeldLogFilters({
 
               {/* Clear Button (if active filters) */}
               {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="w-full">
+                <Button variant="ghost" size="sm" onClick={handleClearAllFilters} className="w-full">
                   <X className="mr-1 h-4 w-4" />
                   Clear All Filters
                 </Button>
@@ -312,8 +318,8 @@ export function WeldLogFilters({
         <Input
           type="text"
           placeholder="Search by weld ID, drawing, or welder..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={localSearchTerm}
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
           className="pl-9"
         />
       </div>
@@ -321,7 +327,7 @@ export function WeldLogFilters({
       {/* Filter Controls */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {/* Drawing Filter */}
-        <Select value={drawingFilter} onValueChange={(value) => updateFilter('drawing', value)}>
+        <Select value={drawingFilter} onValueChange={setDrawingFilter}>
           <SelectTrigger>
             <SelectValue placeholder="All Drawings" />
           </SelectTrigger>
@@ -336,7 +342,7 @@ export function WeldLogFilters({
         </Select>
 
         {/* Welder Filter */}
-        <Select value={welderFilter} onValueChange={(value) => updateFilter('welder', value)}>
+        <Select value={welderFilter} onValueChange={setWelderFilter}>
           <SelectTrigger>
             <SelectValue placeholder="All Welders" />
           </SelectTrigger>
@@ -351,7 +357,7 @@ export function WeldLogFilters({
         </Select>
 
         {/* Status Filter */}
-        <Select value={statusFilter} onValueChange={(value) => updateFilter('status', value)}>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger>
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
@@ -364,7 +370,7 @@ export function WeldLogFilters({
         </Select>
 
         {/* Package Filter */}
-        <Select value={packageFilter} onValueChange={(value) => updateFilter('package', value)}>
+        <Select value={packageFilter} onValueChange={setPackageFilter}>
           <SelectTrigger>
             <SelectValue placeholder="All Packages" />
           </SelectTrigger>
@@ -379,7 +385,7 @@ export function WeldLogFilters({
         </Select>
 
         {/* System Filter */}
-        <Select value={systemFilter} onValueChange={(value) => updateFilter('system', value)}>
+        <Select value={systemFilter} onValueChange={setSystemFilter}>
           <SelectTrigger>
             <SelectValue placeholder="All Systems" />
           </SelectTrigger>
@@ -401,7 +407,7 @@ export function WeldLogFilters({
           <span className="font-medium">{welds.length}</span> welds
         </p>
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-8">
+          <Button variant="ghost" size="sm" onClick={handleClearAllFilters} className="h-8">
             <X className="mr-1 h-4 w-4" />
             Clear Filters
           </Button>
