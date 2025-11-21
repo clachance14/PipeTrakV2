@@ -34,7 +34,7 @@ interface NDEResultDialogProps {
 }
 
 const NDE_TYPES = [
-  { value: 'RT', label: 'RT (Radiographic)' },
+  { value: 'RT', label: 'RT (X-ray)' },
   { value: 'UT', label: 'UT (Ultrasonic)' },
   { value: 'PT', label: 'PT (Penetrant)' },
   { value: 'MT', label: 'MT (Magnetic)' },
