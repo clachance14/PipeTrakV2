@@ -1268,6 +1268,7 @@ export type Database = {
           area_name: string | null
           avg_days_to_acceptance: number | null
           avg_days_to_nde: number | null
+          fitup_count: number | null
           nde_fail_count: number | null
           nde_pass_count: number | null
           nde_pass_rate: number | null
@@ -1282,6 +1283,7 @@ export type Database = {
           repair_count: number | null
           repair_rate: number | null
           total_welds: number | null
+          weld_complete_count: number | null
         }
         Relationships: []
       }
@@ -1291,6 +1293,7 @@ export type Database = {
           active_count: number | null
           avg_days_to_acceptance: number | null
           avg_days_to_nde: number | null
+          fitup_count: number | null
           nde_fail_count: number | null
           nde_pass_count: number | null
           nde_pass_rate: number | null
@@ -1307,6 +1310,7 @@ export type Database = {
           system_id: string | null
           system_name: string | null
           total_welds: number | null
+          weld_complete_count: number | null
         }
         Relationships: []
       }
@@ -1316,6 +1320,7 @@ export type Database = {
           active_count: number | null
           avg_days_to_acceptance: number | null
           avg_days_to_nde: number | null
+          fitup_count: number | null
           nde_fail_count: number | null
           nde_pass_count: number | null
           nde_pass_rate: number | null
@@ -1332,6 +1337,7 @@ export type Database = {
           test_package_id: string | null
           test_package_name: string | null
           total_welds: number | null
+          weld_complete_count: number | null
         }
         Relationships: []
       }

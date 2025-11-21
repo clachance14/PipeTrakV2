@@ -41,6 +41,33 @@ All tables must have RLS enabled. All functions that modify data must use SECURI
 ### Migration Push Workaround
 Supabase CLI v2.58.5 hangs on `supabase db push --linked`. Use `./db-push.sh` instead. Bug tracked in GitHub #4302, #4419.
 
+### Supabase Connection Pooler Modes
+
+Supabase provides two connection pooling modes with different characteristics:
+
+**Transaction Mode (Port 6543)** - Used by `db-push.sh`:
+- Does NOT support prepared statements
+- Optimized for short-lived connections (migrations, edge functions)
+- **Expected error**: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
+- **This error is benign** - migrations still succeed, CLI handles it internally
+
+**Session Mode (Port 5432)**:
+- DOES support prepared statements
+- Better for long-lived connections
+- Use for ORM tools that rely on prepared statements (Prisma, Drizzle, etc.)
+
+**Why db-push.sh uses transaction mode (port 6543):**
+- Migrations are short-lived operations
+- Transaction mode provides better connection pooling for this use case
+- The "prepared statement already exists" error is cosmetic - ignore it
+- Supabase CLI automatically works around this limitation
+
+**When you see this error, don't worry:**
+```
+ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)
+```
+This is expected behavior with transaction pooler. Check if migration succeeded (it usually has).
+
 ### TDD Mandatory
 Write failing test first (Red). Implement minimum code to pass (Green). Refactor while tests pass. Constitution v1.0.0 enforces this.
 
@@ -202,11 +229,22 @@ If migrations fail, check:
 - Migration depends on table that doesn't exist
 - Migration applied manually on staging but not committed
 - Migration accidentally reordered
+- **Timestamp collision** - two migrations created within same second
 
 Diagnose:
 - Read the error
+- Check for `duplicate key value violates unique constraint "schema_migrations_pkey"` (timestamp collision)
 - Open the failing migration
 - Compare schema: `supabase db diff --schema public --linked`
+
+Fix timestamp collision:
+```bash
+# Detect duplicates
+ls supabase/migrations/*.sql | xargs -n1 basename | cut -d'_' -f1 | sort | uniq -d
+
+# Rename conflicting file (+1 second)
+mv supabase/migrations/20251120215000_fix.sql supabase/migrations/20251120215001_fix.sql
+```
 
 **5. Check SQL Syntax Errors**
 
@@ -240,6 +278,25 @@ Failures like "ERR_MODULE_NOT_FOUND" or "Unexpected token" can be tied to Node v
 Ensure:
 - Node version matches project standard
 - Dependencies aren't corrupted (`rm -rf node_modules && npm install`)
+
+**9. Ignore Benign Prepared Statement Errors**
+
+If you see: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
+
+**This is NOT a failure** - it's expected when using transaction pooler (port 6543).
+
+Diagnosis:
+- Check if the migration actually succeeded (it usually has)
+- Look for "Applied migration..." message after the error
+- Verify in Supabase Dashboard that migration is in `supabase_migrations.schema_migrations` table
+
+Why this happens:
+- Transaction pooler (port 6543) doesn't support prepared statements
+- Supabase CLI tries to create prepared statements anyway
+- Pooler can't preserve them across connection swaps
+- CLI works around this limitation - migration still succeeds
+
+**Action:** Ignore the error and verify migration succeeded. See "Supabase Connection Pooler Modes" section for details.
 
 ---
 
@@ -311,6 +368,39 @@ const queryClient = new QueryClient({
 - Use `./db-push.sh` to apply migrations (not `supabase db push --linked`)
 - Generate types after schema changes: `supabase gen types typescript --linked > src/types/database.types.ts`
 - Critical migrations documented in [docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md)
+- **Wait 2+ seconds between creating migrations** to avoid timestamp collisions
+
+**Timestamp Collision Prevention:**
+
+Supabase CLI generates migration timestamps with 1-second resolution (`YYYYMMDDHHMMSS`).
+Creating multiple migrations within the same second causes duplicate timestamps.
+
+**Error:** `ERROR: duplicate key value violates unique constraint "schema_migrations_pkey"`
+
+**Prevention:**
+
+1. **Wait 2+ seconds between migrations:**
+   ```bash
+   supabase migration new add_feature_a
+   sleep 2  # Ensure different timestamp
+   supabase migration new add_feature_b
+   ```
+
+2. **Check for duplicate timestamps before pushing:**
+   ```bash
+   ls supabase/migrations/*.sql | xargs -n1 basename | cut -d'_' -f1 | sort | uniq -d
+   # If any output, you have duplicates - rename manually
+   ```
+
+3. **Resolution if collision occurs:**
+   ```bash
+   # Rename the conflicting migration file with +1 second
+   mv supabase/migrations/20251120215000_fix.sql \
+      supabase/migrations/20251120215001_fix.sql
+
+   # Push again
+   ./db-push.sh
+   ```
 
 **Modifying Existing Tables** (requires extra care):
 
@@ -323,6 +413,45 @@ Before altering any existing table, you MUST:
 6. Write new tests for new constraints or behaviors
 
 **Why**: Schema changes have cascading effects. Missing any step causes runtime errors.
+
+### Migration Creation Checklist
+
+Follow this checklist when creating any new migration:
+
+1. ✅ **Check for recent migrations** - Avoid timestamp collisions
+   ```bash
+   ls -lt supabase/migrations/ | head -5
+   ```
+
+2. ✅ **Wait 2+ seconds** if another migration was just created
+
+3. ✅ **Create migration**
+   ```bash
+   supabase migration new descriptive_name_here
+   ```
+
+4. ✅ **Verify unique timestamp** - Detect duplicates
+   ```bash
+   ls supabase/migrations/*.sql | xargs -n1 basename | cut -d'_' -f1 | sort | uniq -d
+   # No output = good (no duplicates)
+   ```
+
+5. ✅ **Test migration** (recommended)
+   ```bash
+   ./db-push.sh
+   # Expect: "prepared statement already exists" warning (safe to ignore)
+   ```
+
+6. ✅ **Generate types** after schema changes
+   ```bash
+   supabase gen types typescript --linked > src/types/database.types.ts
+   ```
+
+7. ✅ **Commit migration + types together**
+   ```bash
+   git add supabase/migrations/<new-file>.sql src/types/database.types.ts
+   git commit -m "migration: <description>"
+   ```
 
 ### Mobile-First Design
 - ≤1024px breakpoint for mobile layouts
