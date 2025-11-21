@@ -350,6 +350,8 @@ const queryClient = new QueryClient({
 
 **Edge function pattern:** Every edge function that inserts data must have a `schema-helpers.ts` file with type-safe builder functions. See `supabase/functions/import-field-welds/schema-helpers.ts` for reference.
 
+**Enforcement:** The `backend-schema-compliance` skill (`.claude/skills/backend-schema-compliance/`) **automatically activates** when working with database code. This skill enforces the schema compliance workflow and prevents the common mistakes that have caused production bugs (Migration 00084 boolean/numeric, Migration 00055 identity keys).
+
 ### TypeScript
 - Strict mode enabled
 - Additional checks: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`

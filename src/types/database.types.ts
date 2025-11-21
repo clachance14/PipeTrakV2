@@ -1615,24 +1615,38 @@ export type Database = {
           p_welder_ids?: string[]
         }
         Returns: {
-          nde_100pct: number
-          nde_10pct: number
-          nde_5pct: number
-          nde_comp_100pct: number
-          nde_comp_10pct: number
-          nde_comp_5pct: number
+          bw_nde_100pct: number
+          bw_nde_10pct: number
+          bw_nde_5pct: number
+          bw_nde_comp_100pct: number
+          bw_nde_comp_10pct: number
+          bw_nde_comp_5pct: number
+          bw_reject_100pct: number
+          bw_reject_10pct: number
+          bw_reject_5pct: number
+          bw_reject_rate: number
+          bw_welds_100pct: number
+          bw_welds_10pct: number
+          bw_welds_5pct: number
           nde_total: number
-          reject_100pct: number
-          reject_10pct: number
-          reject_5pct: number
           reject_rate: number
           reject_total: number
+          sw_nde_100pct: number
+          sw_nde_10pct: number
+          sw_nde_5pct: number
+          sw_nde_comp_100pct: number
+          sw_nde_comp_10pct: number
+          sw_nde_comp_5pct: number
+          sw_reject_100pct: number
+          sw_reject_10pct: number
+          sw_reject_5pct: number
+          sw_reject_rate: number
+          sw_welds_100pct: number
+          sw_welds_10pct: number
+          sw_welds_5pct: number
           welder_id: string
           welder_name: string
           welder_stencil: string
-          welds_100pct: number
-          welds_10pct: number
-          welds_5pct: number
           welds_total: number
         }[]
       }

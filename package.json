@@ -12,7 +12,8 @@
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
     "test:e2e:mobile": "playwright test --project=mobile-chrome",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "sync-skill-docs": "node scripts/sync-skill-schema-docs.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
