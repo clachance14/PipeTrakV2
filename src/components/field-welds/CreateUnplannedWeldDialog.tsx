@@ -276,17 +276,18 @@ export function CreateUnplannedWeldDialog({
                 className="min-h-[44px] resize-none"
               />
             </div>
+          </div>
 
+          {/* Action Buttons (Fixed at bottom) */}
+          <div className="flex flex-col gap-3 pt-4 border-t mt-4 bg-white">
             {/* Error Message */}
             {errorMessage && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
                 {errorMessage}
               </div>
             )}
-          </div>
 
-          {/* Action Buttons (Fixed at bottom) */}
-          <div className="flex justify-end gap-3 pt-4 border-t mt-4 bg-white">
+            <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
@@ -306,6 +307,7 @@ export function CreateUnplannedWeldDialog({
             >
               {isLoading ? 'Creating...' : 'Create Weld'}
             </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
