@@ -99,9 +99,9 @@ SELECT
   ROUND(AVG(c.percent_complete)::numeric, 0) AS pct_total
 
 FROM areas a
-INNER JOIN field_welds fw ON fw.area_id = a.id
-INNER JOIN components c ON c.id = fw.component_id
-WHERE c.retired = false
+INNER JOIN components c ON c.area_id = a.id AND c.component_type = 'field_weld'
+INNER JOIN field_welds fw ON fw.component_id = c.id
+WHERE c.is_retired = false
 GROUP BY a.id, a.name, a.project_id
 
 UNION ALL
@@ -182,8 +182,9 @@ SELECT
 
 FROM field_welds fw
 INNER JOIN components c ON c.id = fw.component_id
-WHERE c.retired = false
-  AND fw.area_id IS NULL
+WHERE c.is_retired = false
+  AND c.component_type = 'field_weld'
+  AND c.area_id IS NULL
 GROUP BY c.project_id;
 
 -- ============================================================================
@@ -267,9 +268,9 @@ SELECT
   ROUND(AVG(c.percent_complete)::numeric, 0) AS pct_total
 
 FROM systems s
-INNER JOIN field_welds fw ON fw.system_id = s.id
-INNER JOIN components c ON c.id = fw.component_id
-WHERE c.retired = false
+INNER JOIN components c ON c.system_id = s.id AND c.component_type = 'field_weld'
+INNER JOIN field_welds fw ON fw.component_id = c.id
+WHERE c.is_retired = false
 GROUP BY s.id, s.name, s.project_id
 
 UNION ALL
@@ -350,8 +351,9 @@ SELECT
 
 FROM field_welds fw
 INNER JOIN components c ON c.id = fw.component_id
-WHERE c.retired = false
-  AND fw.system_id IS NULL
+WHERE c.is_retired = false
+  AND c.component_type = 'field_weld'
+  AND c.system_id IS NULL
 GROUP BY c.project_id;
 
 -- ============================================================================
@@ -435,9 +437,9 @@ SELECT
   ROUND(AVG(c.percent_complete)::numeric, 0) AS pct_total
 
 FROM test_packages tp
-INNER JOIN field_welds fw ON fw.test_package_id = tp.id
-INNER JOIN components c ON c.id = fw.component_id
-WHERE c.retired = false
+INNER JOIN components c ON c.test_package_id = tp.id AND c.component_type = 'field_weld'
+INNER JOIN field_welds fw ON fw.component_id = c.id
+WHERE c.is_retired = false
 GROUP BY tp.id, tp.name, tp.project_id
 
 UNION ALL
@@ -518,6 +520,7 @@ SELECT
 
 FROM field_welds fw
 INNER JOIN components c ON c.id = fw.component_id
-WHERE c.retired = false
-  AND fw.test_package_id IS NULL
+WHERE c.is_retired = false
+  AND c.component_type = 'field_weld'
+  AND c.test_package_id IS NULL
 GROUP BY c.project_id;

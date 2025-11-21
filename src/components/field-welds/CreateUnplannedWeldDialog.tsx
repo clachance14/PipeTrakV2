@@ -116,7 +116,7 @@ export function CreateUnplannedWeldDialog({
     e.preventDefault()
     setErrorMessage('')
 
-    if (!drawingId || !weldType || !weldSize || !spec) {
+    if (!drawingId || !weldType || !weldSize || !spec || !notes.trim()) {
       setErrorMessage('Please fill in all required fields')
       return
     }
@@ -131,7 +131,7 @@ export function CreateUnplannedWeldDialog({
         spec,
         schedule: schedule || undefined,
         baseMetal: baseMetal || undefined,
-        notes: notes || undefined,
+        notes,
       })
 
       toast.success('Weld created successfully')
@@ -155,7 +155,7 @@ export function CreateUnplannedWeldDialog({
     setErrorMessage('')
   }
 
-  const isFormValid = !!(weldNumber && drawingId && weldType && weldSize && spec)
+  const isFormValid = !!(weldNumber && drawingId && weldType && weldSize && spec && notes.trim())
   const isLoading = createMutation.isPending
 
   return (
@@ -264,14 +264,16 @@ export function CreateUnplannedWeldDialog({
               />
             </div>
 
-            {/* Notes (Optional) */}
+            {/* Notes (Required) */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">
+                Notes <span className="text-red-500">*</span>
+              </Label>
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional: Document why this weld was created (e.g., field change, client request)"
+                placeholder="Document why this weld was created (e.g., field change, client request)"
                 rows={3}
                 className="min-h-[44px] resize-none"
               />

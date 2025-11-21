@@ -393,6 +393,7 @@ export type Database = {
           date_welded: string | null
           id: string
           is_repair: boolean | null
+          is_unplanned: boolean
           nde_date: string | null
           nde_notes: string | null
           nde_required: boolean
@@ -417,6 +418,7 @@ export type Database = {
           date_welded?: string | null
           id?: string
           is_repair?: boolean | null
+          is_unplanned?: boolean
           nde_date?: string | null
           nde_notes?: string | null
           nde_required?: boolean
@@ -441,6 +443,7 @@ export type Database = {
           date_welded?: string | null
           id?: string
           is_repair?: boolean | null
+          is_unplanned?: boolean
           nde_date?: string | null
           nde_notes?: string | null
           nde_required?: boolean

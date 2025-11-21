@@ -37,13 +37,11 @@ export function WeldLogFilters({
   const {
     drawingFilter,
     welderFilter,
-    statusFilter,
     packageFilter,
     systemFilter,
     searchTerm,
     setDrawingFilter,
     setWelderFilter,
-    setStatusFilter,
     setPackageFilter,
     setSystemFilter,
     setSearchTerm,
@@ -82,7 +80,6 @@ export function WeldLogFilters({
     const params = new URLSearchParams(window.location.search)
     const drawing = params.get('drawing')
     const welder = params.get('welder')
-    const status = params.get('status')
     const pkg = params.get('package')
     const system = params.get('system')
     const search = params.get('search')
@@ -90,7 +87,6 @@ export function WeldLogFilters({
     // Apply URL params if they exist (overrides localStorage)
     if (drawing) setDrawingFilter(drawing)
     if (welder) setWelderFilter(welder)
-    if (status) setStatusFilter(status)
     if (pkg) setPackageFilter(pkg)
     if (system) setSystemFilter(system)
     if (search) {
@@ -135,11 +131,6 @@ export function WeldLogFilters({
       filtered = filtered.filter((weld) => weld.welder?.id === welderFilter)
     }
 
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((weld) => weld.status === statusFilter)
-    }
-
     // Package filter
     if (packageFilter !== 'all') {
       filtered = filtered.filter((weld) => weld.test_package?.id === packageFilter)
@@ -151,7 +142,7 @@ export function WeldLogFilters({
     }
 
     return filtered
-  }, [welds, searchTerm, drawingFilter, welderFilter, statusFilter, packageFilter, systemFilter])
+  }, [welds, searchTerm, drawingFilter, welderFilter, packageFilter, systemFilter])
 
   // Notify parent of filtered results
   useEffect(() => {
@@ -167,7 +158,6 @@ export function WeldLogFilters({
     searchTerm ||
     drawingFilter !== 'all' ||
     welderFilter !== 'all' ||
-    statusFilter !== 'all' ||
     packageFilter !== 'all' ||
     systemFilter !== 'all'
 
@@ -253,19 +243,6 @@ export function WeldLogFilters({
                   </SelectContent>
                 </Select>
 
-                {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-
                 {/* Package Filter */}
                 <Select value={packageFilter} onValueChange={setPackageFilter}>
                   <SelectTrigger>
@@ -327,7 +304,7 @@ export function WeldLogFilters({
       </div>
 
       {/* Filter Controls */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Drawing Filter */}
         <Select value={drawingFilter} onValueChange={setDrawingFilter}>
           <SelectTrigger>
@@ -355,19 +332,6 @@ export function WeldLogFilters({
                 {welder.stencil} - {welder.name}
               </SelectItem>
             ))}
-          </SelectContent>
-        </Select>
-
-        {/* Status Filter */}
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
 

@@ -3,15 +3,20 @@
  * Flat table displaying all field welds with sorting and inline actions
  */
 
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Info } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   formatWeldType,
   formatWeldSize,
   formatNDEType,
   getNDEResultColor,
-  getStatusBadgeColor,
 } from '@/lib/field-weld-utils'
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
@@ -34,7 +39,6 @@ type SortColumn =
   | 'weld_type'
   | 'size'
   | 'nde_result'
-  | 'status'
   | 'progress'
 
 /**
@@ -129,8 +133,6 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
           const ndeA = a.nde_result || 'zzz'
           const ndeB = b.nde_result || 'zzz'
           return multiplier * ndeA.localeCompare(ndeB)
-        case 'status':
-          return multiplier * a.status.localeCompare(b.status)
         case 'progress':
           return multiplier * (a.component.percent_complete - b.component.percent_complete)
         default:
@@ -174,8 +176,9 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
   }
 
   return (
-    <div className="h-full overflow-auto rounded-lg border border-slate-200 bg-white">
-      <table className={`w-full divide-y divide-slate-200 ${isMobile ? 'table-fixed' : ''}`}>
+    <TooltipProvider>
+      <div className="h-full overflow-auto rounded-lg border border-slate-200 bg-white">
+        <table className={`w-full divide-y divide-slate-200 ${isMobile ? 'table-fixed' : ''}`}>
         <thead>
           <tr>
             <SortableHeader column="weld_id">Weld ID</SortableHeader>
@@ -185,7 +188,6 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
             {!isMobile && <SortableHeader column="weld_type">Type</SortableHeader>}
             {!isMobile && <SortableHeader column="size">Size</SortableHeader>}
             {!isMobile && <SortableHeader column="nde_result">NDE Result</SortableHeader>}
-            {!isMobile && <SortableHeader column="status">Status</SortableHeader>}
             {!isMobile && <SortableHeader column="progress">Progress</SortableHeader>}
             {!isMobile && (
               <th className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-700">
@@ -207,12 +209,27 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
               >
                 {/* Weld ID */}
                 <td className={`px-3 py-2 text-sm font-medium text-slate-900 ${isMobile ? 'truncate max-w-0' : 'whitespace-nowrap'}`}>
-                  {weld.identityDisplay}
-                  {weld.is_repair && (
-                    <span className="ml-1 text-xs text-orange-600">
-                      {isMobile ? '(R)' : `(Repair of ${weld.identityDisplay.split('.')[0]})`}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <span>{weld.identityDisplay}</span>
+                    {weld.is_unplanned && weld.notes && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-blue-500 flex-shrink-0 cursor-help" aria-label="Unplanned weld note" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs bg-slate-900 text-white border-slate-700">
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-slate-300">Added Weld</p>
+                            <p className="text-sm">{weld.notes}</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {weld.is_repair && (
+                      <span className="ml-1 text-xs text-orange-600">
+                        {isMobile ? '(R)' : `(Repair of ${weld.identityDisplay.split('.')[0]})`}
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Drawing (clickable link) */}
@@ -275,15 +292,6 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                   </td>
                 )}
 
-                {/* Status */}
-                {!isMobile && (
-                  <td className="whitespace-nowrap px-3 py-2 text-sm">
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeColor(weld.status)}`}>
-                      {weld.status.charAt(0).toUpperCase() + weld.status.slice(1)}
-                    </span>
-                  </td>
-                )}
-
                 {/* Progress */}
                 {!isMobile && (
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-slate-900">
@@ -339,7 +347,8 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
             )
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </TooltipProvider>
   )
 }
