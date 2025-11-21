@@ -2,6 +2,8 @@
 description: Generate user-friendly release notes and suggest version bump
 ---
 
+**IMPORTANT: First read RELEASING.md for full context on conventional commits and versioning rules.**
+
 Generate release notes for the next version of PipeTrak V2 using conventional commits.
 
 **Requirements:**
