@@ -181,6 +181,15 @@ export interface FieldWeldProgressRow {
   // Welder-specific metrics (only for welder dimension)
   firstPassAcceptanceCount?: number;
   firstPassAcceptanceRate?: number | null;
+
+  // X-Ray tier metrics (only for welder dimension)
+  xray5pctCount?: number;
+  xray10pctCount?: number;
+  xray100pctCount?: number;
+  xrayOtherCount?: number;
+  xray5pctPassRate?: number | null;
+  xray10pctPassRate?: number | null;
+  xray100pctPassRate?: number | null;
 }
 
 // Grand Total row for field weld reports
@@ -209,6 +218,14 @@ export interface FieldWeldGrandTotalRow {
   // Welder-specific (only shown for welder dimension)
   firstPassAcceptanceCount?: number;
   firstPassAcceptanceRate?: number | null;
+  // X-Ray tier metrics (only for welder dimension)
+  xray5pctCount?: number;
+  xray10pctCount?: number;
+  xray100pctCount?: number;
+  xrayOtherCount?: number;
+  xray5pctPassRate?: number | null;
+  xray10pctPassRate?: number | null;
+  xray100pctPassRate?: number | null;
 }
 
 // Field weld report data structure
@@ -255,4 +272,14 @@ export const FIELD_WELD_REPORT_COLUMNS: FieldWeldReportColumn[] = [
 export const WELDER_PERFORMANCE_COLUMNS: FieldWeldReportColumn[] = [
   { key: 'firstPassAcceptanceRate', label: 'First Pass Rate', align: 'right', format: 'percentage' },
   { key: 'avgDaysToAcceptance', label: 'Avg Days to Accept', align: 'right', format: 'decimal', hideOnMobile: true },
+] as const;
+
+// X-Ray tier columns (additional columns for welder dimension)
+export const XRAY_TIER_COLUMNS: FieldWeldReportColumn[] = [
+  { key: 'xray5pctCount', label: '5% X-Ray Count', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'xray10pctCount', label: '10% X-Ray Count', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'xray100pctCount', label: '100% X-Ray Count', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'xray5pctPassRate', label: '5% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'xray10pctPassRate', label: '10% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'xray100pctPassRate', label: '100% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
 ] as const;

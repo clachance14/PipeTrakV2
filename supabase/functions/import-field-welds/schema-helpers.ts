@@ -61,6 +61,7 @@ export interface FieldWeldInsert {
   nde_result?: 'PASS' | 'FAIL' | 'PENDING' | null
   nde_date?: string | null
   nde_notes?: string | null
+  xray_percentage?: number | null
   original_weld_id?: string | null
   notes?: string | null
   created_at?: string
@@ -120,6 +121,7 @@ export function buildFieldWeld(params: {
   ndeRequired?: boolean
   ndeType?: 'RT' | 'UT' | 'PT' | 'MT' | 'VT' | null
   ndeResult?: 'PASS' | 'FAIL' | 'PENDING' | null
+  xrayPercentage?: number | null
   status?: 'active' | 'accepted' | 'rejected'
 }): FieldWeldInsert {
   return {
@@ -135,6 +137,7 @@ export function buildFieldWeld(params: {
     nde_required: params.ndeRequired ?? false,
     nde_type: params.ndeType,
     nde_result: params.ndeResult,
+    xray_percentage: params.xrayPercentage,
     status: params.status ?? 'active',
     created_by: params.userId,
   }

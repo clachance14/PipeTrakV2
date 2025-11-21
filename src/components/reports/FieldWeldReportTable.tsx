@@ -10,6 +10,7 @@ import {
   FIELD_WELD_DIMENSION_LABELS,
   FIELD_WELD_REPORT_COLUMNS,
   WELDER_PERFORMANCE_COLUMNS,
+  XRAY_TIER_COLUMNS,
 } from '@/types/reports';
 
 interface FieldWeldReportTableProps {
@@ -26,7 +27,7 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
 
   // Build column list based on dimension
   const columns = isWelderDimension
-    ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS]
+    ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS, ...XRAY_TIER_COLUMNS]
     : FIELD_WELD_REPORT_COLUMNS;
 
   // Combine data rows + grand total for virtualization

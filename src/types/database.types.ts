@@ -409,6 +409,7 @@ export type Database = {
           weld_size: string | null
           weld_type: string
           welder_id: string | null
+          xray_percentage: number | null
         }
         Insert: {
           base_metal?: string | null
@@ -434,6 +435,7 @@ export type Database = {
           weld_size?: string | null
           weld_type: string
           welder_id?: string | null
+          xray_percentage?: number | null
         }
         Update: {
           base_metal?: string | null
@@ -459,6 +461,7 @@ export type Database = {
           weld_size?: string | null
           weld_type?: string
           welder_id?: string | null
+          xray_percentage?: number | null
         }
         Relationships: [
           {
@@ -1366,6 +1369,13 @@ export type Database = {
           welder_id: string | null
           welder_name: string | null
           welder_stencil: string | null
+          xray_100pct_count: number | null
+          xray_100pct_pass_rate: number | null
+          xray_10pct_count: number | null
+          xray_10pct_pass_rate: number | null
+          xray_5pct_count: number | null
+          xray_5pct_pass_rate: number | null
+          xray_other_count: number | null
         }
         Relationships: [
           {
@@ -1592,6 +1602,38 @@ export type Database = {
           repair_sequence: number
           weld_id_number: number
           welder_stencil: string
+        }[]
+      }
+      get_weld_summary_by_welder: {
+        Args: {
+          p_area_ids?: string[]
+          p_end_date?: string
+          p_package_ids?: string[]
+          p_project_id: string
+          p_start_date?: string
+          p_system_ids?: string[]
+          p_welder_ids?: string[]
+        }
+        Returns: {
+          nde_100pct: number
+          nde_10pct: number
+          nde_5pct: number
+          nde_comp_100pct: number
+          nde_comp_10pct: number
+          nde_comp_5pct: number
+          nde_total: number
+          reject_100pct: number
+          reject_10pct: number
+          reject_5pct: number
+          reject_rate: number
+          reject_total: number
+          welder_id: string
+          welder_name: string
+          welder_stencil: string
+          welds_100pct: number
+          welds_10pct: number
+          welds_5pct: number
+          welds_total: number
         }[]
       }
       is_super_admin: { Args: never; Returns: boolean }

@@ -18,6 +18,43 @@ interface ProcessResult {
 }
 
 /**
+ * Parse X-RAY % value from CSV
+ * Handles multiple formats:
+ * - "5%", "10%", "100%" → 5.0, 10.0, 100.0
+ * - "5", "10", "100" → 5.0, 10.0, 100.0
+ * - "0.05", "0.1", "1.0" (decimal format) → 5.0, 10.0, 100.0
+ * @param xrayValue - Raw X-RAY % value from CSV
+ * @returns Numeric percentage (5.0, 10.0, 100.0) or null if empty/invalid
+ */
+function parseXrayPercentage(xrayValue: string | undefined): number | null {
+  if (!xrayValue?.trim()) {
+    return null
+  }
+
+  // Remove % sign and any whitespace
+  const cleanValue = xrayValue.trim().replace('%', '').trim()
+
+  // Parse as float
+  let numericValue = parseFloat(cleanValue)
+
+  if (isNaN(numericValue)) {
+    return null
+  }
+
+  // If value is between 0 and 1 (decimal format like 0.05), convert to percentage
+  if (numericValue > 0 && numericValue <= 1) {
+    numericValue = numericValue * 100
+  }
+
+  // Validate: must be a number between 0 and 100
+  if (numericValue < 0 || numericValue > 100) {
+    return null
+  }
+
+  return numericValue
+}
+
+/**
  * Process validated CSV rows in a transaction
  * @param supabase - Supabase client
  * @param rows - Validated CSV rows
@@ -180,7 +217,8 @@ export async function processTransaction(
           // Parse NDE data
           const ndeType = row['Type of NDE Performed']?.toUpperCase().trim() || null
           const ndeResult = row['NDE Result']?.toUpperCase().trim() || null
-          const ndeRequired = !!row['X-RAY %']?.trim()
+          const xrayPercentage = parseXrayPercentage(row['X-RAY %'])
+          const ndeRequired = xrayPercentage !== null
 
           // Validate NDE type if present
           const validNdeTypes = ['RT', 'UT', 'PT', 'MT', 'VT']
@@ -208,6 +246,7 @@ export async function processTransaction(
             ndeRequired,
             ndeType: validatedNdeType,
             ndeResult: validatedNdeResult,
+            xrayPercentage,
             status: validatedNdeResult === 'FAIL' ? 'rejected' : 'active',
             userId,
           })
