@@ -14,12 +14,34 @@ import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { usePackageComponents, usePackageReadiness, usePackageDetails } from '@/hooks/usePackages';
 import { usePackageCertificate } from '@/hooks/usePackageCertificate';
+import { useDeleteComponentAssignment, useCreateComponentAssignments, useDrawingsWithComponentCount } from '@/hooks/usePackageAssignments';
 import { PackageCertificateForm } from '@/components/packages/PackageCertificateForm';
 import { PackageWorkflowStepper } from '@/components/packages/PackageWorkflowStepper';
+import { DrawingSelectionList } from '@/components/packages/DrawingSelectionList';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EmptyState } from '@/components/EmptyState';
-import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes } from 'lucide-react';
+import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PackageCertificate } from '@/hooks/usePackageCertificate';
 
@@ -28,6 +50,14 @@ export function PackageDetailPage() {
   const { selectedProjectId } = useProject();
   const navigate = useNavigate();
   const [editCertificate, setEditCertificate] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [componentToRemove, setComponentToRemove] = useState<string | null>(null);
+  const [removalReason, setRemovalReason] = useState('');
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
+  const [selectedAddComponentIds, setSelectedAddComponentIds] = useState<string[]>([]);
 
   // Fetch package metadata for header
   const { data: packagesData, isLoading: packagesLoading } = usePackageReadiness(
@@ -57,6 +87,89 @@ export function PackageDetailPage() {
     ...foundPackage,
     description: (foundPackage as any).description || null,
   } : undefined;
+
+  // Fetch available drawings with component counts (for adding components)
+  const { data: availableDrawings = [] } = useDrawingsWithComponentCount(
+    selectedProjectId || ''
+  );
+
+  // Delete component assignment mutation
+  const deleteComponentAssignment = useDeleteComponentAssignment(
+    packageId || '',
+    selectedProjectId || ''
+  );
+
+  // Create component assignment mutation
+  const createComponentAssignment = useCreateComponentAssignments(
+    packageId || '',
+    selectedProjectId || ''
+  );
+
+  // Handlers for component removal
+  const handleRemoveComponent = (componentId: string) => {
+    setComponentToRemove(componentId);
+    setShowRemoveDialog(true);
+  };
+
+  const handleRemoveBulk = () => {
+    if (selectedComponentIds.length > 0) {
+      setShowRemoveDialog(true);
+    }
+  };
+
+  const confirmRemoval = async () => {
+    const idsToRemove = componentToRemove
+      ? [componentToRemove]
+      : selectedComponentIds;
+
+    for (const id of idsToRemove) {
+      await deleteComponentAssignment.mutateAsync({ componentId: id, reason: removalReason });
+    }
+
+    // Reset state
+    setShowRemoveDialog(false);
+    setComponentToRemove(null);
+    setSelectedComponentIds([]);
+    setRemovalReason('');
+    setEditMode(false);
+    refetch();
+  };
+
+  const handleSelectAll = () => {
+    if (selectedComponentIds.length === components?.length) {
+      setSelectedComponentIds([]);
+    } else {
+      setSelectedComponentIds(components?.map((c) => c.id) || []);
+    }
+  };
+
+  const handleToggleComponent = (componentId: string) => {
+    setSelectedComponentIds((prev) =>
+      prev.includes(componentId)
+        ? prev.filter((id) => id !== componentId)
+        : [...prev, componentId]
+    );
+  };
+
+  // Handlers for adding components
+  const handleAddComponents = () => {
+    setShowAddDialog(true);
+  };
+
+  const confirmAddComponents = async () => {
+    if (selectedAddComponentIds.length === 0) return;
+
+    await createComponentAssignment.mutateAsync({
+      package_id: packageId || '',
+      component_ids: selectedAddComponentIds,
+    });
+
+    // Reset state
+    setShowAddDialog(false);
+    setSelectedDrawingIds([]);
+    setSelectedAddComponentIds([]);
+    refetch();
+  };
 
   // No project selected
   if (!selectedProjectId) {
@@ -264,34 +377,120 @@ export function PackageDetailPage() {
                 description="Components will appear here once they are assigned to this test package."
               />
             ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                        Drawing
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                        Identity
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                        Type
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                        Progress
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                        Milestones
-                      </th>
-                    </tr>
-                  </thead>
+              <div className="space-y-4">
+                {/* Edit mode toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    {components.length} component{components.length !== 1 ? 's' : ''} in package
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {editMode && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddComponents}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Components
+                      </Button>
+                    )}
+                    <Button
+                      variant={editMode ? 'outline' : 'default'}
+                      size="sm"
+                      onClick={() => {
+                        setEditMode(!editMode);
+                        setSelectedComponentIds([]);
+                      }}
+                    >
+                      {editMode ? (
+                        <>Done Editing</>
+                      ) : (
+                        <>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit Components
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Actions header (only in edit mode) */}
+                {editMode && selectedComponentIds.length > 0 && (
+                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <span className="text-sm font-medium text-blue-900">
+                      {selectedComponentIds.length} component{selectedComponentIds.length !== 1 ? 's' : ''} selected
+                    </span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveBulk}
+                      disabled={deleteComponentAssignment.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remove Selected
+                    </Button>
+                  </div>
+                )}
+
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        {editMode && (
+                          <th className="px-4 py-3 w-12">
+                            <Checkbox
+                              checked={
+                                components.length > 0 &&
+                                selectedComponentIds.length === components.length
+                              }
+                              onCheckedChange={handleSelectAll}
+                            />
+                          </th>
+                        )}
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
+                          Drawing
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
+                          Identity
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
+                          Progress
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
+                          Milestones
+                        </th>
+                        {editMode && (
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 w-24">
+                            Actions
+                          </th>
+                        )}
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-gray-200">
                     {components.map((component) => {
                       const componentProgress = component.percent_complete || 0;
                       const milestones = component.milestones_config || [];
+                      const isSelected = selectedComponentIds.includes(component.id);
 
                       return (
-                        <tr key={component.id} className="hover:bg-gray-50">
+                        <tr
+                          key={component.id}
+                          className={cn(
+                            'hover:bg-gray-50',
+                            editMode && isSelected && 'bg-blue-50'
+                          )}
+                        >
+                          {editMode && (
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => handleToggleComponent(component.id)}
+                              />
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {component.drawing_no_norm || '—'}
                           </td>
@@ -360,13 +559,117 @@ export function PackageDetailPage() {
                               })}
                             </div>
                           </td>
+                          {editMode && (
+                            <td className="px-4 py-3 text-sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveComponent(component.id)}
+                                disabled={deleteComponentAssignment.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+                </div>
             )}
+
+            {/* Remove Confirmation Dialog */}
+            <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Remove {componentToRemove ? '1' : selectedComponentIds.length} Component
+                    {componentToRemove || selectedComponentIds.length > 1 ? 's' : ''}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Component{componentToRemove || selectedComponentIds.length > 1 ? 's' : ''} will
+                    be removed from this package and become unassigned. You can reassign them to
+                    another package later.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4">
+                  <label htmlFor="removal-reason" className="text-sm font-medium text-gray-900">
+                    Reason for removal <span className="text-red-600">*</span>
+                  </label>
+                  <Textarea
+                    id="removal-reason"
+                    placeholder="e.g., Splitting package for different test types..."
+                    value={removalReason}
+                    onChange={(e) => setRemovalReason(e.target.value)}
+                    className="mt-2"
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    onClick={() => {
+                      setComponentToRemove(null);
+                      setRemovalReason('');
+                    }}
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmRemoval}
+                    disabled={!removalReason.trim()}
+                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                  >
+                    Remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Add Components Dialog */}
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle>Add Components to Package</DialogTitle>
+                  <DialogDescription>
+                    Select drawings and components to add to this package. Drawings with all components assigned are greyed out.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-hidden">
+                  <DrawingSelectionList
+                    drawings={availableDrawings}
+                    selectedDrawingIds={selectedDrawingIds}
+                    selectedComponentIds={selectedAddComponentIds}
+                    onDrawingSelectionChange={setSelectedDrawingIds}
+                    onComponentSelectionChange={setSelectedAddComponentIds}
+                    projectId={selectedProjectId || ''}
+                    currentPackageId={packageId}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddDialog(false);
+                      setSelectedDrawingIds([]);
+                      setSelectedAddComponentIds([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmAddComponents}
+                    disabled={selectedAddComponentIds.length === 0 || createComponentAssignment.isPending}
+                  >
+                    {createComponentAssignment.isPending
+                      ? 'Adding...'
+                      : `Add ${selectedAddComponentIds.length} Component${selectedAddComponentIds.length !== 1 ? 's' : ''}`}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>

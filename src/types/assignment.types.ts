@@ -73,7 +73,10 @@ export interface DrawingWithComponentCount {
   drawing_no_norm: string;
   title: string | null;
   rev: string | null;
-  component_count: number; // Number of components that will be inherited
+  component_count: number; // Total number of components on this drawing
+  available_count: number; // Components not yet assigned to any package
+  assigned_count: number; // Components already assigned to other packages
+  is_fully_assigned: boolean; // True when available_count === 0
   areas: string[]; // Unique areas from components on this drawing
 }
 

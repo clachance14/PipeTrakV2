@@ -23,6 +23,7 @@ export interface DrawingSelectionListProps {
   onComponentSelectionChange: (selectedIds: string[]) => void;
   projectId: string;
   isLoading?: boolean;
+  currentPackageId?: string; // Optional: ID of package being edited (to show "already in this package")
 }
 
 interface ComponentRow {
@@ -30,6 +31,7 @@ interface ComponentRow {
   identity_key: Record<string, any>; // JSONB object
   component_type: string;
   test_package_id: string | null;
+  test_packages?: { name: string } | null;
 }
 
 /**
@@ -77,6 +79,7 @@ export function DrawingSelectionList({
   onComponentSelectionChange,
   projectId,
   isLoading = false,
+  currentPackageId,
 }: DrawingSelectionListProps) {
   const [expandedDrawingIds, setExpandedDrawingIds] = useState<Set<string>>(new Set());
 
@@ -86,7 +89,7 @@ export function DrawingSelectionList({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('components')
-        .select('id, identity_key, component_type, drawing_id, test_package_id')
+        .select('id, identity_key, component_type, drawing_id, test_package_id, test_packages(name)')
         .eq('project_id', projectId)
         .eq('is_retired', false)
         .order('identity_key');
@@ -266,7 +269,8 @@ export function DrawingSelectionList({
                 <div
                   className={cn(
                     'flex items-center gap-3 p-3 bg-white transition-colors',
-                    (checked || indeterminate) && 'bg-blue-50'
+                    (checked || indeterminate) && 'bg-blue-50',
+                    drawing.is_fully_assigned && 'opacity-50'
                   )}
                 >
                   {/* Expand chevron */}
@@ -287,8 +291,14 @@ export function DrawingSelectionList({
                   <Checkbox
                     id={`drawing-${drawing.id}`}
                     checked={indeterminate ? "indeterminate" : checked}
+                    disabled={drawing.is_fully_assigned}
                     onCheckedChange={() => handleToggleDrawing(drawing.id)}
                     onClick={(e) => e.stopPropagation()}
+                    title={
+                      drawing.is_fully_assigned
+                        ? 'All components on this drawing have been assigned to other packages'
+                        : undefined
+                    }
                   />
 
                   {/* Drawing info */}
@@ -296,12 +306,19 @@ export function DrawingSelectionList({
                     <div className="flex items-center justify-between gap-2">
                       <label
                         htmlFor={`drawing-${drawing.id}`}
-                        className="font-medium text-sm cursor-pointer"
+                        className={cn(
+                          'font-medium text-sm',
+                          drawing.is_fully_assigned ? 'cursor-not-allowed' : 'cursor-pointer'
+                        )}
                       >
                         {drawing.drawing_no_norm}
                       </label>
                       <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full flex-shrink-0">
-                        {drawing.component_count} comp{drawing.component_count !== 1 ? 's' : ''}
+                        {drawing.is_fully_assigned
+                          ? 'All assigned'
+                          : drawing.assigned_count > 0
+                          ? `${drawing.available_count}/${drawing.component_count} available`
+                          : `${drawing.available_count} available`}
                       </span>
                     </div>
                     {drawing.title && (
@@ -320,6 +337,8 @@ export function DrawingSelectionList({
                   <div className="bg-gray-50 border-t">
                     {components.map((component) => {
                       const isComponentSelected = selectedComponentIds.includes(component.id);
+                      const isInCurrentPackage = currentPackageId && component.test_package_id === currentPackageId;
+                      const isAssignedToOtherPackage = component.test_package_id !== null && !isInCurrentPackage;
                       const isAlreadyAssigned = component.test_package_id !== null;
 
                       return (
@@ -354,8 +373,15 @@ export function DrawingSelectionList({
                               <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                                 {component.component_type}
                               </span>
-                              {isAlreadyAssigned && (
-                                <span className="text-xs text-gray-500">(already assigned)</span>
+                              {isInCurrentPackage && (
+                                <span className="text-xs text-green-600 font-medium">
+                                  (already in this package)
+                                </span>
+                              )}
+                              {isAssignedToOtherPackage && (
+                                <span className="text-xs text-gray-500">
+                                  (assigned to {component.test_packages?.name || 'another package'})
+                                </span>
                               )}
                             </div>
                           </label>
