@@ -1,0 +1,425 @@
+/**
+ * Package Create Dialog Component
+ * Feature 030 - Test Package Lifecycle Workflow - User Story 1 & 2
+ *
+ * Dialog for creating test packages with drawing OR component assignment (FR-001 through FR-013).
+ * Provides quick package creation flow with automatic component inheritance or direct selection.
+ */
+
+import { useState, useEffect, useMemo } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Package as PackageIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { useCreatePackage } from '@/hooks/usePackages';
+import {
+  useDrawingsWithComponentCount,
+} from '@/hooks/usePackageAssignments';
+import { DrawingSelectionList } from './DrawingSelectionList';
+import type { TestType } from '@/types/package.types';
+
+interface PackageCreateDialogProps {
+  projectId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const TEST_TYPES: TestType[] = [
+  'Hydrostatic Test',
+  'Pneumatic Test',
+  'Sensitive Leak Test',
+  'Alternative Leak Test',
+  'In-service Test',
+  'Other',
+];
+
+/**
+ * Dialog for creating test packages with drawing OR component assignment
+ *
+ * Features:
+ * - Package name, description, test type, target date
+ * - Tab-based assignment mode: "Select Drawings" OR "Select Components" (FR-011)
+ * - Multi-select drawings with component count preview (FR-002, FR-008)
+ * - Multi-select components with area/system filters (FR-009, FR-010)
+ * - Automatic component inheritance from selected drawings (FR-007)
+ * - Component uniqueness validation (FR-012, FR-013)
+ * - Exclusive mode validation (prevent mixing drawings + components)
+ * - Empty assignment prevention
+ *
+ * Flow:
+ * 1. User fills package details
+ * 2. User chooses assignment mode (Drawings tab OR Components tab)
+ * 3. User selects drawings/components
+ * 4. Preview shows total component count
+ * 5. User creates package
+ * 6. Assignments are created (drawings OR components, not both)
+ */
+export function PackageCreateDialog({
+  projectId,
+  open,
+  onOpenChange,
+}: PackageCreateDialogProps) {
+  const createPackageMutation = useCreatePackage(projectId);
+  const { data: drawingsData, isLoading: drawingsLoading } =
+    useDrawingsWithComponentCount(projectId);
+
+  // Form state
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [testType, setTestType] = useState<TestType>('Hydrostatic Test');
+  const [testTypeOther, setTestTypeOther] = useState('');
+  const [targetDate, setTargetDate] = useState('');
+  const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
+  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+  const [showEmptyWarning, setShowEmptyWarning] = useState(false);
+  const [isCreatingAssignments, setIsCreatingAssignments] = useState(false);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setDescription('');
+      setTestType('Hydrostatic Test');
+      setTestTypeOther('');
+      setTargetDate('');
+      setSelectedDrawingIds([]);
+      setSelectedComponentIds([]);
+    }
+  }, [open]);
+
+  // Calculate preview stats
+  const previewStats = useMemo(() => {
+    return {
+      count: selectedDrawingIds.length,
+      componentCount: selectedComponentIds.length,
+    };
+  }, [selectedDrawingIds, selectedComponentIds]);
+
+  // Validation
+  const hasSelection = selectedComponentIds.length > 0;
+
+  const canSubmit =
+    name.trim().length > 0 && !createPackageMutation.isPending && !isCreatingAssignments;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!canSubmit) return;
+
+    // Show warning if creating empty package
+    if (!hasSelection) {
+      setShowEmptyWarning(true);
+      return;
+    }
+
+    createPackage();
+  };
+
+  const createPackage = async () => {
+    const trimmedName = name.trim();
+
+    // Create package
+    createPackageMutation.mutate(
+      {
+        p_project_id: projectId,
+        p_name: trimmedName,
+        p_description: description.trim() || null,
+        p_test_type: testType === 'Other' ? testTypeOther.trim() : testType,
+        p_target_date: targetDate || null,
+      } as any,
+      {
+        onSuccess: async (packageId: string) => {
+          console.log('[PackageCreate] Package created with ID:', packageId);
+          console.log('[PackageCreate] Selected drawings:', selectedDrawingIds);
+          console.log('[PackageCreate] Selected components:', selectedComponentIds);
+
+          // After package created, create assignments if any were selected
+          if (hasSelection) {
+            setIsCreatingAssignments(true);
+
+            try {
+              // Create drawing assignments (for audit trail)
+              if (selectedDrawingIds.length > 0) {
+                console.log('[PackageCreate] Creating drawing assignments...');
+                const { data: assignmentData, error: assignmentError } = await supabase
+                  .from('package_drawing_assignments')
+                  .insert(
+                    selectedDrawingIds.map((drawingId) => ({
+                      package_id: packageId,
+                      drawing_id: drawingId,
+                    }))
+                  )
+                  .select();
+
+                if (assignmentError) {
+                  console.error('[PackageCreate] Drawing assignment error:', assignmentError);
+                  throw assignmentError;
+                }
+                console.log('[PackageCreate] Drawing assignments created:', assignmentData);
+
+                // Update drawings table to set test_package_id (so it shows in drawing rows)
+                console.log('[PackageCreate] Updating drawings.test_package_id...');
+                const { data: drawingUpdateData, error: drawingUpdateError } = await supabase
+                  .from('drawings')
+                  .update({ test_package_id: packageId })
+                  .in('id', selectedDrawingIds)
+                  .select();
+
+                if (drawingUpdateError) {
+                  console.error('[PackageCreate] Drawing update error:', drawingUpdateError);
+                  throw drawingUpdateError;
+                }
+                console.log('[PackageCreate] Drawings updated:', drawingUpdateData?.length || 0);
+              }
+
+              // Assign selected components
+              console.log('[PackageCreate] Assigning selected components...');
+              console.log('[PackageCreate] Component IDs:', selectedComponentIds);
+
+              const { data: componentData, error: componentError } = await supabase
+                .from('components')
+                .update({ test_package_id: packageId })
+                .in('id', selectedComponentIds)
+                .select();
+
+              if (componentError) {
+                console.error('[PackageCreate] Component assignment error:', componentError);
+                throw componentError;
+              }
+              console.log('[PackageCreate] Components assigned:', componentData?.length || 0);
+
+              const componentCount = componentData?.length || 0;
+              toast.success(
+                `Package created with ${componentCount} component${componentCount !== 1 ? 's' : ''}`
+              );
+            } catch (error: any) {
+              console.error('[PackageCreate] Assignment failed:', error);
+              toast.error('Package created but failed to assign components: ' + error.message);
+            } finally {
+              setIsCreatingAssignments(false);
+            }
+          } else {
+            toast.success('Package created');
+          }
+
+          setShowEmptyWarning(false);
+          onOpenChange(false);
+        },
+        onError: (error: any) => {
+          toast.error('Failed to create package: ' + error.message);
+        },
+      }
+    );
+  };
+
+  const handleEmptyPackageConfirm = () => {
+    setShowEmptyWarning(false);
+    createPackage();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create Test Package</DialogTitle>
+            <DialogDescription>
+              Create a test package and select drawings. Expand drawings to choose specific
+              components.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Package Details */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Package Details</h3>
+
+              {/* Package Name */}
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  Package Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Area 100 Hydro Test"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional description"
+                  rows={2}
+                />
+              </div>
+
+              {/* Test Type */}
+              <div className="space-y-2">
+                <Label htmlFor="test-type">
+                  Test Type <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={testType}
+                  onValueChange={(value) => setTestType(value as TestType)}
+                >
+                  <SelectTrigger id="test-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEST_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Test Type Other (conditional) */}
+              {testType === 'Other' && (
+                <div className="space-y-2">
+                  <Label htmlFor="test-type-other">
+                    Specify Test Type <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="test-type-other"
+                    value={testTypeOther}
+                    onChange={(e) => setTestTypeOther(e.target.value)}
+                    placeholder="Enter custom test type"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Target Date */}
+              <div className="space-y-2">
+                <Label htmlFor="target-date">Target Date</Label>
+                <Input
+                  id="target-date"
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Drawing Selection with Expandable Components */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">
+                  Select Drawings & Components <span className="text-red-500">*</span>
+                </h3>
+                {previewStats.componentCount > 0 && (
+                  <div className="text-sm text-gray-600 flex items-center gap-1">
+                    <PackageIcon className="h-4 w-4" />
+                    {previewStats.componentCount} component
+                    {previewStats.componentCount !== 1 ? 's' : ''} selected
+                  </div>
+                )}
+              </div>
+
+              <DrawingSelectionList
+                drawings={drawingsData || []}
+                selectedDrawingIds={selectedDrawingIds}
+                selectedComponentIds={selectedComponentIds}
+                onDrawingSelectionChange={setSelectedDrawingIds}
+                onComponentSelectionChange={setSelectedComponentIds}
+                projectId={projectId}
+                isLoading={drawingsLoading}
+              />
+
+              {selectedComponentIds.length === 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Expand drawings and select components to create package
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canSubmit}>
+              {createPackageMutation.isPending
+                ? 'Creating...'
+                : isCreatingAssignments
+                ? 'Assigning components...'
+                : 'Create Package'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+
+      {/* Empty package warning dialog */}
+      <AlertDialog open={showEmptyWarning} onOpenChange={setShowEmptyWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create Empty Package?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to create a test package with no drawings or components assigned.
+              <br />
+              <br />
+              This package will be created with 0 components. You can add components later by
+              editing the package.
+              <br />
+              <br />
+              Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowEmptyWarning(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleEmptyPackageConfirm}>
+              Create Empty Package
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Dialog>
+  );
+}
