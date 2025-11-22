@@ -3,9 +3,7 @@
  * Feature: 030-test-package-workflow (User Story 3)
  *
  * Form for filling out Pipe Testing Acceptance Certificate.
- * Both "Save as Draft" and "Submit" require full validation (DB constraints enforce this).
- * Draft: Saves certificate only (workflow stages not created).
- * Submit: Saves certificate AND triggers workflow creation.
+ * Saves certificate only - workflow stages are created at package creation time.
  */
 
 import { useEffect } from 'react';
@@ -36,7 +34,6 @@ import {
   type CreateCertificateInput,
   type UpdateCertificateInput,
 } from '@/hooks/usePackageCertificate';
-import { useCreateWorkflowStages } from '@/hooks/usePackageWorkflow';
 import type { TestType } from '@/types/package.types';
 
 // Validation schema for complete certificate (submit mode)
@@ -83,7 +80,6 @@ export function PackageCertificateForm({
   const { data: certificate, isLoading } = usePackageCertificate(packageId);
   const createMutation = useCreateCertificate();
   const updateMutation = useUpdateCertificate();
-  const createWorkflowStages = useCreateWorkflowStages();
 
   const form = useForm({
     resolver: zodResolver(certificateSchema),
@@ -184,17 +180,14 @@ export function PackageCertificateForm({
     if (certificate) {
       await updateMutation.mutateAsync(input as UpdateCertificateInput);
     } else {
-      // Create certificate
+      // Create certificate (workflow stages created at package creation time)
       await createMutation.mutateAsync(input as CreateCertificateInput);
-
-      // Auto-create 7 workflow stages after certificate is created
-      await createWorkflowStages.mutateAsync({ packageId });
     }
 
     onSuccess?.();
   };
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending || createWorkflowStages.isPending;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
     return <div className="p-4 text-gray-500">Loading certificate...</div>;
