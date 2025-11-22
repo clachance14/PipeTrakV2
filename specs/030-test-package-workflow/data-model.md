@@ -20,7 +20,7 @@ This document defines the database schema for test package lifecycle workflow. I
 
 ## Entity Relationship Diagram
 
-```
+```text
 ┌─────────────────────┐
 │   test_packages     │ (existing, modified)
 │─────────────────────│
@@ -541,7 +541,7 @@ ON DELETE SET NULL;  -- Free components when package deleted (FR-033)
 
 ### Package Lifecycle
 
-```
+```text
 ┌─────────────────┐
 │  Package Created│
 │  (no certificate)│
@@ -578,7 +578,7 @@ ON DELETE SET NULL;  -- Free components when package deleted (FR-033)
 
 ### Workflow Stage Status
 
-```
+```text
 ┌──────────────┐
 │ not_started  │ (default state)
 └──────┬───────┘

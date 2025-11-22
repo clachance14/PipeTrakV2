@@ -20,7 +20,7 @@ export interface CreateUnplannedWeldParams {
   spec: string
   schedule?: string
   baseMetal?: string
-  notes?: string
+  notes: string
 }
 
 export interface CreateUnplannedWeldResponse {

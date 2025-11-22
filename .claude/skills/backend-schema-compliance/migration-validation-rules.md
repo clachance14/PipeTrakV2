@@ -203,7 +203,7 @@ ALTER COLUMN column_name SET NOT NULL;
 
 ### Auto-Fix Logic
 
-```markdown
+````markdown
 ❌ **BLOCKED**: Cannot add NOT NULL - existing NULL values found
 
 **Table**: field_welds
@@ -218,7 +218,7 @@ UPDATE field_welds SET xray_percentage = 0 WHERE xray_percentage IS NULL;
 ```
 
 What default value should be used for backfill?
-```
+````
 
 ---
 
@@ -367,7 +367,7 @@ ALTER TABLE old_name RENAME TO new_name;
 2. **Check for dependencies**
    ```sql
    -- Check views that reference this function/table
-   SELECT DISTINCT dependent_view
+   SELECT DISTINCT view_name
    FROM information_schema.view_table_usage
    WHERE table_name = 'old_name';
    ```
@@ -430,7 +430,7 @@ ADD CONSTRAINT fk_name FOREIGN KEY (column_name) REFERENCES other_table(id);
 
 ### Auto-Fix Logic
 
-```markdown
+````markdown
 ⚠️ **PERFORMANCE**: Foreign key without index
 
 **Table**: milestone_events
@@ -445,6 +445,7 @@ CREATE INDEX idx_milestone_events_component_id ON milestone_events(component_id)
 ```
 
 Add index automatically? [Y/n]
+````
 ```
 
 ---

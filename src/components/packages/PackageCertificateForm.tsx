@@ -104,8 +104,9 @@ export function PackageCertificateForm({
   }, [certificate, form]);
 
   const handleDraftSave = async () => {
-    // Save draft without validation (partial data allowed)
-    const values = form.getValues();
+    // Run validation to satisfy DB constraints
+    // (test_pressure > 0, test_media non-empty, temperature required)
+    const values = certificateSchema.parse(form.getValues());
 
     const input: CreateCertificateInput | UpdateCertificateInput = certificate
       ? {
@@ -113,10 +114,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: parseFloat(values.test_pressure) || 0,
+          test_pressure: parseFloat(values.test_pressure),
           pressure_unit: values.pressure_unit,
-          test_media: values.test_media || '',
-          temperature: parseFloat(values.temperature) || 0,
+          test_media: values.test_media,
+          temperature: parseFloat(values.temperature),
           temperature_unit: values.temperature_unit,
         }
       : {
@@ -125,10 +126,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: parseFloat(values.test_pressure) || 0,
+          test_pressure: parseFloat(values.test_pressure),
           pressure_unit: values.pressure_unit,
-          test_media: values.test_media || '',
-          temperature: parseFloat(values.temperature) || 0,
+          test_media: values.test_media,
+          temperature: parseFloat(values.temperature),
           temperature_unit: values.temperature_unit,
         };
 

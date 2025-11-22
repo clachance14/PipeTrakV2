@@ -87,12 +87,21 @@ export function ComponentSelectionList({
   };
 
   const handleSelectAll = () => {
-    if (selectedComponentIds.length === assignableComponents.length) {
-      // Deselect all
-      onSelectionChange([]);
+    const visibleAssignableIds = assignableComponents.map((c) => c.id);
+    const allVisibleSelected = visibleAssignableIds.every((id) =>
+      selectedComponentIds.includes(id)
+    );
+
+    if (allVisibleSelected) {
+      // Deselect only the currently visible assignable components
+      onSelectionChange(
+        selectedComponentIds.filter((id) => !visibleAssignableIds.includes(id))
+      );
     } else {
-      // Select all assignable components (excluding already assigned)
-      onSelectionChange(assignableComponents.map((c) => c.id));
+      // Add all visible assignable components to the current selection
+      const next = new Set(selectedComponentIds);
+      visibleAssignableIds.forEach((id) => next.add(id));
+      onSelectionChange(Array.from(next));
     }
   };
 
@@ -178,7 +187,9 @@ export function ComponentSelectionList({
             id="select-all"
             checked={
               assignableComponents.length > 0 &&
-              selectedComponentIds.length === assignableComponents.length
+              assignableComponents
+                .map((c) => c.id)
+                .every((id) => selectedComponentIds.includes(id))
             }
             onCheckedChange={handleSelectAll}
             disabled={assignableComponents.length === 0}
