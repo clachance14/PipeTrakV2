@@ -254,7 +254,196 @@ After the user writes the insert code, validate it:
 
 ---
 
-### Step 8: Post-Coding Verification
+### Step 8: SQL Migration Validation (For Migrations Only)
+
+**CRITICAL**: If working on a `.sql` migration file, run PostgreSQL-specific validation BEFORE pushing.
+
+This step prevents wasted context from push failures due to PostgreSQL constraints.
+
+**Real example**: Migration 20251121185757 failed with "cannot change return type of existing function" - wasted significant context debugging after failed push.
+
+#### When to Run
+
+Only for migration files (`supabase/migrations/*.sql`). Skip for edge functions and client code.
+
+#### Validation Checks
+
+```markdown
+## PostgreSQL Migration Pre-Push Validation
+
+[Read migration.sql file]
+
+### Running validation rules (see migration-validation-rules.md):
+
+**CRITICAL Checks (Block push if fail)**:
+- [ ] Rule 1: CREATE OR REPLACE FUNCTION with signature change
+- [ ] Rule 3: ADD NOT NULL with existing NULLs
+- [ ] Rule 4: ADD UNIQUE with duplicates
+
+**WARNING Checks (Ask confirmation)**:
+- [ ] Rule 2: ALTER COLUMN TYPE on large tables
+- [ ] Rule 5: DROP COLUMN data loss
+- [ ] Rule 6: RENAME with dependencies
+- [ ] Rule 7: Missing indexes on foreign keys
+
+### Results:
+
+[For each rule that triggers, show specific validation result]
+
+#### Rule 1 Example: CREATE OR REPLACE FUNCTION
+
+**Detected**: CREATE OR REPLACE FUNCTION get_weld_summary_by_welder
+
+**Checking** if function exists and signature changed...
+
+[Query database for existing function signature]
+
+**Result**:
+- [✅] Function doesn't exist → Safe to use CREATE OR REPLACE
+- [❌] Function exists, signature changed → **MUST DROP first**
+- [✅] Function exists, signature same → Safe to use CREATE OR REPLACE
+
+**If ❌**:
+```markdown
+❌ **BLOCKED**: Cannot change function return type with CREATE OR REPLACE
+
+**Function**: get_weld_summary_by_welder
+**Issue**: Return signature changed (added columns: bw_welds_5pct, sw_welds_5pct)
+
+**PostgreSQL will fail with**:
+ERROR: cannot change return type of existing function (SQLSTATE 42P13)
+
+**Required fix**:
+```sql
+-- Add DROP before CREATE
+DROP FUNCTION IF EXISTS get_weld_summary_by_welder(UUID, DATE, DATE, UUID[], UUID[], UUID[], UUID[]);
+
+-- Change CREATE OR REPLACE → CREATE
+CREATE FUNCTION get_weld_summary_by_welder(...)
+RETURNS TABLE (...);
+```
+
+Apply fix automatically? [Y/n]
+```
+
+**If auto-fix accepted**: Update migration file, then proceed
+**If auto-fix declined**: STOP - user must fix manually
+
+---
+
+#### Rule 3 Example: ADD NOT NULL
+
+**Detected**: ALTER TABLE field_welds ALTER COLUMN xray_percentage SET NOT NULL
+
+**Checking** for existing NULL values...
+
+```sql
+SELECT COUNT(*) FROM field_welds WHERE xray_percentage IS NULL;
+```
+
+**Result**:
+- [✅] No NULL values → Safe to add NOT NULL
+- [❌] NULL values exist → **MUST backfill first**
+
+**If ❌**:
+```markdown
+❌ **BLOCKED**: Cannot add NOT NULL - existing NULL values
+
+**Table**: field_welds
+**Column**: xray_percentage
+**NULL count**: 142 rows
+
+**PostgreSQL will fail with**:
+ERROR: column "xray_percentage" contains null values
+
+**Required fix**:
+```sql
+-- Backfill NULLs first
+UPDATE field_welds SET xray_percentage = 0 WHERE xray_percentage IS NULL;
+
+-- Then add NOT NULL
+ALTER TABLE field_welds ALTER COLUMN xray_percentage SET NOT NULL;
+```
+
+What default value for backfill? (Suggested: 0): ___
+```
+
+---
+
+#### Rule 2 Example: ALTER TYPE (Warning)
+
+**Detected**: ALTER TABLE components ALTER COLUMN attributes TYPE jsonb USING attributes::jsonb
+
+**Checking** table size...
+
+```sql
+SELECT n_live_tup FROM pg_stat_user_tables WHERE relname = 'components';
+```
+
+**Result**:
+- [✅] Small table (<10K rows) → Safe
+- [⚠️] Large table (>10K rows) → **Performance warning**
+
+**If ⚠️**:
+```markdown
+⚠️ **PERFORMANCE WARNING**: ALTER TYPE on large table
+
+**Table**: components
+**Rows**: 1,234,567
+**Estimated time**: 5-10 minutes
+**Impact**: Table locked (AccessExclusiveLock) - blocks all queries
+
+**Alternative approach**:
+1. Add new column with new type
+2. Backfill in batches
+3. Update app to use new column
+4. Drop old column later
+
+Proceed with ALTER TYPE anyway? [Y/n]
+```
+
+---
+
+### Validation Summary
+
+After all checks complete:
+
+**If any ❌ (CRITICAL)**:
+```markdown
+❌ **MIGRATION BLOCKED**: Fix required before push
+
+[List all critical issues]
+
+**Cannot push until fixed.**
+```
+
+**If only ⚠️ (WARNINGS)**:
+```markdown
+⚠️ **WARNINGS**: Review before push
+
+[List all warnings]
+
+**Proceed with caution.** Type 'PUSH' to confirm: ___
+```
+
+**If all ✅**:
+```markdown
+✅ **All PostgreSQL validation checks passed**
+
+Your migration is safe to push:
+- No function signature conflicts
+- No constraint violations
+- No data loss risks
+- All performance considerations addressed
+
+**Proceed with**: ./db-push.sh
+```
+
+```
+
+---
+
+### Step 9: Post-Coding Verification
 
 After code is written and validated:
 

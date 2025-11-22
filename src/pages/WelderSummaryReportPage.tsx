@@ -4,9 +4,11 @@
  */
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useProject } from '@/contexts/ProjectContext';
 import { useProjects } from '@/hooks/useProjects';
 import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
+import { useWelderSummaryPDFExport } from '@/hooks/useWelderSummaryPDFExport';
 import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
 import { DEFAULT_WELDER_SUMMARY_FILTERS } from '@/types/weldSummary';
 import type { WelderSummaryFilters } from '@/types/weldSummary';
@@ -31,11 +33,28 @@ export function WelderSummaryReportPage() {
     enabled: !!currentProject?.id,
   });
 
+  // PDF export hook
+  const { generatePDF } = useWelderSummaryPDFExport();
+
   // Handle export
-  const handleExport = (format: 'pdf' | 'excel' | 'csv') => {
-    // TODO: Implement export functionality
-    console.log(`Exporting as ${format}...`);
-    alert(`Export as ${format} - Coming soon!`);
+  const handleExport = async (format: 'pdf' | 'excel' | 'csv') => {
+    if (format === 'pdf') {
+      if (!reportData || !currentProject) {
+        toast.error('No data available to export');
+        return;
+      }
+
+      try {
+        await generatePDF(reportData, currentProject.name);
+        toast.success('PDF downloaded successfully');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to generate PDF';
+        toast.error(errorMessage);
+      }
+    } else {
+      // TODO: Implement Excel and CSV export
+      toast.info(`Export as ${format} - Coming soon!`);
+    }
   };
 
   // Loading state

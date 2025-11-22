@@ -247,14 +247,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "components_test_package_id_fkey"
+            foreignKeyName: "fk_components_test_package"
             columns: ["test_package_id"]
             isOneToOne: false
             referencedRelation: "mv_package_readiness"
             referencedColumns: ["package_id"]
           },
           {
-            foreignKeyName: "components_test_package_id_fkey"
+            foreignKeyName: "fk_components_test_package"
             columns: ["test_package_id"]
             isOneToOne: false
             referencedRelation: "test_packages"
@@ -725,6 +725,186 @@ export type Database = {
         }
         Relationships: []
       }
+      package_certificates: {
+        Row: {
+          certificate_number: string
+          client: string | null
+          client_spec: string | null
+          created_at: string
+          id: string
+          line_number: string | null
+          package_id: string
+          pressure_unit: string
+          temperature: number
+          temperature_unit: string
+          test_media: string
+          test_pressure: number
+          updated_at: string
+        }
+        Insert: {
+          certificate_number: string
+          client?: string | null
+          client_spec?: string | null
+          created_at?: string
+          id?: string
+          line_number?: string | null
+          package_id: string
+          pressure_unit?: string
+          temperature: number
+          temperature_unit?: string
+          test_media: string
+          test_pressure: number
+          updated_at?: string
+        }
+        Update: {
+          certificate_number?: string
+          client?: string | null
+          client_spec?: string | null
+          created_at?: string
+          id?: string
+          line_number?: string | null
+          package_id?: string
+          pressure_unit?: string
+          temperature?: number
+          temperature_unit?: string
+          test_media?: string
+          test_pressure?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_certificates_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "package_certificates_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_drawing_assignments: {
+        Row: {
+          created_at: string
+          drawing_id: string
+          id: string
+          package_id: string
+        }
+        Insert: {
+          created_at?: string
+          drawing_id: string
+          id?: string
+          package_id: string
+        }
+        Update: {
+          created_at?: string
+          drawing_id?: string
+          id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_drawing_assignments_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "drawings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "mv_drawing_progress"
+            referencedColumns: ["drawing_id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_workflow_stages: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          package_id: string
+          signoffs: Json | null
+          skip_reason: string | null
+          stage_data: Json | null
+          stage_name: string
+          stage_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          package_id: string
+          signoffs?: Json | null
+          skip_reason?: string | null
+          stage_data?: Json | null
+          stage_name: string
+          stage_order: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string
+          signoffs?: Json | null
+          skip_reason?: string | null
+          stage_data?: Json | null
+          stage_name?: string
+          stage_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_workflow_stages_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_workflow_stages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "package_workflow_stages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       progress_templates: {
         Row: {
           component_type: string
@@ -1009,6 +1189,7 @@ export type Database = {
           name: string
           project_id: string
           target_date: string | null
+          test_type: string | null
         }
         Insert: {
           created_at?: string
@@ -1017,6 +1198,7 @@ export type Database = {
           name: string
           project_id: string
           target_date?: string | null
+          test_type?: string | null
         }
         Update: {
           created_at?: string
@@ -1025,6 +1207,7 @@ export type Database = {
           name?: string
           project_id?: string
           target_date?: string | null
+          test_type?: string | null
         }
         Relationships: [
           {
@@ -1561,6 +1744,7 @@ export type Database = {
           p_weld_number: string
           p_weld_size: string
           p_weld_type: string
+          p_xray_percentage?: number
         }
         Returns: Json
       }
@@ -1575,6 +1759,10 @@ export type Database = {
           drawing_no_norm: string
           similarity_score: number
         }[]
+      }
+      generate_certificate_number: {
+        Args: { p_project_id: string }
+        Returns: string
       }
       get_current_user_email: { Args: never; Returns: string }
       get_current_user_org_id: { Args: never; Returns: string }

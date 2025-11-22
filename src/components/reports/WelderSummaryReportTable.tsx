@@ -37,9 +37,9 @@ export function WelderSummaryReportTable({
         <p className="text-center text-sm text-slate-600">{formattedDate}</p>
       </div>
 
-      {/* Export Buttons */}
+      {/* Export Buttons (Desktop-only: hidden on mobile ≤1024px) */}
       {onExport && (
-        <div className="flex justify-end gap-2">
+        <div className="hidden lg:flex justify-end gap-2">
           <button
             onClick={() => onExport('excel')}
             className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700"

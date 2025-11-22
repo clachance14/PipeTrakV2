@@ -45,28 +45,23 @@ Supabase CLI v2.58.5 hangs on `supabase db push --linked`. Use `./db-push.sh` in
 
 Supabase provides two connection pooling modes with different characteristics:
 
-**Transaction Mode (Port 6543)** - Used by `db-push.sh`:
-- Does NOT support prepared statements
-- Optimized for short-lived connections (migrations, edge functions)
-- **Expected error**: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
-- **This error is benign** - migrations still succeed, CLI handles it internally
-
-**Session Mode (Port 5432)**:
+**Session Mode (Port 5432)** - **Recommended for migrations** (used by `db-push.sh`):
 - DOES support prepared statements
-- Better for long-lived connections
-- Use for ORM tools that rely on prepared statements (Prisma, Drizzle, etc.)
+- More stable for migration operations based on real-world testing
+- No spurious "prepared statement already exists" errors
+- Smoother experience despite slightly longer connection overhead
 
-**Why db-push.sh uses transaction mode (port 6543):**
-- Migrations are short-lived operations
-- Transaction mode provides better connection pooling for this use case
-- The "prepared statement already exists" error is cosmetic - ignore it
-- Supabase CLI automatically works around this limitation
+**Transaction Mode (Port 6543)**:
+- Does NOT support prepared statements
+- Optimized for short-lived connections (edge functions, quick queries)
+- Can produce benign errors: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
+- Previously used for migrations but session mode proved more reliable in practice
 
-**When you see this error, don't worry:**
-```
-ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)
-```
-This is expected behavior with transaction pooler. Check if migration succeeded (it usually has).
+**Why db-push.sh uses session mode (port 5432):**
+- Empirical testing shows smoother, more reliable migrations
+- Eliminates cosmetic errors that can cause confusion
+- Prepared statement support provides better compatibility
+- Slightly longer connection time is acceptable for migration operations
 
 ### TDD Mandatory
 Write failing test first (Red). Implement minimum code to pass (Green). Refactor while tests pass. Constitution v1.0.0 enforces this.
@@ -279,24 +274,25 @@ Ensure:
 - Node version matches project standard
 - Dependencies aren't corrupted (`rm -rf node_modules && npm install`)
 
-**9. Ignore Benign Prepared Statement Errors**
+**9. Prepared Statement Errors (Rare with Session Mode)**
 
 If you see: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
 
-**This is NOT a failure** - it's expected when using transaction pooler (port 6543).
+**This should NOT occur** with current `db-push.sh` (uses session mode, port 5432).
 
-Diagnosis:
-- Check if the migration actually succeeded (it usually has)
+If it appears:
+- You may be using transaction pooler (port 6543) directly
+- The error is benign - check if migration actually succeeded
 - Look for "Applied migration..." message after the error
 - Verify in Supabase Dashboard that migration is in `supabase_migrations.schema_migrations` table
 
-Why this happens:
+Why this can happen with transaction mode:
 - Transaction pooler (port 6543) doesn't support prepared statements
 - Supabase CLI tries to create prepared statements anyway
 - Pooler can't preserve them across connection swaps
 - CLI works around this limitation - migration still succeeds
 
-**Action:** Ignore the error and verify migration succeeded. See "Supabase Connection Pooler Modes" section for details.
+**Action:** If using `db-push.sh`, you shouldn't see this. If you do, verify migration succeeded and consider whether you're using the correct pooler mode. See "Supabase Connection Pooler Modes" section for details.
 
 ---
 
@@ -351,6 +347,8 @@ const queryClient = new QueryClient({
 **Edge function pattern:** Every edge function that inserts data must have a `schema-helpers.ts` file with type-safe builder functions. See `supabase/functions/import-field-welds/schema-helpers.ts` for reference.
 
 **Enforcement:** The `backend-schema-compliance` skill (`.claude/skills/backend-schema-compliance/`) **automatically activates** when working with database code. This skill enforces the schema compliance workflow and prevents the common mistakes that have caused production bugs (Migration 00084 boolean/numeric, Migration 00055 identity keys).
+
+**Migration Validation (NEW):** The skill now includes **PostgreSQL migration validation** (Step 8) that runs BEFORE pushing any `.sql` migration file. Catches errors like "cannot change function return type" before wasted context debugging failed pushes. See `migration-validation-rules.md` for details.
 
 ### TypeScript
 - Strict mode enabled
@@ -441,7 +439,7 @@ Follow this checklist when creating any new migration:
 5. ✅ **Test migration** (recommended)
    ```bash
    ./db-push.sh
-   # Expect: "prepared statement already exists" warning (safe to ignore)
+   # Should run cleanly with session mode (no spurious errors)
    ```
 
 6. ✅ **Generate types** after schema changes
@@ -531,6 +529,7 @@ See `specs/` directory for implementation notes:
 - Feature 015: Mobile Milestones - `specs/015-mobile-milestone-updates/IMPLEMENTATION-NOTES.md`
 - Feature 016: Team Management - `specs/016-team-management-ui/IMPLEMENTATION-NOTES.md`
 - Feature 019: Progress Reports - `specs/019-weekly-progress-reports/tasks.md`
+- Feature 029: React PDF Reports - `specs/029-react-pdf-reports/quickstart.md`
 
 ---
 
@@ -539,6 +538,144 @@ See `specs/` directory for implementation notes:
 Shadcn/ui configured in `components.json`. Radix UI primitives installed: dialog, dropdown-menu, label, slot, toast.
 
 Add components: `npx shadcn@latest add <component>` or manually to `src/components/ui/`
+
+---
+
+## PDF Generation
+
+Component-based PDF generation using @react-pdf/renderer for professional report export.
+
+### PDF Component Library
+
+Located in `src/components/pdf/`:
+
+```
+src/components/pdf/
+├── layout/
+│   ├── BrandedHeader.tsx       # Company logo + report title + metadata
+│   ├── ReportFooter.tsx        # Page numbers + footer text
+│   └── PageLayout.tsx          # Page wrapper with header + content + footer
+├── tables/
+│   ├── TableHeader.tsx         # Table header row with column definitions
+│   ├── TableRow.tsx            # Table body row with formatting by column type
+│   └── Table.tsx               # Complete table (header + rows + grand total)
+├── reports/
+│   └── FieldWeldReportPDF.tsx  # Field weld report document
+├── styles/
+│   └── commonStyles.ts         # Shared PDF styles (colors, typography, layout)
+└── index.ts                    # Barrel exports
+```
+
+### Lazy Loading Pattern
+
+**CRITICAL**: Always use lazy loading to avoid bundle bloat (library is 700KB-1.2MB):
+
+```typescript
+// ✅ Good - Lazy load in hook
+const { generatePDF, isGenerating } = useFieldWeldPDFExport();
+
+// Hook implementation uses dynamic imports:
+const { pdf } = await import('@react-pdf/renderer');
+const { FieldWeldReportPDF } = await import('@/components/pdf/reports/FieldWeldReportPDF');
+
+// ❌ Bad - Top-level import adds to bundle
+import { pdf } from '@react-pdf/renderer'; // DON'T DO THIS
+```
+
+### Desktop-Only Constraint
+
+PDF export buttons must be hidden on mobile (≤1024px):
+
+```typescript
+// ✅ Good
+<div className="hidden lg:flex gap-2">
+  <Button onClick={handleExport}>Export PDF</Button>
+</div>
+
+// ❌ Bad
+<Button onClick={handleExport}>Export PDF</Button>
+```
+
+### Usage Example
+
+```typescript
+import { useFieldWeldPDFExport } from '@/hooks/useFieldWeldPDFExport';
+import { toast } from 'sonner';
+
+function ReportsPage() {
+  const { generatePDF, isGenerating, error } = useFieldWeldPDFExport();
+
+  const handleExport = async () => {
+    if (!reportData) return;
+
+    try {
+      await generatePDF(
+        reportData,
+        'Project Name',
+        'area', // dimension
+        companyLogoBase64 // optional
+      );
+      toast.success('PDF downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  return (
+    <div className="hidden lg:flex gap-2">
+      <Button onClick={handleExport} disabled={isGenerating}>
+        {isGenerating ? 'Generating...' : 'Export PDF'}
+      </Button>
+    </div>
+  );
+}
+```
+
+### Testing PDF Components
+
+**Unit Tests** (fast - mock @react-pdf/renderer):
+```typescript
+vi.mock('@react-pdf/renderer', () => ({
+  Document: ({ children }: any) => <div data-testid="pdf-document">{children}</div>,
+  Page: ({ children }: any) => <div data-testid="pdf-page">{children}</div>,
+  View: ({ children }: any) => <div data-testid="pdf-view">{children}</div>,
+  Text: ({ children }: any) => <span data-testid="pdf-text">{children}</span>,
+  StyleSheet: { create: (styles: any) => styles }
+}));
+```
+
+**Integration Tests** (slow - real @react-pdf/renderer):
+```typescript
+import { pdf } from '@react-pdf/renderer';
+import { FieldWeldReportPDF } from '@/components/pdf/reports/FieldWeldReportPDF';
+
+const blob = await pdf(<FieldWeldReportPDF {...props} />).toBlob();
+expect(blob.type).toBe('application/pdf');
+expect(blob.size).toBeLessThan(500 * 1024); // <500KB
+```
+
+### PDF Styling Rules
+
+**DO**:
+- Use @react-pdf/renderer StyleSheet API
+- Use flexbox for layouts
+- Reference commonStyles for consistent colors/typography
+- Test with real PDF generation (not just mocks)
+
+**DON'T**:
+- Use Tailwind classes (not supported in PDFs)
+- Use CSS-in-JS libraries (styled-components, emotion)
+- Use Grid layout (use flexbox instead)
+- Import @react-pdf/renderer at module top-level (breaks lazy loading)
+
+### Quickstart Guide
+
+See `specs/029-react-pdf-reports/quickstart.md` for:
+- Creating new report types
+- Custom table columns
+- Multi-page reports
+- Performance optimization
+- Common pitfalls
 
 ---
 

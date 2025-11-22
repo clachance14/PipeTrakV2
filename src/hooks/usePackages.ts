@@ -359,3 +359,29 @@ function formatIdentityKey(key: any, type: string, totalCount = 1): string {
   // Single component - no suffix
   return `${commodity_code}${sizeDisplay}`;
 }
+
+/**
+ * Query single test package details including test_type
+ * Used for package detail page header and certificate form
+ */
+export function usePackageDetails(
+  packageId: string | undefined
+): UseQueryResult<{ id: string; name: string; description: string | null; test_type: string | null; target_date: string | null } | null, Error> {
+  return useQuery({
+    queryKey: ['package-details', packageId],
+    queryFn: async () => {
+      if (!packageId) return null;
+
+      const { data, error } = await supabase
+        .from('test_packages')
+        .select('id, name, description, test_type, target_date')
+        .eq('id', packageId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!packageId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
