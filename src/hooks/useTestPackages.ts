@@ -75,6 +75,9 @@ export function useCreateTestPackage(): UseMutationResult<
     name: string;
     description?: string;
     target_date?: string; // ISO 8601 date
+    test_type?: string; // Test type for workflow logic matrix
+    requires_coating?: boolean; // Whether package requires coating stage
+    requires_insulation?: boolean; // Whether package requires insulation stage
   }
 > {
   const queryClient = useQueryClient();

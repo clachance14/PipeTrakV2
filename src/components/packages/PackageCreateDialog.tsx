@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +42,7 @@ import { AlertCircle, Package as PackageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useCreatePackage } from '@/hooks/usePackages';
+import { useCreateWorkflowStages } from '@/hooks/usePackageWorkflow';
 import {
   useDrawingsWithComponentCount,
 } from '@/hooks/usePackageAssignments';
@@ -89,6 +91,7 @@ export function PackageCreateDialog({
   onOpenChange,
 }: PackageCreateDialogProps) {
   const createPackageMutation = useCreatePackage(projectId);
+  const createWorkflowStages = useCreateWorkflowStages();
   const { data: drawingsData, isLoading: drawingsLoading } =
     useDrawingsWithComponentCount(projectId);
 
@@ -98,6 +101,8 @@ export function PackageCreateDialog({
   const [testType, setTestType] = useState<TestType>('Hydrostatic Test');
   const [testTypeOther, setTestTypeOther] = useState('');
   const [targetDate, setTargetDate] = useState('');
+  const [requiresCoating, setRequiresCoating] = useState(false);
+  const [requiresInsulation, setRequiresInsulation] = useState(false);
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
   const [showEmptyWarning, setShowEmptyWarning] = useState(false);
@@ -111,6 +116,8 @@ export function PackageCreateDialog({
       setTestType('Hydrostatic Test');
       setTestTypeOther('');
       setTargetDate('');
+      setRequiresCoating(false);
+      setRequiresInsulation(false);
       setSelectedDrawingIds([]);
       setSelectedComponentIds([]);
     }
@@ -146,6 +153,7 @@ export function PackageCreateDialog({
 
   const createPackage = async () => {
     const trimmedName = name.trim();
+    const finalTestType = testType === 'Other' ? testTypeOther.trim() : testType;
 
     // Create package
     createPackageMutation.mutate(
@@ -153,14 +161,31 @@ export function PackageCreateDialog({
         p_project_id: projectId,
         p_name: trimmedName,
         p_description: description.trim() || null,
-        p_test_type: testType === 'Other' ? testTypeOther.trim() : testType,
+        p_test_type: finalTestType,
         p_target_date: targetDate || null,
+        p_requires_coating: requiresCoating,
+        p_requires_insulation: requiresInsulation,
       } as any,
       {
         onSuccess: async (packageId: string) => {
           console.log('[PackageCreate] Package created with ID:', packageId);
           console.log('[PackageCreate] Selected drawings:', selectedDrawingIds);
           console.log('[PackageCreate] Selected components:', selectedComponentIds);
+
+          // Create workflow stages based on test type and requirements
+          try {
+            console.log('[PackageCreate] Creating workflow stages...');
+            await createWorkflowStages.mutateAsync({
+              packageId,
+              testType: finalTestType,
+              requiresCoating,
+              requiresInsulation,
+            });
+            console.log('[PackageCreate] Workflow stages created');
+          } catch (error: any) {
+            console.error('[PackageCreate] Failed to create workflow stages:', error);
+            toast.error('Package created but workflow stages failed: ' + error.message);
+          }
 
           // After package created, create assignments if any were selected
           if (hasSelection) {
@@ -336,6 +361,42 @@ export function PackageCreateDialog({
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
                 />
+              </div>
+
+              {/* Workflow Requirements */}
+              <div className="space-y-3 border-t pt-4">
+                <Label className="text-sm font-medium">Workflow Requirements</Label>
+                <p className="text-xs text-gray-500">
+                  Select additional stages required for this package
+                </p>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="requires-coating"
+                    checked={requiresCoating}
+                    onCheckedChange={(checked) => setRequiresCoating(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="requires-coating"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Requires Protective Coatings
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="requires-insulation"
+                    checked={requiresInsulation}
+                    onCheckedChange={(checked) => setRequiresInsulation(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="requires-insulation"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Requires Insulation
+                  </label>
+                </div>
               </div>
             </div>
 

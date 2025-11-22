@@ -20,7 +20,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { WORKFLOW_STAGES, getStageConfig } from '@/lib/workflowStageConfig';
+import { getStageConfig } from '@/lib/workflowStageConfig';
+import { getWorkflowTemplateForTestType } from '@/lib/workflowTemplateQueries';
 import type {
   PackageWorkflowStage,
   StageCreateInput,
@@ -63,7 +64,10 @@ export function usePackageWorkflow(packageId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('package_workflow_stages')
-        .select('*')
+        .select(`
+          *,
+          completed_by_user:users!completed_by(id, full_name, email)
+        `)
         .eq('package_id', packageId)
         .order('stage_order', { ascending: true });
 
@@ -82,34 +86,119 @@ export function usePackageWorkflow(packageId: string) {
 // ============================================================================
 
 /**
- * Create initial 7 workflow stages for a package
+ * Create workflow stages for a package based on test type and requirements
  *
- * Auto-creates all 7 stages in 'not_started' status.
- * Called automatically when package certificate is submitted (FR-010).
+ * Creates stages dynamically based on:
+ * 1. Test type template (hydro-related stages)
+ * 2. Package requirements (coating/insulation)
+ * 3. Always adds Final Package Acceptance
+ *
+ * Called automatically when package is created.
  *
  * @returns TanStack Mutation for creating workflow stages
  *
  * @example
  * const { mutate: createStages } = useCreateWorkflowStages();
- * createStages({ packageId: 'uuid' });
+ * createStages({
+ *   packageId: 'uuid',
+ *   testType: 'Hydrostatic Test',
+ *   requiresCoating: true,
+ *   requiresInsulation: false
+ * });
  */
 export function useCreateWorkflowStages() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ packageId }: { packageId: string }) => {
-      // Build stage creation inputs
-      const stages: StageCreateInput[] = WORKFLOW_STAGES.map((stageConfig) => ({
+    mutationFn: async ({
+      packageId,
+      testType,
+      requiresCoating,
+      requiresInsulation,
+    }: {
+      packageId: string;
+      testType: string;
+      requiresCoating: boolean;
+      requiresInsulation: boolean;
+    }) => {
+      // Check if workflow already exists (legacy packages or duplicate call)
+      const { data: existingStages } = await supabase
+        .from('package_workflow_stages')
+        .select('id')
+        .eq('package_id', packageId);
+
+      if (existingStages && existingStages.length > 0) {
+        console.log('Workflow already exists for this package - skipping creation');
+        return existingStages as PackageWorkflowStage[];
+      }
+
+      // Step 1: Fetch test-type-specific stages from template
+      const templateStages = await getWorkflowTemplateForTestType(testType);
+
+      if (templateStages.length === 0) {
+        throw new Error(
+          `No workflow template configured for test type: ${testType}. Please contact your administrator.`
+        );
+      }
+
+      // Step 2: Build complete stage list
+      const allStages = [...templateStages];
+
+      // Step 3: Add coating stage if required
+      if (requiresCoating) {
+        allStages.push({
+          id: '',
+          test_type: testType,
+          stage_name: 'Protective Coatings Acceptance',
+          stage_order: 5, // Standard order for coatings
+          is_required: true,
+          default_skip_reason: null,
+          created_at: '',
+          updated_at: '',
+        });
+      }
+
+      // Step 4: Add insulation stage if required
+      if (requiresInsulation) {
+        allStages.push({
+          id: '',
+          test_type: testType,
+          stage_name: 'Insulation Acceptance',
+          stage_order: 6, // Standard order for insulation
+          is_required: true,
+          default_skip_reason: null,
+          created_at: '',
+          updated_at: '',
+        });
+      }
+
+      // Step 5: Ensure Final stage is included
+      if (!allStages.some((s) => s.stage_name === 'Final Package Acceptance')) {
+        allStages.push({
+          id: '',
+          test_type: testType,
+          stage_name: 'Final Package Acceptance',
+          stage_order: 7,
+          is_required: true,
+          default_skip_reason: null,
+          created_at: '',
+          updated_at: '',
+        });
+      }
+
+      // Step 6: Sort by stage_order and renumber sequentially
+      allStages.sort((a, b) => a.stage_order - b.stage_order);
+      const stagesToCreate: StageCreateInput[] = allStages.map((stage, index) => ({
         package_id: packageId,
-        stage_name: stageConfig.name,
-        stage_order: stageConfig.order,
+        stage_name: stage.stage_name as StageName,
+        stage_order: index + 1, // Sequential: 1, 2, 3, ...
         status: 'not_started',
       }));
 
-      // Insert all stages
+      // Step 7: Insert all stages
       const { data, error } = await supabase
         .from('package_workflow_stages')
-        .insert(stages)
+        .insert(stagesToCreate)
         .select();
 
       if (error) {
@@ -345,10 +434,10 @@ export function isStageAvailable(
  *
  * @example
  * const progress = getWorkflowProgress(stages);
- * // { total_stages: 7, completed_stages: 3, percent_complete: 42.86, ... }
+ * // { total_stages: 5, completed_stages: 3, percent_complete: 60, ... }
  */
 export function getWorkflowProgress(stages: PackageWorkflowStage[]) {
-  const totalStages = 7;
+  const totalStages = stages.length; // Dynamic - not hardcoded to 7
   const completedStages = stages.filter((s) => s.status === 'completed').length;
   const skippedStages = stages.filter((s) => s.status === 'skipped').length;
   const currentStage = stages.find(
@@ -360,7 +449,7 @@ export function getWorkflowProgress(stages: PackageWorkflowStage[]) {
     completed_stages: completedStages,
     skipped_stages: skippedStages,
     current_stage: currentStage?.stage_name || null,
-    percent_complete: Math.round((completedStages / totalStages) * 100),
+    percent_complete: totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0,
     can_proceed: completedStages === totalStages || !!currentStage,
   };
 }

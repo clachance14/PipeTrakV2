@@ -905,6 +905,39 @@ export type Database = {
           },
         ]
       }
+      package_workflow_templates: {
+        Row: {
+          created_at: string | null
+          default_skip_reason: string | null
+          id: string
+          is_required: boolean
+          stage_name: string
+          stage_order: number
+          test_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_skip_reason?: string | null
+          id?: string
+          is_required?: boolean
+          stage_name: string
+          stage_order: number
+          test_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_skip_reason?: string | null
+          id?: string
+          is_required?: boolean
+          stage_name?: string
+          stage_order?: number
+          test_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       progress_templates: {
         Row: {
           component_type: string
@@ -1188,6 +1221,8 @@ export type Database = {
           id: string
           name: string
           project_id: string
+          requires_coating: boolean | null
+          requires_insulation: boolean | null
           target_date: string | null
           test_type: string | null
         }
@@ -1197,6 +1232,8 @@ export type Database = {
           id?: string
           name: string
           project_id: string
+          requires_coating?: boolean | null
+          requires_insulation?: boolean | null
           target_date?: string | null
           test_type?: string | null
         }
@@ -1206,6 +1243,8 @@ export type Database = {
           id?: string
           name?: string
           project_id?: string
+          requires_coating?: boolean | null
+          requires_insulation?: boolean | null
           target_date?: string | null
           test_type?: string | null
         }
@@ -1728,7 +1767,10 @@ export type Database = {
           p_description?: string
           p_name: string
           p_project_id: string
+          p_requires_coating?: boolean
+          p_requires_insulation?: boolean
           p_target_date?: string
+          p_test_type?: string
           p_user_id?: string
         }
         Returns: string
