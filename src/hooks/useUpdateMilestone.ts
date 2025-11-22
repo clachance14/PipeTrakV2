@@ -147,6 +147,7 @@ export function useUpdateMilestone() {
       // Invalidating would trigger a refetch/resort which causes visual flickering
       queryClient.invalidateQueries({ queryKey: ['drawing-progress'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
     },
   })
 }

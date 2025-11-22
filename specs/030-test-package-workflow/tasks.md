@@ -307,3 +307,24 @@ Delivers core value: Project Managers can create test packages with drawing assi
 **Fix**: Modified `PackageCertificateForm.tsx` to call `useCreateWorkflowStages` immediately after creating a certificate (both draft and submit modes).
 
 **Checkpoint**: Bug fix complete - workflow stages now auto-created when certificate is created
+
+---
+
+### Bug Fix: Package % Complete Not Updating When Components Change
+
+- [X] T096 [BUGFIX] Identify root cause: TanStack Query cache invalidation missing for `['package-readiness']`
+- [X] T097 [BUGFIX] Add invalidation to `useUpdateMilestone.ts:150`
+- [X] T098 [BUGFIX] Add invalidation to `useUpdateComponent.ts:138`
+- [X] T099 [BUGFIX] Add invalidation to `usePackageAssignments.ts` (4 locations: lines 139, 177, 265, 303)
+- [X] T100 [BUGFIX] Verify type checking passes: `npx tsc -b`
+
+**Issue**: When updating component milestones or metadata within a package, the package % complete displayed on PackagesPage would not update until the 2-minute cache expired or the page was manually refreshed.
+
+**Root Cause**: Mutation hooks (`useUpdateMilestone`, `useUpdateComponent`, `usePackageAssignments`) were invalidating `['drawing-progress']` and `['drawings-with-progress']` queries but NOT invalidating `['package-readiness', projectId]` query. TanStack Query continued serving stale cached data with 2-minute staleTime.
+
+**Fix**: Added `queryClient.invalidateQueries({ queryKey: ['package-readiness'] })` to all mutation hooks that modify component data:
+- `useUpdateMilestone` - when milestones change
+- `useUpdateComponent` - when component metadata changes
+- `usePackageAssignments` - when components are assigned/unassigned (4 mutation hooks)
+
+**Checkpoint**: Bug fix complete - package % complete updates immediately when components change

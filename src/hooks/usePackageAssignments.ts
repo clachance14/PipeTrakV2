@@ -136,6 +136,7 @@ export function useCreateDrawingAssignments(
       queryClient.invalidateQueries({
         queryKey: ['package-components', { package_id: packageId }],
       });
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
     },
   });
 }
@@ -173,6 +174,7 @@ export function useDeleteDrawingAssignment(
       queryClient.invalidateQueries({
         queryKey: ['package-components', { package_id: packageId }],
       });
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
     },
   });
 }
@@ -260,6 +262,7 @@ export function useCreateComponentAssignments(
       queryClient.invalidateQueries({
         queryKey: ['package-components', { package_id: packageId }],
       });
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
     },
   });
 }
@@ -297,6 +300,7 @@ export function useDeleteComponentAssignment(
       queryClient.invalidateQueries({
         queryKey: ['package-components', { package_id: packageId }],
       });
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
     },
   });
 }
