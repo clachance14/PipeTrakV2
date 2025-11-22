@@ -7,7 +7,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
@@ -50,7 +49,7 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
       if (!grouped[t.component_type]) {
         grouped[t.component_type] = {};
       }
-      grouped[t.component_type][t.milestone_name] = t;
+      grouped[t.component_type]![t.milestone_name] = t;
     });
     return grouped;
   }, [templates]);
@@ -75,7 +74,7 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
     Object.entries(rows).forEach(([type, milestones]) => {
       initialWeights[type] = {};
       Object.entries(milestones).forEach(([name, t]) => {
-        initialWeights[type][name] = t.weight;
+        initialWeights[type]![name] = t.weight;
       });
     });
     setLocalWeights(initialWeights);
@@ -103,9 +102,9 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
       const next = { ...prev };
       Object.keys(next).forEach(type => {
         // Only update if this component type has this milestone
-        if (next[type][milestone] !== undefined) {
+        if (next[type]?.[milestone] !== undefined) {
           next[type] = {
-            ...next[type],
+            ...next[type]!,
             [milestone]: val
           };
         }
@@ -116,7 +115,7 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
     setModifiedTypes(prev => {
       const next = new Set(prev);
       Object.keys(rows).forEach(type => {
-        if (rows[type][milestone]) {
+        if (rows[type]?.[milestone]) {
           next.add(type);
         }
       });
@@ -128,8 +127,8 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
     setLocalWeights(prev => {
       const next = { ...prev };
       next[componentType] = {};
-      Object.entries(rows[componentType]).forEach(([name, t]) => {
-        next[componentType][name] = t.weight;
+      Object.entries(rows[componentType] || {}).forEach(([name, t]) => {
+        next[componentType]![name] = t.weight;
       });
       return next;
     });
@@ -147,7 +146,7 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
     // Validation check
     const errors: string[] = [];
     typesToSave.forEach(type => {
-      const typeWeights = localWeights[type];
+      const typeWeights = localWeights[type] || {};
       const total = Object.values(typeWeights).reduce((a, b) => a + b, 0);
       if (Math.abs(total - 100) > 0.01) { // Float tolerance
         errors.push(`${type}: Total weight is ${total}% (must be 100%)`);
@@ -168,14 +167,14 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
     // Execute updates
     let successCount = 0;
     const promises = typesToSave.map(async (type) => {
-      const weights = Object.entries(localWeights[type]).map(([name, weight]) => ({
+      const weights = Object.entries(localWeights[type] || {}).map(([name, weight]) => ({
         milestone_name: name,
         weight
       }));
-      
+
       // Get lastUpdated from the first template of this type (approximate, but usable for opt-lock if they are consistent)
       // Ideally we check the most recent updated_at of the group
-      const typeTemplates = Object.values(rows[type]);
+      const typeTemplates = Object.values(rows[type] || {});
       const lastUpdated = typeTemplates.reduce((latest, t) => 
         t.updated_at > latest ? t.updated_at : latest
       , '1970-01-01');
@@ -286,7 +285,7 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
                 <tr key={type} className={isModified ? 'bg-blue-50/30' : ''}>
                   <td className="px-4 py-2 font-medium">{type}</td>
                   {columns.map(col => {
-                    const exists = rows[type][col] !== undefined;
+                    const exists = rows[type]?.[col] !== undefined;
                     const val = localWeights[type]?.[col] ?? 0;
                     
                     if (!exists) {

@@ -31,7 +31,6 @@ import {
   usePackageCertificate,
   useCreateCertificate,
   useUpdateCertificate,
-  type PackageCertificate,
   type CreateCertificateInput,
   type UpdateCertificateInput,
 } from '@/hooks/usePackageCertificate';
@@ -40,16 +39,15 @@ import type { TestType } from '@/types/package.types';
 
 // Validation schema for complete certificate (submit mode)
 // Note: test_type is read from the package, not from this form
+// Using string fields for numbers due to HTML input type="number" returning strings
 const certificateSchema = z.object({
   client: z.string().optional(),
   client_spec: z.string().optional(),
   line_number: z.string().optional(),
-  test_pressure: z.coerce
-    .number({ required_error: 'Test pressure is required' })
-    .positive('Test pressure must be positive'),
+  test_pressure: z.string().min(1, 'Test pressure is required'),
   pressure_unit: z.enum(['PSIG', 'BAR', 'KPA', 'PSI']),
   test_media: z.string().min(1, 'Test media is required'),
-  temperature: z.coerce.number({ required_error: 'Temperature is required' }),
+  temperature: z.string().min(1, 'Temperature is required'),
   temperature_unit: z.enum(['F', 'C', 'K']),
 });
 
@@ -75,17 +73,17 @@ export function PackageCertificateForm({
   const updateMutation = useUpdateCertificate();
   const createWorkflowStages = useCreateWorkflowStages();
 
-  const form = useForm<CertificateFormValues>({
+  const form = useForm({
     resolver: zodResolver(certificateSchema),
     defaultValues: {
       client: '',
       client_spec: '',
       line_number: '',
-      test_pressure: 0,
-      pressure_unit: 'PSIG',
+      test_pressure: '',
+      pressure_unit: 'PSIG' as const,
       test_media: '',
-      temperature: 0,
-      temperature_unit: 'F',
+      temperature: '',
+      temperature_unit: 'F' as const,
     },
   });
 
@@ -96,10 +94,10 @@ export function PackageCertificateForm({
         client: certificate.client || '',
         client_spec: certificate.client_spec || '',
         line_number: certificate.line_number || '',
-        test_pressure: certificate.test_pressure,
+        test_pressure: String(certificate.test_pressure),
         pressure_unit: certificate.pressure_unit,
         test_media: certificate.test_media,
-        temperature: certificate.temperature,
+        temperature: String(certificate.temperature),
         temperature_unit: certificate.temperature_unit,
       });
     }
@@ -115,10 +113,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: values.test_pressure || 0,
+          test_pressure: parseFloat(values.test_pressure) || 0,
           pressure_unit: values.pressure_unit,
           test_media: values.test_media || '',
-          temperature: values.temperature || 0,
+          temperature: parseFloat(values.temperature) || 0,
           temperature_unit: values.temperature_unit,
         }
       : {
@@ -127,10 +125,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: values.test_pressure || 0,
+          test_pressure: parseFloat(values.test_pressure) || 0,
           pressure_unit: values.pressure_unit,
           test_media: values.test_media || '',
-          temperature: values.temperature || 0,
+          temperature: parseFloat(values.temperature) || 0,
           temperature_unit: values.temperature_unit,
         };
 
@@ -148,24 +146,16 @@ export function PackageCertificateForm({
   };
 
   const onSubmit = async (values: CertificateFormValues) => {
-    // Validate "Other" field if test type is "Other"
-    if (values.test_type === 'Other' && !values.test_type_other?.trim()) {
-      form.setError('test_type_other', {
-        message: 'Please specify the test type',
-      });
-      return;
-    }
-
     const input: CreateCertificateInput | UpdateCertificateInput = certificate
       ? {
           id: certificate.id,
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: values.test_pressure,
+          test_pressure: parseFloat(values.test_pressure),
           pressure_unit: values.pressure_unit,
           test_media: values.test_media,
-          temperature: values.temperature,
+          temperature: parseFloat(values.temperature),
           temperature_unit: values.temperature_unit,
         }
       : {
@@ -174,10 +164,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: values.test_pressure,
+          test_pressure: parseFloat(values.test_pressure),
           pressure_unit: values.pressure_unit,
           test_media: values.test_media,
-          temperature: values.temperature,
+          temperature: parseFloat(values.temperature),
           temperature_unit: values.temperature_unit,
         };
 

@@ -43,8 +43,8 @@ function formatIdentityKey(identityKey: Record<string, any>, componentType: stri
 
   // Handle different component type formats
   const values = Object.entries(identityKey)
-    .filter(([key, value]) => value !== null && value !== undefined && value !== '')
-    .map(([_, value]) => String(value))
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([, value]) => String(value))
     .join('-');
 
   return values || componentType || 'Unknown';
@@ -286,12 +286,7 @@ export function DrawingSelectionList({
                   {/* Drawing checkbox */}
                   <Checkbox
                     id={`drawing-${drawing.id}`}
-                    checked={checked}
-                    ref={(el) => {
-                      if (el) {
-                        el.indeterminate = indeterminate;
-                      }
-                    }}
+                    checked={indeterminate ? "indeterminate" : checked}
                     onCheckedChange={() => handleToggleDrawing(drawing.id)}
                     onClick={(e) => e.stopPropagation()}
                   />
