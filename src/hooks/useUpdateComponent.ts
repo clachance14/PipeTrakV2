@@ -135,6 +135,7 @@ export function useUpdateComponent(): UseMutationResult<
       // Invalidate related queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
     }
   })
 }

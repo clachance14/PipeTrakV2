@@ -33,6 +33,7 @@ import { CreateProjectPage } from '@/pages/CreateProjectPage'
 import { ReportBuilderPage } from '@/pages/ReportBuilderPage'
 import { ReportViewPage } from '@/pages/ReportViewPage'
 import { ReportsPage } from '@/pages/ReportsPage'
+import { WelderSummaryReportPage } from '@/pages/WelderSummaryReportPage'
 import { HomePage } from '@/pages/HomePage'
 import { DemoSignupPage } from '@/pages/DemoSignupPage'
 import { MilestoneTemplatesPage } from '@/components/settings/MilestoneTemplatesPage'
@@ -211,6 +212,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ReportViewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/welder-summary"
+              element={
+                <ProtectedRoute>
+                  <WelderSummaryReportPage />
                 </ProtectedRoute>
               }
             />

@@ -36,6 +36,8 @@ describe('FieldWeldReportTable', () => {
         avgDaysToNDE: 3.5,
         avgDaysToAcceptance: 5.2,
         pctTotal: 75,
+        fitupCount: 90,
+        weldCompleteCount: 85,
       },
       {
         id: 'area-2',
@@ -58,6 +60,8 @@ describe('FieldWeldReportTable', () => {
         avgDaysToNDE: 2.5,
         avgDaysToAcceptance: 4.0,
         pctTotal: 70,
+        fitupCount: 40,
+        weldCompleteCount: 37,
       },
     ],
     grandTotal: {
@@ -78,6 +82,8 @@ describe('FieldWeldReportTable', () => {
       repairRate: 8,
       avgDaysToNDE: 3.17,
       avgDaysToAcceptance: 4.8,
+      fitupCount: 130,
+      weldCompleteCount: 122,
       pctTotal: 73,
     },
   };
@@ -128,6 +134,8 @@ describe('FieldWeldReportTable', () => {
           avgDaysToNDE: null,
           avgDaysToAcceptance: null,
           pctTotal: 0,
+          fitupCount: 0,
+          weldCompleteCount: 0,
         },
       };
 
@@ -346,7 +354,7 @@ describe('FieldWeldReportTable', () => {
       expect(screen.getAllByText('93.3%').length).toBeGreaterThan(0); // ndePassRate for row 2
     });
 
-    it('formats whole number percentages with .0', () => {
+    it('displays milestone counts as integers', () => {
       render(
         <FieldWeldReportTable
           reportData={mockReportData}
@@ -355,8 +363,8 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      // Grand total pctFitup: 87 → displays as "87.0%"
-      expect(screen.getAllByText('87.0%').length).toBeGreaterThan(0);
+      // Grand total fitupCount: 130 → displays as "130"
+      expect(screen.getAllByText('130').length).toBeGreaterThan(0);
     });
 
     it('formats decimal values (time metrics) with 1 decimal place', () => {

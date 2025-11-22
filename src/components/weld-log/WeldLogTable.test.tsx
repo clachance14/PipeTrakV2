@@ -153,7 +153,7 @@ describe('WeldLogTable', () => {
       mockUseMobileDetection.mockReturnValue(false)
     })
 
-    it('renders all 10 columns on desktop', () => {
+    it('renders all 9 columns on desktop', () => {
       renderWithRouter(<WeldLogTable welds={mockWelds} />)
 
       // Check for all column headers
@@ -164,7 +164,6 @@ describe('WeldLogTable', () => {
       expect(screen.getByText('Type')).toBeInTheDocument()
       expect(screen.getByText('Size')).toBeInTheDocument()
       expect(screen.getByText('NDE Result')).toBeInTheDocument()
-      expect(screen.getByText('Status')).toBeInTheDocument()
       expect(screen.getByText('Progress')).toBeInTheDocument()
       expect(screen.getByText('Actions')).toBeInTheDocument()
     })
@@ -221,7 +220,6 @@ describe('WeldLogTable', () => {
       expect(screen.queryByText('Type')).not.toBeInTheDocument()
       expect(screen.queryByText('Size')).not.toBeInTheDocument()
       expect(screen.queryByText('NDE Result')).not.toBeInTheDocument()
-      expect(screen.queryByText('Status')).not.toBeInTheDocument()
       expect(screen.queryByText('Progress')).not.toBeInTheDocument()
       expect(screen.queryByText('Actions')).not.toBeInTheDocument()
     })

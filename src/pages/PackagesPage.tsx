@@ -4,6 +4,7 @@ import { useProject } from '@/contexts/ProjectContext';
 import { usePackageReadiness } from '@/hooks/usePackages';
 import { PackageCard } from '@/components/packages/PackageCard';
 import { PackageEditDialog } from '@/components/packages/PackageEditDialog';
+import { PackageCreateDialog } from '@/components/packages/PackageCreateDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { Package, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -147,10 +148,9 @@ export function PackagesPage() {
           </div>
         )}
 
-        {/* Create Package Dialog */}
+        {/* Create Package Dialog (Feature 030 - with drawing assignment) */}
         {selectedProjectId && (
-          <PackageEditDialog
-            mode="create"
+          <PackageCreateDialog
             projectId={selectedProjectId}
             open={createDialogOpen}
             onOpenChange={setCreateDialogOpen}

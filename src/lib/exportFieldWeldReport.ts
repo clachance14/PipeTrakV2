@@ -87,9 +87,9 @@ function formatRowForExport(
   const baseData = [
     row.name,
     row.totalWelds,
-    formatPercentage(row.pctFitup, decimals),
-    formatPercentage(row.pctWeldComplete, decimals),
-    formatPercentage(row.pctAccepted, decimals),
+    row.fitupCount,
+    row.weldCompleteCount,
+    row.acceptedCount,
     formatPercentage(row.ndePassRate, decimals),
     formatPercentage(row.repairRate, decimals),
     formatPercentage(row.pctTotal, decimals),
@@ -230,9 +230,9 @@ export function exportFieldWeldReportToExcel(
     const baseRow: Record<string, string | number | null> = {
       [headers[0] as string]: row.name,
       [headers[1] as string]: row.totalWelds,
-      [headers[2] as string]: row.pctFitup / 100, // Convert to decimal for Excel percentage format
-      [headers[3] as string]: row.pctWeldComplete / 100,
-      [headers[4] as string]: row.pctAccepted / 100,
+      [headers[2] as string]: row.fitupCount,
+      [headers[3] as string]: row.weldCompleteCount,
+      [headers[4] as string]: row.acceptedCount,
       [headers[5] as string]: row.ndePassRate !== null ? row.ndePassRate / 100 : null,
       [headers[6] as string]: row.repairRate / 100,
       [headers[7] as string]: row.pctTotal / 100,
@@ -252,9 +252,9 @@ export function exportFieldWeldReportToExcel(
   const grandTotalRow: Record<string, string | number | null> = {
     [headers[0] as string]: reportData.grandTotal.name,
     [headers[1] as string]: reportData.grandTotal.totalWelds,
-    [headers[2] as string]: reportData.grandTotal.pctFitup / 100,
-    [headers[3] as string]: reportData.grandTotal.pctWeldComplete / 100,
-    [headers[4] as string]: reportData.grandTotal.pctAccepted / 100,
+    [headers[2] as string]: reportData.grandTotal.fitupCount,
+    [headers[3] as string]: reportData.grandTotal.weldCompleteCount,
+    [headers[4] as string]: reportData.grandTotal.acceptedCount,
     [headers[5] as string]: reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate / 100 : null,
     [headers[6] as string]: reportData.grandTotal.repairRate / 100,
     [headers[7] as string]: reportData.grandTotal.pctTotal / 100,
@@ -289,8 +289,18 @@ export function exportFieldWeldReportToExcel(
     };
   }
 
-  // 2. Format percentage columns (columns 3-8, possibly 9 for welder)
-  const percentageColumns = [2, 3, 4, 5, 6, 7]; // Zero-indexed
+  // 2. Format count columns (columns 3-5) as integers
+  const countColumns = [2, 3, 4]; // Fit-up, Weld Complete, Accepted (zero-indexed)
+  for (let row = range.s.r + 1; row <= range.e.r; row++) {
+    for (const col of countColumns) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+      if (!ws[cellAddress]) continue;
+      ws[cellAddress].z = '0'; // Integer format
+    }
+  }
+
+  // 3. Format percentage columns (columns 6-8, possibly 9 for welder)
+  const percentageColumns = [5, 6, 7]; // NDE Pass Rate, Repair Rate, % Complete (zero-indexed)
   if (reportData.dimension === 'welder') {
     percentageColumns.push(8); // First Pass Rate
   }
@@ -376,9 +386,9 @@ export function exportFieldWeldReportToCSV(
     const baseRow = [
       row.name,
       row.totalWelds.toString(),
-      (row.pctFitup).toFixed(1), // Store as number without % sign
-      (row.pctWeldComplete).toFixed(1),
-      (row.pctAccepted).toFixed(1),
+      row.fitupCount.toString(),
+      row.weldCompleteCount.toString(),
+      row.acceptedCount.toString(),
       row.ndePassRate !== null ? row.ndePassRate.toFixed(1) : '',
       (row.repairRate).toFixed(1),
       (row.pctTotal).toFixed(1),
@@ -403,9 +413,9 @@ export function exportFieldWeldReportToCSV(
   const grandTotalRow = [
     reportData.grandTotal.name,
     reportData.grandTotal.totalWelds.toString(),
-    reportData.grandTotal.pctFitup.toFixed(1),
-    reportData.grandTotal.pctWeldComplete.toFixed(1),
-    reportData.grandTotal.pctAccepted.toFixed(1),
+    reportData.grandTotal.fitupCount.toString(),
+    reportData.grandTotal.weldCompleteCount.toString(),
+    reportData.grandTotal.acceptedCount.toString(),
     reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate.toFixed(1) : '',
     reportData.grandTotal.repairRate.toFixed(1),
     reportData.grandTotal.pctTotal.toFixed(1),

@@ -28,6 +28,8 @@ interface FieldWeld {
   status: 'active' | 'accepted' | 'rejected'
   original_weld_id: string | null
   is_repair: boolean
+  is_unplanned: boolean
+  notes: string | null
   created_at: string
   updated_at: string
 }

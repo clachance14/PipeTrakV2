@@ -260,6 +260,7 @@ export type StatusFilter = 'all' | 'not-started' | 'in-progress' | 'complete'
 export type SortField =
   | 'drawing_no_norm'
   | 'title'
+  | 'spec'
   | 'area'
   | 'system'
   | 'test_package'

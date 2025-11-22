@@ -10,9 +10,11 @@ import { useProject } from '@/contexts/ProjectContext';
 import { useProjects } from '@/hooks/useProjects';
 import { useProgressReport } from '@/hooks/useProgressReport';
 import { useFieldWeldProgressReport } from '@/hooks/useFieldWeldProgressReport';
+import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
 import { DimensionSelector } from '@/components/reports/DimensionSelector';
 import { ReportPreview } from '@/components/reports/ReportPreview';
 import { FieldWeldReportTable } from '@/components/reports/FieldWeldReportTable';
+import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,12 +45,30 @@ export function ReportsPage() {
     error: componentError,
   } = useProgressReport(selectedProjectId || '', componentDimension);
 
-  // Fetch field weld progress report
+  // Fetch field weld progress report (for area, system, test_package, overall dimensions)
   const {
     data: fieldWeldReportData,
     isLoading: isLoadingFieldWeld,
     error: fieldWeldError,
   } = useFieldWeldProgressReport(selectedProjectId || '', fieldWeldDimension);
+
+  // Fetch welder summary report (tier-grouped format for welder dimension)
+  const {
+    data: welderSummaryData,
+    isLoading: isLoadingWelderSummary,
+    error: welderSummaryError,
+  } = useWelderSummaryReport({
+    params: {
+      p_project_id: selectedProjectId || '',
+      p_start_date: null,
+      p_end_date: null,
+      p_welder_ids: null,
+      p_area_ids: null,
+      p_system_ids: null,
+      p_package_ids: null,
+    },
+    enabled: !!selectedProjectId && fieldWeldDimension === 'welder',
+  });
 
   // Update URL when tab or dimension changes
   useEffect(() => {
@@ -197,41 +217,85 @@ export function ReportsPage() {
                 variant="field-weld"
                 value={fieldWeldDimension}
                 onChange={handleFieldWeldDimensionChange}
-                disabled={isLoadingFieldWeld}
+                disabled={fieldWeldDimension === 'welder' ? isLoadingWelderSummary : isLoadingFieldWeld}
               />
 
-              {isLoadingFieldWeld && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center space-y-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-muted-foreground">Loading field weld progress report...</p>
-                  </div>
-                </div>
-              )}
-
-              {fieldWeldError && (
-                <div className="border border-destructive rounded-lg p-6 bg-destructive/10">
-                  <p className="text-destructive font-medium">Error loading field weld progress report:</p>
-                  <p className="text-sm text-destructive mt-2">{fieldWeldError.message}</p>
-                </div>
-              )}
-
-              {fieldWeldReportData && !isLoadingFieldWeld && !fieldWeldError && (
+              {/* Conditional rendering based on dimension */}
+              {fieldWeldDimension === 'welder' ? (
                 <>
-                  {fieldWeldReportData.rows.length === 0 ? (
-                    <div className="text-center py-12 border rounded-lg">
-                      <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Field Welds Found</h3>
-                      <p className="text-sm text-muted-foreground">
-                        No field welds exist in this project yet. Import field welds to see progress data.
-                      </p>
+                  {/* Welder Summary Report (tier-grouped format) */}
+                  {isLoadingWelderSummary && (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-muted-foreground">Loading welder summary report...</p>
+                      </div>
                     </div>
-                  ) : (
-                    <FieldWeldReportTable
-                      reportData={fieldWeldReportData}
-                      projectName={currentProject?.name || 'Unknown Project'}
-                      onExport={handleFieldWeldExport}
-                    />
+                  )}
+
+                  {welderSummaryError && (
+                    <div className="border border-destructive rounded-lg p-6 bg-destructive/10">
+                      <p className="text-destructive font-medium">Error loading welder summary report:</p>
+                      <p className="text-sm text-destructive mt-2">{welderSummaryError.message}</p>
+                    </div>
+                  )}
+
+                  {welderSummaryData && !isLoadingWelderSummary && !welderSummaryError && (
+                    <>
+                      {welderSummaryData.rows.length === 0 ? (
+                        <div className="text-center py-12 border rounded-lg">
+                          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Completed Welds Found</h3>
+                          <p className="text-sm text-muted-foreground">
+                            No completed welds found for this project. Welds must have a completion date (date_welded) to appear in this report.
+                          </p>
+                        </div>
+                      ) : (
+                        <WelderSummaryReportTable
+                          reportData={welderSummaryData}
+                          projectName={currentProject?.name || 'Unknown Project'}
+                        />
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Standard Field Weld Report (area, system, test_package, overall) */}
+                  {isLoadingFieldWeld && (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-muted-foreground">Loading field weld progress report...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {fieldWeldError && (
+                    <div className="border border-destructive rounded-lg p-6 bg-destructive/10">
+                      <p className="text-destructive font-medium">Error loading field weld progress report:</p>
+                      <p className="text-sm text-destructive mt-2">{fieldWeldError.message}</p>
+                    </div>
+                  )}
+
+                  {fieldWeldReportData && !isLoadingFieldWeld && !fieldWeldError && (
+                    <>
+                      {fieldWeldReportData.rows.length === 0 ? (
+                        <div className="text-center py-12 border rounded-lg">
+                          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Field Welds Found</h3>
+                          <p className="text-sm text-muted-foreground">
+                            No field welds exist in this project yet. Import field welds to see progress data.
+                          </p>
+                        </div>
+                      ) : (
+                        <FieldWeldReportTable
+                          reportData={fieldWeldReportData}
+                          projectName={currentProject?.name || 'Unknown Project'}
+                          onExport={handleFieldWeldExport}
+                        />
+                      )}
+                    </>
                   )}
                 </>
               )}

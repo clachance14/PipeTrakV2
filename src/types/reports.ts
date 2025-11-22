@@ -174,9 +174,22 @@ export interface FieldWeldProgressRow {
   // Overall completion
   pctTotal: number;
 
+  // NEW: Milestone counts (added alongside percentages)
+  fitupCount: number;
+  weldCompleteCount: number;
+
   // Welder-specific metrics (only for welder dimension)
   firstPassAcceptanceCount?: number;
   firstPassAcceptanceRate?: number | null;
+
+  // X-Ray tier metrics (only for welder dimension)
+  xray5pctCount?: number;
+  xray10pctCount?: number;
+  xray100pctCount?: number;
+  xrayOtherCount?: number;
+  xray5pctPassRate?: number | null;
+  xray10pctPassRate?: number | null;
+  xray100pctPassRate?: number | null;
 }
 
 // Grand Total row for field weld reports
@@ -199,9 +212,20 @@ export interface FieldWeldGrandTotalRow {
   avgDaysToNDE: number | null;
   avgDaysToAcceptance: number | null;
   pctTotal: number;
+  // NEW: Milestone counts (added alongside percentages)
+  fitupCount: number;
+  weldCompleteCount: number;
   // Welder-specific (only shown for welder dimension)
   firstPassAcceptanceCount?: number;
   firstPassAcceptanceRate?: number | null;
+  // X-Ray tier metrics (only for welder dimension)
+  xray5pctCount?: number;
+  xray10pctCount?: number;
+  xray100pctCount?: number;
+  xrayOtherCount?: number;
+  xray5pctPassRate?: number | null;
+  xray10pctPassRate?: number | null;
+  xray100pctPassRate?: number | null;
 }
 
 // Field weld report data structure
@@ -236,9 +260,9 @@ export interface FieldWeldReportColumn {
 export const FIELD_WELD_REPORT_COLUMNS: FieldWeldReportColumn[] = [
   { key: 'name', label: 'Name', align: 'left', format: 'text' },
   { key: 'totalWelds', label: 'Total Welds', align: 'right', format: 'number' },
-  { key: 'pctFitup', label: 'Fit-up', align: 'right', format: 'percentage', hideOnMobile: true },
-  { key: 'pctWeldComplete', label: 'Weld Complete', align: 'right', format: 'percentage', hideOnMobile: true },
-  { key: 'pctAccepted', label: 'Accepted', align: 'right', format: 'percentage' },
+  { key: 'fitupCount', label: 'Fit-up', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'weldCompleteCount', label: 'Weld Complete', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'acceptedCount', label: 'Accepted', align: 'right', format: 'number' },
   { key: 'ndePassRate', label: 'NDE Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
   { key: 'repairRate', label: 'Repair Rate', align: 'right', format: 'percentage', hideOnMobile: true },
   { key: 'pctTotal', label: '% Complete', align: 'right', format: 'percentage' },
@@ -248,4 +272,14 @@ export const FIELD_WELD_REPORT_COLUMNS: FieldWeldReportColumn[] = [
 export const WELDER_PERFORMANCE_COLUMNS: FieldWeldReportColumn[] = [
   { key: 'firstPassAcceptanceRate', label: 'First Pass Rate', align: 'right', format: 'percentage' },
   { key: 'avgDaysToAcceptance', label: 'Avg Days to Accept', align: 'right', format: 'decimal', hideOnMobile: true },
+] as const;
+
+// X-Ray tier columns (additional columns for welder dimension)
+export const XRAY_TIER_COLUMNS: FieldWeldReportColumn[] = [
+  { key: 'xray5pctCount', label: '5% X-Ray Count', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'xray10pctCount', label: '10% X-Ray Count', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'xray100pctCount', label: '100% X-Ray Count', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'xray5pctPassRate', label: '5% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'xray10pctPassRate', label: '10% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
+  { key: 'xray100pctPassRate', label: '100% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
 ] as const;

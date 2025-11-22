@@ -15,7 +15,6 @@ type SortColumn =
   | 'weld_type'
   | 'size'
   | 'nde_result'
-  | 'status'
   | 'progress'
 
 interface WeldLogPreferencesStore {
@@ -29,7 +28,6 @@ interface WeldLogPreferencesStore {
   // Filter state
   drawingFilter: string
   welderFilter: string
-  statusFilter: string
   packageFilter: string
   systemFilter: string
   searchTerm: string
@@ -37,7 +35,6 @@ interface WeldLogPreferencesStore {
   // Filter actions
   setDrawingFilter: (value: string) => void
   setWelderFilter: (value: string) => void
-  setStatusFilter: (value: string) => void
   setPackageFilter: (value: string) => void
   setSystemFilter: (value: string) => void
   setSearchTerm: (value: string) => void
@@ -58,7 +55,6 @@ export const useWeldLogPreferencesStore = create<WeldLogPreferencesStore>()(
       // Default filters: all
       drawingFilter: 'all',
       welderFilter: 'all',
-      statusFilter: 'all',
       packageFilter: 'all',
       systemFilter: 'all',
       searchTerm: '',
@@ -93,10 +89,6 @@ export const useWeldLogPreferencesStore = create<WeldLogPreferencesStore>()(
         set({ welderFilter: value })
       },
 
-      setStatusFilter: (value: string) => {
-        set({ statusFilter: value })
-      },
-
       setPackageFilter: (value: string) => {
         set({ packageFilter: value })
       },
@@ -113,7 +105,6 @@ export const useWeldLogPreferencesStore = create<WeldLogPreferencesStore>()(
         set({
           drawingFilter: 'all',
           welderFilter: 'all',
-          statusFilter: 'all',
           packageFilter: 'all',
           systemFilter: 'all',
           searchTerm: '',
