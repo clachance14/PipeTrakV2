@@ -3,7 +3,9 @@
  * Feature: 030-test-package-workflow (User Story 3)
  *
  * Form for filling out Pipe Testing Acceptance Certificate.
- * Supports draft mode (partial data) and submit mode (full validation).
+ * Both "Save as Draft" and "Submit" require full validation (DB constraints enforce this).
+ * Draft: Saves certificate only (workflow stages not created).
+ * Submit: Saves certificate AND triggers workflow creation.
  */
 
 import { useEffect } from 'react';
@@ -136,11 +138,8 @@ export function PackageCertificateForm({
     if (certificate) {
       await updateMutation.mutateAsync(input as UpdateCertificateInput);
     } else {
-      // Create draft certificate
+      // Create certificate as draft (workflow stages NOT created)
       await createMutation.mutateAsync(input as CreateCertificateInput);
-
-      // Auto-create 7 workflow stages after certificate is created (even for drafts)
-      await createWorkflowStages.mutateAsync({ packageId });
     }
 
     onSuccess?.();
