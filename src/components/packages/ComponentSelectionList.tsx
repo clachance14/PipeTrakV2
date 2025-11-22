@@ -109,7 +109,7 @@ export function ComponentSelectionList({
 
   // Helper to display component identity
   const getComponentIdentity = (component: ComponentWithAssignmentStatus): string => {
-    const identityKey = component.identity_key as Record<string, unknown>;
+    const identityKey = (component.identity_key || {}) as Record<string, unknown>;
 
     // Try common identity patterns
     if (identityKey.spool_id) return `Spool ${identityKey.spool_id}`;

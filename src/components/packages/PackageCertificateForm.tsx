@@ -41,15 +41,25 @@ import type { TestType } from '@/types/package.types';
 
 // Validation schema for complete certificate (submit mode)
 // Note: test_type is read from the package, not from this form
-// Using string fields for numbers due to HTML input type="number" returning strings
+// HTML inputs return strings; we validate them as numeric strings
 const certificateSchema = z.object({
   client: z.string().optional(),
   client_spec: z.string().optional(),
   line_number: z.string().optional(),
-  test_pressure: z.string().min(1, 'Test pressure is required'),
+  test_pressure: z
+    .string()
+    .min(1, 'Test pressure is required')
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: 'Test pressure must be a positive number',
+    }),
   pressure_unit: z.enum(['PSIG', 'BAR', 'KPA', 'PSI']),
   test_media: z.string().min(1, 'Test media is required'),
-  temperature: z.string().min(1, 'Temperature is required'),
+  temperature: z
+    .string()
+    .min(1, 'Temperature is required')
+    .refine((val) => !isNaN(Number(val)) && Number(val) > -273.15, {
+      message: 'Temperature must be above absolute zero (-273.15°C)',
+    }),
   temperature_unit: z.enum(['F', 'C', 'K']),
 });
 
@@ -116,10 +126,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: parseFloat(values.test_pressure),
+          test_pressure: Number(values.test_pressure),
           pressure_unit: values.pressure_unit,
           test_media: values.test_media,
-          temperature: parseFloat(values.temperature),
+          temperature: Number(values.temperature),
           temperature_unit: values.temperature_unit,
         }
       : {
@@ -128,10 +138,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: parseFloat(values.test_pressure),
+          test_pressure: Number(values.test_pressure),
           pressure_unit: values.pressure_unit,
           test_media: values.test_media,
-          temperature: parseFloat(values.temperature),
+          temperature: Number(values.temperature),
           temperature_unit: values.temperature_unit,
         };
 
@@ -152,10 +162,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: parseFloat(values.test_pressure),
+          test_pressure: Number(values.test_pressure),
           pressure_unit: values.pressure_unit,
           test_media: values.test_media,
-          temperature: parseFloat(values.temperature),
+          temperature: Number(values.temperature),
           temperature_unit: values.temperature_unit,
         }
       : {
@@ -164,10 +174,10 @@ export function PackageCertificateForm({
           client: values.client || null,
           client_spec: values.client_spec || null,
           line_number: values.line_number || null,
-          test_pressure: parseFloat(values.test_pressure),
+          test_pressure: Number(values.test_pressure),
           pressure_unit: values.pressure_unit,
           test_media: values.test_media,
-          temperature: parseFloat(values.temperature),
+          temperature: Number(values.temperature),
           temperature_unit: values.temperature_unit,
         };
 
