@@ -35,6 +35,7 @@ import {
   type CreateCertificateInput,
   type UpdateCertificateInput,
 } from '@/hooks/usePackageCertificate';
+import { useCreateWorkflowStages } from '@/hooks/usePackageWorkflow';
 import type { TestType } from '@/types/package.types';
 
 // Validation schema for complete certificate (submit mode)
@@ -72,6 +73,7 @@ export function PackageCertificateForm({
   const { data: certificate, isLoading } = usePackageCertificate(packageId);
   const createMutation = useCreateCertificate();
   const updateMutation = useUpdateCertificate();
+  const createWorkflowStages = useCreateWorkflowStages();
 
   const form = useForm<CertificateFormValues>({
     resolver: zodResolver(certificateSchema),
@@ -135,7 +137,11 @@ export function PackageCertificateForm({
     if (certificate) {
       await updateMutation.mutateAsync(input as UpdateCertificateInput);
     } else {
+      // Create draft certificate
       await createMutation.mutateAsync(input as CreateCertificateInput);
+
+      // Auto-create 7 workflow stages after certificate is created (even for drafts)
+      await createWorkflowStages.mutateAsync({ packageId });
     }
 
     onSuccess?.();
@@ -178,13 +184,17 @@ export function PackageCertificateForm({
     if (certificate) {
       await updateMutation.mutateAsync(input as UpdateCertificateInput);
     } else {
+      // Create certificate
       await createMutation.mutateAsync(input as CreateCertificateInput);
+
+      // Auto-create 7 workflow stages after certificate is created
+      await createWorkflowStages.mutateAsync({ packageId });
     }
 
     onSuccess?.();
   };
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending || createWorkflowStages.isPending;
 
   if (isLoading) {
     return <div className="p-4 text-gray-500">Loading certificate...</div>;

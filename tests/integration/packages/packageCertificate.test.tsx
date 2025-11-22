@@ -23,8 +23,8 @@ const mockRpc = vi.fn();
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: mockFrom,
-    rpc: mockRpc,
+    from: (...args: any[]) => mockFrom(...args),
+    rpc: (...args: any[]) => mockRpc(...args),
   },
 }));
 
@@ -320,6 +320,176 @@ describe('PackageCertificate - User Story 3', () => {
       // Verify form appears (edit mode)
       await waitFor(() => {
         expect(screen.getByLabelText(/test pressure/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Scenario 6: Workflow stages auto-created on certificate submission', () => {
+    it('should automatically create 7 workflow stages when certificate is created', async () => {
+      const user = userEvent.setup();
+
+      // Mock package query (no certificate yet)
+      mockFrom.mockImplementationOnce(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 'test-package-id',
+            name: 'Test Package',
+            test_type: 'Hydrostatic',
+          },
+          error: null,
+        }),
+      }));
+
+      // Mock certificate query (none exists)
+      mockFrom.mockImplementationOnce(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116' }, // Not found
+        }),
+      }));
+
+      // Mock workflow stages query (none exist yet)
+      mockFrom.mockImplementationOnce(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        }),
+      }));
+
+      // Mock components query
+      mockFrom.mockImplementationOnce(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        }),
+      }));
+
+      renderWithProviders(<PackageDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Package')).toBeInTheDocument();
+      });
+
+      // Fill out certificate form
+      const testPressureInput = screen.getByLabelText(/test pressure/i);
+      const testMediaInput = screen.getByLabelText(/test media/i);
+      const temperatureInput = screen.getByLabelText(/temperature/i);
+
+      await user.clear(testPressureInput);
+      await user.type(testPressureInput, '1125');
+      await user.type(testMediaInput, 'Water');
+      await user.clear(temperatureInput);
+      await user.type(temperatureInput, '75');
+
+      // Mock certificate number generation
+      mockRpc.mockResolvedValueOnce({
+        data: 'PKG-001',
+        error: null,
+      });
+
+      // Mock certificate creation
+      const createdCertificate = {
+        id: 'cert-id',
+        package_id: 'test-package-id',
+        certificate_number: 'PKG-001',
+        test_pressure: 1125,
+        pressure_unit: 'PSIG',
+        test_media: 'Water',
+        temperature: 75,
+        temperature_unit: 'F',
+        client: null,
+        client_spec: null,
+        line_number: null,
+      };
+
+      mockFrom.mockImplementationOnce(() => ({
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: createdCertificate,
+          error: null,
+        }),
+      }));
+
+      // Mock workflow stages creation (this should be called automatically)
+      const mockWorkflowInsert = vi.fn().mockReturnThis();
+      const mockWorkflowSelect = vi.fn().mockResolvedValue({
+        data: [
+          { id: 'stage-1', package_id: 'test-package-id', stage_name: 'Pre-Hydro Acceptance', stage_order: 1, status: 'not_started' },
+          { id: 'stage-2', package_id: 'test-package-id', stage_name: 'Test Acceptance', stage_order: 2, status: 'not_started' },
+          { id: 'stage-3', package_id: 'test-package-id', stage_name: 'Drain/Flush Acceptance', stage_order: 3, status: 'not_started' },
+          { id: 'stage-4', package_id: 'test-package-id', stage_name: 'Post-Hydro Acceptance', stage_order: 4, status: 'not_started' },
+          { id: 'stage-5', package_id: 'test-package-id', stage_name: 'Protective Coatings Acceptance', stage_order: 5, status: 'not_started' },
+          { id: 'stage-6', package_id: 'test-package-id', stage_name: 'Insulation Acceptance', stage_order: 6, status: 'not_started' },
+          { id: 'stage-7', package_id: 'test-package-id', stage_name: 'Final Package Acceptance', stage_order: 7, status: 'not_started' },
+        ],
+        error: null,
+      });
+
+      mockFrom.mockImplementationOnce(() => ({
+        insert: mockWorkflowInsert,
+        select: mockWorkflowSelect,
+      }));
+
+      // Submit certificate
+      const submitButton = screen.getByRole('button', { name: /submit & begin testing/i });
+      await user.click(submitButton);
+
+      // Verify workflow stages were created
+      await waitFor(() => {
+        expect(mockWorkflowInsert).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Pre-Hydro Acceptance',
+              stage_order: 1,
+              status: 'not_started',
+            }),
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Test Acceptance',
+              stage_order: 2,
+              status: 'not_started',
+            }),
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Drain/Flush Acceptance',
+              stage_order: 3,
+              status: 'not_started',
+            }),
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Post-Hydro Acceptance',
+              stage_order: 4,
+              status: 'not_started',
+            }),
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Protective Coatings Acceptance',
+              stage_order: 5,
+              status: 'not_started',
+            }),
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Insulation Acceptance',
+              stage_order: 6,
+              status: 'not_started',
+            }),
+            expect.objectContaining({
+              package_id: 'test-package-id',
+              stage_name: 'Final Package Acceptance',
+              stage_order: 7,
+              status: 'not_started',
+            }),
+          ])
+        );
       });
     });
   });

@@ -46,18 +46,76 @@ export function usePackageReadiness(
 
       if (packagesError) throw packagesError;
 
-      // Query 2: Get stats from materialized view (may be stale)
-      const { data: statsData, error: statsError } = await supabase
-        .from('mv_package_readiness')
-        .select('*')
-        .eq('project_id', projectId);
+      // Query 2: Get component stats directly (real-time, no materialized view)
+      const { data: componentsData, error: componentsError } = await supabase
+        .from('components')
+        .select('id, test_package_id, percent_complete, last_updated_at')
+        .eq('project_id', projectId)
+        .eq('is_retired', false);
 
-      if (statsError) throw statsError;
+      if (componentsError) throw componentsError;
 
-      // Create a map of stats by package_id for quick lookup
-      const statsMap = new Map(
-        (statsData || []).map((stat) => [stat.package_id, stat])
-      );
+      // Query 3: Get blocker counts from needs_review
+      const { data: blockersData, error: blockersError } = await supabase
+        .from('needs_review')
+        .select('id, component_id')
+        .eq('status', 'pending')
+        .in('component_id', (componentsData || []).map(c => c.id));
+
+      if (blockersError) throw blockersError;
+
+      // Calculate stats per package
+      type PackageStats = {
+        total_components: number;
+        completed_components: number;
+        avg_percent_complete: number | null;
+        blocker_count: number;
+        last_activity_at: string | null;
+        _sum_percent?: number; // Temporary for average calculation
+      };
+
+      const statsMap = new Map<string, PackageStats>();
+
+      // Group components by package
+      (componentsData || []).forEach((component) => {
+        if (!component.test_package_id) return; // Skip unassigned components
+
+        const packageId = component.test_package_id;
+        const existing = statsMap.get(packageId) || {
+          total_components: 0,
+          completed_components: 0,
+          avg_percent_complete: null,
+          blocker_count: 0,
+          last_activity_at: null,
+          _sum_percent: 0, // Temporary for average calculation
+        };
+
+        existing.total_components++;
+        if (component.percent_complete === 100) {
+          existing.completed_components++;
+        }
+        existing._sum_percent = (existing._sum_percent || 0) + (component.percent_complete || 0);
+
+        // Track latest activity
+        if (component.last_updated_at && (!existing.last_activity_at || component.last_updated_at > existing.last_activity_at)) {
+          existing.last_activity_at = component.last_updated_at;
+        }
+
+        statsMap.set(packageId, existing);
+      });
+
+      // Calculate averages and blocker counts
+      statsMap.forEach((stats, packageId) => {
+        const total = stats.total_components;
+        stats.avg_percent_complete = total > 0 ? (stats._sum_percent || 0) / total : null;
+        delete stats._sum_percent;
+
+        // Count blockers for this package's components
+        stats.blocker_count = (blockersData || []).filter((blocker) => {
+          const component = componentsData?.find(c => c.id === blocker.component_id);
+          return component?.test_package_id === packageId;
+        }).length;
+      });
 
       // Merge packages with stats, defaulting to 0/null if stats not available
       const merged: PackageReadinessRow[] = (packagesData || []).map((pkg) => {

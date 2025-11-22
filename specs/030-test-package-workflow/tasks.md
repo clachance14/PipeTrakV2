@@ -285,3 +285,25 @@ Delivers core value: Project Managers can create test packages with drawing assi
 **Test Coverage**: 33 test tasks ensuring comprehensive validation
 
 **MVP Delivery**: After 30 tasks (Phase 1 + Phase 2)
+
+---
+
+## Phase 7: Bug Fixes (Post-Implementation)
+
+**Purpose**: Fix bugs discovered after initial implementation
+
+### Bug Fix: Workflow Stages Not Auto-Created on Certificate Submission
+
+- [X] T091 [BUGFIX] Identify root cause: `useCreateWorkflowStages` hook exists but never called
+- [X] T092 [BUGFIX] Add `useCreateWorkflowStages` import to `PackageCertificateForm.tsx`
+- [X] T093 [BUGFIX] Call `createWorkflowStages.mutateAsync()` after certificate creation in both `handleDraftSave` and `onSubmit`
+- [X] T094 [BUGFIX] Update `isSubmitting` to include `createWorkflowStages.isPending`
+- [X] T095 [BUGFIX] Verify type checking passes: `npx tsc -b`
+
+**Issue**: TP-5 and all test packages showed "No workflow stages found. Submit a test certificate to initialize workflow."
+
+**Root Cause**: Workflow stages were never automatically created when a certificate was submitted. The `useCreateWorkflowStages` hook existed but was never called from the certificate form.
+
+**Fix**: Modified `PackageCertificateForm.tsx` to call `useCreateWorkflowStages` immediately after creating a certificate (both draft and submit modes).
+
+**Checkpoint**: Bug fix complete - workflow stages now auto-created when certificate is created
