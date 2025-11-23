@@ -424,7 +424,7 @@ function formatIdentityKey(key: any, type: string, totalCount = 1): string {
  */
 export function usePackageDetails(
   packageId: string | undefined
-): UseQueryResult<{ id: string; name: string; description: string | null; test_type: string | null; target_date: string | null } | null, Error> {
+): UseQueryResult<{ id: string; name: string; description: string | null; test_type: string | null; target_date: string | null; requires_coating: boolean | null; requires_insulation: boolean | null; created_at: string } | null, Error> {
   return useQuery({
     queryKey: ['package-details', packageId],
     queryFn: async () => {
@@ -432,7 +432,7 @@ export function usePackageDetails(
 
       const { data, error } = await supabase
         .from('test_packages')
-        .select('id, name, description, test_type, target_date')
+        .select('id, name, description, test_type, target_date, requires_coating, requires_insulation, created_at')
         .eq('id', packageId)
         .single();
 
