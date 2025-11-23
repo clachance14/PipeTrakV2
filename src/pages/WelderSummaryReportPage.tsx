@@ -9,7 +9,9 @@ import { useProject } from '@/contexts/ProjectContext';
 import { useProjects } from '@/hooks/useProjects';
 import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
 import { useWelderSummaryPDFExport } from '@/hooks/useWelderSummaryPDFExport';
+import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
 import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
+import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { DEFAULT_WELDER_SUMMARY_FILTERS } from '@/types/weldSummary';
 import type { WelderSummaryFilters } from '@/types/weldSummary';
 
@@ -34,7 +36,10 @@ export function WelderSummaryReportPage() {
   });
 
   // PDF export hook
-  const { generatePDF } = useWelderSummaryPDFExport();
+  const { generatePDFPreview } = useWelderSummaryPDFExport();
+
+  // PDF preview state
+  const { previewState, openPreview, closePreview } = usePDFPreviewState();
 
   // Handle export
   const handleExport = async (format: 'pdf' | 'excel' | 'csv') => {
@@ -45,8 +50,11 @@ export function WelderSummaryReportPage() {
       }
 
       try {
-        await generatePDF(reportData, currentProject.name);
-        toast.success('PDF downloaded successfully');
+        const { blob, url, filename } = await generatePDFPreview(
+          reportData,
+          currentProject.name
+        );
+        openPreview(blob, url, filename);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to generate PDF';
         toast.error(errorMessage);
@@ -108,55 +116,66 @@ export function WelderSummaryReportPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Weld Summary Report</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Tier-grouped summary by welder
-          </p>
-        </div>
-      </div>
-
-      {/* Filters Section - TODO: Implement filter controls */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <p className="text-sm text-slate-600">
-          <strong>Filters:</strong> All time, All welders
-          <span className="text-slate-400 ml-2">(Filter controls coming soon)</span>
-        </p>
-      </div>
-
-      {/* Report Table */}
-      <WelderSummaryReportTable
-        reportData={reportData}
-        projectName={currentProject.name}
-        onExport={handleExport}
+    <>
+      {/* PDF Preview Dialog */}
+      <PDFPreviewDialog
+        open={previewState.open}
+        onClose={closePreview}
+        previewUrl={previewState.url}
+        blob={previewState.blob}
+        filename={previewState.filename}
       />
 
-      {/* Stats Footer */}
-      <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+      <div className="p-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-slate-900">{reportData.rows.length}</p>
-            <p className="text-sm text-slate-600">Welders</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-slate-900">{reportData.totals.welds_total}</p>
-            <p className="text-sm text-slate-600">Total Welds</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-slate-900">{reportData.totals.nde_total}</p>
-            <p className="text-sm text-slate-600">X-Rays Performed</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-slate-900">
-              {reportData.totals.reject_rate.toFixed(2)}%
+            <h1 className="text-2xl font-bold text-slate-900">Weld Summary Report</h1>
+            <p className="text-sm text-slate-600 mt-1">
+              Tier-grouped summary by welder
             </p>
-            <p className="text-sm text-slate-600">Rejection Rate</p>
+          </div>
+        </div>
+
+        {/* Filters Section - TODO: Implement filter controls */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <p className="text-sm text-slate-600">
+            <strong>Filters:</strong> All time, All welders
+            <span className="text-slate-400 ml-2">(Filter controls coming soon)</span>
+          </p>
+        </div>
+
+        {/* Report Table */}
+        <WelderSummaryReportTable
+          reportData={reportData}
+          projectName={currentProject.name}
+          onExport={handleExport}
+        />
+
+        {/* Stats Footer */}
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{reportData.rows.length}</p>
+              <p className="text-sm text-slate-600">Welders</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{reportData.totals.welds_total}</p>
+              <p className="text-sm text-slate-600">Total Welds</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{reportData.totals.nde_total}</p>
+              <p className="text-sm text-slate-600">X-Rays Performed</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">
+                {reportData.totals.reject_rate.toFixed(2)}%
+              </p>
+              <p className="text-sm text-slate-600">Rejection Rate</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
