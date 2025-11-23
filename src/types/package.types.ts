@@ -85,6 +85,9 @@ export interface CreatePackagePayload extends Partial<TestPackageCreateInput> {
   p_name?: string;
   p_description?: string | null;
   p_target_date?: string | null;
+  p_test_type?: string; // Accepts any string (including custom test types)
+  p_requires_coating?: boolean;
+  p_requires_insulation?: boolean;
 }
 
 export interface UpdatePackagePayload extends TestPackageUpdateInput {

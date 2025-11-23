@@ -107,12 +107,12 @@ export interface PostHydroStageData {
  *
  * Stage-specific fields for Protective Coatings Acceptance.
  * Stored in stage_data JSONB column.
+ * Completion date is captured in sign-off.
  */
 export interface ProtectiveCoatingsStageData {
   stage: 'protective_coatings';
   coating_type: string;
-  application_date: string; // ISO 8601 date string
-  cure_date: string; // ISO 8601 date string
+  client_paint_spec: string;
 }
 
 /**
@@ -120,11 +120,12 @@ export interface ProtectiveCoatingsStageData {
  *
  * Stage-specific fields for Insulation Acceptance.
  * Stored in stage_data JSONB column.
+ * Completion date is captured in sign-off.
  */
 export interface InsulationStageData {
   stage: 'insulation';
   insulation_type: string;
-  installation_date: string; // ISO 8601 date string
+  insulation_spec: string;
 }
 
 /**
@@ -172,6 +173,11 @@ export interface PackageWorkflowStage {
   completed_at: string | null; // ISO 8601 timestamp
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
+  completed_by_user?: {
+    id: string;
+    full_name: string | null;
+    email: string;
+  } | null;
 }
 
 /**
