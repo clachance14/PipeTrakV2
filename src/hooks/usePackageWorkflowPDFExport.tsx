@@ -57,7 +57,7 @@ interface UsePackageWorkflowPDFExportReturn {
     workflowStages: PackageWorkflowStage[],
     projectName: string,
     companyLogo?: string
-  ) => Promise<void>;
+  ) => Promise<Blob>;
   generatePDFPreview: (
     packageData: PackageData,
     workflowStages: PackageWorkflowStage[],
@@ -171,7 +171,7 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
    * @param workflowStages - Array of workflow stages with completion status
    * @param projectName - Project name for filename and header
    * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
-   * @returns Promise resolving when download is initiated
+   * @returns Promise resolving to PDF Blob after download initiated
    * @throws Error if generation fails or if another export is in progress
    */
   const generatePDF = async (
@@ -179,7 +179,7 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
     workflowStages: PackageWorkflowStage[],
     projectName: string,
     companyLogo?: string
-  ): Promise<void> => {
+  ): Promise<Blob> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
       throw new Error('PDF generation already in progress');
@@ -214,6 +214,8 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
 
       // Cleanup object URL
       URL.revokeObjectURL(url);
+
+      return blob;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error during PDF generation');
       setError(error);
