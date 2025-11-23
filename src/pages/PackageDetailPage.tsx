@@ -10,14 +10,19 @@
 
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { usePackageComponents, usePackageReadiness, usePackageDetails } from '@/hooks/usePackages';
 import { usePackageCertificate } from '@/hooks/usePackageCertificate';
 import { useDeleteComponentAssignment, useCreateComponentAssignments, useDrawingsWithComponentCount } from '@/hooks/usePackageAssignments';
-import { PackageCertificateForm } from '@/components/packages/PackageCertificateForm';
+import { usePackageWorkflow } from '@/hooks/usePackageWorkflow';
+import { usePackageWorkflowPDFExport } from '@/hooks/usePackageWorkflowPDFExport';
+import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
+// PackageCertificateForm removed - now only for creating new packages, not editing existing ones
 import { PackageWorkflowStepper } from '@/components/packages/PackageWorkflowStepper';
 import { DrawingSelectionList } from '@/components/packages/DrawingSelectionList';
+import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,7 +46,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/EmptyState';
-import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus } from 'lucide-react';
+import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PackageCertificate } from '@/hooks/usePackageCertificate';
 
@@ -49,7 +54,7 @@ export function PackageDetailPage() {
   const { packageId } = useParams<{ packageId: string }>();
   const { selectedProjectId } = useProject();
   const navigate = useNavigate();
-  const [editCertificate, setEditCertificate] = useState(false);
+  // editCertificate state removed - certificate editing not yet implemented
   const [editMode, setEditMode] = useState(false);
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
@@ -66,6 +71,15 @@ export function PackageDetailPage() {
 
   // Fetch package details (including test_type)
   const { data: packageDetails } = usePackageDetails(packageId);
+
+  // Fetch workflow stages for PDF export
+  const { data: workflowStages } = usePackageWorkflow(packageId || '');
+
+  // PDF export hook
+  const { generatePDFPreview, isGenerating: isPDFGenerating } = usePackageWorkflowPDFExport();
+
+  // PDF preview state
+  const { previewState, openPreview, closePreview } = usePDFPreviewState();
 
   // Fetch certificate
   const { data: certificate } =
@@ -271,6 +285,15 @@ export function PackageDetailPage() {
 
   return (
     <Layout>
+      {/* PDF Preview Dialog */}
+      <PDFPreviewDialog
+        open={previewState.open}
+        onClose={closePreview}
+        previewUrl={previewState.url}
+        blob={previewState.blob}
+        filename={previewState.filename}
+      />
+
       <div className="container mx-auto px-4 py-8">
         {/* Back button */}
         <Button variant="ghost" onClick={() => navigate('/packages')} className="mb-4">
@@ -345,25 +368,136 @@ export function PackageDetailPage() {
 
           {/* Certificate Tab */}
           <TabsContent value="certificate" className="space-y-6">
-            {certificate && !editCertificate ? (
+            {/* Package Details Section */}
+            {packageDetails && (
+              <div className="border rounded-lg p-6 space-y-6 bg-white">
+                <div className="flex items-center justify-between border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Package Information</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Package Name</div>
+                    <div className="text-base font-medium text-gray-900">{packageDetails.name}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Test Type</div>
+                    <div className="text-base font-medium text-gray-900">
+                      {packageDetails.test_type || '—'}
+                    </div>
+                  </div>
+
+                  {packageDetails.description && (
+                    <div className="md:col-span-2">
+                      <div className="text-sm text-gray-500 mb-1">Description</div>
+                      <div className="text-base text-gray-900">{packageDetails.description}</div>
+                    </div>
+                  )}
+
+                  {packageDetails.target_date && (
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Target Date</div>
+                      <div className="text-base font-medium text-gray-900">
+                        {new Date(packageDetails.target_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Requires Coating</div>
+                    <div className="text-base font-medium text-gray-900">
+                      {packageDetails.requires_coating ? (
+                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">No</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Requires Insulation</div>
+                    <div className="text-base font-medium text-gray-900">
+                      {packageDetails.requires_insulation ? (
+                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">No</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Created</div>
+                    <div className="text-base text-gray-600">
+                      {new Date(packageDetails.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Certificate Section */}
+            {certificate ? (
               <CertificateReadOnlyView
                 certificate={certificate}
-                onEdit={() => setEditCertificate(true)}
+                onEdit={() => {
+                  // TODO: Implement certificate editing
+                  // PackageCertificateForm is now for creating NEW packages only
+                  // Need to create a separate edit form or adapt the form for both modes
+                  console.warn('Certificate editing not yet implemented');
+                }}
               />
             ) : (
-              <PackageCertificateForm
-                packageId={packageId!}
-                projectId={selectedProjectId!}
-                packageName={packageData.package_name || ''}
-                packageTestType={(packageDetails?.test_type as any) || null}
-                onSuccess={() => setEditCertificate(false)}
-              />
+              <div className="p-4 text-gray-500 text-center border rounded-lg bg-gray-50">
+                <p>No certificate found for this package.</p>
+                <p className="text-sm mt-2">
+                  Packages are now created with certificates using the new "Create Package" form.
+                </p>
+              </div>
             )}
           </TabsContent>
 
           {/* Workflow Tab */}
           <TabsContent value="workflow">
-            {packageId && <PackageWorkflowStepper packageId={packageId} />}
+            <div className="space-y-4">
+              {/* Export PDF button - desktop only */}
+              <div className="hidden lg:flex justify-end">
+                <Button
+                  onClick={async () => {
+                    if (!packageDetails || !workflowStages) return;
+                    try {
+                      const { blob, url, filename } = await generatePDFPreview(
+                        {
+                          name: packageDetails.name,
+                          description: packageDetails.description,
+                          test_type: packageDetails.test_type,
+                          target_date: packageDetails.target_date,
+                          requires_coating: packageDetails.requires_coating,
+                          requires_insulation: packageDetails.requires_insulation,
+                        },
+                        workflowStages,
+                        packageData.package_name || 'Unknown Project'
+                      );
+                      openPreview(blob, url, filename);
+                    } catch (error) {
+                      console.error('Failed to generate PDF:', error);
+                      toast.error('Failed to generate PDF');
+                    }
+                  }}
+                  disabled={isPDFGenerating || !workflowStages || workflowStages.length === 0}
+                  variant="outline"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isPDFGenerating ? 'Generating PDF...' : 'Preview & Export Workflow Report'}
+                </Button>
+              </div>
+
+              {packageId && <PackageWorkflowStepper packageId={packageId} />}
+            </div>
           </TabsContent>
 
           {/* Components Tab */}
