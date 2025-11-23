@@ -28,15 +28,16 @@ export function useUpdateMilestone() {
     { previous: ComponentRow[] | undefined }
   >({
     mutationFn: async (payload: MilestoneUpdatePayload) => {
-      // Convert boolean to numeric (1 or 0) for discrete milestones
+      // Convert boolean to numeric (100 or 0) for discrete milestones
       // Partial milestones already send numeric values (0-100)
+      // All milestones use 0-100 scale for consistency
       let numericValue: number;
 
       if (typeof payload.value === 'boolean') {
-        numericValue = payload.value ? 1 : 0;
+        numericValue = payload.value ? 100 : 0;
       } else if (typeof payload.value === 'string') {
         // Handle string values (shouldn't happen, but be defensive)
-        if (payload.value === 'true') numericValue = 1;
+        if (payload.value === 'true') numericValue = 100;
         else if (payload.value === 'false') numericValue = 0;
         else numericValue = parseFloat(payload.value) || 0;
       } else {
@@ -73,9 +74,9 @@ export function useUpdateMilestone() {
       // Optimistically update cache
       // Note: We can't easily determine the drawing_id from payload alone,
       // so we update all component queries
-      // Convert boolean to numeric for consistency with database
+      // Convert boolean to numeric for consistency with database (0-100 scale)
       const optimisticValue = typeof payload.value === 'boolean'
-        ? (payload.value ? 1 : 0)
+        ? (payload.value ? 100 : 0)
         : payload.value
 
       queryClient.setQueriesData<ComponentRow[]>(
@@ -131,7 +132,7 @@ export function useUpdateMilestone() {
                   current_milestones: {
                     ...component.current_milestones,
                     [payload.milestone_name]: typeof payload.value === 'boolean'
-                      ? (payload.value ? 1 : 0)
+                      ? (payload.value ? 100 : 0)
                       : payload.value,
                   },
                   last_updated_at: new Date().toISOString(),

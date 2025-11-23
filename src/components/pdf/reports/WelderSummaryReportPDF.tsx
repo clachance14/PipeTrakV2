@@ -333,7 +333,7 @@ export function WelderSummaryReportPDF({
   const totalDataRows = rows.length;
   const pageCount = Math.ceil(totalDataRows / rowsPerPage);
 
-  const pages = [];
+  const pages: Array<{ data: WelderSummaryRow[]; includeTotals: boolean }> = [];
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
     const startIndex = pageIndex * rowsPerPage;
     const endIndex = Math.min(startIndex + rowsPerPage, totalDataRows);

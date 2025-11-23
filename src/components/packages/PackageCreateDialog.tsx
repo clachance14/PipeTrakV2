@@ -15,16 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -105,7 +95,6 @@ export function PackageCreateDialog({
   const [requiresInsulation, setRequiresInsulation] = useState(false);
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
-  const [showEmptyWarning, setShowEmptyWarning] = useState(false);
   const [isCreatingAssignments, setIsCreatingAssignments] = useState(false);
 
   // Reset form when dialog opens
@@ -134,19 +123,16 @@ export function PackageCreateDialog({
   // Validation
   const hasSelection = selectedComponentIds.length > 0;
 
-  const canSubmit =
-    name.trim().length > 0 && !createPackageMutation.isPending && !isCreatingAssignments;
+  const isFormValid =
+    name.trim().length > 0 &&
+    selectedComponentIds.length > 0 &&
+    !createPackageMutation.isPending &&
+    !isCreatingAssignments;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!canSubmit) return;
-
-    // Show warning if creating empty package
-    if (!hasSelection) {
-      setShowEmptyWarning(true);
-      return;
-    }
+    if (!isFormValid) return;
 
     createPackage();
   };
@@ -165,7 +151,7 @@ export function PackageCreateDialog({
         p_target_date: targetDate || null,
         p_requires_coating: requiresCoating,
         p_requires_insulation: requiresInsulation,
-      } as any,
+      },
       {
         onSuccess: async (packageId: string) => {
           console.log('[PackageCreate] Package created with ID:', packageId);
@@ -256,7 +242,6 @@ export function PackageCreateDialog({
             toast.success('Package created');
           }
 
-          setShowEmptyWarning(false);
           onOpenChange(false);
         },
         onError: (error: any) => {
@@ -264,11 +249,6 @@ export function PackageCreateDialog({
         },
       }
     );
-  };
-
-  const handleEmptyPackageConfirm = () => {
-    setShowEmptyWarning(false);
-    createPackage();
   };
 
   return (
@@ -441,10 +421,15 @@ export function PackageCreateDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className="min-h-[44px] min-w-[44px]"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!canSubmit}>
+            <Button
+              type="submit"
+              disabled={!isFormValid}
+              className="min-h-[44px] min-w-[44px] bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300"
+            >
               {createPackageMutation.isPending
                 ? 'Creating...'
                 : isCreatingAssignments
@@ -454,33 +439,6 @@ export function PackageCreateDialog({
           </DialogFooter>
         </form>
       </DialogContent>
-
-      {/* Empty package warning dialog */}
-      <AlertDialog open={showEmptyWarning} onOpenChange={setShowEmptyWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create Empty Package?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to create a test package with no drawings or components assigned.
-              <br />
-              <br />
-              This package will be created with 0 components. You can add components later by
-              editing the package.
-              <br />
-              <br />
-              Do you want to proceed?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowEmptyWarning(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleEmptyPackageConfirm}>
-              Create Empty Package
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   );
 }

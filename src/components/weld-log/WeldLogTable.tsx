@@ -214,7 +214,13 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                     {weld.is_unplanned && weld.notes && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Info className="h-3.5 w-3.5 text-blue-500 flex-shrink-0 cursor-help" aria-label="Unplanned weld note" />
+                          <button
+                            type="button"
+                            className="ml-0.5 inline-flex items-center justify-center rounded-full p-0.5 text-blue-500 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Unplanned weld note"
+                          >
+                            <Info className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+                          </button>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs bg-slate-900 text-white border-slate-700">
                           <div className="space-y-1">

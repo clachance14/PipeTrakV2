@@ -32,7 +32,7 @@ export function ReportPreview({ data, projectName }: ReportPreviewProps) {
     blob: null,
   });
 
-  const formattedDate = data.generatedAt.toLocaleDateString('en-US', {
+  const formattedDate = data.generatedAt.toLocaleString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
