@@ -25,7 +25,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, User, AlertTriangle } from 'lucide-react';
+import { Calendar, User, AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { StageDataDisplay } from './StageDataDisplay';
 import type {
   PackageWorkflowStage,
   StageData,
@@ -73,7 +74,7 @@ function AuditTrail({ stage }: { stage: PackageWorkflowStage }) {
           <div className="flex items-center gap-2 text-blue-800">
             <User className="h-4 w-4" />
             <span className="font-medium">Completed by:</span>
-            <span>{stage.completed_by || 'Unknown'}</span>
+            <span>{stage.completed_by_user?.full_name || 'Unknown'}</span>
           </div>
 
           <div className="flex items-center gap-2 text-blue-800">
@@ -178,38 +179,127 @@ function TestAcceptanceFields({
   data: Partial<TestAcceptanceStageData>;
   onChange: (data: Partial<TestAcceptanceStageData>) => void;
 }) {
+  // Initialize gauges array from existing data or with one empty row
+  const gauges: Array<{ number: string; calibration_date: string }> = [];
+
+  if (data.gauge_numbers && data.calibration_dates) {
+    for (let i = 0; i < Math.max(data.gauge_numbers.length, data.calibration_dates.length); i++) {
+      gauges.push({
+        number: data.gauge_numbers[i] || '',
+        calibration_date: data.calibration_dates[i] || '',
+      });
+    }
+  }
+
+  if (gauges.length === 0) {
+    gauges.push({ number: '', calibration_date: '' });
+  }
+
+  const handleGaugeChange = (index: number, field: 'number' | 'calibration_date', value: string) => {
+    const newGauges = [...gauges];
+    const currentGauge = newGauges[index];
+    if (!currentGauge) return;
+
+    if (field === 'number') {
+      newGauges[index] = { number: value, calibration_date: currentGauge.calibration_date };
+    } else {
+      newGauges[index] = { number: currentGauge.number, calibration_date: value };
+    }
+
+    onChange({
+      ...data,
+      gauge_numbers: newGauges.map((g) => g.number),
+      calibration_dates: newGauges.map((g) => g.calibration_date),
+    });
+  };
+
+  const handleAddGauge = () => {
+    const newGauges = [...gauges, { number: '', calibration_date: '' }];
+    onChange({
+      ...data,
+      gauge_numbers: newGauges.map((g) => g.number),
+      calibration_dates: newGauges.map((g) => g.calibration_date),
+    });
+  };
+
+  const handleRemoveGauge = (index: number) => {
+    if (gauges.length === 1) return; // Keep at least one row
+
+    const newGauges = gauges.filter((_, i) => i !== index);
+    onChange({
+      ...data,
+      gauge_numbers: newGauges.map((g) => g.number),
+      calibration_dates: newGauges.map((g) => g.calibration_date),
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="gauge_numbers">Gauge Numbers (comma-separated)</Label>
-        <Input
-          id="gauge_numbers"
-          value={data.gauge_numbers?.join(', ') || ''}
-          onChange={(e) =>
-            onChange({
-              ...data,
-              gauge_numbers: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-            })
-          }
-          placeholder="G-001, G-002"
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="calibration_dates">Calibration Dates (comma-separated, YYYY-MM-DD)</Label>
-        <Input
-          id="calibration_dates"
-          value={data.calibration_dates?.join(', ') || ''}
-          onChange={(e) =>
-            onChange({
-              ...data,
-              calibration_dates: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-            })
-          }
-          placeholder="2025-11-01, 2025-11-01"
-          required
-        />
+        <Label>Gauges Used</Label>
+        <div className="mt-2 border rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Gauge Number
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Calibration Date
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {gauges.map((gauge, index) => (
+                <tr key={index}>
+                  <td className="px-4 py-3">
+                    <Input
+                      value={gauge.number}
+                      onChange={(e) => handleGaugeChange(index, 'number', e.target.value)}
+                      placeholder="G-001"
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Input
+                      type="date"
+                      value={gauge.calibration_date}
+                      onChange={(e) => handleGaugeChange(index, 'calibration_date', e.target.value)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveGauge(index)}
+                      disabled={gauges.length === 1}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAddGauge}
+          className="mt-2"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Gauge
+        </Button>
       </div>
 
       <div>
@@ -318,6 +408,7 @@ function PostHydroFields({
 
 /**
  * Protective Coatings Acceptance form fields
+ * Simplified: Only coating type and spec. Completion date captured in sign-off.
  */
 function ProtectiveCoatingsFields({
   data,
@@ -340,23 +431,12 @@ function ProtectiveCoatingsFields({
       </div>
 
       <div>
-        <Label htmlFor="application_date">Application Date</Label>
+        <Label htmlFor="client_paint_spec">Client Paint Spec</Label>
         <Input
-          id="application_date"
-          type="date"
-          value={data.application_date || ''}
-          onChange={(e) => onChange({ ...data, application_date: e.target.value })}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="cure_date">Cure Date</Label>
-        <Input
-          id="cure_date"
-          type="date"
-          value={data.cure_date || ''}
-          onChange={(e) => onChange({ ...data, cure_date: e.target.value })}
+          id="client_paint_spec"
+          value={data.client_paint_spec || ''}
+          onChange={(e) => onChange({ ...data, client_paint_spec: e.target.value })}
+          placeholder="e.g., ABC-123, XYZ Spec Rev 2"
           required
         />
       </div>
@@ -366,6 +446,7 @@ function ProtectiveCoatingsFields({
 
 /**
  * Insulation Acceptance form fields
+ * Simplified: Only insulation type and spec. Completion date captured in sign-off.
  */
 function InsulationFields({
   data,
@@ -388,12 +469,12 @@ function InsulationFields({
       </div>
 
       <div>
-        <Label htmlFor="installation_date">Installation Date</Label>
+        <Label htmlFor="insulation_spec">Insulation Spec</Label>
         <Input
-          id="installation_date"
-          type="date"
-          value={data.installation_date || ''}
-          onChange={(e) => onChange({ ...data, installation_date: e.target.value })}
+          id="insulation_spec"
+          value={data.insulation_spec || ''}
+          onChange={(e) => onChange({ ...data, insulation_spec: e.target.value })}
+          placeholder="e.g., ASTM C553, Client Spec INS-100"
           required
         />
       </div>
@@ -545,14 +626,7 @@ export function PackageWorkflowStageForm({ stage }: PackageWorkflowStageFormProp
         <AuditTrail stage={stage} />
 
         {/* Display completed stage data (read-only) */}
-        {stage.stage_data && (
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Stage Data</h4>
-            <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-              {JSON.stringify(stage.stage_data, null, 2)}
-            </pre>
-          </div>
-        )}
+        {stage.stage_data && <StageDataDisplay stageData={stage.stage_data} />}
 
         {/* Edit button for completed stages */}
         <div className="mt-4">
