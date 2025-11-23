@@ -159,16 +159,6 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
           {isGenerating ? 'Generating Preview...' : 'Preview & Export PDF'}
         </button>
 
-        {/* Classic PDF Export (jsPDF) */}
-        <button
-          onClick={() => onExport('pdf')}
-          disabled={isGenerating}
-          className="px-4 py-2 text-sm font-medium text-white bg-slate-600 rounded hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Export report to PDF (Classic)"
-        >
-          Export PDF (Classic)
-        </button>
-
         {/* Excel Export */}
         <button
           onClick={() => onExport('excel')}
