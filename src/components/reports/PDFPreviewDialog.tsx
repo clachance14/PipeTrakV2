@@ -42,6 +42,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Settings, Loader2 } from 'lucide-react';
 
 interface PDFPreviewDialogProps {
   /** Whether dialog is open */
@@ -58,6 +59,12 @@ interface PDFPreviewDialogProps {
 
   /** Filename for download */
   filename: string | null;
+
+  /** Optional callback to open customization settings */
+  onEditSettings?: () => void;
+
+  /** Whether PDF is being regenerated (shows loading state) */
+  isRegenerating?: boolean;
 }
 
 /**
@@ -72,6 +79,8 @@ export function PDFPreviewDialog({
   previewUrl,
   blob,
   filename,
+  onEditSettings,
+  isRegenerating = false,
 }: PDFPreviewDialogProps) {
   /**
    * Download PDF with correct filename
@@ -117,7 +126,7 @@ export function PDFPreviewDialog({
         </DialogHeader>
 
         {/* PDF Preview Container */}
-        <div className="flex-1 overflow-hidden px-6">
+        <div className="flex-1 overflow-hidden px-6 relative">
           <iframe
             src={previewUrl}
             className="w-full h-full border rounded"
@@ -126,13 +135,36 @@ export function PDFPreviewDialog({
               console.error('Failed to load PDF preview');
             }}
           />
+
+          {/* Loading Overlay during Regeneration */}
+          {isRegenerating && (
+            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center gap-3 rounded">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm font-medium text-muted-foreground">
+                Regenerating PDF with new settings...
+              </p>
+            </div>
+          )}
         </div>
 
-        <DialogFooter className="px-6 py-4">
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="px-6 py-4 gap-2">
+          {onEditSettings && (
+            <Button
+              variant="outline"
+              onClick={onEditSettings}
+              disabled={isRegenerating}
+              className="mr-auto"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Edit Settings
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose} disabled={isRegenerating}>
             Cancel
           </Button>
-          <Button onClick={handleDownload}>Download PDF</Button>
+          <Button onClick={handleDownload} disabled={!blob || isRegenerating}>
+            {isRegenerating ? 'Regenerating...' : 'Download PDF'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

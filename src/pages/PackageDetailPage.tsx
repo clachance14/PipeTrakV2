@@ -19,10 +19,14 @@ import { useDeleteComponentAssignment, useCreateComponentAssignments, useDrawing
 import { usePackageWorkflow } from '@/hooks/usePackageWorkflow';
 import { usePackageWorkflowPDFExport } from '@/hooks/usePackageWorkflowPDFExport';
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
+import { usePackageWorkflowCustomizationStore } from '@/stores/usePackageWorkflowCustomizationStore';
+import { usePackageWorkflowCustomization } from '@/hooks/usePackageWorkflowCustomization';
+import type { PackageWorkflowPDFOptions } from '@/stores/usePackageWorkflowCustomizationStore';
 // PackageCertificateForm removed - now only for creating new packages, not editing existing ones
 import { PackageWorkflowStepper } from '@/components/packages/PackageWorkflowStepper';
 import { DrawingSelectionList } from '@/components/packages/DrawingSelectionList';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
+import { PackageWorkflowCustomizationDialog } from '@/components/packages/PackageWorkflowCustomizationDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,7 +50,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/EmptyState';
-import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus, Download } from 'lucide-react';
+import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus, Download, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PackageCertificate } from '@/hooks/usePackageCertificate';
 
@@ -79,7 +83,20 @@ export function PackageDetailPage() {
   const { generatePDFPreview, isGenerating: isPDFGenerating } = usePackageWorkflowPDFExport();
 
   // PDF preview state
-  const { previewState, openPreview, closePreview } = usePDFPreviewState();
+  const { previewState, openPreview, updatePreview, closePreview } = usePDFPreviewState();
+
+  // PDF customization store
+  const { options: pdfOptions, setOptions: setPDFOptions } = usePackageWorkflowCustomizationStore();
+
+  // Customization modal state
+  const {
+    customizationState,
+    openCustomization,
+    closeCustomization,
+  } = usePackageWorkflowCustomization();
+
+  // Regeneration loading state
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Fetch certificate
   const { data: certificate } =
@@ -283,6 +300,73 @@ export function PackageDetailPage() {
     amber: 'bg-amber-500',
   }[statusColor];
 
+  // PDF Customization Handlers
+  const handleEditReport = () => {
+    openCustomization(pdfOptions);
+  };
+
+  const handleSaveCustomization = async (newOptions: PackageWorkflowPDFOptions) => {
+    // Save to store
+    setPDFOptions(newOptions);
+    closeCustomization();
+
+    // If preview is open, regenerate automatically
+    if (previewState.open && packageDetails && workflowStages) {
+      setIsRegenerating(true);
+      try {
+        const { blob, url, filename } = await generatePDFPreview(
+          {
+            name: packageDetails.name,
+            description: packageDetails.description,
+            test_type: packageDetails.test_type,
+            target_date: packageDetails.target_date,
+            requires_coating: packageDetails.requires_coating,
+            requires_insulation: packageDetails.requires_insulation,
+          },
+          workflowStages,
+          packageData.package_name || 'Unknown Project',
+          undefined, // companyLogo (not implemented yet)
+          newOptions // Use new options
+        );
+        updatePreview(blob, url, filename); // Update existing preview
+        toast.success('PDF regenerated with new settings');
+      } catch (error) {
+        toast.error('Failed to regenerate PDF');
+        console.error(error);
+      } finally {
+        setIsRegenerating(false);
+      }
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!packageDetails || !workflowStages) return;
+    try {
+      const { blob, url, filename } = await generatePDFPreview(
+        {
+          name: packageDetails.name,
+          description: packageDetails.description,
+          test_type: packageDetails.test_type,
+          target_date: packageDetails.target_date,
+          requires_coating: packageDetails.requires_coating,
+          requires_insulation: packageDetails.requires_insulation,
+        },
+        workflowStages,
+        packageData.package_name || 'Unknown Project',
+        undefined, // companyLogo (not implemented yet)
+        pdfOptions // Use saved options
+      );
+      openPreview(blob, url, filename);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const handleEditFromPreview = () => {
+    openCustomization(pdfOptions);
+  };
+
   return (
     <Layout>
       {/* PDF Preview Dialog */}
@@ -292,6 +376,16 @@ export function PackageDetailPage() {
         previewUrl={previewState.url}
         blob={previewState.blob}
         filename={previewState.filename}
+        onEditSettings={handleEditFromPreview}
+        isRegenerating={isRegenerating}
+      />
+
+      {/* PDF Customization Dialog */}
+      <PackageWorkflowCustomizationDialog
+        open={customizationState.isOpen}
+        onClose={closeCustomization}
+        onSave={handleSaveCustomization}
+        initialOptions={customizationState.tempOptions || pdfOptions}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -464,35 +558,23 @@ export function PackageDetailPage() {
           {/* Workflow Tab */}
           <TabsContent value="workflow">
             <div className="space-y-4">
-              {/* Export PDF button - desktop only */}
-              <div className="hidden lg:flex justify-end">
+              {/* PDF Export Actions - desktop only */}
+              <div className="hidden lg:flex justify-end gap-2">
                 <Button
-                  onClick={async () => {
-                    if (!packageDetails || !workflowStages) return;
-                    try {
-                      const { blob, url, filename } = await generatePDFPreview(
-                        {
-                          name: packageDetails.name,
-                          description: packageDetails.description,
-                          test_type: packageDetails.test_type,
-                          target_date: packageDetails.target_date,
-                          requires_coating: packageDetails.requires_coating,
-                          requires_insulation: packageDetails.requires_insulation,
-                        },
-                        workflowStages,
-                        packageData.package_name || 'Unknown Project'
-                      );
-                      openPreview(blob, url, filename);
-                    } catch (error) {
-                      console.error('Failed to generate PDF:', error);
-                      toast.error('Failed to generate PDF');
-                    }
-                  }}
-                  disabled={isPDFGenerating || !workflowStages || workflowStages.length === 0}
+                  onClick={handleEditReport}
+                  disabled={isPDFGenerating || isRegenerating || !workflowStages || workflowStages.length === 0}
+                  variant="outline"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Edit Report
+                </Button>
+                <Button
+                  onClick={handleExportPDF}
+                  disabled={isPDFGenerating || isRegenerating || !workflowStages || workflowStages.length === 0}
                   variant="outline"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  {isPDFGenerating ? 'Generating PDF...' : 'Preview & Export Workflow Report'}
+                  {isPDFGenerating || isRegenerating ? 'Generating...' : 'Export PDF'}
                 </Button>
               </div>
 

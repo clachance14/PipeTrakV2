@@ -41,6 +41,8 @@
 
 import { useState } from 'react';
 import type { PackageWorkflowStage } from '@/types/workflow.types';
+import type { PackageWorkflowPDFOptions } from '@/stores/usePackageWorkflowCustomizationStore';
+import { applyStageFilters } from '@/utils/pdfFilters';
 
 interface PackageData {
   name: string;
@@ -56,13 +58,15 @@ interface UsePackageWorkflowPDFExportReturn {
     packageData: PackageData,
     workflowStages: PackageWorkflowStage[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    options?: PackageWorkflowPDFOptions
   ) => Promise<Blob>;
   generatePDFPreview: (
     packageData: PackageData,
     workflowStages: PackageWorkflowStage[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    options?: PackageWorkflowPDFOptions
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
   isGenerating: boolean;
   error: Error | null;
@@ -83,6 +87,7 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
    * @param workflowStages - Array of workflow stages with completion status
    * @param projectName - Project name for filename and header
    * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @param options - Optional PDF customization options
    * @returns Promise resolving to { blob, filename }
    * @throws Error if generation fails
    */
@@ -90,7 +95,8 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
     packageData: PackageData,
     workflowStages: PackageWorkflowStage[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    options?: PackageWorkflowPDFOptions
   ): Promise<{ blob: Blob; filename: string }> => {
     // Lazy load @react-pdf/renderer (large library)
     const { pdf } = await import('@react-pdf/renderer');
@@ -98,21 +104,31 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
       '@/components/pdf/reports/PackageWorkflowReportPDF'
     );
 
+    // Apply stage filters based on options
+    const filteredStages = options
+      ? applyStageFilters(workflowStages, options)
+      : workflowStages;
+
     // Generate current date for report
     const generatedDate = new Date().toISOString().split('T')[0]!;
 
-    // Generate filename
-    const sanitizedPackageName = packageData.name.replace(/[^a-z0-9]/gi, '_');
+    // Generate filename (use custom title if provided)
+    const reportTitle = options?.customTitle || packageData.name;
+    const sanitizedPackageName = reportTitle.replace(/[^a-z0-9]/gi, '_');
     const filename = `${sanitizedPackageName}_Workflow_Report_${generatedDate}.pdf`;
+
+    // Determine if company logo should be included
+    const shouldIncludeLogo = options?.includeCompanyLogo !== false;
 
     // Generate PDF blob
     const blob = await pdf(
       <PackageWorkflowReportPDF
         packageData={packageData}
-        workflowStages={workflowStages}
+        workflowStages={filteredStages}
         projectName={projectName}
         generatedDate={generatedDate}
-        {...(companyLogo ? { companyLogo } : {})}
+        {...(shouldIncludeLogo && companyLogo ? { companyLogo } : {})}
+        {...(options ? { options } : {})}
       />
     ).toBlob();
 
@@ -126,6 +142,7 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
    * @param workflowStages - Array of workflow stages with completion status
    * @param projectName - Project name for filename and header
    * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @param options - Optional PDF customization options
    * @returns Promise resolving to { blob, url, filename }
    * @throws Error if generation fails or if another export is in progress
    */
@@ -133,7 +150,8 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
     packageData: PackageData,
     workflowStages: PackageWorkflowStage[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    options?: PackageWorkflowPDFOptions
   ): Promise<{ blob: Blob; url: string; filename: string }> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -148,7 +166,8 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
         packageData,
         workflowStages,
         projectName,
-        companyLogo
+        companyLogo,
+        options
       );
 
       // Create object URL for preview (caller is responsible for cleanup)
@@ -171,6 +190,7 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
    * @param workflowStages - Array of workflow stages with completion status
    * @param projectName - Project name for filename and header
    * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @param options - Optional PDF customization options
    * @returns Promise resolving to PDF Blob after download initiated
    * @throws Error if generation fails or if another export is in progress
    */
@@ -178,7 +198,8 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
     packageData: PackageData,
     workflowStages: PackageWorkflowStage[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    options?: PackageWorkflowPDFOptions
   ): Promise<Blob> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -193,7 +214,8 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
         packageData,
         workflowStages,
         projectName,
-        companyLogo
+        companyLogo,
+        options
       );
 
       // Trigger browser download

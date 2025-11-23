@@ -83,6 +83,16 @@ export interface UsePDFPreviewStateReturn {
   openPreview: (blob: Blob, url: string, filename: string) => void;
 
   /**
+   * Update the preview with new PDF data without closing the dialog
+   * Useful for regenerating PDF with new settings while preview is open
+   *
+   * @param blob - New PDF blob for download
+   * @param url - New object URL for iframe display (created from blob)
+   * @param filename - New filename for download
+   */
+  updatePreview: (blob: Blob, url: string, filename: string) => void;
+
+  /**
    * Close the preview dialog and cleanup object URL
    * Automatically revokes the object URL to prevent memory leaks
    */
@@ -110,6 +120,25 @@ export function usePDFPreviewState(): UsePDFPreviewStateReturn {
   const openPreview = (blob: Blob, url: string, filename: string) => {
     setPreviewState({
       open: true,
+      url,
+      filename,
+      blob,
+    });
+  };
+
+  /**
+   * Update preview with new PDF data (keeps dialog open)
+   * Cleans up old object URL before replacing
+   */
+  const updatePreview = (blob: Blob, url: string, filename: string) => {
+    // Clean up old object URL
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+
+    // Update state with new PDF data (keep dialog open)
+    setPreviewState({
+      open: true, // Keep dialog open
       url,
       filename,
       blob,
@@ -149,6 +178,7 @@ export function usePDFPreviewState(): UsePDFPreviewStateReturn {
   return {
     previewState,
     openPreview,
+    updatePreview,
     closePreview,
   };
 }
