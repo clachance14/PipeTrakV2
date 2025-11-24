@@ -15,6 +15,8 @@ import { useProjects } from '@/hooks/useProjects'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useWeldLogPDFExport } from '@/hooks/useWeldLogPDFExport'
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState'
+import { useWeldLogPreferencesStore } from '@/stores/useWeldLogPreferencesStore'
+import { sortFieldWelds } from '@/lib/weld-log-sorting'
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog'
 import { exportWeldLogToExcel } from '@/lib/exportWeldLog'
 import { NDEResultDialog } from '@/components/field-welds/NDEResultDialog'
@@ -43,6 +45,9 @@ export function WeldLogPage() {
   })
 
   const [filteredWelds, setFilteredWelds] = useState<EnrichedFieldWeld[]>([])
+
+  // Get sort preferences for export
+  const { sortColumn, sortDirection } = useWeldLogPreferencesStore()
 
   // PDF export hooks
   const { generatePDFPreview, isGenerating: isPDFGenerating } = useWeldLogPDFExport()
@@ -147,8 +152,11 @@ export function WeldLogPage() {
     }
 
     try {
+      // Sort welds using same order as table display
+      const sortedWelds = sortFieldWelds(filteredWelds, sortColumn, sortDirection)
+
       const { blob, url, filename } = await generatePDFPreview(
-        filteredWelds,
+        sortedWelds,
         currentProject.name
       )
       openPreview(blob, url, filename)
@@ -170,7 +178,10 @@ export function WeldLogPage() {
     }
 
     try {
-      exportWeldLogToExcel(filteredWelds, currentProject.name)
+      // Sort welds using same order as table display
+      const sortedWelds = sortFieldWelds(filteredWelds, sortColumn, sortDirection)
+
+      exportWeldLogToExcel(sortedWelds, currentProject.name)
       toast.success('Excel file downloaded successfully')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to export Excel'
