@@ -89,17 +89,16 @@ function transformWeldsToTableProps(welds: EnrichedFieldWeld[]) {
   // Define column headers and formatting
   const columns: TableColumnDefinition[] = [
     { key: 'weldId', label: 'Weld ID', width: '10%', align: 'left', format: 'text' },
-    { key: 'drawing', label: 'Drawing', width: '10%', align: 'left', format: 'text' },
-    { key: 'welder', label: 'Welder', width: '12%', align: 'left', format: 'text' },
-    { key: 'dateWelded', label: 'Date Welded', width: '8%', align: 'left', format: 'text' },
+    { key: 'drawing', label: 'Drawing', width: '11%', align: 'left', format: 'text' },
+    { key: 'welder', label: 'Welder', width: '13%', align: 'left', format: 'text' },
+    { key: 'dateWelded', label: 'Date Welded', width: '9%', align: 'left', format: 'text' },
     { key: 'weldType', label: 'Type', width: '5%', align: 'center', format: 'text' },
     { key: 'size', label: 'Size', width: '6%', align: 'center', format: 'text' },
-    { key: 'ndeResult', label: 'NDE Result', width: '7%', align: 'center', format: 'text' },
-    { key: 'progress', label: 'Progress %', width: '8%', align: 'right', format: 'percentage' },
-    { key: 'status', label: 'Status', width: '7%', align: 'center', format: 'text' },
-    { key: 'area', label: 'Area', width: '9%', align: 'left', format: 'text' },
-    { key: 'system', label: 'System', width: '9%', align: 'left', format: 'text' },
-    { key: 'testPackage', label: 'Test Package', width: '9%', align: 'left', format: 'text' },
+    { key: 'ndeResult', label: 'NDE Result', width: '8%', align: 'center', format: 'text' },
+    { key: 'status', label: 'Status', width: '8%', align: 'center', format: 'text' },
+    { key: 'area', label: 'Area', width: '10%', align: 'left', format: 'text' },
+    { key: 'system', label: 'System', width: '10%', align: 'left', format: 'text' },
+    { key: 'testPackage', label: 'Test Package', width: '10%', align: 'left', format: 'text' },
   ];
 
   // Transform weld data to table rows
@@ -111,7 +110,6 @@ function transformWeldsToTableProps(welds: EnrichedFieldWeld[]) {
     weldType: weld.weld_type,
     size: weld.weld_size || '-',
     ndeResult: weld.nde_result || '-',
-    progress: weld.component.percent_complete / 100, // Convert to decimal for percentage format
     status: weld.status,
     area: weld.area?.name || '-',
     system: weld.system?.name || '-',

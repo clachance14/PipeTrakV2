@@ -166,11 +166,11 @@ describe('WeldLogReportPDF', () => {
       />
     );
 
-    // Verify column headers are present
+    // Verify column headers are present (Progress % column removed)
     expect(screen.getByText('Weld ID')).toBeInTheDocument();
     expect(screen.getByText('Drawing')).toBeInTheDocument();
     expect(screen.getByText('Welder')).toBeInTheDocument();
-    expect(screen.getByText('Progress %')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
   });
 
   it('handles multiple welds', () => {
