@@ -1895,7 +1895,6 @@ export type Database = {
         Returns: number
       }
       refresh_materialized_views: { Args: never; Returns: undefined }
-      refresh_mv_drawing_progress: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_component_milestone: {
