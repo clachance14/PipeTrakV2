@@ -48,9 +48,11 @@ const LAYOUT = {
 
 // Calculate derived spacing values
 const SPACING = {
-  PAGE_PADDING_TOP: LAYOUT.BRANDED_HEADER_TOP + LAYOUT.BRANDED_HEADER_HEIGHT + 10,
+  // Page padding must clear the fixed table header on ALL pages
+  PAGE_PADDING_TOP: LAYOUT.TABLE_HEADER_TOP + LAYOUT.TABLE_HEADER_HEIGHT + 4,
   PAGE_PADDING_BOTTOM: LAYOUT.FOOTER_HEIGHT + 20,
-  TABLE_BODY_MARGIN_TOP: LAYOUT.TABLE_HEADER_TOP + LAYOUT.TABLE_HEADER_HEIGHT - LAYOUT.BRANDED_HEADER_TOP - LAYOUT.BRANDED_HEADER_HEIGHT + 10,
+  // First page needs less margin since page padding already accounts for headers
+  TABLE_BODY_MARGIN_TOP: 0,
 } as const;
 
 export interface WeldLogReportPDFProps {
