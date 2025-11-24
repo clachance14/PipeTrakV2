@@ -46,9 +46,6 @@ export function WeldLogPage() {
 
   const [filteredWelds, setFilteredWelds] = useState<EnrichedFieldWeld[]>([])
 
-  // Get sort preferences for export
-  const { sortColumn, sortDirection } = useWeldLogPreferencesStore()
-
   // PDF export hooks
   const { generatePDFPreview, isGenerating: isPDFGenerating } = useWeldLogPDFExport()
   const { previewState, openPreview, closePreview } = usePDFPreviewState()
@@ -152,6 +149,9 @@ export function WeldLogPage() {
     }
 
     try {
+      // Get current sort preferences at export time (not render time)
+      const { sortColumn, sortDirection } = useWeldLogPreferencesStore.getState()
+
       // Sort welds using same order as table display
       const sortedWelds = sortFieldWelds(filteredWelds, sortColumn, sortDirection)
 
@@ -178,6 +178,9 @@ export function WeldLogPage() {
     }
 
     try {
+      // Get current sort preferences at export time (not render time)
+      const { sortColumn, sortDirection } = useWeldLogPreferencesStore.getState()
+
       // Sort welds using same order as table display
       const sortedWelds = sortFieldWelds(filteredWelds, sortColumn, sortDirection)
 
