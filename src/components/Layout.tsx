@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChangelog } from '@/hooks/useChangelog'
 import { ChangelogModal } from '@/components/ChangelogModal'
+import { useNeedsReview } from '@/hooks/useNeedsReview'
 
 interface LayoutProps {
   children: ReactNode
@@ -30,6 +31,13 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
     user?.last_viewed_release || null
   )
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Check for pending notifications
+  const { data: pendingNotifications } = useNeedsReview(
+    selectedProjectId || '',
+    { status: 'pending' }
+  )
+  const hasPendingNotifications = (pendingNotifications?.length ?? 0) > 0
 
   // Sync local modal state with computed shouldShowModal
   // Only show if not already dismissed in this session
@@ -164,7 +172,11 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
             {/* Right: Notifications and User Menu */}
             <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
               {/* Notifications (hidden on small mobile) */}
-              <button className="hidden sm:block relative p-2 rounded-md hover:bg-slate-700 transition-colors">
+              <Link
+                to="/needs-review"
+                className="hidden sm:block relative p-2 rounded-md hover:bg-slate-700 transition-colors"
+                aria-label="View notifications"
+              >
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -178,8 +190,10 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
                     d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                   />
                 </svg>
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
-              </button>
+                {hasPendingNotifications && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
+                )}
+              </Link>
 
               {/* User Menu */}
               <UserMenu />

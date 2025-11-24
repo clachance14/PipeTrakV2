@@ -4,13 +4,19 @@
  */
 
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { Layout } from '@/components/Layout'
 import { WeldLogFilters } from '@/components/weld-log/WeldLogFilters'
 import { WeldLogTable } from '@/components/weld-log/WeldLogTable'
 import { useFieldWelds, type EnrichedFieldWeld } from '@/hooks/useFieldWelds'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProject } from '@/contexts/ProjectContext'
+import { useProjects } from '@/hooks/useProjects'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
+import { useWeldLogPDFExport } from '@/hooks/useWeldLogPDFExport'
+import { usePDFPreviewState } from '@/hooks/usePDFPreviewState'
+import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog'
+import { exportWeldLogToExcel } from '@/lib/exportWeldLog'
 import { NDEResultDialog } from '@/components/field-welds/NDEResultDialog'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
 import { CreateRepairWeldDialog } from '@/components/field-welds/CreateRepairWeldDialog'
@@ -19,7 +25,7 @@ import { UpdateWeldDialog } from '@/components/field-welds/UpdateWeldDialog'
 import { CreateUnplannedWeldDialog } from '@/components/field-welds/CreateUnplannedWeldDialog'
 import { Button } from '@/components/ui/button'
 import { canCreateFieldWeld } from '@/lib/permissions'
-import { Plus } from 'lucide-react'
+import { Plus, FileDown, FileSpreadsheet } from 'lucide-react'
 
 export function WeldLogPage() {
   const { user } = useAuth()
@@ -27,12 +33,20 @@ export function WeldLogPage() {
   const projectId = selectedProjectId || ''
   const isMobile = useMobileDetection()
 
+  // Fetch project details for export filename
+  const { data: projects } = useProjects()
+  const currentProject = projects?.find((p) => p.id === selectedProjectId)
+
   const { data: welds = [], isLoading, isError, error } = useFieldWelds({
     projectId,
     enabled: !!projectId,
   })
 
   const [filteredWelds, setFilteredWelds] = useState<EnrichedFieldWeld[]>([])
+
+  // PDF export hooks
+  const { generatePDFPreview, isGenerating: isPDFGenerating } = useWeldLogPDFExport()
+  const { previewState, openPreview, closePreview } = usePDFPreviewState()
 
   // Modal state management (Feature 022 - Phase 4)
   const [selectedWeld, setSelectedWeld] = useState<EnrichedFieldWeld | null>(null)
@@ -120,6 +134,50 @@ export function WeldLogPage() {
     setIsNDEDialogOpen(true)
   }
 
+  // Export handlers
+  const handlePDFExport = async () => {
+    if (filteredWelds.length === 0) {
+      toast.error('No welds to export')
+      return
+    }
+
+    if (!currentProject) {
+      toast.error('Project information not available')
+      return
+    }
+
+    try {
+      const { blob, url, filename } = await generatePDFPreview(
+        filteredWelds,
+        currentProject.name
+      )
+      openPreview(blob, url, filename)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate PDF'
+      toast.error(errorMessage)
+    }
+  }
+
+  const handleExcelExport = () => {
+    if (filteredWelds.length === 0) {
+      toast.error('No welds to export')
+      return
+    }
+
+    if (!currentProject) {
+      toast.error('Project information not available')
+      return
+    }
+
+    try {
+      exportWeldLogToExcel(filteredWelds, currentProject.name)
+      toast.success('Excel file downloaded successfully')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to export Excel'
+      toast.error(errorMessage)
+    }
+  }
+
   if (isLoading) {
     return (
       <Layout fixedHeight>
@@ -194,6 +252,28 @@ export function WeldLogPage() {
             systems={systems}
             onFilteredWeldsChange={setFilteredWelds}
           />
+        </div>
+
+        {/* Export Buttons - Desktop Only */}
+        <div className="hidden lg:flex flex-shrink-0 mb-3 md:mb-6 gap-2">
+          <Button
+            onClick={handlePDFExport}
+            disabled={isPDFGenerating || filteredWelds.length === 0}
+            variant="outline"
+            className="min-h-[44px]"
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {isPDFGenerating ? 'Generating Preview...' : 'Preview & Export PDF'}
+          </Button>
+          <Button
+            onClick={handleExcelExport}
+            disabled={filteredWelds.length === 0}
+            variant="outline"
+            className="min-h-[44px]"
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
         </div>
 
         {/* Table - Scrollable fills remaining space */}
@@ -283,6 +363,15 @@ export function WeldLogPage() {
         open={isCreateUnplannedDialogOpen}
         onOpenChange={setIsCreateUnplannedDialogOpen}
         projectId={projectId}
+      />
+
+      {/* PDF Preview Dialog */}
+      <PDFPreviewDialog
+        open={previewState.open}
+        onClose={closePreview}
+        previewUrl={previewState.url}
+        blob={previewState.blob}
+        filename={previewState.filename}
       />
     </Layout>
   )

@@ -44,12 +44,13 @@ export function DrawingRow({
   const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 
-  // Mobile: single-line summary "DRAIN-1 · ES-03 · A1 · S1 · 100%"
+  // Mobile: single-line summary "DRAIN-1 · ES-03 · A1 · S1 · TP1 · 100%"
   const mobileSummary = [
     drawing.drawing_no_norm,
     drawing.spec || '—',
     drawing.area?.name || '—',
     drawing.system?.name || '—',
+    drawing.test_package?.name || '—',
     `${Math.round(drawing.avg_percent_complete)}%`
   ].join(' · ')
 

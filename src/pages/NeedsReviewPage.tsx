@@ -1,13 +1,14 @@
 import { Layout } from '@/components/Layout';
 import { useState, useMemo } from 'react';
 import { useProject } from '@/contexts/ProjectContext';
-import { useNeedsReview } from '@/hooks/useNeedsReview';
+import { useNeedsReview, useResolveNeedsReview } from '@/hooks/useNeedsReview';
 import { ReviewItemCard, ReviewItem } from '@/components/needs-review/ReviewItemCard';
 import { ReviewFilters, ReviewFiltersState } from '@/components/needs-review/ReviewFilters';
 import { ResolveReviewModal } from '@/components/needs-review/ResolveReviewModal';
 import { EmptyState } from '@/components/EmptyState';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export function NeedsReviewPage() {
   const { selectedProjectId } = useProject();
@@ -25,6 +26,8 @@ export function NeedsReviewPage() {
     selectedProjectId || '',
     hookFilters
   );
+
+  const resolveMutation = useResolveNeedsReview();
 
   // Transform data to ReviewItem format
   const transformedItems = useMemo<ReviewItem[]>(() => {
@@ -65,11 +68,23 @@ export function NeedsReviewPage() {
     }
   };
 
-  const handleSubmitResolve = async (_status: 'resolved' | 'ignored', _note?: string) => {
-    // TODO: Implement resolve mutation when useNeedsReview provides it
-    setIsResolveModalOpen(false);
-    setSelectedItem(null);
-    refetch();
+  const handleSubmitResolve = async (status: 'resolved' | 'ignored', note?: string) => {
+    if (!selectedItem) return;
+
+    try {
+      await resolveMutation.mutateAsync({
+        id: selectedItem.id,
+        status,
+        resolution_note: note,
+      });
+
+      toast.success(`Review ${status === 'resolved' ? 'resolved' : 'ignored'} successfully`);
+      setIsResolveModalOpen(false);
+      setSelectedItem(null);
+    } catch (error) {
+      console.error('Failed to resolve review:', error);
+      toast.error('Failed to update review. Please try again.');
+    }
   };
 
   // No project selected

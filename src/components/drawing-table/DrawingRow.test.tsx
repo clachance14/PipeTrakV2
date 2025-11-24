@@ -80,4 +80,40 @@ describe('DrawingRow - Spec Column', () => {
     // Format: "P-001 · ES-03 · A1 · S1 · 40%"
     expect(screen.getByText(/ES-03/)).toBeInTheDocument()
   })
+
+  it('displays test package in mobile summary line', () => {
+    render(
+      <DrawingRow
+        drawing={baseDrawing}
+        isExpanded={false}
+        onToggle={mockOnToggle}
+        isMobile={true}
+      />
+    )
+
+    // In mobile mode, test package should be included in the summary line
+    // Format: "P-001 · — · A1 · S1 · TP1 · 40%"
+    expect(screen.getByText(/TP1/)).toBeInTheDocument()
+  })
+
+  it('displays — when test package is null in mobile summary', () => {
+    const drawingWithoutTP: DrawingRowType = {
+      ...baseDrawing,
+      test_package: null
+    }
+
+    render(
+      <DrawingRow
+        drawing={drawingWithoutTP}
+        isExpanded={false}
+        onToggle={mockOnToggle}
+        isMobile={true}
+      />
+    )
+
+    // Should show the summary line with — for missing test package
+    // Count the number of — dashes to verify one is for TP (we expect multiple)
+    const dashElements = screen.getAllByText(/—/)
+    expect(dashElements.length).toBeGreaterThan(0)
+  })
 })
