@@ -67,6 +67,8 @@ interface PackageCertificateFormProps {
   projectId: string;
   packageName: string;
   packageTestType: TestType | null;
+  packageTestPressure?: number | null;
+  packageTestPressureUnit?: string | null;
   onSuccess?: () => void;
 }
 
@@ -75,6 +77,8 @@ export function PackageCertificateForm({
   projectId,
   packageName,
   packageTestType,
+  packageTestPressure,
+  packageTestPressureUnit,
   onSuccess,
 }: PackageCertificateFormProps) {
   const { data: certificate, isLoading } = usePackageCertificate(packageId);
@@ -95,7 +99,7 @@ export function PackageCertificateForm({
     },
   });
 
-  // Pre-fill form if certificate exists
+  // Pre-fill form if certificate exists, or pre-populate pressure from package
   useEffect(() => {
     if (certificate) {
       form.reset({
@@ -108,8 +112,12 @@ export function PackageCertificateForm({
         temperature: String(certificate.temperature),
         temperature_unit: certificate.temperature_unit,
       });
+    } else if (packageTestPressure && packageTestPressureUnit) {
+      // Pre-populate pressure from package if no certificate exists
+      form.setValue('test_pressure', String(packageTestPressure));
+      form.setValue('pressure_unit', packageTestPressureUnit as 'PSIG' | 'BAR' | 'KPA' | 'PSI');
     }
-  }, [certificate, form]);
+  }, [certificate, packageTestPressure, packageTestPressureUnit, form]);
 
   const handleDraftSave = async () => {
     // Run validation to satisfy DB constraints

@@ -1224,6 +1224,8 @@ export type Database = {
           requires_coating: boolean | null
           requires_insulation: boolean | null
           target_date: string | null
+          test_pressure: number | null
+          test_pressure_unit: string | null
           test_type: string | null
         }
         Insert: {
@@ -1235,6 +1237,8 @@ export type Database = {
           requires_coating?: boolean | null
           requires_insulation?: boolean | null
           target_date?: string | null
+          test_pressure?: number | null
+          test_pressure_unit?: string | null
           test_type?: string | null
         }
         Update: {
@@ -1246,6 +1250,8 @@ export type Database = {
           requires_coating?: boolean | null
           requires_insulation?: boolean | null
           target_date?: string | null
+          test_pressure?: number | null
+          test_pressure_unit?: string | null
           test_type?: string | null
         }
         Relationships: [
@@ -1770,6 +1776,8 @@ export type Database = {
           p_requires_coating?: boolean
           p_requires_insulation?: boolean
           p_target_date?: string
+          p_test_pressure?: number
+          p_test_pressure_unit?: string
           p_test_type?: string
           p_user_id?: string
         }

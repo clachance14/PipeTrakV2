@@ -20,6 +20,13 @@ export type TestType =
   | 'Other';
 
 /**
+ * Test Pressure Unit Enum
+ *
+ * Valid values for test_pressure_unit column on test_packages table.
+ */
+export type TestPressureUnit = 'PSIG' | 'BAR' | 'KPA' | 'PSI';
+
+/**
  * Test Package (Base)
  *
  * Extends existing test_packages table with test_type column.
@@ -32,6 +39,8 @@ export interface TestPackage {
   description: string | null;
   test_type: TestType | null;
   target_date: string | null; // ISO 8601 date string
+  test_pressure: number | null; // Required for pressure-based tests
+  test_pressure_unit: TestPressureUnit | null; // Unit of measurement
   created_at: string; // ISO 8601 timestamp
 }
 
@@ -61,6 +70,8 @@ export interface TestPackageCreateInput {
   description?: string | null;
   test_type: TestType;
   target_date?: string | null; // ISO 8601 date string
+  test_pressure?: number | null; // Required for Hydrostatic/Pneumatic tests
+  test_pressure_unit?: TestPressureUnit; // Defaults to PSIG
 }
 
 /**
@@ -74,6 +85,8 @@ export interface TestPackageUpdateInput {
   description?: string | null;
   test_type?: TestType | null;
   target_date?: string | null;
+  test_pressure?: number | null;
+  test_pressure_unit?: TestPressureUnit | null;
 }
 
 // Backward compatibility aliases for existing code
@@ -88,6 +101,8 @@ export interface CreatePackagePayload extends Partial<TestPackageCreateInput> {
   p_test_type?: string; // Accepts any string (including custom test types)
   p_requires_coating?: boolean;
   p_requires_insulation?: boolean;
+  p_test_pressure?: number | null;
+  p_test_pressure_unit?: string; // Accepts 'PSIG', 'BAR', 'KPA', 'PSI'
 }
 
 export interface UpdatePackagePayload extends TestPackageUpdateInput {

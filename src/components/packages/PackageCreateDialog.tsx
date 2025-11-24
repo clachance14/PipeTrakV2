@@ -93,6 +93,8 @@ export function PackageCreateDialog({
   const [targetDate, setTargetDate] = useState('');
   const [requiresCoating, setRequiresCoating] = useState(false);
   const [requiresInsulation, setRequiresInsulation] = useState(false);
+  const [testPressure, setTestPressure] = useState<string>(''); // String for input, convert to number on submit
+  const [testPressureUnit, setTestPressureUnit] = useState<string>('PSIG');
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
   const [isCreatingAssignments, setIsCreatingAssignments] = useState(false);
@@ -107,6 +109,8 @@ export function PackageCreateDialog({
       setTargetDate('');
       setRequiresCoating(false);
       setRequiresInsulation(false);
+      setTestPressure('');
+      setTestPressureUnit('PSIG');
       setSelectedDrawingIds([]);
       setSelectedComponentIds([]);
     }
@@ -123,9 +127,15 @@ export function PackageCreateDialog({
   // Validation
   const hasSelection = selectedComponentIds.length > 0;
 
+  // Check if test type requires pressure
+  const isPressureBasedTest = testType === 'Hydrostatic Test' || testType === 'Pneumatic Test';
+  const pressureValue = testPressure.trim() ? parseFloat(testPressure) : null;
+  const hasPressureIfRequired = !isPressureBasedTest || (pressureValue !== null && pressureValue > 0);
+
   const isFormValid =
     name.trim().length > 0 &&
     selectedComponentIds.length > 0 &&
+    hasPressureIfRequired &&
     !createPackageMutation.isPending &&
     !isCreatingAssignments;
 
@@ -141,6 +151,11 @@ export function PackageCreateDialog({
     const trimmedName = name.trim();
     const finalTestType = testType === 'Other' ? testTypeOther.trim() : testType;
 
+    // Parse test pressure (only for pressure-based tests)
+    const finalTestPressure = isPressureBasedTest && testPressure.trim()
+      ? parseFloat(testPressure)
+      : null;
+
     // Create package
     createPackageMutation.mutate(
       {
@@ -151,6 +166,8 @@ export function PackageCreateDialog({
         p_target_date: targetDate || null,
         p_requires_coating: requiresCoating,
         p_requires_insulation: requiresInsulation,
+        p_test_pressure: finalTestPressure,
+        p_test_pressure_unit: isPressureBasedTest ? testPressureUnit : undefined,
       },
       {
         onSuccess: async (packageId: string) => {
@@ -329,6 +346,58 @@ export function PackageCreateDialog({
                     placeholder="Enter custom test type"
                     required
                   />
+                </div>
+              )}
+
+              {/* Test Pressure (conditional - for pressure-based tests) */}
+              {isPressureBasedTest && (
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-sm font-medium">
+                    Test Pressure <span className="text-red-500">*</span>
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    Specify the designed test pressure for this {testType}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Pressure Value */}
+                    <div className="space-y-2">
+                      <Label htmlFor="test-pressure" className="text-xs">
+                        Pressure
+                      </Label>
+                      <Input
+                        id="test-pressure"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={testPressure}
+                        onChange={(e) => setTestPressure(e.target.value)}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+
+                    {/* Pressure Unit */}
+                    <div className="space-y-2">
+                      <Label htmlFor="pressure-unit" className="text-xs">
+                        Unit
+                      </Label>
+                      <Select
+                        value={testPressureUnit}
+                        onValueChange={setTestPressureUnit}
+                      >
+                        <SelectTrigger id="pressure-unit">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PSIG">PSIG</SelectItem>
+                          <SelectItem value="BAR">BAR</SelectItem>
+                          <SelectItem value="KPA">KPA</SelectItem>
+                          <SelectItem value="PSI">PSI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               )}
 

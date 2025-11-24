@@ -427,12 +427,12 @@ function formatIdentityKey(key: any, type: string, totalCount = 1): string {
 }
 
 /**
- * Query single test package details including test_type
+ * Query single test package details including test_type and test_pressure
  * Used for package detail page header and certificate form
  */
 export function usePackageDetails(
   packageId: string | undefined
-): UseQueryResult<{ id: string; name: string; description: string | null; test_type: string | null; target_date: string | null; requires_coating: boolean | null; requires_insulation: boolean | null; created_at: string } | null, Error> {
+): UseQueryResult<{ id: string; name: string; description: string | null; test_type: string | null; target_date: string | null; requires_coating: boolean | null; requires_insulation: boolean | null; test_pressure: number | null; test_pressure_unit: string | null; created_at: string } | null, Error> {
   return useQuery({
     queryKey: ['package-details', packageId],
     queryFn: async () => {
@@ -440,7 +440,7 @@ export function usePackageDetails(
 
       const { data, error } = await supabase
         .from('test_packages')
-        .select('id, name, description, test_type, target_date, requires_coating, requires_insulation, created_at')
+        .select('id, name, description, test_type, target_date, requires_coating, requires_insulation, test_pressure, test_pressure_unit, created_at')
         .eq('id', packageId)
         .single();
 
