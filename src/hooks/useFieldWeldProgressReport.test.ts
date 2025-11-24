@@ -62,6 +62,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: 3.5,
           avg_days_to_acceptance: 5.2,
           pct_total: 75,
+          fitup_count: 90,
+          weld_complete_count: 85,
         },
       ];
 
@@ -114,6 +116,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: 2.8,
           avg_days_to_acceptance: 4.5,
           pct_total: 70,
+          fitup_count: 43,
+          weld_complete_count: 40,
         },
       ];
 
@@ -164,6 +168,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: 3.2,
           avg_days_to_acceptance: 4.8,
           pct_total: 72,
+          fitup_count: 66,
+          weld_complete_count: 62,
         },
       ];
 
@@ -296,6 +302,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: 3.5,
           avg_days_to_acceptance: 5.2,
           pct_total: 75,
+          fitup_count: 90,
+          weld_complete_count: 85,
         },
         {
           area_id: 'area-2',
@@ -318,6 +326,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: 2.5,
           avg_days_to_acceptance: 4.0,
           pct_total: 70,
+          fitup_count: 40,
+          weld_complete_count: 37,
         },
       ];
 
@@ -379,6 +389,13 @@ describe('useFieldWeldProgressReport', () => {
 
       // avgDaysToAcceptance: (5.2*100 + 4.0*50) / 150 = 720/150 = 4.8
       expect(grandTotal?.avgDaysToAcceptance).toBeCloseTo(4.8, 1);
+
+      // Milestone counts (simple sums)
+      // fitupCount: 90 + 40 = 130
+      expect(grandTotal?.fitupCount).toBe(130);
+
+      // weldCompleteCount: 85 + 37 = 122
+      expect(grandTotal?.weldCompleteCount).toBe(122);
     });
 
     it('handles null NDE pass rate when no NDE complete', async () => {
@@ -404,6 +421,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: null,
           avg_days_to_acceptance: null,
           pct_total: 25,
+          fitup_count: 50,
+          weld_complete_count: 25,
         },
       ];
 
@@ -453,6 +472,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: null,
           avg_days_to_acceptance: null,
           pct_total: 25,
+          fitup_count: 50,
+          weld_complete_count: 25,
         },
       ];
 
@@ -673,6 +694,8 @@ describe('useFieldWeldProgressReport', () => {
           avg_days_to_nde: 3.0,
           avg_days_to_acceptance: 4.5,
           pct_total: 65,
+          fitup_count: 40,
+          weld_complete_count: 35,
         },
       ];
 

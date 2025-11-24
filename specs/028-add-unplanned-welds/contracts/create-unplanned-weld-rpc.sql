@@ -47,7 +47,7 @@ REVOKE EXECUTE ON FUNCTION create_unplanned_weld FROM anon;
 COMMENT ON FUNCTION create_unplanned_weld IS
 'Creates an unplanned field weld with atomic component creation.
 
-Permissions: Owner, Admin, PM, Foreman, QC Inspector
+Permissions: Owner, Admin, Project Manager, Foreman, QC Inspector
 Returns: JSON with field_weld and component records
 Raises: Exception if permissions denied, duplicate weld number, or invalid references
 
@@ -87,7 +87,7 @@ SELECT create_unplanned_weld(
 -- 1. Permission Check:
 --    - Get current user from auth.uid()
 --    - Join to users table to get role
---    - Verify role IN ('owner', 'admin', 'pm', 'foreman', 'qc')
+--    - Verify role IN ('owner', 'admin', 'project_manager', 'foreman', 'qc_inspector')
 --    - RAISE EXCEPTION 'Permission denied' if check fails
 
 -- 2. Drawing Validation:
@@ -212,7 +212,7 @@ SELECT create_unplanned_weld(
 -- 2. Happy path with all optional fields
 -- 3. Permission denied for Viewer role
 -- 4. Permission denied for Welder role
--- 5. Success for Owner, Admin, PM, Foreman, QC roles
+-- 5. Success for Owner, Admin, Project Manager, Foreman, QC Inspector roles
 -- 6. Drawing not found error
 -- 7. Duplicate weld number error
 -- 8. Invalid weld type error

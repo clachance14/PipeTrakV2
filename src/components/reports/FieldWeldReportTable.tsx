@@ -3,13 +3,17 @@
  * Virtualized table for displaying field weld progress report with Grand Total row
  */
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { toast } from 'sonner';
+import { useFieldWeldPDFExport } from '@/hooks/useFieldWeldPDFExport';
+import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import type { FieldWeldReportData, ExportFormat } from '@/types/reports';
 import {
   FIELD_WELD_DIMENSION_LABELS,
   FIELD_WELD_REPORT_COLUMNS,
   WELDER_PERFORMANCE_COLUMNS,
+  XRAY_TIER_COLUMNS,
 } from '@/types/reports';
 
 interface FieldWeldReportTableProps {
@@ -20,13 +24,75 @@ interface FieldWeldReportTableProps {
 
 export function FieldWeldReportTable({ reportData, projectName, onExport }: FieldWeldReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const { generatePDFPreview, isGenerating } = useFieldWeldPDFExport();
+
+  // PDF Preview state
+  const [previewState, setPreviewState] = useState<{
+    open: boolean;
+    url: string | null;
+    filename: string | null;
+    blob: Blob | null;
+  }>({
+    open: false,
+    url: null,
+    filename: null,
+    blob: null,
+  });
 
   // Determine if welder-specific columns should be shown
   const isWelderDimension = reportData.dimension === 'welder';
 
+  // Enhanced PDF export handler (preview first, then download from dialog)
+  const handleEnhancedPDFExport = async () => {
+    try {
+      const { blob, url, filename } = await generatePDFPreview(
+        reportData,
+        projectName,
+        reportData.dimension,
+        undefined // Optional company logo
+      );
+
+      setPreviewState({
+        open: true,
+        url,
+        filename,
+        blob,
+      });
+    } catch (err) {
+      console.error('Enhanced PDF export error:', err);
+      toast.error('Failed to generate PDF. Please try again or use classic export.');
+    }
+  };
+
+  /**
+   * Close preview dialog and cleanup object URL
+   */
+  const handleClosePreview = () => {
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+    setPreviewState({
+      open: false,
+      url: null,
+      filename: null,
+      blob: null,
+    });
+  };
+
+  /**
+   * Cleanup effect - revoke object URL if component unmounts with open preview
+   */
+  useEffect(() => {
+    return () => {
+      if (previewState.url) {
+        URL.revokeObjectURL(previewState.url);
+      }
+    };
+  }, [previewState.url]);
+
   // Build column list based on dimension
   const columns = isWelderDimension
-    ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS]
+    ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS, ...XRAY_TIER_COLUMNS]
     : FIELD_WELD_REPORT_COLUMNS;
 
   // Combine data rows + grand total for virtualization
@@ -70,16 +136,30 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
   const dimensionLabel = FIELD_WELD_DIMENSION_LABELS[reportData.dimension];
 
   return (
-    <div className="space-y-4">
-      {/* Export Buttons */}
-      <div className="flex justify-end gap-2">
+    <>
+      {/* PDF Preview Dialog */}
+      <PDFPreviewDialog
+        open={previewState.open}
+        onClose={handleClosePreview}
+        previewUrl={previewState.url}
+        blob={previewState.blob}
+        filename={previewState.filename}
+      />
+
+      <div className="space-y-4">
+        {/* Export Buttons (Desktop only: ≥1024px) */}
+        <div className="hidden lg:flex justify-end gap-2">
+        {/* Enhanced PDF Export (Component-based with Preview) */}
         <button
-          onClick={() => onExport('pdf')}
-          className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500"
-          aria-label="Export report to PDF"
+          onClick={handleEnhancedPDFExport}
+          disabled={isGenerating}
+          className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Preview and export report to PDF"
         >
-          Export PDF
+          {isGenerating ? 'Generating Preview...' : 'Preview & Export PDF'}
         </button>
+
+        {/* Excel Export */}
         <button
           onClick={() => onExport('excel')}
           className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -87,6 +167,8 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
         >
           Export Excel
         </button>
+
+        {/* CSV Export */}
         <button
           onClick={() => onExport('csv')}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -220,12 +302,13 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
         </div>
       </div>
 
-      {/* Report Metadata */}
-      <div className="text-sm text-muted-foreground">
-        <p>
-          Report generated at {reportData.generatedAt.toLocaleString()} for project: {projectName}
-        </p>
+        {/* Report Metadata */}
+        <div className="text-sm text-muted-foreground">
+          <p>
+            Report generated at {reportData.generatedAt.toLocaleString()} for project: {projectName}
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

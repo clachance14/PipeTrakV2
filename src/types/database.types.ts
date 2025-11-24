@@ -247,14 +247,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "components_test_package_id_fkey"
+            foreignKeyName: "fk_components_test_package"
             columns: ["test_package_id"]
             isOneToOne: false
             referencedRelation: "mv_package_readiness"
             referencedColumns: ["package_id"]
           },
           {
-            foreignKeyName: "components_test_package_id_fkey"
+            foreignKeyName: "fk_components_test_package"
             columns: ["test_package_id"]
             isOneToOne: false
             referencedRelation: "test_packages"
@@ -393,6 +393,7 @@ export type Database = {
           date_welded: string | null
           id: string
           is_repair: boolean | null
+          is_unplanned: boolean
           nde_date: string | null
           nde_notes: string | null
           nde_required: boolean
@@ -408,6 +409,7 @@ export type Database = {
           weld_size: string | null
           weld_type: string
           welder_id: string | null
+          xray_percentage: number | null
         }
         Insert: {
           base_metal?: string | null
@@ -417,6 +419,7 @@ export type Database = {
           date_welded?: string | null
           id?: string
           is_repair?: boolean | null
+          is_unplanned?: boolean
           nde_date?: string | null
           nde_notes?: string | null
           nde_required?: boolean
@@ -432,6 +435,7 @@ export type Database = {
           weld_size?: string | null
           weld_type: string
           welder_id?: string | null
+          xray_percentage?: number | null
         }
         Update: {
           base_metal?: string | null
@@ -441,6 +445,7 @@ export type Database = {
           date_welded?: string | null
           id?: string
           is_repair?: boolean | null
+          is_unplanned?: boolean
           nde_date?: string | null
           nde_notes?: string | null
           nde_required?: boolean
@@ -456,6 +461,7 @@ export type Database = {
           weld_size?: string | null
           weld_type?: string
           welder_id?: string | null
+          xray_percentage?: number | null
         }
         Relationships: [
           {
@@ -715,6 +721,219 @@ export type Database = {
           deleted_by?: string | null
           id?: string
           name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      package_certificates: {
+        Row: {
+          certificate_number: string
+          client: string | null
+          client_spec: string | null
+          created_at: string
+          id: string
+          line_number: string | null
+          package_id: string
+          pressure_unit: string
+          temperature: number
+          temperature_unit: string
+          test_media: string
+          test_pressure: number
+          updated_at: string
+        }
+        Insert: {
+          certificate_number: string
+          client?: string | null
+          client_spec?: string | null
+          created_at?: string
+          id?: string
+          line_number?: string | null
+          package_id: string
+          pressure_unit?: string
+          temperature: number
+          temperature_unit?: string
+          test_media: string
+          test_pressure: number
+          updated_at?: string
+        }
+        Update: {
+          certificate_number?: string
+          client?: string | null
+          client_spec?: string | null
+          created_at?: string
+          id?: string
+          line_number?: string | null
+          package_id?: string
+          pressure_unit?: string
+          temperature?: number
+          temperature_unit?: string
+          test_media?: string
+          test_pressure?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_certificates_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "package_certificates_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_drawing_assignments: {
+        Row: {
+          created_at: string
+          drawing_id: string
+          id: string
+          package_id: string
+        }
+        Insert: {
+          created_at?: string
+          drawing_id: string
+          id?: string
+          package_id: string
+        }
+        Update: {
+          created_at?: string
+          drawing_id?: string
+          id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_drawing_assignments_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "drawings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "mv_drawing_progress"
+            referencedColumns: ["drawing_id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_workflow_stages: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          package_id: string
+          signoffs: Json | null
+          skip_reason: string | null
+          stage_data: Json | null
+          stage_name: string
+          stage_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          package_id: string
+          signoffs?: Json | null
+          skip_reason?: string | null
+          stage_data?: Json | null
+          stage_name: string
+          stage_order: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string
+          signoffs?: Json | null
+          skip_reason?: string | null
+          stage_data?: Json | null
+          stage_name?: string
+          stage_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_workflow_stages_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_workflow_stages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "mv_package_readiness"
+            referencedColumns: ["package_id"]
+          },
+          {
+            foreignKeyName: "package_workflow_stages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "test_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_workflow_templates: {
+        Row: {
+          created_at: string | null
+          default_skip_reason: string | null
+          id: string
+          is_required: boolean
+          stage_name: string
+          stage_order: number
+          test_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_skip_reason?: string | null
+          id?: string
+          is_required?: boolean
+          stage_name: string
+          stage_order: number
+          test_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_skip_reason?: string | null
+          id?: string
+          is_required?: boolean
+          stage_name?: string
+          stage_order?: number
+          test_type?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -1002,7 +1221,10 @@ export type Database = {
           id: string
           name: string
           project_id: string
+          requires_coating: boolean | null
+          requires_insulation: boolean | null
           target_date: string | null
+          test_type: string | null
         }
         Insert: {
           created_at?: string
@@ -1010,7 +1232,10 @@ export type Database = {
           id?: string
           name: string
           project_id: string
+          requires_coating?: boolean | null
+          requires_insulation?: boolean | null
           target_date?: string | null
+          test_type?: string | null
         }
         Update: {
           created_at?: string
@@ -1018,7 +1243,10 @@ export type Database = {
           id?: string
           name?: string
           project_id?: string
+          requires_coating?: boolean | null
+          requires_insulation?: boolean | null
           target_date?: string | null
+          test_type?: string | null
         }
         Relationships: [
           {
@@ -1265,6 +1493,7 @@ export type Database = {
           area_name: string | null
           avg_days_to_acceptance: number | null
           avg_days_to_nde: number | null
+          fitup_count: number | null
           nde_fail_count: number | null
           nde_pass_count: number | null
           nde_pass_rate: number | null
@@ -1279,6 +1508,7 @@ export type Database = {
           repair_count: number | null
           repair_rate: number | null
           total_welds: number | null
+          weld_complete_count: number | null
         }
         Relationships: []
       }
@@ -1288,6 +1518,7 @@ export type Database = {
           active_count: number | null
           avg_days_to_acceptance: number | null
           avg_days_to_nde: number | null
+          fitup_count: number | null
           nde_fail_count: number | null
           nde_pass_count: number | null
           nde_pass_rate: number | null
@@ -1304,6 +1535,7 @@ export type Database = {
           system_id: string | null
           system_name: string | null
           total_welds: number | null
+          weld_complete_count: number | null
         }
         Relationships: []
       }
@@ -1313,6 +1545,7 @@ export type Database = {
           active_count: number | null
           avg_days_to_acceptance: number | null
           avg_days_to_nde: number | null
+          fitup_count: number | null
           nde_fail_count: number | null
           nde_pass_count: number | null
           nde_pass_rate: number | null
@@ -1329,6 +1562,7 @@ export type Database = {
           test_package_id: string | null
           test_package_name: string | null
           total_welds: number | null
+          weld_complete_count: number | null
         }
         Relationships: []
       }
@@ -1357,6 +1591,13 @@ export type Database = {
           welder_id: string | null
           welder_name: string | null
           welder_stencil: string | null
+          xray_100pct_count: number | null
+          xray_100pct_pass_rate: number | null
+          xray_10pct_count: number | null
+          xray_10pct_pass_rate: number | null
+          xray_5pct_count: number | null
+          xray_5pct_pass_rate: number | null
+          xray_other_count: number | null
         }
         Relationships: [
           {
@@ -1526,7 +1767,10 @@ export type Database = {
           p_description?: string
           p_name: string
           p_project_id: string
+          p_requires_coating?: boolean
+          p_requires_insulation?: boolean
           p_target_date?: string
+          p_test_type?: string
           p_user_id?: string
         }
         Returns: string
@@ -1542,6 +1786,7 @@ export type Database = {
           p_weld_number: string
           p_weld_size: string
           p_weld_type: string
+          p_xray_percentage?: number
         }
         Returns: Json
       }
@@ -1556,6 +1801,10 @@ export type Database = {
           drawing_no_norm: string
           similarity_score: number
         }[]
+      }
+      generate_certificate_number: {
+        Args: { p_project_id: string }
+        Returns: string
       }
       get_current_user_email: { Args: never; Returns: string }
       get_current_user_org_id: { Args: never; Returns: string }
@@ -1583,6 +1832,52 @@ export type Database = {
           repair_sequence: number
           weld_id_number: number
           welder_stencil: string
+        }[]
+      }
+      get_weld_summary_by_welder: {
+        Args: {
+          p_area_ids?: string[]
+          p_end_date?: string
+          p_package_ids?: string[]
+          p_project_id: string
+          p_start_date?: string
+          p_system_ids?: string[]
+          p_welder_ids?: string[]
+        }
+        Returns: {
+          bw_nde_100pct: number
+          bw_nde_10pct: number
+          bw_nde_5pct: number
+          bw_nde_comp_100pct: number
+          bw_nde_comp_10pct: number
+          bw_nde_comp_5pct: number
+          bw_reject_100pct: number
+          bw_reject_10pct: number
+          bw_reject_5pct: number
+          bw_reject_rate: number
+          bw_welds_100pct: number
+          bw_welds_10pct: number
+          bw_welds_5pct: number
+          nde_total: number
+          reject_rate: number
+          reject_total: number
+          sw_nde_100pct: number
+          sw_nde_10pct: number
+          sw_nde_5pct: number
+          sw_nde_comp_100pct: number
+          sw_nde_comp_10pct: number
+          sw_nde_comp_5pct: number
+          sw_reject_100pct: number
+          sw_reject_10pct: number
+          sw_reject_5pct: number
+          sw_reject_rate: number
+          sw_welds_100pct: number
+          sw_welds_10pct: number
+          sw_welds_5pct: number
+          welder_id: string
+          welder_name: string
+          welder_stencil: string
+          welds_total: number
         }[]
       }
       is_super_admin: { Args: never; Returns: boolean }

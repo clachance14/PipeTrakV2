@@ -11,8 +11,11 @@ import { TemplateCard } from './TemplateCard'
 import { CloneTemplatesBanner } from './CloneTemplatesBanner'
 import { TemplateEditor } from './TemplateEditor'
 import { SettingsLayout } from './SettingsLayout'
+import { MilestoneTemplatesTable } from './MilestoneTemplatesTable'
 import { toast } from 'sonner'
 import { usePermissions } from '@/hooks/usePermissions'
+import { LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface MilestoneTemplatesPageProps {
   projectId: string
@@ -60,9 +63,12 @@ function TemplateCardWithChanges({
 }
 
 export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProps) {
-  const { data: templates, isLoading, error } = useProjectTemplates(projectId)
+  const { data: templates, isLoading, error, refetch } = useProjectTemplates(projectId)
   const cloneMutation = useCloneTemplates()
   const { canManageProject } = usePermissions()
+
+  // State for view mode
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table')
 
   // State for template editor modal
   const [editorOpen, setEditorOpen] = useState(false)
@@ -77,6 +83,7 @@ export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProp
       {
         onSuccess: (data) => {
           toast.success(`Successfully cloned ${data.templates_created} templates`)
+          refetch()
         },
         onError: (error) => {
           toast.error(`Failed to clone templates: ${error.message}`)
@@ -129,44 +136,78 @@ export function MilestoneTemplatesPage({ projectId }: MilestoneTemplatesPageProp
       title="Rules of Credit"
       description="Customize progress tracking weights for each component type. Changes apply to all existing and future components."
     >
-      {!hasTemplates ? (
-        <CloneTemplatesBanner onClone={handleClone} isCloning={cloneMutation.isPending} />
-      ) : (
-        <>
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            role="region"
-            aria-label="Component type templates"
-          >
-            {componentTypes.map((componentType) => (
-              <TemplateCardWithChanges
-                key={componentType}
-                projectId={projectId}
-                componentType={componentType}
-                milestoneCount={templatesByType[componentType]?.length || 0}
-                hasTemplates={true}
-                onEdit={() => handleEditClick(componentType)}
-                canEdit={canEdit}
-              />
-            ))}
-          </div>
+      <div className="space-y-6">
+        {/* View Toggle */}
+        {hasTemplates && (
+            <div className="flex justify-end">
+            <div className="bg-slate-100 p-1 rounded-lg flex gap-1">
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className={`gap-2 ${viewMode === 'cards' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+                >
+                <LayoutGrid className="w-4 h-4" />
+                Cards
+                </Button>
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className={`gap-2 ${viewMode === 'table' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+                >
+                <TableIcon className="w-4 h-4" />
+                Table
+                </Button>
+            </div>
+            </div>
+        )}
 
-          {/* Template Editor Modal (US2) */}
-          {selectedComponentType && (
-            <TemplateEditor
-              open={editorOpen}
-              onOpenChange={setEditorOpen}
-              projectId={projectId}
-              componentType={selectedComponentType}
-              weights={selectedTemplates.map((t) => ({
-                milestone_name: t.milestone_name,
-                weight: t.weight,
-              }))}
-              lastUpdated={lastUpdated}
+        {!hasTemplates ? (
+            <CloneTemplatesBanner onClone={handleClone} isCloning={cloneMutation.isPending} />
+        ) : viewMode === 'table' ? (
+            <MilestoneTemplatesTable 
+                projectId={projectId} 
+                templates={templates || []} 
+                onRefresh={refetch}
             />
-          )}
-        </>
-      )}
+        ) : (
+            <>
+            <div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                role="region"
+                aria-label="Component type templates"
+            >
+                {componentTypes.map((componentType) => (
+                <TemplateCardWithChanges
+                    key={componentType}
+                    projectId={projectId}
+                    componentType={componentType}
+                    milestoneCount={templatesByType[componentType]?.length || 0}
+                    hasTemplates={true}
+                    onEdit={() => handleEditClick(componentType)}
+                    canEdit={canEdit}
+                />
+                ))}
+            </div>
+
+            {/* Template Editor Modal (US2) */}
+            {selectedComponentType && (
+                <TemplateEditor
+                open={editorOpen}
+                onOpenChange={setEditorOpen}
+                projectId={projectId}
+                componentType={selectedComponentType}
+                weights={selectedTemplates.map((t) => ({
+                    milestone_name: t.milestone_name,
+                    weight: t.weight,
+                }))}
+                lastUpdated={lastUpdated}
+                />
+            )}
+            </>
+        )}
+      </div>
     </SettingsLayout>
   )
 }

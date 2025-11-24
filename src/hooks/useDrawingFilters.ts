@@ -130,6 +130,10 @@ export function useDrawingFilters() {
             aVal = a.title
             bVal = b.title
             break
+          case 'spec':
+            aVal = a.spec || null
+            bVal = b.spec || null
+            break
           case 'area':
             aVal = a.area?.name || null
             bVal = b.area?.name || null

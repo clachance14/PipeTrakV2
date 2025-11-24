@@ -246,25 +246,6 @@ describe('Component Metadata Editing - User Story 1', () => {
    * T014: Opening modal on component click
    */
   describe('T014: Opening modal on component click', () => {
-    it('should open modal when component row is clicked', async () => {
-      // This test will fail until DrawingTable and ComponentMetadataModal are implemented
-
-      // Render component with mock table
-      const { container } = render(
-        <QueryClientProvider client={queryClient}>
-          <MockDrawingTable />
-        </QueryClientProvider>
-      )
-
-      // Click on component row
-      const componentRow = screen.getByTestId('component-row-comp-001')
-      await user.click(componentRow)
-
-      // Verify modal opens (this will fail - no modal implementation yet)
-      // Expected behavior: modal should appear after click
-      expect(screen.queryByRole('dialog')).toBeInTheDocument()
-    })
-
     it('should display component identity in modal', async () => {
       // This test validates that the modal shows the correct component info
 

@@ -32,8 +32,10 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Sync local modal state with computed shouldShowModal
+  // Only show if not already dismissed in this session
   useEffect(() => {
-    if (shouldShowModal) {
+    const dismissedInSession = sessionStorage.getItem('changelog-dismissed') === 'true'
+    if (shouldShowModal && !dismissedInSession) {
       setIsModalOpen(true)
     }
   }, [shouldShowModal])
@@ -41,6 +43,7 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
   // Handle modal close: close immediately (optimistic UI) and update database
   const handleModalClose = async () => {
     setIsModalOpen(false)
+    sessionStorage.setItem('changelog-dismissed', 'true')
     await markAsViewed()
   }
 

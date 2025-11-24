@@ -3,14 +3,18 @@ import { useState } from 'react';
 import { useProject } from '@/contexts/ProjectContext';
 import { usePackageReadiness } from '@/hooks/usePackages';
 import { PackageCard } from '@/components/packages/PackageCard';
+import { PackageTable } from '@/components/packages/PackageTable';
 import { PackageEditDialog } from '@/components/packages/PackageEditDialog';
+import { PackageCreateDialog } from '@/components/packages/PackageCreateDialog';
 import { EmptyState } from '@/components/EmptyState';
-import { Package, AlertCircle, Plus } from 'lucide-react';
+import { Package, AlertCircle, Plus, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePackagePreferencesStore } from '@/stores/usePackagePreferencesStore';
 import type { Package as PackageType } from '@/types/package.types';
 
 export function PackagesPage() {
   const { selectedProjectId } = useProject();
+  const { viewMode, setViewMode } = usePackagePreferencesStore();
 
   // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -121,12 +125,45 @@ export function PackagesPage() {
             <h1 className="text-2xl font-bold text-gray-900">Test Package Readiness</h1>
             <p className="text-gray-600 mt-1">Track package completion and turnover readiness</p>
           </div>
-          {selectedProjectId && (
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Package
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {/* View toggle - desktop only */}
+            <div className="hidden lg:flex bg-slate-100 p-1 rounded-lg gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className={`gap-2 ${
+                  viewMode === 'cards'
+                    ? 'bg-white shadow-sm text-slate-900'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Cards
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className={`gap-2 ${
+                  viewMode === 'list'
+                    ? 'bg-white shadow-sm text-slate-900'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <TableIcon className="w-4 h-4" />
+                List
+              </Button>
+            </div>
+
+            {/* New Package button */}
+            {selectedProjectId && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Package
+              </Button>
+            )}
+          </div>
         </div>
 
         {!packages || packages.length === 0 ? (
@@ -135,7 +172,7 @@ export function PackagesPage() {
             title="No test packages found"
             description="Create your first test package to start tracking turnover readiness."
           />
-        ) : (
+        ) : viewMode === 'cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {packages.map((pkg) => (
               <PackageCard
@@ -145,12 +182,19 @@ export function PackagesPage() {
               />
             ))}
           </div>
+        ) : (
+          <PackageTable
+            packages={packages}
+            onEdit={(pkgId) => {
+              const pkg = packages.find(p => p.id === pkgId);
+              if (pkg) handleEdit(pkg.packageData);
+            }}
+          />
         )}
 
-        {/* Create Package Dialog */}
+        {/* Create Package Dialog (Feature 030 - with drawing assignment) */}
         {selectedProjectId && (
-          <PackageEditDialog
-            mode="create"
+          <PackageCreateDialog
             projectId={selectedProjectId}
             open={createDialogOpen}
             onOpenChange={setCreateDialogOpen}

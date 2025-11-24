@@ -20,7 +20,7 @@ export interface CreateUnplannedWeldParams {
   spec: string
   schedule?: string
   baseMetal?: string
-  notes?: string
+  notes: string
 }
 
 export interface CreateUnplannedWeldResponse {
@@ -79,11 +79,16 @@ export function useCreateUnplannedWeld() {
 
       return data as unknown as CreateUnplannedWeldResponse
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Refresh materialized views to ensure drawing Items count is immediately updated
+      await supabase.rpc('refresh_materialized_views')
+
       // Invalidate field-welds queries to refresh the table
       queryClient.invalidateQueries({ queryKey: ['field-welds'] })
       // Also invalidate components queries in case they're displayed elsewhere
       queryClient.invalidateQueries({ queryKey: ['components'] })
+      // Invalidate drawings-with-progress to update the Items count
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
     }
   })
 }

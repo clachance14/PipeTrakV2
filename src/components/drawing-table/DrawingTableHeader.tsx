@@ -56,6 +56,19 @@ export function DrawingTableHeader({
         />
       </div>
 
+      {/* Spec - Hidden on mobile */}
+      {!isMobile && (
+        <div className="min-w-[80px]">
+          <SortableColumnHeader
+            label="Spec"
+            field="spec"
+            currentSortField={sortField}
+            currentSortDirection={sortDirection}
+            onSort={onSort}
+          />
+        </div>
+      )}
+
       {/* Area */}
       <div className={isMobile ? 'flex-1' : 'min-w-[60px] ml-auto'}>
         <SortableColumnHeader

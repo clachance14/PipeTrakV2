@@ -47,6 +47,8 @@ function calculateFieldWeldGrandTotal(
       avgDaysToNDE: null,
       avgDaysToAcceptance: null,
       pctTotal: 0,
+      fitupCount: 0,
+      weldCompleteCount: 0,
     };
   }
 
@@ -60,6 +62,8 @@ function calculateFieldWeldGrandTotal(
   const ndeFailCount = rows.reduce((sum, row) => sum + row.ndeFailCount, 0);
   const ndePendingCount = rows.reduce((sum, row) => sum + row.ndePendingCount, 0);
   const repairCount = rows.reduce((sum, row) => sum + row.repairCount, 0);
+  const fitupCount = rows.reduce((sum, row) => sum + row.fitupCount, 0);
+  const weldCompleteCount = rows.reduce((sum, row) => sum + row.weldCompleteCount, 0);
 
   // Calculate weighted averages for percentages (weight by totalWelds)
   const weightedAvgPercentage = (
@@ -108,6 +112,8 @@ function calculateFieldWeldGrandTotal(
     avgDaysToNDE: weightedAvgTime('avgDaysToNDE'),
     avgDaysToAcceptance: weightedAvgTime('avgDaysToAcceptance'),
     pctTotal: Math.round(weightedAvgPercentage('pctTotal')),
+    fitupCount,
+    weldCompleteCount,
   };
 
   // Add welder-specific metrics if dimension is 'welder'
@@ -156,6 +162,8 @@ function transformAreaRow(row: AreaProgressRow): FieldWeldProgressRow {
     avgDaysToNDE: row.avg_days_to_nde,
     avgDaysToAcceptance: row.avg_days_to_acceptance,
     pctTotal: row.pct_total || 0,
+    fitupCount: row.fitup_count || 0,
+    weldCompleteCount: row.weld_complete_count || 0,
   };
 }
 
@@ -184,6 +192,8 @@ function transformSystemRow(row: SystemProgressRow): FieldWeldProgressRow {
     avgDaysToNDE: row.avg_days_to_nde,
     avgDaysToAcceptance: row.avg_days_to_acceptance,
     pctTotal: row.pct_total || 0,
+    fitupCount: row.fitup_count || 0,
+    weldCompleteCount: row.weld_complete_count || 0,
   };
 }
 
@@ -212,6 +222,8 @@ function transformTestPackageRow(row: TestPackageProgressRow): FieldWeldProgress
     avgDaysToNDE: row.avg_days_to_nde,
     avgDaysToAcceptance: row.avg_days_to_acceptance,
     pctTotal: row.pct_total || 0,
+    fitupCount: row.fitup_count || 0,
+    weldCompleteCount: row.weld_complete_count || 0,
   };
 }
 
@@ -241,6 +253,9 @@ function transformWelderRow(row: WelderProgressRow): FieldWeldProgressRow {
     avgDaysToNDE: row.avg_days_to_nde,
     avgDaysToAcceptance: row.avg_days_to_acceptance,
     pctTotal: row.pct_total || 0,
+    // NOTE: Welder view doesn't have count columns yet (will be added separately)
+    fitupCount: 0,
+    weldCompleteCount: 0,
     firstPassAcceptanceCount: row.first_pass_acceptance_count || 0,
     firstPassAcceptanceRate: row.first_pass_acceptance_rate,
   };
