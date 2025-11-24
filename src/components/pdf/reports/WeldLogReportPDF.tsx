@@ -41,7 +41,7 @@ const LAYOUT = {
   BRANDED_HEADER_TOP: 20,             // Branded header position from top
   BRANDED_HEADER_HEIGHT: 50,          // Estimated branded header height
   TABLE_HEADER_TOP: 70,               // Table header position from top
-  TABLE_HEADER_HEIGHT: 26,            // Table header padding (8*2) + font (10)
+  TABLE_HEADER_HEIGHT: 40,            // Table header actual height (padding + text + flex spacing)
   FOOTER_BOTTOM: 20,                  // Footer position from bottom
   FOOTER_HEIGHT: 30,                  // Estimated footer height
 } as const;
