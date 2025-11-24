@@ -32,6 +32,27 @@ import { commonStyles } from '../styles/commonStyles';
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds';
 import type { TableColumnDefinition } from '@/types/pdf-components';
 
+/**
+ * Layout constants for fixed positioning
+ * These define the spacing for repeated headers/footers across pages
+ */
+const LAYOUT = {
+  PAGE_MARGIN: 40,                    // Left/right margins
+  BRANDED_HEADER_TOP: 20,             // Branded header position from top
+  BRANDED_HEADER_HEIGHT: 50,          // Estimated branded header height
+  TABLE_HEADER_TOP: 70,               // Table header position from top
+  TABLE_HEADER_HEIGHT: 26,            // Table header padding (8*2) + font (10)
+  FOOTER_BOTTOM: 20,                  // Footer position from bottom
+  FOOTER_HEIGHT: 30,                  // Estimated footer height
+} as const;
+
+// Calculate derived spacing values
+const SPACING = {
+  PAGE_PADDING_TOP: LAYOUT.BRANDED_HEADER_TOP + LAYOUT.BRANDED_HEADER_HEIGHT + 10,
+  PAGE_PADDING_BOTTOM: LAYOUT.FOOTER_HEIGHT + 20,
+  TABLE_BODY_MARGIN_TOP: LAYOUT.TABLE_HEADER_TOP + LAYOUT.TABLE_HEADER_HEIGHT - LAYOUT.BRANDED_HEADER_TOP - LAYOUT.BRANDED_HEADER_HEIGHT + 10,
+} as const;
+
 export interface WeldLogReportPDFProps {
   welds: EnrichedFieldWeld[];
   projectName: string;
@@ -141,12 +162,17 @@ export function WeldLogReportPDF({
         orientation="landscape"
         style={{
           ...commonStyles.page,
-          paddingTop: 80, // Space for fixed header
-          paddingBottom: 50, // Space for fixed footer
+          paddingTop: SPACING.PAGE_PADDING_TOP,
+          paddingBottom: SPACING.PAGE_PADDING_BOTTOM,
         }}
       >
         {/* Branded Header - Fixed at top of every page */}
-        <View fixed style={{ position: 'absolute', top: 20, left: 40, right: 40 }}>
+        <View fixed style={{
+          position: 'absolute',
+          top: LAYOUT.BRANDED_HEADER_TOP,
+          left: LAYOUT.PAGE_MARGIN,
+          right: LAYOUT.PAGE_MARGIN,
+        }}>
           <BrandedHeader
             logo={companyLogo}
             title="PipeTrak Weld Log"
@@ -157,12 +183,21 @@ export function WeldLogReportPDF({
         </View>
 
         {/* Table Header - Fixed, repeats on every page below branded header */}
-        <View fixed style={{ position: 'absolute', top: 70, left: 40, right: 40 }}>
+        <View fixed style={{
+          position: 'absolute',
+          top: LAYOUT.TABLE_HEADER_TOP,
+          left: LAYOUT.PAGE_MARGIN,
+          right: LAYOUT.PAGE_MARGIN,
+        }}>
           <TableHeader columns={columns} />
         </View>
 
         {/* Table Body - Flows across pages automatically with proper spacing */}
-        <View style={{ marginLeft: 40, marginRight: 40, marginTop: 0 }}>
+        <View style={{
+          marginLeft: LAYOUT.PAGE_MARGIN,
+          marginRight: LAYOUT.PAGE_MARGIN,
+          marginTop: SPACING.TABLE_BODY_MARGIN_TOP,
+        }}>
           {data.map((row, index) => (
             <TableRow
               key={`row-${index}`}
@@ -174,7 +209,12 @@ export function WeldLogReportPDF({
         </View>
 
         {/* Footer - Fixed at bottom of every page */}
-        <View fixed style={{ position: 'absolute', bottom: 20, left: 40, right: 40 }}>
+        <View fixed style={{
+          position: 'absolute',
+          bottom: LAYOUT.FOOTER_BOTTOM,
+          left: LAYOUT.PAGE_MARGIN,
+          right: LAYOUT.PAGE_MARGIN,
+        }}>
           <ReportFooter showPageNumbers={true} />
         </View>
       </Page>
