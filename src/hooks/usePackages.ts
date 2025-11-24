@@ -56,13 +56,21 @@ export function usePackageReadiness(
       if (componentsError) throw componentsError;
 
       // Query 3: Get blocker counts from needs_review
+      // Note: Avoid .in() with large arrays (hits URL length limits ~2000 chars)
+      // Instead, query by project_id + status and filter client-side
       const { data: blockersData, error: blockersError } = await supabase
         .from('needs_review')
         .select('id, component_id')
-        .eq('status', 'pending')
-        .in('component_id', (componentsData || []).map(c => c.id));
+        .eq('project_id', projectId)
+        .eq('status', 'pending');
 
       if (blockersError) throw blockersError;
+
+      // Filter to only blockers for components in this project (client-side)
+      const componentIdsSet = new Set((componentsData || []).map(c => c.id));
+      const filteredBlockers = (blockersData || []).filter(b =>
+        b.component_id && componentIdsSet.has(b.component_id)
+      );
 
       // Calculate stats per package
       type PackageStats = {
@@ -111,7 +119,7 @@ export function usePackageReadiness(
         delete stats._sum_percent;
 
         // Count blockers for this package's components
-        stats.blocker_count = (blockersData || []).filter((blocker) => {
+        stats.blocker_count = filteredBlockers.filter((blocker) => {
           const component = componentsData?.find(c => c.id === blocker.component_id);
           return component?.test_package_id === packageId;
         }).length;
