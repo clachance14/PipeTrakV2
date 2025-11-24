@@ -171,6 +171,9 @@ export function useCreateDrawingAssignments(
         queryKey: ['package-components', { package_id: packageId }],
       });
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
+      // Invalidate drawings queries to update TP column in Drawings page
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'drawings'] });
     },
   });
 }
@@ -253,6 +256,9 @@ export function useDeleteDrawingAssignment(
         queryKey: ['package-components', { package_id: packageId }],
       });
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
+      // Invalidate drawings queries to update TP column in Drawings page
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'drawings'] });
     },
   });
 }
@@ -363,6 +369,11 @@ export function useCreateComponentAssignments(
         queryKey: ['package-components', { package_id: packageId }],
       });
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
+      // Invalidate component and drawing queries to update all views
+      queryClient.invalidateQueries({ queryKey: ['components'] });
+      queryClient.invalidateQueries({ queryKey: ['drawing-components', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['drawings-component-count', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
     },
   });
 }
@@ -437,6 +448,11 @@ export function useDeleteComponentAssignment(
         queryKey: ['package-components', { package_id: packageId }],
       });
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
+      // Invalidate component and drawing queries to update all views
+      queryClient.invalidateQueries({ queryKey: ['components'] });
+      queryClient.invalidateQueries({ queryKey: ['drawing-components', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['drawings-component-count', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
     },
   });
 }
