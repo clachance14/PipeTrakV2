@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { MetadataCell } from './MetadataCell'
 
 describe('MetadataCell', () => {
@@ -373,6 +373,170 @@ describe('MetadataCell', () => {
       // Verify cell has padding classes that create adequate touch target
       const cell = screen.getByText('A2').closest('div')
       expect(cell?.className).toMatch(/px-2 py-1/)
+    })
+  })
+
+  describe('Clickable behavior', () => {
+    it('calls onClick when test package value is clicked', async () => {
+      const user = userEvent.setup()
+      const handleClick = vi.fn()
+      const value = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={value}
+          drawingValue={value}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const text = screen.getByText('HT-01')
+      await user.click(text)
+
+      expect(handleClick).toHaveBeenCalledWith('pkg-1')
+    })
+
+    it('does not make text clickable when onClick is not provided', () => {
+      const value = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={value}
+          drawingValue={value}
+          fieldName="Test Package"
+          componentId="comp-1"
+        />
+      )
+
+      const text = screen.getByText('HT-01')
+      expect(text).not.toHaveClass('cursor-pointer')
+      expect(text.tagName).toBe('SPAN')
+    })
+
+    it('does not make dash clickable when value is null', () => {
+      const handleClick = vi.fn()
+
+      render(
+        <MetadataCell
+          value={null}
+          drawingValue={null}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const dash = screen.getByText('—')
+      expect(dash).not.toHaveClass('cursor-pointer')
+    })
+
+    it('applies hover styles to clickable text', () => {
+      const handleClick = vi.fn()
+      const value = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={value}
+          drawingValue={value}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const text = screen.getByText('HT-01')
+      expect(text).toHaveClass('text-blue-600')
+      expect(text).toHaveClass('hover:underline')
+      expect(text).toHaveClass('cursor-pointer')
+    })
+
+    it('calls onClick on Enter key press', async () => {
+      const user = userEvent.setup()
+      const handleClick = vi.fn()
+      const value = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={value}
+          drawingValue={value}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const text = screen.getByText('HT-01')
+      text.focus()
+      await user.keyboard('{Enter}')
+
+      expect(handleClick).toHaveBeenCalledWith('pkg-1')
+    })
+
+    it('calls onClick on Space key press', async () => {
+      const user = userEvent.setup()
+      const handleClick = vi.fn()
+      const value = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={value}
+          drawingValue={value}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const text = screen.getByText('HT-01')
+      text.focus()
+      await user.keyboard(' ')
+
+      expect(handleClick).toHaveBeenCalledWith('pkg-1')
+    })
+
+    it('makes override state clickable when onClick provided', async () => {
+      const user = userEvent.setup()
+      const handleClick = vi.fn()
+      const componentValue = { id: 'pkg-2', name: 'PN-01' }
+      const drawingValue = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={componentValue}
+          drawingValue={drawingValue}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const text = screen.getByText('PN-01')
+      await user.click(text)
+
+      expect(handleClick).toHaveBeenCalledWith('pkg-2')
+    })
+
+    it('makes assigned state clickable when onClick provided', async () => {
+      const user = userEvent.setup()
+      const handleClick = vi.fn()
+      const componentValue = { id: 'pkg-1', name: 'HT-01' }
+
+      render(
+        <MetadataCell
+          value={componentValue}
+          drawingValue={null}
+          fieldName="Test Package"
+          componentId="comp-1"
+          onClick={handleClick}
+        />
+      )
+
+      const text = screen.getByText('HT-01')
+      await user.click(text)
+
+      expect(handleClick).toHaveBeenCalledWith('pkg-1')
     })
   })
 

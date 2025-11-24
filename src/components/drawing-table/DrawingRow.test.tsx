@@ -3,6 +3,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { DrawingRow } from './DrawingRow'
 import type { DrawingRow as DrawingRowType } from '@/types/drawing-table.types'
 
+// Mock react-router-dom
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn()
+}))
+
 describe('DrawingRow - Spec Column', () => {
   const baseDrawing: DrawingRowType = {
     id: 'drawing-1',

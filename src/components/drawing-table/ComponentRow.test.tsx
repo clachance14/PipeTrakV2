@@ -18,6 +18,10 @@ vi.mock('@/hooks/useOfflineQueue', () => ({
   })
 }))
 
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn()
+}))
+
 describe('ComponentRow', () => {
   const mockComponent: ComponentRowType = {
     id: 'comp-1',

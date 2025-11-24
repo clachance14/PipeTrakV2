@@ -1,4 +1,5 @@
 import { ChevronRight, Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { DrawingRow as DrawingRowType } from '@/types/drawing-table.types'
 
@@ -37,6 +38,8 @@ export function DrawingRow({
   onEditMetadata,
   isMobile = false,
 }: DrawingRowProps) {
+  const navigate = useNavigate()
+
   // Desktop: detailed progress display
   const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
@@ -49,6 +52,12 @@ export function DrawingRow({
     drawing.system?.name || '—',
     `${Math.round(drawing.avg_percent_complete)}%`
   ].join(' · ')
+
+  // Navigate to test package detail page
+  const handleTestPackageClick = (e: React.MouseEvent, packageId: string) => {
+    e.stopPropagation()
+    navigate(`/packages/${packageId}/components`)
+  }
 
   return (
     <div
@@ -145,7 +154,25 @@ export function DrawingRow({
 
           {/* Test Package (with inline edit pencil) */}
           <div className="min-w-[80px] flex items-center gap-1.5 text-sm text-slate-600">
-            <span>{drawing.test_package?.name || '—'}</span>
+            {drawing.test_package ? (
+              <span
+                className="text-blue-600 hover:underline cursor-pointer"
+                onClick={(e) => handleTestPackageClick(e, drawing.test_package!.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleTestPackageClick(e as unknown as React.MouseEvent, drawing.test_package!.id)
+                  }
+                }}
+                aria-label={`Navigate to test package ${drawing.test_package!.name}`}
+              >
+                {drawing.test_package.name}
+              </span>
+            ) : (
+              <span>—</span>
+            )}
             {onEditMetadata && (
               <button
                 onClick={(e) => {

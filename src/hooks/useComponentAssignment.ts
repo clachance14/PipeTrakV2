@@ -66,7 +66,7 @@ export function useAssignComponents(): UseMutationResult<
         components: data || [],
       };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       // Invalidate components queries to refetch updated assignments
       queryClient.invalidateQueries({
         queryKey: ['components'],
@@ -74,6 +74,19 @@ export function useAssignComponents(): UseMutationResult<
       queryClient.invalidateQueries({
         queryKey: ['projects'],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['drawings-with-progress'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['package-readiness'],
+      });
+
+      // If test_package_id changed, invalidate package-specific queries
+      if (variables.test_package_id !== undefined) {
+        queryClient.invalidateQueries({
+          queryKey: ['package-components'],
+        });
+      }
 
       // Log success
       console.log(`Successfully assigned ${data.updated_count} components`);
@@ -125,6 +138,12 @@ export function useClearComponentAssignments(): UseMutationResult<
       });
       queryClient.invalidateQueries({
         queryKey: ['drawings-with-progress'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['package-readiness'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['package-components'],
       });
 
       // Log success

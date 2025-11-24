@@ -32,6 +32,9 @@ export interface MetadataCellProps {
 
   /** Mobile layout flag */
   isMobile?: boolean
+
+  /** Optional click handler - receives value ID when clicked */
+  onClick?: (id: string) => void
 }
 
 /**
@@ -80,8 +83,40 @@ export const MetadataCell = ({
   fieldName,
   componentId: _componentId,
   isMobile: _isMobile = false,
+  onClick,
 }: MetadataCellProps) => {
   const state = getMetadataState(value, drawingValue)
+
+  // Helper to make text clickable
+  const makeClickable = (text: string, id: string) => {
+    if (!onClick) {
+      return text
+    }
+
+    const handleClick = (e: React.MouseEvent | React.KeyboardEvent) => {
+      e.stopPropagation()
+      if ('key' in e && e.key !== 'Enter' && e.key !== ' ') {
+        return
+      }
+      if ('key' in e && e.key === ' ') {
+        e.preventDefault()
+      }
+      onClick(id)
+    }
+
+    return (
+      <span
+        className="text-blue-600 hover:underline cursor-pointer"
+        onClick={handleClick}
+        onKeyDown={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`Navigate to ${fieldName}: ${text}`}
+      >
+        {text}
+      </span>
+    )
+  }
 
   // No value: show dash (keep consistent padding for alignment)
   if (!value) {
@@ -90,7 +125,11 @@ export const MetadataCell = ({
 
   // Inherited: plain text (no special styling, but keep consistent padding for alignment)
   if (state === 'inherited') {
-    return <span className="inline-block px-2 py-1">{value.name}</span>
+    return (
+      <span className="inline-block px-2 py-1">
+        {makeClickable(value.name, value.id)}
+      </span>
+    )
   }
 
   // Override: inline warning icon without background
@@ -111,7 +150,9 @@ export const MetadataCell = ({
                 className="h-3 w-3 flex-shrink-0 text-amber-600"
                 aria-hidden="true"
               />
-              <span className="truncate text-slate-700">{value.name}</span>
+              <span className="truncate text-slate-700">
+                {makeClickable(value.name, value.id)}
+              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -140,7 +181,9 @@ export const MetadataCell = ({
                 className="h-3 w-3 flex-shrink-0 text-blue-600"
                 aria-hidden="true"
               />
-              <span className="truncate text-slate-700">{value.name}</span>
+              <span className="truncate text-slate-700">
+                {makeClickable(value.name, value.id)}
+              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent>

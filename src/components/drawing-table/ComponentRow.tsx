@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { MilestoneCheckbox } from './MilestoneCheckbox'
 import { PartialMilestoneInput } from './PartialMilestoneInput'
 import { MetadataCell } from './MetadataCell'
@@ -82,6 +83,7 @@ export function ComponentRow({
   const isMobile = useMobileDetection()
   const isOnline = useNetworkStatus()
   const { enqueue } = useOfflineQueue()
+  const navigate = useNavigate()
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     // If offline, enqueue update to localStorage
@@ -96,6 +98,11 @@ export function ComponentRow({
     }
 
     onMilestoneUpdate(component.id, milestoneName, value)
+  }
+
+  // Navigate to test package detail page
+  const handleTestPackageClick = (packageId: string) => {
+    navigate(`/packages/${packageId}/components`)
   }
 
   // Aggregate threaded pipe display logic (Feature 027)
@@ -173,11 +180,11 @@ export function ComponentRow({
     }
 
     // Discrete milestone (checkbox) - increase hit area on mobile
-    // Database stores 1 (complete) or 0 (incomplete) as numeric values
+    // Database stores 100 (complete) or 0 (incomplete) as numeric values
     return (
       <MilestoneCheckbox
         milestone={milestoneConfig}
-        checked={currentValue === 1 || currentValue === true}
+        checked={currentValue === 100 || currentValue === true}
         onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked)}
         disabled={!component.canUpdate}
         abbreviate={isMobile}
@@ -382,7 +389,7 @@ export function ComponentRow({
             .filter(m => !m.is_partial)
             .map((milestone) => {
               const currentValue = component.current_milestones[milestone.name]
-              const checked = currentValue === 1 || currentValue === true
+              const checked = currentValue === 100 || currentValue === true
               const abbreviation = LABEL_ABBREVIATIONS[milestone.name] || milestone.name
 
               return (
@@ -440,6 +447,7 @@ export function ComponentRow({
           fieldName="Test Package"
           componentId={component.id}
           isMobile={false}
+          onClick={handleTestPackageClick}
         />
       </div>
 
