@@ -185,7 +185,7 @@ export function ComponentRow({
       <MilestoneCheckbox
         milestone={milestoneConfig}
         checked={currentValue === 100 || currentValue === true}
-        onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked)}
+        onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked ? 100 : 0)}
         disabled={!component.canUpdate}
         abbreviate={isMobile}
         isMobile={isMobile}
@@ -396,7 +396,7 @@ export function ComponentRow({
                 <label key={milestone.name} className="inline-flex items-center gap-1 cursor-pointer">
                   <Checkbox
                     checked={checked}
-                    onCheckedChange={(checkedState) => handleMilestoneChange(milestone.name, checkedState === true)}
+                    onCheckedChange={(checkedState) => handleMilestoneChange(milestone.name, checkedState === true ? 100 : 0)}
                     disabled={!component.canUpdate}
                     className={cn('h-3 w-3', !component.canUpdate && 'cursor-not-allowed')}
                   />

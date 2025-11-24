@@ -140,15 +140,15 @@ export function ComponentDetailView({
       // Toggle partial between 0 and 100
       newValue = currentValue === 100 ? 0 : 100;
     } else {
-      // Toggle boolean
-      newValue = !currentValue;
+      // Toggle discrete milestone between 0 and 100
+      newValue = currentValue === 100 ? 0 : 100;
     }
 
     // For field welds: Auto-open welder dialog when Weld Made is checked
     if (
       component.component_type === 'field_weld' &&
       milestoneName === 'Weld Made' &&
-      newValue === true
+      newValue === 100
     ) {
       setWelderDialogOpen(true);
       return; // Don't update milestone yet - let welder assignment handle it

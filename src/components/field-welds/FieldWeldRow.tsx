@@ -281,7 +281,7 @@ export function FieldWeldRow({
                       <MilestoneCheckbox
                         milestone={milestoneConfig}
                         checked={isComplete}
-                        onChange={(value) => handleMilestoneChange(milestoneConfig.name, value)}
+                        onChange={(value) => handleMilestoneChange(milestoneConfig.name, value ? 100 : 0)}
                         disabled={!isActive}
                       />
                       <span className="text-sm text-slate-700">{milestoneConfig.name}</span>
