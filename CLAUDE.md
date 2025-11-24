@@ -414,6 +414,94 @@ Before altering any existing table, you MUST:
 
 **Why**: Schema changes have cascading effects. Missing any step causes runtime errors.
 
+**Data Type Changes** (CRITICAL - requires comprehensive impact analysis):
+
+**LESSON LEARNED (2025-11-24):** Migration 20251122152612 changed milestone values from 1/0 to 100/0 scale. Only updated one RPC function, forgot to update calculate_component_percent, UI rendering, onChange handlers, and materialized view. Result: Production app showed 0% progress and checkboxes didn't save. Required 3 emergency fixes affecting 722 components.
+
+Before changing data types (boolean → numeric, string → enum, etc.), you MUST:
+
+1. ✅ **Document all code paths that read/write this field**
+   ```bash
+   # Find all database code
+   grep -r "field_name" supabase/migrations/
+   grep -r "field_name" supabase/functions/
+
+   # Find all frontend code
+   grep -r "field_name" src/
+   ```
+
+2. ✅ **Update ALL database functions that reference the field**
+   - RPC functions (update_*, create_*, calculate_*)
+   - Trigger functions
+   - Materialized view definitions
+   - Stored procedures
+
+3. ✅ **Update ALL frontend code**
+   - Rendering logic (display checks: `value === 1` → `value === 100`)
+   - onChange handlers (send correct type: `true/false` → `100/0`)
+   - Form validation
+   - Default values
+   - Type definitions (database.types.ts)
+
+4. ✅ **Write data migration script**
+   - Backfill existing data to new format
+   - Test on staging first
+   - Include rollback script
+
+5. ✅ **Update or refresh dependent views**
+   - Materialized views (REFRESH or add auto-refresh trigger)
+   - Regular views
+   - Aggregations
+
+6. ✅ **Add tests for the new data type**
+   - Unit tests for read/write operations
+   - Integration tests for full data flow
+   - E2E tests for user workflows
+
+7. ✅ **Test on staging environment**
+   - Apply migration
+   - Run data backfill
+   - Manually test all affected UI
+   - Check calculated fields update correctly
+
+8. ✅ **Create deployment checklist**
+   - Order of operations (migration → frontend deploy)
+   - Verification steps
+   - Rollback plan
+
+**Example Impact Analysis Template:**
+
+```markdown
+## Data Type Change: [field_name] from [old_type] to [new_type]
+
+### Database Impact:
+- [ ] Functions: update_X, calculate_Y, trigger_Z
+- [ ] Materialized views: mv_X (needs REFRESH)
+- [ ] Triggers: on_X_change
+- [ ] RLS policies: (check if type affects policies)
+
+### Frontend Impact:
+- [ ] Components: ComponentA (line X), ComponentB (line Y)
+- [ ] Hooks: useX (read), useY (write)
+- [ ] Type definitions: database.types.ts
+- [ ] Tests: component.test.tsx, hook.test.ts
+
+### Data Migration:
+- [ ] Backfill script written
+- [ ] Tested on staging
+- [ ] Rollback script ready
+
+### Deployment Plan:
+1. Push migration
+2. Run backfill script
+3. Refresh materialized views
+4. Deploy frontend
+5. Verify on production
+6. Monitor for errors
+```
+
+**Why**: Data type changes have the highest risk of cascading failures. One missed code path can break production. This checklist prevents incomplete migrations.
+
 ### Migration Creation Checklist
 
 Follow this checklist when creating any new migration:
