@@ -51,6 +51,7 @@ import {
  * - Automatic rollback on error
  * - Query invalidation on success
  *
+ * @param projectId - Project ID for proper cache invalidation
  * @returns TanStack Query mutation result
  *
  * Error Handling:
@@ -60,8 +61,11 @@ import {
  * Query Invalidation:
  * - Invalidates ['components'] - component list queries
  * - Invalidates ['drawings-with-progress'] - drawing table queries
+ * - Invalidates ['drawing-components', projectId] - drawing component lists
+ * - Invalidates ['drawings-component-count', projectId] - component count queries
+ * - Invalidates ['package-readiness'] - package stats
  */
-export function useUpdateComponent(): UseMutationResult<
+export function useUpdateComponent(projectId: string): UseMutationResult<
   Component,
   Error,
   UpdateComponentMetadataParams,
@@ -131,11 +135,19 @@ export function useUpdateComponent(): UseMutationResult<
       }
     },
 
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       // Invalidate related queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
+      queryClient.invalidateQueries({ queryKey: ['drawing-components', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['drawings-component-count', projectId] })
+
+      // If test_package_id changed, invalidate package-specific queries
+      if (variables.test_package_id !== undefined) {
+        queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'test-packages'] })
+        queryClient.invalidateQueries({ queryKey: ['package-components'] })
+      }
     }
   })
 }

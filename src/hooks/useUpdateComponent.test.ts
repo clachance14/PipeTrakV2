@@ -49,6 +49,8 @@ const createUpdateMockChain = (singleResult: { data: any; error: any }) => {
 }
 
 // Test data
+const TEST_PROJECT_ID = 'project-uuid';
+
 const mockUpdatedComponent: Component = {
   id: 'component-uuid-1',
   drawing_number: 'DWG-001',
@@ -61,7 +63,7 @@ const mockUpdatedComponent: Component = {
   version: 2, // Version incremented
   last_updated_at: '2025-10-29T10:05:00Z',
   organization_id: 'org-uuid',
-  project_id: 'project-uuid'
+  project_id: TEST_PROJECT_ID
 }
 
 describe('useUpdateComponent hook (T021)', () => {
@@ -78,7 +80,7 @@ describe('useUpdateComponent hook (T021)', () => {
     } as any)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), {
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), {
       wrapper: createWrapper()
     })
 
@@ -120,7 +122,7 @@ describe('useUpdateComponent hook (T021)', () => {
     } as any)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), {
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), {
       wrapper: createWrapper()
     })
 
@@ -155,7 +157,7 @@ describe('useUpdateComponent hook (T021)', () => {
     } as any)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), {
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), {
       wrapper: createWrapper()
     })
 
@@ -189,7 +191,7 @@ describe('useUpdateComponent hook (T021)', () => {
     } as any)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), {
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), {
       wrapper: createWrapper()
     })
 
@@ -255,7 +257,7 @@ describe('useUpdateComponent hook (T021)', () => {
       createElement(QueryClientProvider, { client: queryClient }, children)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), { wrapper })
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), { wrapper })
 
     const params: UpdateComponentMetadataParams = {
       componentId: 'component-uuid-1',
@@ -307,7 +309,7 @@ describe('useUpdateComponent hook (T021)', () => {
       createElement(QueryClientProvider, { client: queryClient }, children)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), { wrapper })
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), { wrapper })
 
     const params: UpdateComponentMetadataParams = {
       componentId: 'component-uuid-1',
@@ -354,7 +356,7 @@ describe('useUpdateComponent hook (T021)', () => {
       createElement(QueryClientProvider, { client: queryClient }, children)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), { wrapper })
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), { wrapper })
 
     const params: UpdateComponentMetadataParams = {
       componentId: 'component-uuid-1',
@@ -394,7 +396,7 @@ describe('useUpdateComponent hook (T021)', () => {
     } as any)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), {
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), {
       wrapper: createWrapper()
     })
 
@@ -434,7 +436,7 @@ describe('useUpdateComponent hook (T021)', () => {
     } as any)
 
     // Act: Render hook and trigger mutation
-    const { result } = renderHook(() => useUpdateComponent(), {
+    const { result } = renderHook(() => useUpdateComponent(TEST_PROJECT_ID), {
       wrapper: createWrapper()
     })
 

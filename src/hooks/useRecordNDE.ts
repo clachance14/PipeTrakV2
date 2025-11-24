@@ -79,6 +79,7 @@ export function useRecordNDE() {
       queryClient.invalidateQueries({ queryKey: ['field-welds'] }) // For Weld Log table
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] }) // Package stats reflect NDE results
 
       if (payload.nde_result === 'PASS') {
         toast.success('NDE passed - Weld accepted')

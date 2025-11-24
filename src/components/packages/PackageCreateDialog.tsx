@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -80,6 +81,7 @@ export function PackageCreateDialog({
   open,
   onOpenChange,
 }: PackageCreateDialogProps) {
+  const queryClient = useQueryClient();
   const createPackageMutation = useCreatePackage(projectId);
   const createWorkflowStages = useCreateWorkflowStages();
   const { data: drawingsData, isLoading: drawingsLoading } =
@@ -214,6 +216,9 @@ export function PackageCreateDialog({
                 }
                 console.log('[PackageCreate] Drawing assignments created:', assignmentData);
 
+                // Invalidate package drawing queries
+                queryClient.invalidateQueries({ queryKey: ['package-drawing-assignments', packageId] });
+
                 // Update drawings table to set test_package_id (so it shows in drawing rows)
                 console.log('[PackageCreate] Updating drawings.test_package_id...');
                 const { data: drawingUpdateData, error: drawingUpdateError } = await supabase
@@ -227,6 +232,11 @@ export function PackageCreateDialog({
                   throw drawingUpdateError;
                 }
                 console.log('[PackageCreate] Drawings updated:', drawingUpdateData?.length || 0);
+
+                // Invalidate drawing-related queries
+                queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'drawings'] });
+                queryClient.invalidateQueries({ queryKey: ['drawings-with-progress', { project_id: projectId }] });
+                queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
               }
 
               // Assign selected components
@@ -244,6 +254,14 @@ export function PackageCreateDialog({
                 throw componentError;
               }
               console.log('[PackageCreate] Components assigned:', componentData?.length || 0);
+
+              // Invalidate all component and package-related queries
+              queryClient.invalidateQueries({ queryKey: ['components'] });
+              queryClient.invalidateQueries({ queryKey: ['drawing-components', projectId] });
+              queryClient.invalidateQueries({ queryKey: ['drawings-component-count', projectId] });
+              queryClient.invalidateQueries({ queryKey: ['package-components', { package_id: packageId }] });
+              queryClient.invalidateQueries({ queryKey: ['package-readiness', projectId] });
+              queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
 
               const componentCount = componentData?.length || 0;
               toast.success(

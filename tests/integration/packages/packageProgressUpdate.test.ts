@@ -267,14 +267,15 @@ describe('Package Progress Update', () => {
       expect(initialPackage?.total_components).toBe(1);
 
       // Render useUpdateComponent hook
-      const { result: updateResult } = renderHook(() => useUpdateComponent(), {
+      const { result: updateResult } = renderHook(() => useUpdateComponent(testProjectId), {
         wrapper,
       });
 
       // Unassign component from package
       updateResult.current.mutate({
-        id: testComponentId,
-        updates: { test_package_id: null },
+        componentId: testComponentId,
+        version: 1,
+        test_package_id: null,
       });
 
       // Wait for mutation

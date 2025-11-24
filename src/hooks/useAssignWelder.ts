@@ -122,6 +122,7 @@ export function useAssignWelder() {
       queryClient.invalidateQueries({ queryKey: ['field-welds'] }) // For Weld Log table
       queryClient.invalidateQueries({ queryKey: ['components'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] }) // Package stats reflect weld completion
 
       toast.success('Welder assigned successfully')
     },
