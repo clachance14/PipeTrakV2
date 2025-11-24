@@ -389,11 +389,21 @@ export function PackageDetailPage() {
       />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Back button */}
-        <Button variant="ghost" onClick={() => navigate('/packages')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Packages
-        </Button>
+        {/* Back button and actions */}
+        <div className="mb-4 flex items-center justify-between">
+          <Button variant="ghost" onClick={() => navigate('/packages')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Packages
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/packages/${packageId}/completion-report`)}
+            className="gap-2"
+          >
+            <ClipboardList className="h-4 w-4" />
+            View Completion Report
+          </Button>
+        </div>
 
         {/* Package Header */}
         <div className="mb-6">

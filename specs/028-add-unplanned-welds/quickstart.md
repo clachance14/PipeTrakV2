@@ -79,7 +79,7 @@ This feature adds the ability to create individual unplanned field welds from th
 3. **Add permission utility** (`src/lib/permissions.ts`)
    ```typescript
    export function canCreateFieldWeld(role: string): boolean {
-     return ['owner', 'admin', 'pm', 'foreman', 'qc'].includes(role);
+     return ['owner', 'admin', 'project_manager', 'foreman', 'qc_inspector'].includes(role);
    }
    ```
 

@@ -25,6 +25,7 @@ import { ComponentsTable } from '@/pages/ComponentsTable'
 import { ProjectSetup } from '@/pages/ProjectSetup'
 import { DrawingComponentTablePage } from '@/pages/DrawingComponentTablePage'
 import { PackageDetailPage } from '@/pages/PackageDetailPage'
+import { PackageCompletionReportPage } from '@/pages/PackageCompletionReportPage'
 import { DebugUserPage } from '@/pages/DebugUserPage'
 import MetadataManagementPage from '@/pages/MetadataManagementPage'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
@@ -156,6 +157,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PackageDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/packages/:packageId/completion-report"
+              element={
+                <ProtectedRoute>
+                  <PackageCompletionReportPage />
                 </ProtectedRoute>
               }
             />
