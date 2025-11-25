@@ -1,7 +1,6 @@
 // Demo Signup Form Component
-// Feature: 021-public-homepage
-// Task: T035, T053, T054
-// Description: Email + name fields with validation, mobile responsive, WCAG 2.1 AA accessible
+// Feature: 031-one-click-demo-access
+// Description: Email + name fields for lead capture with instant demo access
 
 import { useState, FormEvent } from 'react'
 
@@ -56,7 +55,7 @@ export function DemoSignupForm({ onSubmit, isLoading }: DemoSignupFormProps) {
       </h2>
 
       <p className="text-slate-600 mb-8 text-center">
-        Get instant access to a fully-featured demo project with 200 sample components. No credit card required.
+        Get instant access to a fully-featured demo with real construction data. No credit card required.
       </p>
 
       {/* Email Field */}
@@ -135,7 +134,7 @@ export function DemoSignupForm({ onSubmit, isLoading }: DemoSignupFormProps) {
         disabled={isLoading}
         className="w-full px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 disabled:bg-slate-400 disabled:cursor-not-allowed font-semibold transition-colors"
         style={{ minHeight: '56px' }}
-        aria-label={isLoading ? 'Creating demo account...' : 'Create demo account'}
+        aria-label={isLoading ? 'Starting demo...' : 'Start exploring'}
       >
         {isLoading ? (
           <span className="flex items-center justify-center gap-2">
@@ -160,15 +159,15 @@ export function DemoSignupForm({ onSubmit, isLoading }: DemoSignupFormProps) {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            Creating Demo Account...
+            Starting Demo...
           </span>
         ) : (
-          'Get Instant Access'
+          'Start Exploring'
         )}
       </button>
 
       <p className="mt-6 text-xs text-slate-500 text-center">
-        By signing up, you agree to our{' '}
+        By continuing, you agree to our{' '}
         <a href="/legal/terms" className="text-blue-600 hover:underline">
           Terms of Service
         </a>{' '}
@@ -176,7 +175,7 @@ export function DemoSignupForm({ onSubmit, isLoading }: DemoSignupFormProps) {
         <a href="/legal/privacy" className="text-blue-600 hover:underline">
           Privacy Policy
         </a>
-        . Demo accounts expire after 7 days.
+        .
       </p>
     </form>
   )

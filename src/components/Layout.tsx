@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useChangelog } from '@/hooks/useChangelog'
 import { ChangelogModal } from '@/components/ChangelogModal'
 import { useNeedsReview } from '@/hooks/useNeedsReview'
+import { DemoModeBanner } from '@/components/demo/DemoModeBanner'
 
 interface LayoutProps {
   children: ReactNode
@@ -92,6 +93,9 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
 
   return (
     <div className={fixedHeight ? "h-dvh flex flex-col bg-gray-50" : "min-h-screen bg-gray-50"}>
+      {/* Demo Mode Banner - shown when logged in as demo user */}
+      <DemoModeBanner />
+
       {/* Top Navigation Bar */}
       <nav className={cn(
         "sticky top-0 z-50 bg-slate-800 text-white shadow-lg",

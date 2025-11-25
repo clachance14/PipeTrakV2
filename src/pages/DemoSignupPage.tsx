@@ -1,46 +1,54 @@
 // Demo Signup Page
-// Feature: 021-public-homepage
-// Task: T040
-// Description: Compose DemoSignupForm, DemoErrorMessage, DemoSuccessMessage
+// Feature: 031-one-click-demo-access
+// Description: Demo access with lead capture - sends credentials via email
 
 import { useState } from 'react'
 import { DemoSignupForm } from '@/components/demo/DemoSignupForm'
 import { DemoErrorMessage } from '@/components/demo/DemoErrorMessage'
-import { DemoSuccessMessage } from '@/components/demo/DemoSuccessMessage'
-import { useDemoSignup } from '@/hooks/useDemoSignup'
+import { useDemoAccess } from '@/hooks/useDemoAccess'
 
 type PageState = 'form' | 'success' | 'error'
 
+interface DemoError {
+  error: string
+  message: string
+  field?: string
+  retry_after?: number
+  limit_type?: 'ip' | 'email'
+}
+
 export function DemoSignupPage() {
   const [pageState, setPageState] = useState<PageState>('form')
-  const [successData, setSuccessData] = useState<{ email: string; expiresAt?: string } | null>(null)
+  const [demoError, setDemoError] = useState<DemoError | null>(null)
+  const [sentToEmail, setSentToEmail] = useState<string>('')
 
-  const { mutate: signupDemo, isPending, error, reset } = useDemoSignup()
+  const { mutate: accessDemo, isPending, reset } = useDemoAccess({
+    onSuccess: (data) => {
+      setSentToEmail(data.email_sent_to || '')
+      setPageState('success')
+    },
+    onError: (error: Error & { code?: string; retryAfter?: number; limitType?: string; field?: string }) => {
+      setDemoError({
+        error: error.code || 'INTERNAL_ERROR',
+        message: error.message || 'An unexpected error occurred. Please try again.',
+        field: error.field,
+        retry_after: error.retryAfter,
+        limit_type: error.limitType as 'ip' | 'email' | undefined
+      })
+      setPageState('error')
+    }
+  })
 
   const handleSubmit = (email: string, fullName: string) => {
-    signupDemo(
-      { email, full_name: fullName },
-      {
-        onSuccess: (data) => {
-          if (data.success) {
-            setSuccessData({
-              email,
-              expiresAt: data.demo_expires_at
-            })
-            setPageState('success')
-          } else {
-            setPageState('error')
-          }
-        },
-        onError: () => {
-          setPageState('error')
-        }
-      }
-    )
+    accessDemo({
+      email,
+      full_name: fullName
+    })
   }
 
   const handleRetry = () => {
     reset()
+    setDemoError(null)
     setPageState('form')
   }
 
@@ -77,16 +85,48 @@ export function DemoSignupPage() {
           <DemoSignupForm onSubmit={handleSubmit} isLoading={isPending} />
         )}
 
-        {pageState === 'success' && successData && (
-          <DemoSuccessMessage
-            email={successData.email}
-            expiresAt={successData.expiresAt}
-          />
+        {pageState === 'success' && (
+          <div className="max-w-md mx-auto bg-white rounded-lg shadow-xl p-8 text-center">
+            <div className="mb-6">
+              <svg
+                className="w-16 h-16 mx-auto text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">
+              Check Your Email!
+            </h2>
+            <p className="text-slate-600 mb-6">
+              We&apos;ve sent your demo login credentials to:
+            </p>
+            <p className="text-lg font-semibold text-slate-800 mb-6 bg-slate-100 py-2 px-4 rounded-lg inline-block">
+              {sentToEmail}
+            </p>
+            <p className="text-slate-500 text-sm mb-6">
+              Click the link in the email to log in with pre-filled credentials, or copy them manually.
+            </p>
+            <a
+              href="/login"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+              Go to Login Page
+            </a>
+          </div>
         )}
 
-        {pageState === 'error' && error && (
+        {pageState === 'error' && demoError && (
           <DemoErrorMessage
-            error={error as any}
+            error={demoError}
             onRetry={handleRetry}
           />
         )}
