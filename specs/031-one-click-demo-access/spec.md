@@ -118,7 +118,7 @@ To prevent abuse of the demo access system (spam lead submissions, bot attacks),
 
 - **Demo Lead**: A record of a prospect who accessed the demo. Contains email, full name, IP address, user agent, referrer URL, and capture timestamp. Used for marketing follow-up.
 - **Demo Baseline**: A snapshot of the demo project's pristine data state. Contains serialized data for areas, systems, test packages, welders, drawings, and components. Used to restore demo to clean state.
-- **Demo Account**: A single shared user account (demo@pipetrak.com) that all demo users are logged into. Associated with a permanent organization and project.
+- **Demo Account**: A single shared user account (demo@pipetrak.co) that all demo users are logged into. Associated with a permanent organization and project.
 
 ## Success Criteria *(mandatory)*
 
@@ -134,7 +134,7 @@ To prevent abuse of the demo access system (spam lead submissions, bot attacks),
 
 ## Assumptions
 
-- The permanent demo account (demo@pipetrak.com) will be created manually via the Supabase Dashboard after implementation
+- The permanent demo account (demo@pipetrak.co) will be created manually via the Supabase Dashboard after implementation
 - Demo data will be imported from the existing 1605 project with anonymized welder names
 - The baseline snapshot will be captured manually after data import is complete
 - Rate limiting thresholds (10/hour IP, 5/day email) are reasonable starting points and may be adjusted based on usage patterns

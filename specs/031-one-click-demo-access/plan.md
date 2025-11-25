@@ -5,7 +5,7 @@
 
 ## Summary
 
-Transform the demo signup flow from email verification to instant access. Users enter contact info (lead capture for marketing), are auto-logged into a shared `demo@pipetrak.com` account, and land on a pre-populated dashboard. Demo data resets nightly from a baseline snapshot of the 1605 project.
+Transform the demo signup flow from email verification to instant access. Users enter contact info (lead capture for marketing), are auto-logged into a shared `demo@pipetrak.co` account, and land on a pre-populated dashboard. Demo data resets nightly from a baseline snapshot of the 1605 project.
 
 **Technical Approach**: Token-based auto-login via Supabase edge function (no password exposure in client), new `demo_leads` table for marketing, pg_cron for nightly reset from JSONB baseline snapshot.
 
@@ -269,7 +269,7 @@ supabase gen types typescript --linked > src/types/database.types.ts
 
 1. Go to **Authentication** → **Users** → **Add user**
 2. Fill in:
-   - **Email**: `demo@pipetrak.com`
+   - **Email**: `demo@pipetrak.co`
    - **Password**: Choose a secure password (at least 12 characters, mix of letters/numbers/symbols)
    - Example: `PipeTrak-Demo-2025!` (but use your own unique password)
 3. Click **Create user**
@@ -429,7 +429,7 @@ LIMIT 5;
 
 ### Demo login fails with "Invalid credentials"
 - Verify demo user exists in Supabase Auth
-- Check user email is exactly `demo@pipetrak.com`
+- Check user email is exactly `demo@pipetrak.co`
 - Verify edge function has correct environment secrets
 
 ### Nightly reset not running

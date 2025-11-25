@@ -29,6 +29,17 @@ function logError(phase: string, error: unknown, context: Record<string, unknown
 }
 
 /**
+ * Mask email for logging (privacy-safe but retains enough info for debugging)
+ * Example: "john.doe@example.com" -> "joh***@example.com"
+ */
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split('@')
+  if (!localPart || !domain) return '***@unknown'
+  const visibleChars = Math.min(3, localPart.length)
+  return `${localPart.slice(0, visibleChars)}***@${domain}`
+}
+
+/**
  * Generate HTML email with demo credentials
  */
 function generateDemoWelcomeEmail(
@@ -198,34 +209,7 @@ serve(async (req) => {
       )
     }
 
-    // 3. Log rate limit event for tracking
-    await logRateLimitEvent(supabase, email, clientIp, {
-      user_agent: userAgent,
-      referrer: referrer
-    })
-
-    // 4. Store lead in demo_leads table
-    const { error: leadError } = await supabase
-      .from('demo_leads')
-      .insert({
-        email,
-        full_name: fullName,
-        ip_address: clientIp,
-        user_agent: userAgent,
-        referrer: referrer,
-        utm_source: utmSource,
-        utm_medium: utmMedium,
-        utm_campaign: utmCampaign
-      })
-
-    if (leadError) {
-      // Log error but don't fail the request - lead capture is non-critical
-      logError('LEAD_CAPTURE', leadError, { email })
-    } else {
-      console.log('[demo-access] Lead captured successfully:', { email })
-    }
-
-    // 5. Verify required config is set
+    // 3. Verify required config before proceeding (fail fast before capturing lead)
     if (!DEMO_ACCOUNT_PASSWORD) {
       logError('CONFIG_MISSING', 'DEMO_PASSWORD environment variable not set')
       return new Response(
@@ -248,6 +232,33 @@ serve(async (req) => {
         }),
         { status: 503, headers: corsHeaders }
       )
+    }
+
+    // 4. Log rate limit event for tracking
+    await logRateLimitEvent(supabase, email, clientIp, {
+      user_agent: userAgent,
+      referrer: referrer
+    })
+
+    // 5. Store lead in demo_leads table (after config validated)
+    const { error: leadError } = await supabase
+      .from('demo_leads')
+      .insert({
+        email,
+        full_name: fullName,
+        ip_address: clientIp,
+        user_agent: userAgent,
+        referrer: referrer,
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign
+      })
+
+    if (leadError) {
+      // Log error but don't fail the request - lead capture is non-critical
+      logError('LEAD_CAPTURE', leadError, { email: maskEmail(email) })
+    } else {
+      console.log('[demo-access] Lead captured successfully:', { email: maskEmail(email) })
     }
 
     // 6. Build login URL with pre-filled credentials
@@ -277,7 +288,7 @@ serve(async (req) => {
       logError('EMAIL_SEND', `HTTP ${emailResponse.status}: ${emailResponse.statusText}`, {
         status: emailResponse.status,
         body: errorBody,
-        recipientEmail: email
+        recipientEmail: maskEmail(email)
       })
       return new Response(
         JSON.stringify({
@@ -291,7 +302,7 @@ serve(async (req) => {
 
     const duration = Date.now() - startTime
     console.log('[demo-access] Welcome email sent successfully:', {
-      recipientEmail: email,
+      recipientEmail: maskEmail(email),
       duration_ms: duration
     })
 

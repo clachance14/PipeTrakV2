@@ -10,7 +10,7 @@
 **Decision**: Token-based login via Supabase admin API
 
 **Approach**:
-1. Edge function generates magic link for `demo@pipetrak.com` using `supabase.auth.admin.generateLink()`
+1. Edge function generates magic link for `demo@pipetrak.co` using `supabase.auth.admin.generateLink()`
 2. Immediately verify the token to get a session using `supabase.auth.verifyOtp()`
 3. Return access_token and refresh_token to client
 4. Client calls `supabase.auth.setSession()` to establish session
