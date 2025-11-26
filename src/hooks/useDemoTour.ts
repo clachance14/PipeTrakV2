@@ -3,7 +3,7 @@
 // Description: Guided product tour for demo users using react-joyride
 
 import { useState, useEffect, useCallback } from 'react'
-import { Step, CallBackProps, STATUS, EVENTS } from 'react-joyride'
+import { Step, CallBackProps, STATUS, EVENTS, ACTIONS } from 'react-joyride'
 
 const TOUR_STORAGE_KEY = 'pipetrak:demo-tour-completed'
 
@@ -137,15 +137,19 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
 
   // Handle tour callbacks
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
-    const { status, type, index } = data
+    const { status, type, index, action } = data
 
     // Update step index for controlled mode
     if (type === EVENTS.STEP_AFTER) {
       setStepIndex(index + 1)
     }
 
-    // Handle tour completion or skip
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    // Handle tour completion, skip, or close (X button)
+    if (
+      status === STATUS.FINISHED ||
+      status === STATUS.SKIPPED ||
+      action === ACTIONS.CLOSE
+    ) {
       setRun(false)
       markTourCompleted()
     }
