@@ -8,7 +8,7 @@
  * - Components: List of all components in package
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Layout } from '@/components/Layout';
@@ -50,7 +50,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/EmptyState';
-import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus, Download, Settings } from 'lucide-react';
+import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus, Download, Settings, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PackageCertificate } from '@/hooks/usePackageCertificate';
 
@@ -67,6 +67,12 @@ export function PackageDetailPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const [selectedAddComponentIds, setSelectedAddComponentIds] = useState<string[]>([]);
+
+  // Sorting state
+  type SortField = 'drawing' | 'identity' | 'type' | 'progress';
+  type SortDirection = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('drawing');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Fetch package metadata for header
   const { data: packagesData, isLoading: packagesLoading } = usePackageReadiness(
@@ -181,6 +187,57 @@ export function PackageDetailPage() {
         : [...prev, componentId]
     );
   };
+
+  // Handle column sort
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sorted components
+  const sortedComponents = useMemo(() => {
+    if (!components) return [];
+
+    return [...components].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'drawing':
+          // Natural string sort for drawing numbers (P-001, P-002, P-010)
+          comparison = (a.drawing_no_norm || '').localeCompare(b.drawing_no_norm || '', undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
+          break;
+
+        case 'identity':
+          // Sort by identity_key using natural string comparison
+          comparison = (a.identity_key || '').localeCompare(b.identity_key || '', undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
+          break;
+
+        case 'type':
+          // Alphabetical sort for component type
+          comparison = (a.component_type || '').localeCompare(b.component_type || '');
+          break;
+
+        case 'progress':
+          // Numeric sort for progress percentage
+          comparison = (a.percent_complete || 0) - (b.percent_complete || 0);
+          break;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [components, sortField, sortDirection]);
 
   // Handlers for adding components
   const handleAddComponents = () => {
@@ -673,17 +730,65 @@ export function PackageDetailPage() {
                             />
                           </th>
                         )}
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                          Drawing
+                        <th className="px-4 py-3 text-left">
+                          <button
+                            onClick={() => handleSort('drawing')}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-700"
+                          >
+                            Drawing
+                            {sortField === 'drawing' && (
+                              sortDirection === 'asc' ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )
+                            )}
+                          </button>
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                          Identity
+                        <th className="px-4 py-3 text-left">
+                          <button
+                            onClick={() => handleSort('identity')}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-700"
+                          >
+                            Identity
+                            {sortField === 'identity' && (
+                              sortDirection === 'asc' ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )
+                            )}
+                          </button>
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                          Type
+                        <th className="px-4 py-3 text-left">
+                          <button
+                            onClick={() => handleSort('type')}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-700"
+                          >
+                            Type
+                            {sortField === 'type' && (
+                              sortDirection === 'asc' ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )
+                            )}
+                          </button>
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                          Progress
+                        <th className="px-4 py-3 text-left">
+                          <button
+                            onClick={() => handleSort('progress')}
+                            className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-700"
+                          >
+                            Progress
+                            {sortField === 'progress' && (
+                              sortDirection === 'asc' ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )
+                            )}
+                          </button>
                         </th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
                           Milestones
@@ -696,7 +801,7 @@ export function PackageDetailPage() {
                       </tr>
                     </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {components.map((component) => {
+                    {sortedComponents.map((component) => {
                       const componentProgress = component.percent_complete || 0;
                       const milestones = component.milestones_config || [];
                       const isSelected = selectedComponentIds.includes(component.id);
@@ -755,8 +860,8 @@ export function PackageDetailPage() {
                                   isComplete = progressPercent === 100;
                                   isPartialProgress = progressPercent > 0 && progressPercent < 100;
                                 } else {
-                                  // Discrete milestone (boolean)
-                                  isComplete = milestoneState === true;
+                                  // Discrete milestone (stored as 100 or 0, or legacy true/false)
+                                  isComplete = milestoneState === 100 || milestoneState === true;
                                 }
 
                                 return (
