@@ -112,15 +112,9 @@ export function DemoSignupPage() {
             <p className="text-lg font-semibold text-slate-800 mb-6 bg-slate-100 py-2 px-4 rounded-lg inline-block">
               {sentToEmail}
             </p>
-            <p className="text-slate-500 text-sm mb-6">
-              Click the link in the email to log in with pre-filled credentials, or copy them manually.
+            <p className="text-slate-500 text-sm">
+              Click the link in the email to log in with pre-filled credentials.
             </p>
-            <a
-              href="/login"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            >
-              Go to Login Page
-            </a>
           </div>
         )}
 
