@@ -8,10 +8,13 @@ import { Step, CallBackProps, STATUS, EVENTS } from 'react-joyride'
 const TOUR_STORAGE_KEY = 'pipetrak:demo-tour-completed'
 const TOUR_STEP_KEY = 'pipetrak:demo-tour-step'
 const TOUR_ADVANCE_EVENT = 'pipetrak:tour-advance'
+const TOUR_EXPAND_NEXT_EVENT = 'pipetrak:tour-expand-next'
 
 // Step indices for auto-advance logic
 const DRAWINGS_NAV_STEP = 2 // "Click here to navigate to Drawings"
 const EXPAND_DRAWING_STEP = 4 // "Click the chevron to expand"
+const SPOOL_STEP = 5 // "Spool Progress"
+const FIELD_WELD_STEP = 6 // "Field Weld Tracking"
 
 // Tour step definitions
 export const demoTourSteps: Step[] = [
@@ -197,11 +200,19 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
       saveStepIndex(nextIndex)
     }
 
-    // Auto-skip when target element not found (e.g., no spools with incomplete milestones)
+    // When target not found for spool/field weld steps, try expanding next drawing
     if (type === EVENTS.TARGET_NOT_FOUND) {
-      const nextIndex = index + 1
-      setStepIndex(nextIndex)
-      saveStepIndex(nextIndex)
+      if (index === SPOOL_STEP || index === FIELD_WELD_STEP) {
+        // Dispatch event to expand next drawing and search for components
+        window.dispatchEvent(new CustomEvent(TOUR_EXPAND_NEXT_EVENT, {
+          detail: { stepIndex: index }
+        }))
+      } else {
+        // For other steps, just skip to next
+        const nextIndex = index + 1
+        setStepIndex(nextIndex)
+        saveStepIndex(nextIndex)
+      }
     }
 
     // Handle tour completion, skip, or close (X button)
@@ -233,5 +244,18 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
  * Used by components to signal the tour should advance after user interaction
  */
 export function advanceDemoTour() {
+  window.dispatchEvent(new CustomEvent(TOUR_ADVANCE_EVENT))
+}
+
+/**
+ * Event name for expand-next-drawing requests
+ * Components should listen for this and expand the next drawing
+ */
+export const TOUR_EXPAND_NEXT_DRAWING_EVENT = TOUR_EXPAND_NEXT_EVENT
+
+/**
+ * Dispatch event to skip to next tour step (when no more drawings available)
+ */
+export function skipToNextTourStep() {
   window.dispatchEvent(new CustomEvent(TOUR_ADVANCE_EVENT))
 }
