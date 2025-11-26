@@ -65,9 +65,9 @@ export function Sidebar() {
     if (isMobileOpen) {
       setMobileOpen(false);
     }
-    // Advance demo tour when clicking Drawings nav
+    // Advance demo tour when clicking Drawings nav (delay to allow page to load)
     if (path === '/drawings') {
-      advanceDemoTour();
+      setTimeout(() => advanceDemoTour(), 800);
     }
   };
 
