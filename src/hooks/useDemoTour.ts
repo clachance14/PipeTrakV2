@@ -197,6 +197,13 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
       saveStepIndex(nextIndex)
     }
 
+    // Auto-skip when target element not found (e.g., no spools with incomplete milestones)
+    if (type === EVENTS.TARGET_NOT_FOUND) {
+      const nextIndex = index + 1
+      setStepIndex(nextIndex)
+      saveStepIndex(nextIndex)
+    }
+
     // Handle tour completion, skip, or close (X button)
     // STATUS.PAUSED is set when user clicks the close (X) button
     if (
