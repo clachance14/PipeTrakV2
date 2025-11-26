@@ -149,6 +149,15 @@ export function ComponentRow({
   const identityDisplay = getIdentityDisplay()
   const lineNumberTooltip = getLineNumberTooltip()
 
+  // Check if component has any incomplete milestones (for demo tour targeting)
+  const hasIncompleteMilestones = () => {
+    return component.template.milestones_config.some((milestone) => {
+      const value = component.current_milestones[milestone.name]
+      // Incomplete if not 100 or true
+      return value !== 100 && value !== true
+    })
+  }
+
   const getMilestoneControl = (milestoneConfig: MilestoneConfig) => {
     // For aggregate threaded pipe, database stores milestones with "_LF" suffix
     // We need to convert absolute LF values back to percentages for display
@@ -317,8 +326,8 @@ export function ComponentRow({
       } : undefined}
       aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
       data-tour={isFirstRow ? 'component-milestones' : undefined}
-      data-tour-spool={component.component_type === 'spool' ? 'spool-component' : undefined}
-      data-tour-field-weld={component.component_type === 'field_weld' ? 'field-weld-component' : undefined}
+      data-tour-spool={component.component_type === 'spool' && hasIncompleteMilestones() ? 'spool-component' : undefined}
+      data-tour-field-weld={component.component_type === 'field_weld' && hasIncompleteMilestones() ? 'field-weld-component' : undefined}
     >
       {/* Spacer for chevron */}
       <div className="w-3 flex-shrink-0" />
