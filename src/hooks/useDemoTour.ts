@@ -49,7 +49,7 @@ export const demoTourSteps: Step[] = [
   },
   {
     target: '[data-tour-spool="spool-component"]',
-    content: 'Spools track fabrication progress with discrete milestones. Check boxes like Fabricate, Install, and Connect as each step is completed. Try checking one now!',
+    content: 'Spools track installation progress with discrete milestones. Check boxes like Receive, Erect, and Connect as each step is completed. Try checking one now!',
     title: 'Spool Progress',
     placement: 'bottom',
     spotlightClicks: true
