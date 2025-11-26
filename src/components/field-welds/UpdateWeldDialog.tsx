@@ -33,13 +33,13 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
   const currentMilestones = (weld.component.current_milestones as Record<string, any>) || {}
 
   // Local state for checkboxes
-  const [fitUpChecked, setFitUpChecked] = useState(Boolean(currentMilestones['Fit-Up']))
-  const [weldCompleteChecked, setWeldCompleteChecked] = useState(Boolean(currentMilestones['Weld Made']))
+  const [fitUpChecked, setFitUpChecked] = useState(Boolean(currentMilestones['Fit-up']))
+  const [weldCompleteChecked, setWeldCompleteChecked] = useState(Boolean(currentMilestones['Weld Complete']))
 
   // Update local state when weld changes (e.g., after mutation)
   useEffect(() => {
-    setFitUpChecked(Boolean(currentMilestones['Fit-Up']))
-    setWeldCompleteChecked(Boolean(currentMilestones['Weld Made']))
+    setFitUpChecked(Boolean(currentMilestones['Fit-up']))
+    setWeldCompleteChecked(Boolean(currentMilestones['Weld Complete']))
   }, [currentMilestones])
 
   const handleSave = async () => {
@@ -51,7 +51,7 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
     // INTERCEPTION LOGIC (T019): Check if Weld Complete is being checked for the first time
     // If Weld Complete is being checked (true) AND current value is false/0 (first time)
     // Then trigger welder assignment dialog instead of updating milestone
-    const isWeldMadeFirstTime = weldCompleteChecked && !currentMilestones['Weld Made']
+    const isWeldMadeFirstTime = weldCompleteChecked && !currentMilestones['Weld Complete']
 
     if (isWeldMadeFirstTime && onTriggerWelderDialog) {
       // Trigger welder dialog and return early (don't update milestone)
@@ -61,20 +61,20 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
 
     try {
       // Update Fit-up milestone if changed
-      if (fitUpChecked !== Boolean(currentMilestones['Fit-Up'])) {
+      if (fitUpChecked !== Boolean(currentMilestones['Fit-up'])) {
         await updateMilestone.mutateAsync({
           component_id: weld.component_id,
-          milestone_name: 'Fit-Up',
+          milestone_name: 'Fit-up',
           value: fitUpChecked,
           user_id: user.id,
         })
       }
 
       // Update Weld Complete milestone if changed
-      if (weldCompleteChecked !== Boolean(currentMilestones['Weld Made'])) {
+      if (weldCompleteChecked !== Boolean(currentMilestones['Weld Complete'])) {
         await updateMilestone.mutateAsync({
           component_id: weld.component_id,
-          milestone_name: 'Weld Made',
+          milestone_name: 'Weld Complete',
           value: weldCompleteChecked,
           user_id: user.id,
         })
@@ -90,8 +90,8 @@ export function UpdateWeldDialog({ weld, open, onOpenChange, onTriggerWelderDial
 
   const handleCancel = () => {
     // Reset to current values
-    setFitUpChecked(Boolean(currentMilestones['Fit-Up']))
-    setWeldCompleteChecked(Boolean(currentMilestones['Weld Made']))
+    setFitUpChecked(Boolean(currentMilestones['Fit-up']))
+    setWeldCompleteChecked(Boolean(currentMilestones['Weld Complete']))
     onOpenChange(false)
   }
 
