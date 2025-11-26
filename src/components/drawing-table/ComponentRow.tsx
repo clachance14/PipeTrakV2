@@ -317,6 +317,8 @@ export function ComponentRow({
       } : undefined}
       aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
       data-tour={isFirstRow ? 'component-milestones' : undefined}
+      data-tour-spool={component.component_type === 'spool' ? 'spool-component' : undefined}
+      data-tour-field-weld={component.component_type === 'field_weld' ? 'field-weld-component' : undefined}
     >
       {/* Spacer for chevron */}
       <div className="w-3 flex-shrink-0" />

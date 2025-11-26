@@ -54,6 +54,20 @@ export const demoTourSteps: Step[] = [
     placement: 'bottom'
   },
   {
+    target: '[data-tour-spool="spool-component"]',
+    content: 'Spools track fabrication progress with percentage milestones like Fit-Up, Weld, and NDE. Try entering a percentage value - it saves automatically!',
+    title: 'Spool Progress',
+    placement: 'bottom',
+    spotlightClicks: true
+  },
+  {
+    target: '[data-tour-field-weld="field-weld-component"]',
+    content: 'Field welds require welder assignment. When you check "Weld Made", a dialog opens to select the welder who performed the weld. Try it now!',
+    title: 'Field Weld Tracking',
+    placement: 'bottom',
+    spotlightClicks: true
+  },
+  {
     target: '[data-tour="nav-components"]',
     content: 'View and manage all pipe components across all drawings. Track materials, sizes, and progress through fabrication milestones.',
     title: 'Components'
