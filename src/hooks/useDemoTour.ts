@@ -3,9 +3,10 @@
 // Description: Guided product tour for demo users using react-joyride
 
 import { useState, useEffect, useCallback } from 'react'
-import { Step, CallBackProps, STATUS, EVENTS, ACTIONS } from 'react-joyride'
+import { Step, CallBackProps, STATUS, EVENTS } from 'react-joyride'
 
 const TOUR_STORAGE_KEY = 'pipetrak:demo-tour-completed'
+const TOUR_STEP_KEY = 'pipetrak:demo-tour-step'
 
 // Tour step definitions
 export const demoTourSteps: Step[] = [
@@ -83,7 +84,16 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
   const { enabled = true } = options
 
   const [run, setRun] = useState(false)
-  const [stepIndex, setStepIndex] = useState(0)
+
+  // Initialize step index from localStorage to resume where user left off
+  const [stepIndex, setStepIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem(TOUR_STEP_KEY)
+      return saved ? parseInt(saved, 10) : 0
+    } catch {
+      return 0
+    }
+  })
 
   // Check if tour was already completed
   const hasCompletedTour = useCallback(() => {
@@ -94,10 +104,20 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
     }
   }, [])
 
-  // Mark tour as completed
+  // Save current step to localStorage
+  const saveStepIndex = useCallback((index: number) => {
+    try {
+      localStorage.setItem(TOUR_STEP_KEY, String(index))
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [])
+
+  // Mark tour as completed and clear step progress
   const markTourCompleted = useCallback(() => {
     try {
       localStorage.setItem(TOUR_STORAGE_KEY, 'true')
+      localStorage.removeItem(TOUR_STEP_KEY)
     } catch {
       // Ignore localStorage errors
     }
@@ -107,6 +127,7 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
   const resetTour = useCallback(() => {
     try {
       localStorage.removeItem(TOUR_STORAGE_KEY)
+      localStorage.removeItem(TOUR_STEP_KEY)
     } catch {
       // Ignore localStorage errors
     }
@@ -137,23 +158,26 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
 
   // Handle tour callbacks
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
-    const { status, type, index, action } = data
+    const { status, type, index } = data
 
-    // Update step index for controlled mode
+    // Update step index for controlled mode and persist to localStorage
     if (type === EVENTS.STEP_AFTER) {
-      setStepIndex(index + 1)
+      const nextIndex = index + 1
+      setStepIndex(nextIndex)
+      saveStepIndex(nextIndex)
     }
 
     // Handle tour completion, skip, or close (X button)
+    // STATUS.PAUSED is set when user clicks the close (X) button
     if (
       status === STATUS.FINISHED ||
       status === STATUS.SKIPPED ||
-      action === ACTIONS.CLOSE
+      status === STATUS.PAUSED
     ) {
       setRun(false)
       markTourCompleted()
     }
-  }, [markTourCompleted])
+  }, [markTourCompleted, saveStepIndex])
 
   return {
     run,
