@@ -211,8 +211,8 @@ export function DrawingComponentTablePage() {
     } else {
       // Clicking a different drawing - expand it (auto-closes current)
       toggleDrawing(drawingId)
-      // Advance demo tour when user expands a drawing
-      advanceDemoTour()
+      // Advance demo tour after components have time to load and render
+      setTimeout(() => advanceDemoTour(), 800)
     }
   }, [expandedDrawingId, toggleDrawing, collapseDrawing])
 
