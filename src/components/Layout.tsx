@@ -11,6 +11,7 @@ import { useChangelog } from '@/hooks/useChangelog'
 import { ChangelogModal } from '@/components/ChangelogModal'
 import { useNeedsReview } from '@/hooks/useNeedsReview'
 import { DemoModeBanner } from '@/components/demo/DemoModeBanner'
+import { DemoTour } from '@/components/demo/DemoTour'
 
 interface LayoutProps {
   children: ReactNode
@@ -231,6 +232,9 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
           onClose={handleModalClose}
         />
       )}
+
+      {/* Demo Tour - guided walkthrough for demo users */}
+      <DemoTour />
     </div>
   )
 }

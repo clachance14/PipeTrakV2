@@ -33,6 +33,7 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   badge?: number;
   permission?: Permission;
+  tourId?: string;
 }
 
 export function Sidebar() {
@@ -42,14 +43,14 @@ export function Sidebar() {
   const { role } = usePermissions();
 
   const navItems: NavItem[] = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/components', label: 'Components', icon: Box },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tourId: 'nav-dashboard' },
+    { path: '/components', label: 'Components', icon: Box, tourId: 'nav-components' },
     { path: '/drawings', label: 'Drawings', icon: FileText },
-    { path: '/packages', label: 'Test Packages', icon: Package },
+    { path: '/packages', label: 'Test Packages', icon: Package, tourId: 'nav-packages' },
     { path: '/needs-review', label: 'Needs Review', icon: AlertCircle },
     { path: '/welders', label: 'Welders', icon: Wrench },
-    { path: '/weld-log', label: 'Weld Log', icon: ClipboardCheck },
-    { path: '/reports', label: 'Reports', icon: BarChart3 },
+    { path: '/weld-log', label: 'Weld Log', icon: ClipboardCheck, tourId: 'nav-weld-log' },
+    { path: '/reports', label: 'Reports', icon: BarChart3, tourId: 'nav-reports' },
     { path: '/imports', label: 'Imports', icon: Upload },
     { path: '/team', label: 'Team', icon: Users, permission: 'can_manage_team' }
   ];
@@ -131,6 +132,7 @@ export function Sidebar() {
                   isCollapsed && !isHovering ? 'md:justify-center' : ''
                 )}
                 title={isCollapsed && !isHovering ? item.label : undefined}
+                {...(item.tourId ? { 'data-tour': item.tourId } : {})}
               >
                 <Icon className={cn('flex-shrink-0', isCollapsed && !isHovering ? 'md:h-5 md:w-5 h-6 w-6' : 'h-5 w-5')} />
                 {((!isCollapsed || isHovering) || isMobileOpen) && (

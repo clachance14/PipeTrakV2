@@ -31,6 +31,7 @@ export function DemoModeBanner() {
       className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2"
       role="banner"
       aria-label="Demo mode notification"
+      data-tour="demo-banner"
     >
       <div className="mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm">
         <div className="flex items-center gap-2">
