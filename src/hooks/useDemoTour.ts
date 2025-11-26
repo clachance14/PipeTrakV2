@@ -10,6 +10,7 @@ const TOUR_STEP_KEY = 'pipetrak:demo-tour-step'
 const TOUR_ADVANCE_EVENT = 'pipetrak:tour-advance'
 
 // Step indices for auto-advance logic
+const DRAWINGS_NAV_STEP = 2 // "Click here to navigate to Drawings"
 const EXPAND_DRAWING_STEP = 4 // "Click the chevron to expand"
 
 // Tour step definitions
@@ -160,11 +161,12 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
     }
   }, [enabled, hasCompletedTour])
 
-  // Listen for custom advance event (e.g., when user expands a drawing)
+  // Listen for custom advance event (e.g., when user clicks nav or expands a drawing)
   useEffect(() => {
     const handleAdvance = () => {
-      // Only auto-advance if tour is running and on the "Expand Drawing" step
-      if (run && stepIndex === EXPAND_DRAWING_STEP) {
+      // Only auto-advance if tour is running and on specific interactive steps
+      const autoAdvanceSteps = [DRAWINGS_NAV_STEP, EXPAND_DRAWING_STEP]
+      if (run && autoAdvanceSteps.includes(stepIndex)) {
         const nextIndex = stepIndex + 1
         setStepIndex(nextIndex)
         saveStepIndex(nextIndex)

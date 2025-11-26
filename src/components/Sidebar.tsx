@@ -19,6 +19,7 @@ import { PermissionGate } from '@/components/PermissionGate';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/contexts/ProjectContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { advanceDemoTour } from '@/hooks/useDemoTour';
 
 type Permission =
   | 'can_update_milestones'
@@ -59,10 +60,14 @@ export function Sidebar() {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const handleNavClick = () => {
+  const handleNavClick = (path: string) => {
     // Close mobile sidebar when navigating
     if (isMobileOpen) {
       setMobileOpen(false);
+    }
+    // Advance demo tour when clicking Drawings nav
+    if (path === '/drawings') {
+      advanceDemoTour();
     }
   };
 
@@ -123,7 +128,7 @@ export function Sidebar() {
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={handleNavClick}
+                onClick={() => handleNavClick(item.path)}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                   active
@@ -164,7 +169,7 @@ export function Sidebar() {
           {selectedProjectId && (role === 'owner' || role === 'admin' || role === 'project_manager') && (
             <Link
               to={`/projects/${selectedProjectId}/settings`}
-              onClick={handleNavClick}
+              onClick={() => handleNavClick(`/projects/${selectedProjectId}/settings`)}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                 isActive(`/projects/${selectedProjectId}/settings`)
