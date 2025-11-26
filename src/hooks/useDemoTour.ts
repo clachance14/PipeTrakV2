@@ -36,7 +36,7 @@ export const demoTourSteps: Step[] = [
   },
   {
     target: '[data-tour="drawing-row"]',
-    content: 'Each drawing shows the drawing number, spec, area, system, test package, and overall progress. This row represents a piping isometric or P&ID.',
+    content: 'Each drawing shows the drawing number, spec, area, system, test package, and overall progress. This can represent an isometric, tie point drawing, equipment drawing, or any drawing with components to be installed.',
     title: 'Drawing Row',
     placement: 'bottom'
   },
