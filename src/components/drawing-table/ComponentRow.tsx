@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MilestoneCheckbox } from './MilestoneCheckbox'
 import { PartialMilestoneInput } from './PartialMilestoneInput'
@@ -6,6 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useOfflineQueue } from '@/hooks/useOfflineQueue'
+import { useAuth } from '@/contexts/AuthContext'
+import { isDemoUser } from '@/components/demo/DemoModeBanner'
 import { cn } from '@/lib/utils'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
 import type { ComponentRow as ComponentRowType, MilestoneConfig } from '@/types/drawing-table.types'
@@ -84,6 +87,21 @@ export function ComponentRow({
   const isOnline = useNetworkStatus()
   const { enqueue } = useOfflineQueue()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isDemo = isDemoUser(user?.email)
+
+  // Highlight % complete when it changes (demo users only)
+  const [isHighlighted, setIsHighlighted] = useState(false)
+  const prevPercentRef = useRef(component.percent_complete)
+
+  useEffect(() => {
+    if (isDemo && prevPercentRef.current !== component.percent_complete) {
+      setIsHighlighted(true)
+      const timer = setTimeout(() => setIsHighlighted(false), 1500)
+      prevPercentRef.current = component.percent_complete
+      return () => clearTimeout(timer)
+    }
+  }, [component.percent_complete, isDemo])
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     // If offline, enqueue update to localStorage
@@ -462,7 +480,10 @@ export function ComponentRow({
       </div>
 
       {/* Progress percentage (hidden for aggregate threaded pipe, shown in Title column) */}
-      <div className="min-w-[130px] text-sm font-semibold text-slate-800">
+      <div className={cn(
+        "min-w-[130px] text-sm font-semibold text-slate-800 transition-all duration-300",
+        isHighlighted && "bg-yellow-200 text-yellow-900 rounded px-2 -mx-2 scale-110"
+      )}>
         {!isAggregateThreadedPipe && `${component.percent_complete.toFixed(0)}%`}
       </div>
 
