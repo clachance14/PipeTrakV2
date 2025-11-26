@@ -56,9 +56,9 @@ export const demoTourSteps: Step[] = [
   },
   {
     target: '[data-tour-field-weld="field-weld-component"]',
-    content: 'Field welds require welder assignment. When you check "Weld Made", a dialog opens to select the welder who performed the weld. Try it now!',
+    content: 'Field welds require welder assignment. When you check "Weld Made", a dialog opens to select the welder who performed the weld. Try it now, then click Next to continue!',
     title: 'Field Weld Tracking',
-    placement: 'bottom',
+    placement: 'left',
     spotlightClicks: true
   },
   {
