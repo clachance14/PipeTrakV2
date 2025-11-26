@@ -48,12 +48,6 @@ export const demoTourSteps: Step[] = [
     placement: 'right'
   },
   {
-    target: '[data-tour="component-milestones"]',
-    content: 'Each component has milestone checkboxes and percentage inputs. Update progress by checking boxes or entering percentages. Changes save automatically!',
-    title: 'Update Progress',
-    placement: 'bottom'
-  },
-  {
     target: '[data-tour-spool="spool-component"]',
     content: 'Spools track fabrication progress with discrete milestones. Check boxes like Fabricate, Install, and Connect as each step is completed. Try checking one now!',
     title: 'Spool Progress',

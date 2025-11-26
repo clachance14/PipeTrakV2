@@ -40,8 +40,6 @@ export interface ComponentRowProps {
   testPackage?: { id: string; name: string } | null
   /** Optional callback when component row is clicked */
   onClick?: (componentId: string) => void
-  /** Whether this is the first component row (for demo tour targeting) */
-  isFirstRow?: boolean
 }
 
 /**
@@ -81,7 +79,6 @@ export function ComponentRow({
   system,
   testPackage,
   onClick,
-  isFirstRow = false,
 }: ComponentRowProps) {
   const isMobile = useMobileDetection()
   const isOnline = useNetworkStatus()
@@ -325,7 +322,6 @@ export function ComponentRow({
         }
       } : undefined}
       aria-label={onClick ? `Edit metadata for ${component.identityDisplay}` : undefined}
-      data-tour={isFirstRow ? 'component-milestones' : undefined}
       data-tour-spool={component.component_type === 'spool' && hasIncompleteMilestones() ? 'spool-component' : undefined}
       data-tour-field-weld={component.component_type === 'field_weld' && hasIncompleteMilestones() ? 'field-weld-component' : undefined}
     >

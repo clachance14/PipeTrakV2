@@ -277,7 +277,6 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
                 testPackage={row.data.test_package}
                 onMilestoneUpdate={onMilestoneUpdate}
                 onClick={onComponentClick}
-                isFirstRow={row.data.id === componentsMap.get(row.drawingId)?.[0]?.id}
               />
             </div>
           )
