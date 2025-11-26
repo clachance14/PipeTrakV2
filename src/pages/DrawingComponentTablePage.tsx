@@ -21,7 +21,7 @@ import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useMobileFilterState } from '@/hooks/useMobileFilterState'
-import { advanceDemoTour, TOUR_EXPAND_NEXT_DRAWING_EVENT, skipToNextTourStep } from '@/hooks/useDemoTour'
+import { advanceDemoTour } from '@/hooks/useDemoTour'
 
 /**
  * Drawing-Centered Component Progress Table Page
@@ -133,36 +133,6 @@ export function DrawingComponentTablePage() {
 
     return () => clearTimeout(timeoutId)
   }, [expandedDrawingId, drawings, componentsMap, isLoading])
-
-  // Listen for tour expand-next-drawing event
-  useEffect(() => {
-    const handleExpandNext = () => {
-      if (!drawings || drawings.length === 0) {
-        skipToNextTourStep()
-        return
-      }
-
-      // Find current expanded drawing index
-      const currentIndex = expandedDrawingId
-        ? drawings.findIndex(d => d.id === expandedDrawingId)
-        : -1
-
-      // Try to find the next drawing
-      const nextIndex = currentIndex + 1
-      const nextDrawing = drawings[nextIndex]
-      if (nextDrawing) {
-        toggleDrawing(nextDrawing.id)
-        // After expanding, wait for components to load then check again
-        // The tour will fire TARGET_NOT_FOUND again if no valid component found
-      } else {
-        // No more drawings, skip to next tour step
-        skipToNextTourStep()
-      }
-    }
-
-    window.addEventListener(TOUR_EXPAND_NEXT_DRAWING_EVENT, handleExpandNext)
-    return () => window.removeEventListener(TOUR_EXPAND_NEXT_DRAWING_EVENT, handleExpandNext)
-  }, [drawings, expandedDrawingId, toggleDrawing])
 
   // Handle milestone update
   const handleMilestoneUpdate = (componentId: string, milestoneName: string, value: boolean | number) => {
