@@ -271,25 +271,25 @@ export async function processTransaction(
           let percentComplete = 0
 
           if (row['Date Welded']?.trim()) {
-            // Weld Complete milestone (use numeric 1, not boolean true)
-            progressState = { 'Weld Complete': 1 }
+            // Weld Complete milestone (use numeric 100 for complete, 0 for incomplete)
+            progressState = { 'Weld Complete': 100 }
             percentComplete = 95 // Fit-up (30%) + Weld Complete (65%)
           }
 
           if (ndeResult === 'PASS') {
-            // All milestones complete (use numeric 1, not boolean true)
+            // All milestones complete (use numeric 100 for complete)
             progressState = {
-              'Fit-up': 1,
-              'Weld Complete': 1,
-              'Accepted': 1,
+              'Fit-up': 100,
+              'Weld Complete': 100,
+              'Accepted': 100,
             }
             percentComplete = 100
           } else if (ndeResult === 'FAIL') {
-            // Trigger will mark as 100% rejected (use numeric 1, not boolean true)
+            // Trigger will mark as 100% rejected (use numeric 100 for complete)
             progressState = {
-              'Fit-up': 1,
-              'Weld Complete': 1,
-              'Accepted': 1,
+              'Fit-up': 100,
+              'Weld Complete': 100,
+              'Accepted': 100,
             }
             percentComplete = 100
           }

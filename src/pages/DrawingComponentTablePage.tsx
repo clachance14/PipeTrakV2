@@ -151,16 +151,16 @@ export function DrawingComponentTablePage() {
       }
     }
 
-    // Intercept "Weld Complete" on field welds (first-time check only)
-    // Note: Checkbox sends 100 (not true) after milestone scale migration
+    // Intercept "Weld Made" on field welds (first-time check only)
+    // Note: Template uses "Weld Made" as milestone name - this matches UI label
     if (
       component &&
       component.component_type === 'field_weld' &&
-      milestoneName === 'Weld Complete' &&
+      milestoneName === 'Weld Made' &&
       (value === 100 || value === true) &&
-      component.current_milestones['Weld Complete'] !== 100 &&
-      component.current_milestones['Weld Complete'] !== true &&
-      component.current_milestones['Weld Complete'] !== 1
+      component.current_milestones['Weld Made'] !== 100 &&
+      component.current_milestones['Weld Made'] !== true &&
+      component.current_milestones['Weld Made'] !== 1
     ) {
       // Open welder assignment dialog instead of updating milestone directly
       setSelectedComponentId(componentId)

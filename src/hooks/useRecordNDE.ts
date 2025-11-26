@@ -54,16 +54,16 @@ export function useRecordNDE() {
 
       // Update component progress based on result
       if (payload.nde_result === 'PASS') {
-        // Mark all milestones complete (100%) - using actual milestone names from template
+        // Mark all milestones complete (100%) - using milestone names from template
         await supabase
           .from('components')
           .update({
             current_milestones: {
-              'Fit-Up': true,
-              'Weld Made': true,
-              'Punch': true,
-              'Test': true,
-              'Restore': true,
+              'Fit-Up': 100,
+              'Weld Made': 100,
+              'Punch': 100,
+              'Test': 100,
+              'Restore': 100,
             },
             percent_complete: 100,
           })

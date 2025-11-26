@@ -22,7 +22,7 @@ export function useAssignWelder() {
 
   return useMutation({
     mutationFn: async (payload: AssignWelderPayload) => {
-      // Update field_weld
+      // Update field_weld - use maybeSingle() to handle RLS edge cases
       const { data: fieldWeld, error: weldError } = await supabase
         .from('field_welds')
         .update({
@@ -31,10 +31,14 @@ export function useAssignWelder() {
         })
         .eq('id', payload.field_weld_id)
         .select('component_id')
-        .single()
+        .maybeSingle()
 
       if (weldError) {
         throw new Error(`Failed to assign welder: ${weldError.message}`)
+      }
+
+      if (!fieldWeld) {
+        throw new Error('Field weld not found or access denied')
       }
 
       // Mark milestones on component using RPC function
@@ -44,7 +48,7 @@ export function useAssignWelder() {
       const { error: fitUpError } = await supabase.rpc('update_component_milestone', {
         p_component_id: fieldWeld.component_id,
         p_milestone_name: 'Fit-Up',
-        p_new_value: 1,
+        p_new_value: 100,
         p_user_id: payload.user_id,
       })
 
@@ -56,7 +60,7 @@ export function useAssignWelder() {
       const { error: weldMadeError } = await supabase.rpc('update_component_milestone', {
         p_component_id: fieldWeld.component_id,
         p_milestone_name: 'Weld Made',
-        p_new_value: 1,
+        p_new_value: 100,
         p_user_id: payload.user_id,
       })
 
