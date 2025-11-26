@@ -28,7 +28,7 @@ export async function checkRateLimits(
     const { data: ipEvents, error: ipError } = await supabase
       .from('rate_limit_events')
       .select('created_at')
-      .eq('event_type', 'demo_access')
+      .eq('event_type', 'demo_signup')
       .eq('identifier_type', 'ip_address')
       .eq('identifier_value', ipAddress)
       .gt('created_at', oneHourAgo)
@@ -58,7 +58,7 @@ export async function checkRateLimits(
     const { data: emailEvents, error: emailError } = await supabase
       .from('rate_limit_events')
       .select('created_at')
-      .eq('event_type', 'demo_access')
+      .eq('event_type', 'demo_signup')
       .eq('identifier_type', 'email')
       .eq('identifier_value', email.toLowerCase())
       .gt('created_at', oneDayAgo)
@@ -101,13 +101,13 @@ export async function logRateLimitEvent(
   try {
     const events = [
       {
-        event_type: 'demo_access',
+        event_type: 'demo_signup',
         identifier_type: 'ip_address',
         identifier_value: ipAddress,
         metadata: { ...metadata, email_hash: hashEmail(email) }
       },
       {
-        event_type: 'demo_access',
+        event_type: 'demo_signup',
         identifier_type: 'email',
         identifier_value: email.toLowerCase(),
         metadata: { ...metadata, ip_address: ipAddress }
