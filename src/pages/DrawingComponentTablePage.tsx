@@ -21,6 +21,7 @@ import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useMobileFilterState } from '@/hooks/useMobileFilterState'
+import { advanceDemoTour } from '@/hooks/useDemoTour'
 
 /**
  * Drawing-Centered Component Progress Table Page
@@ -150,16 +151,16 @@ export function DrawingComponentTablePage() {
       }
     }
 
-    // Intercept "Weld Made" on field welds (first-time check only)
+    // Intercept "Weld Complete" on field welds (first-time check only)
     // Note: Checkbox sends 100 (not true) after milestone scale migration
     if (
       component &&
       component.component_type === 'field_weld' &&
-      milestoneName === 'Weld Made' &&
+      milestoneName === 'Weld Complete' &&
       (value === 100 || value === true) &&
-      component.current_milestones['Weld Made'] !== 100 &&
-      component.current_milestones['Weld Made'] !== true &&
-      component.current_milestones['Weld Made'] !== 1
+      component.current_milestones['Weld Complete'] !== 100 &&
+      component.current_milestones['Weld Complete'] !== true &&
+      component.current_milestones['Weld Complete'] !== 1
     ) {
       // Open welder assignment dialog instead of updating milestone directly
       setSelectedComponentId(componentId)
@@ -168,8 +169,8 @@ export function DrawingComponentTablePage() {
     }
 
     // Normal milestone update
-    // Convert boolean to number BEFORE passing to mutation
-    const numericValue = typeof value === 'boolean' ? (value ? 1 : 0) : value
+    // Convert boolean to numeric 0-100 scale BEFORE passing to mutation
+    const numericValue = typeof value === 'boolean' ? (value ? 100 : 0) : value
 
     updateMilestoneMutation.mutate({
       component_id: componentId,
@@ -210,6 +211,8 @@ export function DrawingComponentTablePage() {
     } else {
       // Clicking a different drawing - expand it (auto-closes current)
       toggleDrawing(drawingId)
+      // Advance demo tour when user expands a drawing
+      advanceDemoTour()
     }
   }, [expandedDrawingId, toggleDrawing, collapseDrawing])
 

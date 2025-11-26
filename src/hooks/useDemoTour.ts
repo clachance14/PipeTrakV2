@@ -7,6 +7,10 @@ import { Step, CallBackProps, STATUS, EVENTS } from 'react-joyride'
 
 const TOUR_STORAGE_KEY = 'pipetrak:demo-tour-completed'
 const TOUR_STEP_KEY = 'pipetrak:demo-tour-step'
+const TOUR_ADVANCE_EVENT = 'pipetrak:tour-advance'
+
+// Step indices for auto-advance logic
+const EXPAND_DRAWING_STEP = 4 // "Click the chevron to expand"
 
 // Tour step definitions
 export const demoTourSteps: Step[] = [
@@ -156,6 +160,21 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
     }
   }, [enabled, hasCompletedTour])
 
+  // Listen for custom advance event (e.g., when user expands a drawing)
+  useEffect(() => {
+    const handleAdvance = () => {
+      // Only auto-advance if tour is running and on the "Expand Drawing" step
+      if (run && stepIndex === EXPAND_DRAWING_STEP) {
+        const nextIndex = stepIndex + 1
+        setStepIndex(nextIndex)
+        saveStepIndex(nextIndex)
+      }
+    }
+
+    window.addEventListener(TOUR_ADVANCE_EVENT, handleAdvance)
+    return () => window.removeEventListener(TOUR_ADVANCE_EVENT, handleAdvance)
+  }, [run, stepIndex, saveStepIndex])
+
   // Handle tour callbacks
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
     const { status, type, index } = data
@@ -189,4 +208,12 @@ export function useDemoTour(options: UseDemoTourOptions = {}) {
     resetTour,
     hasCompletedTour: hasCompletedTour()
   }
+}
+
+/**
+ * Dispatch event to advance the tour (call when user completes an action)
+ * Used by components to signal the tour should advance after user interaction
+ */
+export function advanceDemoTour() {
+  window.dispatchEvent(new CustomEvent(TOUR_ADVANCE_EVENT))
 }
