@@ -245,6 +245,7 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
                     isSelected={selectedDrawingIds.has(row.data.id)}
                     onSelect={onToggleSelection}
                     isMobile={isMobile}
+                    isFirstRow={row.data.id === drawings[0]?.id}
                   />
                 </div>
               </div>
@@ -276,6 +277,7 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
                 testPackage={row.data.test_package}
                 onMilestoneUpdate={onMilestoneUpdate}
                 onClick={onComponentClick}
+                isFirstRow={row.data.id === componentsMap.get(row.drawingId)?.[0]?.id}
               />
             </div>
           )

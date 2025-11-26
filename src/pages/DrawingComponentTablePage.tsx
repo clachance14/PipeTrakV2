@@ -151,11 +151,13 @@ export function DrawingComponentTablePage() {
     }
 
     // Intercept "Weld Made" on field welds (first-time check only)
+    // Note: Checkbox sends 100 (not true) after milestone scale migration
     if (
       component &&
       component.component_type === 'field_weld' &&
       milestoneName === 'Weld Made' &&
-      value === true &&
+      (value === 100 || value === true) &&
+      component.current_milestones['Weld Made'] !== 100 &&
       component.current_milestones['Weld Made'] !== true &&
       component.current_milestones['Weld Made'] !== 1
     ) {

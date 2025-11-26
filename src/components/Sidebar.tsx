@@ -45,7 +45,7 @@ export function Sidebar() {
   const navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tourId: 'nav-dashboard' },
     { path: '/components', label: 'Components', icon: Box, tourId: 'nav-components' },
-    { path: '/drawings', label: 'Drawings', icon: FileText },
+    { path: '/drawings', label: 'Drawings', icon: FileText, tourId: 'nav-drawings' },
     { path: '/packages', label: 'Test Packages', icon: Package, tourId: 'nav-packages' },
     { path: '/needs-review', label: 'Needs Review', icon: AlertCircle },
     { path: '/welders', label: 'Welders', icon: Wrench },

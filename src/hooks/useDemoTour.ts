@@ -23,8 +23,33 @@ export const demoTourSteps: Step[] = [
     disableBeacon: true
   },
   {
+    target: '[data-tour="nav-drawings"]',
+    content: 'The Drawings page is your primary workspace. Click here to navigate and see how to track progress.',
+    title: 'Drawings',
+    spotlightClicks: true
+  },
+  {
+    target: '[data-tour="drawing-row"]',
+    content: 'Each drawing shows the drawing number, spec, area, system, test package, and overall progress. This row represents a piping isometric or P&ID.',
+    title: 'Drawing Row',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="drawing-expand"]',
+    content: 'Click the chevron to expand and see all components in this drawing. Try it now!',
+    title: 'Expand Drawing',
+    spotlightClicks: true,
+    placement: 'right'
+  },
+  {
+    target: '[data-tour="component-milestones"]',
+    content: 'Each component has milestone checkboxes and percentage inputs. Update progress by checking boxes or entering percentages. Changes save automatically!',
+    title: 'Update Progress',
+    placement: 'bottom'
+  },
+  {
     target: '[data-tour="nav-components"]',
-    content: 'View and manage all pipe components. Track materials, sizes, and progress through fabrication milestones.',
+    content: 'View and manage all pipe components across all drawings. Track materials, sizes, and progress through fabrication milestones.',
     title: 'Components'
   },
   {

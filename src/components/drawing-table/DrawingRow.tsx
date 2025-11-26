@@ -18,6 +18,8 @@ export interface DrawingRowProps {
   onEditMetadata?: (drawing: DrawingRowType, field: 'area' | 'system' | 'package') => void
   /** Mobile viewport indicator (≤1024px) */
   isMobile?: boolean
+  /** Whether this is the first row (for demo tour targeting) */
+  isFirstRow?: boolean
 }
 
 /**
@@ -37,6 +39,7 @@ export function DrawingRow({
   onSelect,
   onEditMetadata,
   isMobile = false,
+  isFirstRow = false,
 }: DrawingRowProps) {
   const navigate = useNavigate()
 
@@ -63,6 +66,7 @@ export function DrawingRow({
   return (
     <div
       data-drawing-id={drawing.id}
+      data-tour={isFirstRow ? 'drawing-row' : undefined}
       style={style}
       className={`group flex items-center ${isMobile ? 'gap-2 px-2' : 'gap-4 px-5'} py-3.5 bg-white border-l-[3px] border-blue-600 hover:bg-slate-50 transition-all duration-150 shadow-sm hover:shadow-md`}
     >
@@ -90,6 +94,7 @@ export function DrawingRow({
           }
         }}
         className={`cursor-pointer flex items-center justify-center ${isMobile ? 'min-h-[44px] min-w-[44px] flex-shrink-0' : ''}`}
+        data-tour={isFirstRow ? 'drawing-expand' : undefined}
       >
         {drawing.total_components > 0 && (
           <ChevronRight
