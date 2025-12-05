@@ -119,19 +119,19 @@ export function ManhourSummaryWidget({ projectId: projectIdProp }: ManhourSummar
           <div>
             <p className="text-sm text-muted-foreground">Budgeted</p>
             <p className="text-2xl font-semibold">
-              {budget.total_budgeted_mh.toLocaleString()} MH
+              {Math.round(budget.total_budgeted_mh).toLocaleString()} MH
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Earned</p>
             <p className="text-2xl font-semibold">
-              {budget.earned_mh.toLocaleString()} MH
+              {Math.round(budget.earned_mh).toLocaleString()} MH
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Remaining</p>
             <p className="text-2xl font-semibold">
-              {budget.remaining_mh.toLocaleString()} MH
+              {Math.round(budget.remaining_mh).toLocaleString()} MH
             </p>
           </div>
           <div>
