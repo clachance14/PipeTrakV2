@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { naturalCompare } from '@/lib/natural-sort'
+import { getSortableIdentity } from '@/lib/identity-sort'
 import type { ComponentSortField, SortDirection } from '@/types/component-table.types'
 import type { Database } from '@/types/database.types'
 
@@ -20,13 +21,16 @@ export function useComponentSort() {
         let comparison = 0
 
         switch (sortField) {
-          case 'identity_key':
-            // Stringify identity_key for comparison
+          case 'identity_key': {
+            // Extract sortable identity that groups by line number
+            const aKey = a.identity_key as Record<string, unknown>
+            const bKey = b.identity_key as Record<string, unknown>
             comparison = naturalCompare(
-              JSON.stringify(a.identity_key),
-              JSON.stringify(b.identity_key)
+              getSortableIdentity(aKey, a.component_type),
+              getSortableIdentity(bKey, b.component_type)
             )
             break
+          }
           case 'drawing':
             comparison = naturalCompare(
               a.drawing?.drawing_no_norm || '',

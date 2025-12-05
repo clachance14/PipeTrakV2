@@ -129,6 +129,7 @@ export type Database = {
         Row: {
           area_id: string | null
           attributes: Json | null
+          budgeted_manhours: number | null
           component_type: string
           created_at: string
           created_by: string | null
@@ -139,6 +140,7 @@ export type Database = {
           is_retired: boolean
           last_updated_at: string
           last_updated_by: string | null
+          manhour_weight: number | null
           percent_complete: number
           progress_template_id: string
           project_id: string
@@ -150,6 +152,7 @@ export type Database = {
         Insert: {
           area_id?: string | null
           attributes?: Json | null
+          budgeted_manhours?: number | null
           component_type: string
           created_at?: string
           created_by?: string | null
@@ -160,6 +163,7 @@ export type Database = {
           is_retired?: boolean
           last_updated_at?: string
           last_updated_by?: string | null
+          manhour_weight?: number | null
           percent_complete?: number
           progress_template_id: string
           project_id: string
@@ -171,6 +175,7 @@ export type Database = {
         Update: {
           area_id?: string | null
           attributes?: Json | null
+          budgeted_manhours?: number | null
           component_type?: string
           created_at?: string
           created_by?: string | null
@@ -181,6 +186,7 @@ export type Database = {
           is_retired?: boolean
           last_updated_at?: string
           last_updated_by?: string | null
+          manhour_weight?: number | null
           percent_complete?: number
           progress_template_id?: string
           project_id?: string
@@ -1004,6 +1010,50 @@ export type Database = {
         }
         Relationships: []
       }
+      project_manhour_budgets: {
+        Row: {
+          created_at: string
+          created_by: string
+          effective_date: string
+          id: string
+          is_active: boolean
+          project_id: string
+          revision_reason: string
+          total_budgeted_manhours: number
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          effective_date: string
+          id?: string
+          is_active?: boolean
+          project_id: string
+          revision_reason: string
+          total_budgeted_manhours: number
+          version_number?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          effective_date?: string
+          id?: string
+          is_active?: boolean
+          project_id?: string
+          revision_reason?: string
+          total_budgeted_manhours?: number
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_manhour_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_progress_templates: {
         Row: {
           component_type: string
@@ -1654,6 +1704,69 @@ export type Database = {
           },
         ]
       }
+      vw_manhour_progress_by_area: {
+        Row: {
+          area_id: string | null
+          area_name: string | null
+          install_mh_budget: number | null
+          install_mh_earned: number | null
+          mh_budget: number | null
+          mh_pct_complete: number | null
+          project_id: string | null
+          punch_mh_budget: number | null
+          punch_mh_earned: number | null
+          receive_mh_budget: number | null
+          receive_mh_earned: number | null
+          restore_mh_budget: number | null
+          restore_mh_earned: number | null
+          test_mh_budget: number | null
+          test_mh_earned: number | null
+          total_mh_earned: number | null
+        }
+        Relationships: []
+      }
+      vw_manhour_progress_by_system: {
+        Row: {
+          install_mh_budget: number | null
+          install_mh_earned: number | null
+          mh_budget: number | null
+          mh_pct_complete: number | null
+          project_id: string | null
+          punch_mh_budget: number | null
+          punch_mh_earned: number | null
+          receive_mh_budget: number | null
+          receive_mh_earned: number | null
+          restore_mh_budget: number | null
+          restore_mh_earned: number | null
+          system_id: string | null
+          system_name: string | null
+          test_mh_budget: number | null
+          test_mh_earned: number | null
+          total_mh_earned: number | null
+        }
+        Relationships: []
+      }
+      vw_manhour_progress_by_test_package: {
+        Row: {
+          install_mh_budget: number | null
+          install_mh_earned: number | null
+          mh_budget: number | null
+          mh_pct_complete: number | null
+          project_id: string | null
+          punch_mh_budget: number | null
+          punch_mh_earned: number | null
+          receive_mh_budget: number | null
+          receive_mh_earned: number | null
+          restore_mh_budget: number | null
+          restore_mh_earned: number | null
+          test_mh_budget: number | null
+          test_mh_earned: number | null
+          test_package_id: string | null
+          test_package_name: string | null
+          total_mh_earned: number | null
+        }
+        Relationships: []
+      }
       vw_progress_by_area: {
         Row: {
           area_id: string | null
@@ -1791,6 +1904,10 @@ export type Database = {
         Args: { check_email: string }
         Returns: boolean
       }
+      check_manhour_permission: {
+        Args: { p_project_id: string }
+        Returns: boolean
+      }
       clone_system_templates_for_project: {
         Args: { target_project_id: string }
         Returns: number
@@ -1806,6 +1923,15 @@ export type Database = {
           p_snapshot_date?: string
         }
         Returns: number
+      }
+      create_manhour_budget: {
+        Args: {
+          p_effective_date?: string
+          p_project_id: string
+          p_revision_reason: string
+          p_total_budgeted_manhours: number
+        }
+        Returns: Json
       }
       create_test_package: {
         Args: {
@@ -1855,6 +1981,14 @@ export type Database = {
       }
       get_current_user_email: { Args: never; Returns: string }
       get_current_user_org_id: { Args: never; Returns: string }
+      get_milestone_weight: {
+        Args: {
+          p_component_type: string
+          p_project_id: string
+          p_standard_milestone: string
+        }
+        Returns: number
+      }
       get_most_common_spec_per_drawing: {
         Args: { p_project_id: string }
         Returns: {
@@ -1929,6 +2063,7 @@ export type Database = {
       }
       is_super_admin: { Args: never; Returns: boolean }
       normalize_drawing_number: { Args: { raw: string }; Returns: string }
+      parse_size_diameter: { Args: { p_size: string }; Returns: number }
       recalculate_components_with_template: {
         Args: { target_component_type: string; target_project_id: string }
         Returns: number

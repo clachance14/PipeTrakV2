@@ -14,6 +14,9 @@ export type GroupingDimension = 'area' | 'system' | 'test_package';
 // Export format options
 export type ExportFormat = 'pdf' | 'excel' | 'csv';
 
+// Report view mode for toggling between count, manhour, and manhour percent views
+export type ReportViewMode = 'count' | 'manhour' | 'manhour_percent';
+
 // Progress row data structure (matches view output)
 export interface ProgressRow {
   // Primary key (area_id, system_id, or test_package_id)
@@ -124,6 +127,101 @@ export const DIMENSION_LABELS: Record<GroupingDimension, string> = {
   system: 'System',
   test_package: 'Test Package',
 };
+
+/**
+ * ============================================================================
+ * MANHOUR PROGRESS REPORTS (Feature 032 - Manhour Earned Value)
+ * ============================================================================
+ */
+
+// Manhour progress row data structure (matches vw_manhour_progress_by_* views)
+export interface ManhourProgressRow {
+  // Primary key (area_id, system_id, or test_package_id)
+  id: string;
+  // Display name (area_name, system_name, or test_package_name)
+  name: string;
+  // Project ID for filtering
+  projectId: string;
+
+  // Total manhour budget for this grouping
+  mhBudget: number;
+
+  // Receive milestone: MH Budget and Earned
+  receiveMhBudget: number;
+  receiveMhEarned: number;
+
+  // Install milestone: MH Budget and Earned
+  installMhBudget: number;
+  installMhEarned: number;
+
+  // Punch milestone: MH Budget and Earned
+  punchMhBudget: number;
+  punchMhEarned: number;
+
+  // Test milestone: MH Budget and Earned
+  testMhBudget: number;
+  testMhEarned: number;
+
+  // Restore milestone: MH Budget and Earned
+  restoreMhBudget: number;
+  restoreMhEarned: number;
+
+  // Total earned manhours (sum of all milestones)
+  totalMhEarned: number;
+
+  // Overall manhour-weighted completion percentage
+  mhPctComplete: number;
+}
+
+// Grand Total row for manhour reports (calculated from all rows)
+export interface ManhourGrandTotalRow {
+  name: 'Grand Total';
+  mhBudget: number;
+  receiveMhBudget: number;
+  receiveMhEarned: number;
+  installMhBudget: number;
+  installMhEarned: number;
+  punchMhBudget: number;
+  punchMhEarned: number;
+  testMhBudget: number;
+  testMhEarned: number;
+  restoreMhBudget: number;
+  restoreMhEarned: number;
+  totalMhEarned: number;
+  mhPctComplete: number;
+}
+
+// Manhour report data structure
+export interface ManhourReportData {
+  dimension: GroupingDimension;
+  rows: ManhourProgressRow[];
+  grandTotal: ManhourGrandTotalRow;
+  generatedAt: Date;
+  projectId: string;
+}
+
+// Manhour report column configuration
+export interface ManhourReportColumn {
+  key: keyof ManhourProgressRow | keyof ManhourGrandTotalRow;
+  label: string;
+  width?: number;
+  align?: 'left' | 'center' | 'right';
+  format?: 'text' | 'number' | 'percentage' | 'manhour';
+  hideOnMobile?: boolean;
+}
+
+// Standard manhour report columns
+export const MANHOUR_REPORT_COLUMNS: ManhourReportColumn[] = [
+  { key: 'name', label: 'Name', align: 'left', format: 'text' },
+  { key: 'mhBudget', label: 'MH Budget', align: 'right', format: 'manhour' },
+  { key: 'receiveMhEarned', label: 'Receive', align: 'right', format: 'manhour', hideOnMobile: true },
+  { key: 'installMhEarned', label: 'Install', align: 'right', format: 'manhour', hideOnMobile: true },
+  { key: 'punchMhEarned', label: 'Punch', align: 'right', format: 'manhour', hideOnMobile: true },
+  { key: 'testMhEarned', label: 'Test', align: 'right', format: 'manhour', hideOnMobile: true },
+  { key: 'restoreMhEarned', label: 'Restore', align: 'right', format: 'manhour', hideOnMobile: true },
+  { key: 'totalMhEarned', label: 'Total Earned', align: 'right', format: 'manhour' },
+  { key: 'mhPctComplete', label: '% Complete', align: 'right', format: 'percentage' },
+] as const;
 
 /**
  * ============================================================================

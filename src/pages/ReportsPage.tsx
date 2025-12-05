@@ -1,6 +1,7 @@
 /**
- * ReportsPage (Feature 019 + Field Weld Reports)
+ * ReportsPage (Feature 019 + Field Weld Reports + Feature 032 Manhour Earned Value)
  * Tabbed interface for Component Progress and Field Weld progress reports
+ * Supports toggle between Count view and Manhour view for Component Progress
  */
 
 import { useState, useEffect } from 'react';
@@ -9,6 +10,8 @@ import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { useProjects } from '@/hooks/useProjects';
 import { useProgressReport } from '@/hooks/useProgressReport';
+import { useManhourProgressReport } from '@/hooks/useManhourProgressReport';
+import { useManhourBudget } from '@/hooks/useManhourBudget';
 import { useFieldWeldProgressReport } from '@/hooks/useFieldWeldProgressReport';
 import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
 import { DimensionSelector } from '@/components/reports/DimensionSelector';
@@ -44,6 +47,16 @@ export function ReportsPage() {
     isLoading: isLoadingComponent,
     error: componentError,
   } = useProgressReport(selectedProjectId || '', componentDimension);
+
+  // Fetch manhour progress report (for manhour view toggle)
+  const {
+    data: manhourReportData,
+    isLoading: isLoadingManhour,
+  } = useManhourProgressReport(selectedProjectId || '', componentDimension);
+
+  // Fetch manhour budget to check if manhour view should be enabled
+  const { data: manhourBudget } = useManhourBudget(selectedProjectId || '');
+  const hasManhourBudget = !!manhourBudget;
 
   // Fetch field weld progress report (for area, system, test_package, overall dimensions)
   const {
@@ -173,7 +186,7 @@ export function ReportsPage() {
                 disabled={isLoadingComponent}
               />
 
-              {isLoadingComponent && (
+              {(isLoadingComponent || isLoadingManhour) && (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center space-y-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -189,7 +202,7 @@ export function ReportsPage() {
                 </div>
               )}
 
-              {componentReportData && !isLoadingComponent && !componentError && (
+              {componentReportData && !isLoadingComponent && !isLoadingManhour && !componentError && (
                 <>
                   {componentReportData.rows.length === 0 ? (
                     <div className="text-center py-12 border rounded-lg">
@@ -202,7 +215,9 @@ export function ReportsPage() {
                   ) : (
                     <ReportPreview
                       data={componentReportData}
+                      manhourData={manhourReportData}
                       projectName={currentProject?.name || 'Unknown Project'}
+                      hasManhourBudget={hasManhourBudget}
                     />
                   )}
                 </>

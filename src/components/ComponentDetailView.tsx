@@ -33,6 +33,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMilestoneHistory } from '@/hooks/useMilestoneHistory';
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog';
 import { UserPlus } from 'lucide-react';
+import { ComponentManhourSection } from '@/components/component-detail/ComponentManhourSection';
 
 interface ComponentDetailViewProps {
   componentId: string;
@@ -279,6 +280,9 @@ export function ComponentDetailView({
               <p className="text-3xl font-bold">{completedMilestones}</p>
             </div>
           </div>
+
+          {/* Manhour Section */}
+          <ComponentManhourSection component={component} />
         </TabsContent>
 
         <TabsContent value="details" className="mt-4 space-y-4">
@@ -599,6 +603,9 @@ export function ComponentDetailView({
                 <p className="text-3xl font-bold">{completedMilestones}</p>
               </div>
             </div>
+
+            {/* Manhour Section */}
+            <ComponentManhourSection component={component} />
           </div>
         )}
         {activeTab === 'details' && (
