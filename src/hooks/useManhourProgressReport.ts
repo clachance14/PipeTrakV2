@@ -164,12 +164,14 @@ function transformTestPackageRow(row: TestPackageManhourRow): ManhourProgressRow
  * Returns ManhourReportData with rows, grand total, and metadata
  */
 export function useManhourProgressReport(
-  projectId: string,
+  projectId: string | undefined,
   groupingDimension: GroupingDimension
 ): UseQueryResult<ManhourReportData, Error> {
   return useQuery({
     queryKey: ['manhour-progress-report', projectId, groupingDimension],
     queryFn: async (): Promise<ManhourReportData> => {
+      // Safe: query is disabled when projectId is undefined
+      const safeProjectId = projectId!;
       let rows: ManhourProgressRow[] = [];
 
       switch (groupingDimension) {
@@ -177,7 +179,7 @@ export function useManhourProgressReport(
           const { data, error } = await supabase
             .from('vw_manhour_progress_by_area')
             .select('*')
-            .eq('project_id', projectId)
+            .eq('project_id', safeProjectId)
             .order('area_name', { ascending: true });
 
           if (error) throw error;
@@ -189,7 +191,7 @@ export function useManhourProgressReport(
           const { data, error } = await supabase
             .from('vw_manhour_progress_by_system')
             .select('*')
-            .eq('project_id', projectId)
+            .eq('project_id', safeProjectId)
             .order('system_name', { ascending: true });
 
           if (error) throw error;
@@ -201,7 +203,7 @@ export function useManhourProgressReport(
           const { data, error } = await supabase
             .from('vw_manhour_progress_by_test_package')
             .select('*')
-            .eq('project_id', projectId)
+            .eq('project_id', safeProjectId)
             .order('test_package_name', { ascending: true });
 
           if (error) throw error;
@@ -220,7 +222,7 @@ export function useManhourProgressReport(
         rows,
         grandTotal,
         generatedAt: new Date(),
-        projectId,
+        projectId: safeProjectId,
       };
     },
     staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes

@@ -1,0 +1,331 @@
+-- Migration: Add identity_key and component_type to budget warnings
+-- Feature: 032-manhour-earned-value
+-- Description: Include identity_key and component_type in warning objects
+--              so frontend can display meaningful component identifiers
+
+CREATE OR REPLACE FUNCTION create_manhour_budget(
+  p_project_id UUID,
+  p_total_budgeted_manhours NUMERIC,
+  p_revision_reason TEXT,
+  p_effective_date DATE DEFAULT CURRENT_DATE
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_user_role TEXT;
+  v_project_org_id UUID;
+  v_budget_id UUID;
+  v_version_number INTEGER;
+  v_total_weight NUMERIC := 0;
+  v_component RECORD;
+  v_size_value TEXT;
+  v_diameter NUMERIC;
+  v_weight NUMERIC;
+  v_linear_feet NUMERIC;
+  v_is_threaded BOOLEAN;
+  v_fallback_weight NUMERIC;
+  v_total_components INTEGER := 0;
+  v_components_allocated INTEGER := 0;
+  v_components_with_warnings INTEGER := 0;
+  v_warnings JSONB := '[]'::JSONB;
+  v_per_weight_unit NUMERIC;
+  v_inherited_size TEXT;
+  v_component_count INTEGER;
+BEGIN
+  -- Get current user
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'UNAUTHORIZED',
+      'message', 'Not authenticated'
+    );
+  END IF;
+
+  -- Get project's organization_id
+  SELECT organization_id INTO v_project_org_id FROM projects WHERE id = p_project_id;
+  IF v_project_org_id IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'NOT_FOUND',
+      'message', 'Project not found'
+    );
+  END IF;
+
+  -- Get user's role from users table (single-org architecture)
+  SELECT role INTO v_user_role FROM users WHERE id = v_user_id AND organization_id = v_project_org_id;
+
+  IF v_user_role IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'UNAUTHORIZED',
+      'message', 'User not in project organization'
+    );
+  END IF;
+
+  IF v_user_role NOT IN ('owner', 'admin', 'project_manager') THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'UNAUTHORIZED',
+      'message', 'Must be Owner, Admin, or PM to create budgets'
+    );
+  END IF;
+
+  -- VALIDATION: Budget amount must be positive
+  IF p_total_budgeted_manhours <= 0 THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'INVALID_BUDGET',
+      'message', 'Total budgeted manhours must be greater than 0'
+    );
+  END IF;
+
+  -- VALIDATION: Project must have non-retired components
+  SELECT COUNT(*) INTO v_component_count
+  FROM components
+  WHERE project_id = p_project_id AND is_retired = false;
+
+  IF v_component_count = 0 THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'NO_COMPONENTS',
+      'message', 'Project has no non-retired components to budget'
+    );
+  END IF;
+
+  -- Get next version number
+  SELECT COALESCE(MAX(version_number), 0) + 1 INTO v_version_number
+  FROM project_manhour_budgets
+  WHERE project_id = p_project_id;
+
+  -- Create the budget record (trigger will handle deactivating old budgets)
+  INSERT INTO project_manhour_budgets (
+    project_id,
+    total_budgeted_manhours,
+    version_number,
+    revision_reason,
+    effective_date,
+    is_active,
+    created_by
+  ) VALUES (
+    p_project_id,
+    p_total_budgeted_manhours,
+    v_version_number,
+    p_revision_reason,
+    p_effective_date,
+    true,
+    v_user_id
+  )
+  RETURNING id INTO v_budget_id;
+
+  -- First pass: Calculate weights for all non-retired components
+  CREATE TEMP TABLE temp_component_weights (
+    component_id UUID PRIMARY KEY,
+    weight NUMERIC NOT NULL DEFAULT 0.5,
+    has_warning BOOLEAN DEFAULT false,
+    warning_reason TEXT
+  ) ON COMMIT DROP;
+
+  -- Calculate most common size per drawing for inheritance
+  CREATE TEMP TABLE temp_drawing_sizes (
+    drawing_id UUID PRIMARY KEY,
+    most_common_size TEXT,
+    size_count INTEGER
+  ) ON COMMIT DROP;
+
+  -- Find most common size per drawing (only from components that have SIZE)
+  INSERT INTO temp_drawing_sizes (drawing_id, most_common_size, size_count)
+  SELECT DISTINCT ON (c.drawing_id)
+    c.drawing_id,
+    COALESCE(
+      c.identity_key->>'size',
+      c.identity_key->>'SIZE'
+    ) as size_val,
+    COUNT(*) as cnt
+  FROM components c
+  WHERE c.project_id = p_project_id
+    AND c.is_retired = false
+    AND c.drawing_id IS NOT NULL
+    AND (c.identity_key->>'size' IS NOT NULL OR c.identity_key->>'SIZE' IS NOT NULL)
+  GROUP BY c.drawing_id, COALESCE(c.identity_key->>'size', c.identity_key->>'SIZE')
+  ORDER BY c.drawing_id, cnt DESC;
+
+  -- Process each component
+  FOR v_component IN
+    SELECT
+      c.id,
+      c.component_type,
+      c.identity_key,
+      c.drawing_id
+    FROM components c
+    WHERE c.project_id = p_project_id
+      AND c.is_retired = false
+  LOOP
+    v_total_components := v_total_components + 1;
+    v_size_value := NULL;
+    v_inherited_size := NULL;
+    v_is_threaded := UPPER(COALESCE(v_component.component_type, '')) LIKE '%THREADED%';
+
+    -- Determine fallback weight based on component type
+    IF v_is_threaded THEN
+      v_fallback_weight := 1.0;
+    ELSE
+      v_fallback_weight := 0.5;
+    END IF;
+
+    v_weight := v_fallback_weight;
+
+    -- Try to get SIZE from identity_key
+    v_size_value := COALESCE(
+      v_component.identity_key->>'size',
+      v_component.identity_key->>'SIZE'
+    );
+
+    -- If no SIZE and component is spool or field_weld, try to inherit from drawing
+    IF v_size_value IS NULL AND v_component.component_type IN ('spool', 'field_weld') THEN
+      SELECT most_common_size INTO v_inherited_size
+      FROM temp_drawing_sizes
+      WHERE drawing_id = v_component.drawing_id;
+
+      IF v_inherited_size IS NOT NULL THEN
+        v_size_value := v_inherited_size;
+      END IF;
+    END IF;
+
+    -- Parse the size value
+    IF v_size_value IS NOT NULL AND TRIM(v_size_value) != '' THEN
+      IF UPPER(TRIM(v_size_value)) = 'NOSIZE' THEN
+        v_diameter := NULL;
+      ELSIF UPPER(TRIM(v_size_value)) = 'HALF' THEN
+        v_diameter := 0.5;
+      ELSIF v_size_value ~* '^.+X.+$' THEN
+        -- Handle reducers
+        DECLARE
+          v_parts TEXT[];
+          v_d1 NUMERIC;
+          v_d2 NUMERIC;
+        BEGIN
+          v_parts := regexp_split_to_array(UPPER(TRIM(v_size_value)), 'X');
+          IF v_parts[1] ~ '^\d+$' THEN
+            v_d1 := v_parts[1]::NUMERIC;
+          ELSIF v_parts[1] ~ '^\d+/\d+$' THEN
+            v_d1 := (split_part(v_parts[1], '/', 1)::NUMERIC) / (split_part(v_parts[1], '/', 2)::NUMERIC);
+          ELSE
+            v_d1 := NULL;
+          END IF;
+          IF v_parts[2] ~ '^\d+$' THEN
+            v_d2 := v_parts[2]::NUMERIC;
+          ELSIF v_parts[2] ~ '^\d+/\d+$' THEN
+            v_d2 := (split_part(v_parts[2], '/', 1)::NUMERIC) / (split_part(v_parts[2], '/', 2)::NUMERIC);
+          ELSE
+            v_d2 := NULL;
+          END IF;
+          IF v_d1 IS NOT NULL AND v_d2 IS NOT NULL THEN
+            v_diameter := (v_d1 + v_d2) / 2;
+          ELSE
+            v_diameter := NULL;
+          END IF;
+        END;
+      ELSIF v_size_value ~ '^\d+/\d+$' THEN
+        v_diameter := (split_part(v_size_value, '/', 1)::NUMERIC) / (split_part(v_size_value, '/', 2)::NUMERIC);
+      ELSIF v_size_value ~ '^\d+$' THEN
+        v_diameter := v_size_value::NUMERIC;
+      ELSE
+        v_diameter := NULL;
+      END IF;
+    ELSE
+      v_diameter := NULL;
+    END IF;
+
+    -- Calculate weight based on diameter
+    IF v_diameter IS NOT NULL AND v_diameter > 0 THEN
+      v_linear_feet := NULL;
+
+      IF v_is_threaded THEN
+        v_linear_feet := COALESCE(
+          (v_component.identity_key->>'linear_feet')::NUMERIC,
+          (v_component.identity_key->>'LINEAR_FEET')::NUMERIC
+        );
+      END IF;
+
+      IF v_is_threaded AND v_linear_feet IS NOT NULL THEN
+        v_weight := POWER(v_diameter, 1.5) * v_linear_feet * 0.1;
+      ELSE
+        v_weight := POWER(v_diameter, 1.5);
+      END IF;
+
+      INSERT INTO temp_component_weights (component_id, weight, has_warning, warning_reason)
+      VALUES (v_component.id, v_weight, false, NULL);
+    ELSE
+      INSERT INTO temp_component_weights (component_id, weight, has_warning, warning_reason)
+      VALUES (v_component.id, v_fallback_weight, true, 'unparseable_size');
+
+      v_components_with_warnings := v_components_with_warnings + 1;
+      -- UPDATED: Include identity_key and component_type in warning
+      v_warnings := v_warnings || jsonb_build_object(
+        'component_id', v_component.id,
+        'component_type', v_component.component_type,
+        'identity_key', v_component.identity_key,
+        'message', format('Using fallback weight %s - no parseable size', v_fallback_weight)
+      );
+    END IF;
+
+    v_total_weight := v_total_weight + v_weight;
+  END LOOP;
+
+  -- VALIDATION: Total weight must be positive
+  IF v_total_weight <= 0 THEN
+    -- Rollback by deleting the budget
+    DELETE FROM project_manhour_budgets WHERE id = v_budget_id;
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'ZERO_WEIGHT',
+      'message', 'Sum of component weights is zero, cannot distribute budget'
+    );
+  END IF;
+
+  -- Calculate per-weight-unit value
+  v_per_weight_unit := p_total_budgeted_manhours / v_total_weight;
+
+  -- Second pass: Update components with allocated manhours
+  UPDATE components c
+  SET
+    budgeted_manhours = ROUND(tw.weight * v_per_weight_unit, 4),
+    manhour_weight = ROUND(tw.weight, 4),
+    last_updated_at = NOW(),
+    last_updated_by = v_user_id
+  FROM temp_component_weights tw
+  WHERE c.id = tw.component_id;
+
+  GET DIAGNOSTICS v_components_allocated = ROW_COUNT;
+
+  -- Return success with summary
+  RETURN jsonb_build_object(
+    'success', true,
+    'budget_id', v_budget_id,
+    'version_number', v_version_number,
+    'distribution_summary', jsonb_build_object(
+      'total_components', v_total_components,
+      'components_allocated', v_components_allocated,
+      'components_with_warnings', v_components_with_warnings,
+      'total_weight', ROUND(v_total_weight, 4),
+      'total_allocated_mh', ROUND(p_total_budgeted_manhours, 4)
+    ),
+    'warnings', v_warnings
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION create_manhour_budget IS
+'Creates a new manhour budget and distributes to components.
+Uses single-org architecture: role from users table with organization_id match.
+Pattern from 00105_debug_rpc_final.sql.
+Validations: UNAUTHORIZED, INVALID_BUDGET (<=0), NO_COMPONENTS, ZERO_WEIGHT
+Size inheritance: Spools and field_welds without SIZE inherit from drawing.
+Weight formula: diameter^1.5 (threaded: diameter^1.5 * linear_feet * 0.1)
+Fallback weights: threaded_pipe=1.0, all others=0.5
+Warnings include identity_key and component_type for UI display.';

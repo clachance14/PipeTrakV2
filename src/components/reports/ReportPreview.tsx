@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ReportTable } from './ReportTable';
 import { ManhourReportTable } from './ManhourReportTable';
+import { ManhourPercentReportTable } from './ManhourPercentReportTable';
 import { ReportViewModeToggle } from './ReportViewModeToggle';
 import { PDFPreviewDialog } from './PDFPreviewDialog';
 import { useComponentProgressPDFExport } from '@/hooks/useComponentProgressPDFExport';
@@ -54,8 +55,12 @@ export function ReportPreview({
   });
 
   // Effective view mode (fall back to count if manhour data unavailable)
-  const effectiveViewMode: ReportViewMode =
-    viewMode === 'manhour' && manhourData && hasManhourBudget ? 'manhour' : 'count';
+  const effectiveViewMode: ReportViewMode = (() => {
+    if ((viewMode === 'manhour' || viewMode === 'manhour_percent') && manhourData && hasManhourBudget) {
+      return viewMode;
+    }
+    return 'count';
+  })();
 
   /**
    * Enhanced PDF export handler (preview first, then download from dialog)
@@ -153,9 +158,10 @@ export function ReportPreview({
               <div className="hidden lg:flex">
                 <button
                   onClick={handleEnhancedPDFExport}
-                  disabled={isGenerating}
+                  disabled={isGenerating || effectiveViewMode !== 'count'}
                   className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Preview and export report to PDF"
+                  aria-label={effectiveViewMode !== 'count' ? 'PDF export only available for Count view' : 'Preview and export report to PDF'}
+                  title={effectiveViewMode !== 'count' ? 'PDF export only available for Count view' : undefined}
                 >
                   {isGenerating ? 'Generating Preview...' : 'Preview & Export PDF'}
                 </button>
@@ -165,7 +171,9 @@ export function ReportPreview({
         </div>
 
         {/* Report Table - Conditional based on view mode */}
-        {effectiveViewMode === 'manhour' && manhourData ? (
+        {effectiveViewMode === 'manhour_percent' && manhourData ? (
+          <ManhourPercentReportTable data={manhourData} />
+        ) : effectiveViewMode === 'manhour' && manhourData ? (
           <ManhourReportTable data={manhourData} />
         ) : (
           <ReportTable data={data} />
@@ -174,9 +182,11 @@ export function ReportPreview({
         {/* Report Footer */}
         <div className="text-xs text-muted-foreground text-center pt-4 border-t">
           <p>
-            {effectiveViewMode === 'manhour'
-              ? 'This report shows manhour earned value calculated from component progress and project-specific milestone weights.'
-              : 'This report shows progress percentages calculated using earned value methodology. Percentages reflect partial completion where applicable.'}
+            {effectiveViewMode === 'manhour_percent'
+              ? 'This report shows completion percentage per milestone, calculated as (earned MH / budget MH) for each milestone.'
+              : effectiveViewMode === 'manhour'
+                ? 'This report shows manhour earned value calculated from component progress and project-specific milestone weights.'
+                : 'This report shows progress percentages calculated using earned value methodology. Percentages reflect partial completion where applicable.'}
           </p>
         </div>
       </div>

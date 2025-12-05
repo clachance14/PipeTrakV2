@@ -44,7 +44,7 @@ export function ProgressRing({ progress, size = 120, strokeWidth = 8 }: Progress
       </svg>
       {/* Percentage text */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold text-gray-900">{Math.round(progress)}%</span>
+        <span className="text-2xl font-bold text-gray-900">{progress.toFixed(1)}%</span>
       </div>
     </div>
   );

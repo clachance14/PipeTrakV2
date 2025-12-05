@@ -5,7 +5,7 @@ import { ComponentDetailView } from './ComponentDetailView'
 
 // Mock hooks
 vi.mock('@/hooks/useComponents', () => ({
-  useComponent: (componentId: string) => {
+  useComponent: vi.fn((componentId: string) => {
     // Return field_weld mock for fw-1
     if (componentId === 'fw-1') {
       return {
@@ -129,12 +129,14 @@ vi.mock('@/hooks/useComponents', () => ({
       },
       isLoading: false,
     }
-  },
+  }),
   useEffectiveTemplate: () => ({
     data: null,
     isLoading: false,
   })
 }))
+
+import { useComponent } from '@/hooks/useComponents'
 
 vi.mock('@/hooks/useMilestoneHistory', () => ({
   useMilestoneHistory: () => ({
@@ -380,6 +382,19 @@ vi.mock('@/components/field-welds/WelderAssignDialog', () => ({
   }
 }))
 
+// Mock ComponentManhourSection
+vi.mock('@/components/component-detail/ComponentManhourSection', () => ({
+  ComponentManhourSection: ({ component }: { component: { budgeted_manhours?: number | null } }) => {
+    if (!component.budgeted_manhours) return null;
+    return (
+      <div data-testid="manhour-section">
+        <div>Manhour Section</div>
+        <div>Budgeted: {component.budgeted_manhours} MH</div>
+      </div>
+    );
+  }
+}))
+
 describe('ComponentDetailView - Field Weld Auto-Open Welder Dialog', () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -578,5 +593,56 @@ describe('ComponentDetailView - Done Button', () => {
     // Clicking Done button should call onClose
     fireEvent.click(doneButton)
     expect(mockOnClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ComponentDetailView - Manhour Section', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  it('renders manhour section in overview tab for component with budgeted manhours', async () => {
+    // Create a mock component with manhour data
+    vi.mocked(useComponent).mockReturnValueOnce({
+      data: {
+        id: 'comp-with-manhours',
+        project_id: 'proj-1',
+        component_type: 'valve',
+        identity_key: { commodity_code: 'VALVE-003', size: '2', seq: 1 },
+        percent_complete: 50,
+        current_milestones: {},
+        progress_template: { milestones_config: [] },
+        area_id: null,
+        system_id: null,
+        test_package_id: null,
+        budgeted_manhours: 100,
+        manhour_weight: 0.05,
+      } as any,
+      isLoading: false,
+    } as any)
+
+    render(
+      <ComponentDetailView
+        componentId="comp-with-manhours"
+        canUpdateMilestones={false}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Should render manhour section in overview tab
+    expect(screen.getByTestId('manhour-section')).toBeInTheDocument()
+    expect(screen.getByText('Budgeted: 100 MH')).toBeInTheDocument()
   })
 })

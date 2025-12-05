@@ -3,9 +3,11 @@ import { Layout } from '@/components/Layout';
 import { Link } from 'react-router-dom';
 import { useProject } from '@/contexts/ProjectContext';
 import { useDashboardMetrics, type DashboardMetrics } from '@/hooks/useDashboardMetrics';
+import { useProjectManhours } from '@/hooks/useProjectManhours';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { ProgressRing } from '@/components/dashboard/ProgressRing';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { ManhourSummaryWidget } from '@/components/dashboard/ManhourSummaryWidget';
 import {
   LayoutDashboard,
   Package,
@@ -109,6 +111,12 @@ const metricConfigs: MetricConfig[] = [
 export function DashboardPage() {
   const { selectedProjectId } = useProject();
   const { data: metrics, isLoading, isError, error } = useDashboardMetrics(selectedProjectId || '');
+  const { data: manhourData } = useProjectManhours(selectedProjectId || undefined);
+
+  // Use manhour-based progress if budget exists, otherwise milestone-based
+  const overallProgress = manhourData?.has_budget && manhourData.budget
+    ? manhourData.budget.percent_complete
+    : metrics?.overallProgress ?? 0;
 
   // No project selected
   if (!selectedProjectId) {
@@ -155,7 +163,7 @@ export function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-sm font-medium text-gray-600 mb-4">Overall Progress</h3>
             <div className="flex items-center justify-center mb-2">
-              <ProgressRing progress={metrics.overallProgress} />
+              <ProgressRing progress={overallProgress} />
             </div>
             <p className="text-center text-sm text-gray-600">
               {metrics.componentCount.toLocaleString()} component{metrics.componentCount !== 1 ? 's' : ''}
@@ -171,6 +179,11 @@ export function DashboardPage() {
               badge={config.getBadge?.(metrics)}
             />
           ))}
+        </div>
+
+        {/* Manhour Summary Widget - Only shown for authorized users */}
+        <div className="mb-8">
+          <ManhourSummaryWidget projectId={selectedProjectId} />
         </div>
 
         {/* Quick Access Grid */}

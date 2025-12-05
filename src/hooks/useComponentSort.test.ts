@@ -10,21 +10,24 @@ describe('useComponentSort', () => {
     expect(result.current.sortDirection).toBe('asc')
   })
 
-  it('sorts by identity_key ascending', () => {
+  it('sorts by identity_key ascending - groups by line number', () => {
     const { result } = renderHook(() => useComponentSort())
 
     const components = [
-      { id: '1', identity_key: { drawing_norm: 'B', commodity_code: '001', size: '2', seq: 1 }, percent_complete: 50 },
-      { id: '2', identity_key: { drawing_norm: 'A', commodity_code: '001', size: '2', seq: 1 }, percent_complete: 75 },
+      { id: '1', identity_key: { commodity_code: 'G4G-1450-10AA', size: '2', seq: 1 }, component_type: 'support', percent_complete: 50 },
+      { id: '2', identity_key: { commodity_code: 'G4G-1425-05AA', size: '2', seq: 1 }, component_type: 'support', percent_complete: 75 },
+      { id: '3', identity_key: { commodity_code: 'G4G-1430-05AB', size: '2', seq: 1 }, component_type: 'support', percent_complete: 60 },
     ] as any[]
 
     const sorted = result.current.sortComponents(components)
 
-    expect(sorted[0].id).toBe('2') // A comes before B
-    expect(sorted[1].id).toBe('1')
+    // Line number sorting: 1425 < 1430 < 1450
+    expect(sorted[0].id).toBe('2') // 1425
+    expect(sorted[1].id).toBe('3') // 1430
+    expect(sorted[2].id).toBe('1') // 1450
   })
 
-  it('sorts by identity_key descending', () => {
+  it('sorts by identity_key descending - reverses line number order', () => {
     const { result } = renderHook(() => useComponentSort())
 
     // Trigger descending sort
@@ -33,14 +36,17 @@ describe('useComponentSort', () => {
     })
 
     const components = [
-      { id: '1', identity_key: { drawing_norm: 'A', commodity_code: '001', size: '2', seq: 1 }, percent_complete: 50 },
-      { id: '2', identity_key: { drawing_norm: 'B', commodity_code: '001', size: '2', seq: 1 }, percent_complete: 75 },
+      { id: '1', identity_key: { commodity_code: 'G4G-1425-05AA', size: '2', seq: 1 }, component_type: 'support', percent_complete: 50 },
+      { id: '2', identity_key: { commodity_code: 'G4G-1450-10AA', size: '2', seq: 1 }, component_type: 'support', percent_complete: 75 },
+      { id: '3', identity_key: { commodity_code: 'G4G-1430-05AB', size: '2', seq: 1 }, component_type: 'support', percent_complete: 60 },
     ] as any[]
 
     const sorted = result.current.sortComponents(components)
 
-    expect(sorted[0].id).toBe('2') // B comes before A in descending
-    expect(sorted[1].id).toBe('1')
+    // Descending: 1450 > 1430 > 1425
+    expect(sorted[0].id).toBe('2') // 1450
+    expect(sorted[1].id).toBe('3') // 1430
+    expect(sorted[2].id).toBe('1') // 1425
   })
 
   it('sorts by percent_complete numerically', () => {

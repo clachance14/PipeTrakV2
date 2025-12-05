@@ -38,6 +38,7 @@ import { WelderSummaryReportPage } from '@/pages/WelderSummaryReportPage'
 import { HomePage } from '@/pages/HomePage'
 import { DemoSignupPage } from '@/pages/DemoSignupPage'
 import { MilestoneTemplatesPage } from '@/components/settings/MilestoneTemplatesPage'
+import { ManhourBudgetPage } from '@/components/settings/manhour-budget/ManhourBudgetPage'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { SettingsIndexPage } from '@/pages/SettingsIndexPage'
 import { ProjectDetailsPage } from '@/pages/ProjectDetailsPage'
@@ -278,6 +279,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProjectDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId/settings/manhours"
+              element={
+                <ProtectedRoute>
+                  <ManhourBudgetPage />
                 </ProtectedRoute>
               }
             />

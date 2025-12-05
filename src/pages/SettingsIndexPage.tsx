@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { Sliders, Database, FolderCog, ArrowRight } from 'lucide-react'
+import { Sliders, Database, FolderCog, Calculator, ArrowRight } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { Layout } from '@/components/Layout'
 
@@ -45,6 +45,12 @@ export function SettingsIndexPage() {
       description: 'Edit project name and description, or archive this project to hide it from active project lists.',
       icon: FolderCog,
       path: `/projects/${projectId}/settings/project`,
+    },
+    {
+      title: 'Manhour Budget',
+      description: 'Set project manhour budget for earned value tracking. System auto-distributes to components by size.',
+      icon: Calculator,
+      path: `/projects/${projectId}/settings/manhours`,
     },
   ]
 
