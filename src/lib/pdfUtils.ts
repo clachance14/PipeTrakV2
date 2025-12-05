@@ -8,6 +8,8 @@ import type {
   FieldWeldGroupingDimension,
   ReportData,
   GroupingDimension,
+  ManhourReportData,
+  ReportViewMode,
 } from '@/types/reports';
 import type {
   TableProps,
@@ -224,4 +226,128 @@ export function generateWelderSummaryPDFFilename(
   const sanitizedProjectName = sanitizeFilename(projectName);
   const formattedDate = formatDateForFilename(date);
   return `${sanitizedProjectName}_welder_summary_${formattedDate}.pdf`;
+}
+
+/**
+ * ============================================================================
+ * MANHOUR PROGRESS REPORT PDF UTILITIES (Feature 032)
+ * ============================================================================
+ */
+
+/**
+ * Transform manhour report data to table props for "Manhour" view PDF rendering
+ * Shows: Name | MH Budget | Receive | Install | Punch | Test | Restore | Total Earned | % Complete
+ */
+export function transformManhourToTableProps(
+  reportData: ManhourReportData,
+  dimension: GroupingDimension
+): TableProps {
+  const columns: TableColumnDefinition[] = [
+    { key: 'name', label: getComponentProgressDimensionLabel(dimension), width: '18%', align: 'left', format: 'text' },
+    { key: 'mhBudget', label: 'MH Budget', width: '10%', align: 'right', format: 'number' },
+    { key: 'receiveMhEarned', label: 'Receive', width: '10%', align: 'right', format: 'decimal' },
+    { key: 'installMhEarned', label: 'Install', width: '10%', align: 'right', format: 'decimal' },
+    { key: 'punchMhEarned', label: 'Punch', width: '10%', align: 'right', format: 'decimal' },
+    { key: 'testMhEarned', label: 'Test', width: '10%', align: 'right', format: 'decimal' },
+    { key: 'restoreMhEarned', label: 'Restore', width: '10%', align: 'right', format: 'decimal' },
+    { key: 'totalMhEarned', label: 'Total Earned', width: '10%', align: 'right', format: 'decimal' },
+    { key: 'mhPctComplete', label: '% Complete', width: '12%', align: 'right', format: 'percentage' },
+  ];
+
+  return {
+    columns,
+    data: reportData.rows.map((row) => ({
+      name: row.name,
+      mhBudget: row.mhBudget,
+      receiveMhEarned: row.receiveMhEarned,
+      installMhEarned: row.installMhEarned,
+      punchMhEarned: row.punchMhEarned,
+      testMhEarned: row.testMhEarned,
+      restoreMhEarned: row.restoreMhEarned,
+      totalMhEarned: row.totalMhEarned,
+      mhPctComplete: row.mhPctComplete,
+    })),
+    grandTotal: {
+      name: 'Grand Total',
+      mhBudget: reportData.grandTotal.mhBudget,
+      receiveMhEarned: reportData.grandTotal.receiveMhEarned,
+      installMhEarned: reportData.grandTotal.installMhEarned,
+      punchMhEarned: reportData.grandTotal.punchMhEarned,
+      testMhEarned: reportData.grandTotal.testMhEarned,
+      restoreMhEarned: reportData.grandTotal.restoreMhEarned,
+      totalMhEarned: reportData.grandTotal.totalMhEarned,
+      mhPctComplete: reportData.grandTotal.mhPctComplete,
+    },
+    highlightGrandTotal: true,
+  };
+}
+
+/**
+ * Calculate milestone percentage: (earned / budget) * 100
+ * Returns null when budget is 0 to avoid division by zero
+ */
+function calculateMilestonePercent(earned: number, budget: number): number | null {
+  if (budget === 0) return null;
+  return (earned / budget) * 100;
+}
+
+/**
+ * Transform manhour report data to table props for "Manhour %" view PDF rendering
+ * Shows: Name | MH Budget | Receive % | Install % | Punch % | Test % | Restore % | % Complete
+ */
+export function transformManhourPercentToTableProps(
+  reportData: ManhourReportData,
+  dimension: GroupingDimension
+): TableProps {
+  const columns: TableColumnDefinition[] = [
+    { key: 'name', label: getComponentProgressDimensionLabel(dimension), width: '20%', align: 'left', format: 'text' },
+    { key: 'mhBudget', label: 'MH Budget', width: '11%', align: 'right', format: 'number' },
+    { key: 'receivePct', label: 'Receive %', width: '11%', align: 'right', format: 'percentage' },
+    { key: 'installPct', label: 'Install %', width: '11%', align: 'right', format: 'percentage' },
+    { key: 'punchPct', label: 'Punch %', width: '11%', align: 'right', format: 'percentage' },
+    { key: 'testPct', label: 'Test %', width: '11%', align: 'right', format: 'percentage' },
+    { key: 'restorePct', label: 'Restore %', width: '11%', align: 'right', format: 'percentage' },
+    { key: 'mhPctComplete', label: '% Complete', width: '14%', align: 'right', format: 'percentage' },
+  ];
+
+  return {
+    columns,
+    data: reportData.rows.map((row) => ({
+      name: row.name,
+      mhBudget: row.mhBudget,
+      receivePct: calculateMilestonePercent(row.receiveMhEarned, row.receiveMhBudget),
+      installPct: calculateMilestonePercent(row.installMhEarned, row.installMhBudget),
+      punchPct: calculateMilestonePercent(row.punchMhEarned, row.punchMhBudget),
+      testPct: calculateMilestonePercent(row.testMhEarned, row.testMhBudget),
+      restorePct: calculateMilestonePercent(row.restoreMhEarned, row.restoreMhBudget),
+      mhPctComplete: row.mhPctComplete,
+    })),
+    grandTotal: {
+      name: 'Grand Total',
+      mhBudget: reportData.grandTotal.mhBudget,
+      receivePct: calculateMilestonePercent(reportData.grandTotal.receiveMhEarned, reportData.grandTotal.receiveMhBudget),
+      installPct: calculateMilestonePercent(reportData.grandTotal.installMhEarned, reportData.grandTotal.installMhBudget),
+      punchPct: calculateMilestonePercent(reportData.grandTotal.punchMhEarned, reportData.grandTotal.punchMhBudget),
+      testPct: calculateMilestonePercent(reportData.grandTotal.testMhEarned, reportData.grandTotal.testMhBudget),
+      restorePct: calculateMilestonePercent(reportData.grandTotal.restoreMhEarned, reportData.grandTotal.restoreMhBudget),
+      mhPctComplete: reportData.grandTotal.mhPctComplete,
+    },
+    highlightGrandTotal: true,
+  };
+}
+
+/**
+ * Generate filename for manhour progress PDF export
+ * Pattern: [project-name]_manhour_progress_[dimension]_[YYYY-MM-DD].pdf
+ */
+export function generateManhourProgressPDFFilename(
+  projectName: string,
+  dimension: GroupingDimension,
+  viewMode: ReportViewMode,
+  date: Date = new Date()
+): string {
+  const sanitizedProjectName = sanitizeFilename(projectName);
+  const formattedDate = formatDateForFilename(date);
+  const viewSuffix = viewMode === 'manhour_percent' ? 'mh_percent' : 'manhour';
+  return `${sanitizedProjectName}_${viewSuffix}_progress_${dimension}_${formattedDate}.pdf`;
 }

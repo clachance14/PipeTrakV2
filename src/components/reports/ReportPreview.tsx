@@ -29,7 +29,7 @@ export function ReportPreview({
   projectName,
   hasManhourBudget,
 }: ReportPreviewProps) {
-  const { generatePDFPreview, isGenerating } = useComponentProgressPDFExport();
+  const { generatePDFPreview, generateManhourPDFPreview, isGenerating } = useComponentProgressPDFExport();
   const { viewMode, setViewMode } = useReportPreferencesStore();
 
   // PDF Preview state
@@ -64,22 +64,38 @@ export function ReportPreview({
 
   /**
    * Enhanced PDF export handler (preview first, then download from dialog)
-   * Currently only supports count view
+   * Supports count, manhour, and manhour_percent views
    */
   const handleEnhancedPDFExport = async () => {
     try {
-      const { blob, url, filename } = await generatePDFPreview(
-        data,
-        projectName,
-        data.dimension,
-        undefined // Optional company logo
-      );
+      let result: { blob: Blob; url: string; filename: string };
+
+      if (effectiveViewMode === 'count') {
+        // Count view uses component progress PDF
+        result = await generatePDFPreview(
+          data,
+          projectName,
+          data.dimension,
+          undefined // Optional company logo
+        );
+      } else if (manhourData) {
+        // Manhour views use manhour progress PDF
+        result = await generateManhourPDFPreview(
+          manhourData,
+          projectName,
+          manhourData.dimension,
+          effectiveViewMode,
+          undefined // Optional company logo
+        );
+      } else {
+        throw new Error('Manhour data not available');
+      }
 
       setPreviewState({
         open: true,
-        url,
-        filename,
-        blob,
+        url: result.url,
+        filename: result.filename,
+        blob: result.blob,
       });
     } catch (err) {
       console.error('Enhanced PDF export error:', err);
@@ -158,10 +174,9 @@ export function ReportPreview({
               <div className="hidden lg:flex">
                 <button
                   onClick={handleEnhancedPDFExport}
-                  disabled={isGenerating || effectiveViewMode !== 'count'}
+                  disabled={isGenerating}
                   className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label={effectiveViewMode !== 'count' ? 'PDF export only available for Count view' : 'Preview and export report to PDF'}
-                  title={effectiveViewMode !== 'count' ? 'PDF export only available for Count view' : undefined}
+                  aria-label="Preview and export report to PDF"
                 >
                   {isGenerating ? 'Generating Preview...' : 'Preview & Export PDF'}
                 </button>

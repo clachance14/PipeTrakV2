@@ -45,10 +45,12 @@
  */
 
 import { useState } from 'react';
-import { generateComponentProgressPDFFilename } from '@/lib/pdfUtils';
+import { generateComponentProgressPDFFilename, generateManhourProgressPDFFilename } from '@/lib/pdfUtils';
 import type {
   ReportData,
+  ManhourReportData,
   GroupingDimension,
+  ReportViewMode,
 } from '@/types/reports';
 import type { UseComponentProgressPDFExportReturn } from '@/types/pdf-components';
 
@@ -214,9 +216,109 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     }
   };
 
+  /**
+   * Generate manhour PDF blob for preview or download
+   * Internal helper function used by both generateManhourPDF and generateManhourPDFPreview
+   *
+   * @param data - Manhour progress report data (rows and grand total)
+   * @param projectName - Project name for filename and header
+   * @param dimension - Report dimension: 'area' | 'system' | 'test_package'
+   * @param viewMode - View mode: 'manhour' or 'manhour_percent'
+   * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @returns Promise resolving to { blob, filename }
+   * @throws Error if generation fails
+   */
+  const generateManhourPDFBlob = async (
+    data: ManhourReportData,
+    projectName: string,
+    dimension: GroupingDimension,
+    viewMode: ReportViewMode,
+    companyLogo?: string
+  ): Promise<{ blob: Blob; filename: string }> => {
+    // Lazy load @react-pdf/renderer (dynamic import for code splitting)
+    const { pdf } = await import('@react-pdf/renderer');
+    const { ManhourProgressReportPDF } = await import(
+      '@/components/pdf/reports/ManhourProgressReportPDF'
+    );
+
+    // Generate timestamp for filename
+    const generatedDate = new Date().toISOString().split('T')[0] ?? ''; // YYYY-MM-DD
+
+    // Generate PDF blob from React component
+    const blob = await pdf(
+      <ManhourProgressReportPDF
+        reportData={data}
+        projectName={projectName}
+        dimension={dimension}
+        viewMode={viewMode}
+        generatedDate={generatedDate}
+        companyLogo={companyLogo ?? undefined}
+      />
+    ).toBlob();
+
+    // Generate filename
+    const filename = generateManhourProgressPDFFilename(
+      projectName,
+      dimension,
+      viewMode,
+      new Date()
+    );
+
+    return { blob, filename };
+  };
+
+  /**
+   * Generate manhour PDF preview (returns blob and object URL without downloading)
+   *
+   * @param data - Manhour progress report data (rows and grand total)
+   * @param projectName - Project name for filename and header
+   * @param dimension - Report dimension: 'area' | 'system' | 'test_package'
+   * @param viewMode - View mode: 'manhour' or 'manhour_percent'
+   * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @returns Promise resolving to { blob, url, filename }
+   * @throws Error if generation fails or if another export is in progress
+   */
+  const generateManhourPDFPreview = async (
+    data: ManhourReportData,
+    projectName: string,
+    dimension: GroupingDimension,
+    viewMode: ReportViewMode,
+    companyLogo?: string
+  ): Promise<{ blob: Blob; url: string; filename: string }> => {
+    // Prevent multiple simultaneous exports
+    if (isGenerating) {
+      throw new Error('PDF generation already in progress');
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const { blob, filename } = await generateManhourPDFBlob(
+        data,
+        projectName,
+        dimension,
+        viewMode,
+        companyLogo
+      );
+
+      // Create object URL for preview (caller is responsible for cleanup)
+      const url = URL.createObjectURL(blob);
+
+      return { blob, url, filename };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error during PDF generation');
+      setError(error);
+      throw error;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return {
     generatePDF,
     generatePDFPreview,
+    generateManhourPDFPreview,
     isGenerating,
     error,
   };

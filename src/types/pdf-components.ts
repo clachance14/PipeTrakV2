@@ -10,7 +10,9 @@ import type {
   FieldWeldReportData,
   FieldWeldGroupingDimension,
   ReportData,
+  ManhourReportData,
   GroupingDimension,
+  ReportViewMode,
 } from '@/types/reports';
 import type { WelderSummaryReport } from '@/types/weldSummary';
 
@@ -268,11 +270,11 @@ export interface UseFieldWeldPDFExportReturn {
 
 /**
  * Return type for useComponentProgressPDFExport hook
- * Manages PDF generation lifecycle
+ * Manages PDF generation lifecycle for component progress and manhour reports
  */
 export interface UseComponentProgressPDFExportReturn {
   /**
-   * Function to trigger PDF generation and download
+   * Function to trigger PDF generation and download (Count view)
    * @param data - Report data from TanStack Query
    * @param projectName - Project name for header
    * @param dimension - Report dimension
@@ -287,7 +289,7 @@ export interface UseComponentProgressPDFExportReturn {
   ) => Promise<Blob>;
 
   /**
-   * Function to generate PDF preview (returns blob and URL without downloading)
+   * Function to generate PDF preview for Count view (returns blob and URL without downloading)
    * @param data - Report data from TanStack Query
    * @param projectName - Project name for header
    * @param dimension - Report dimension
@@ -298,6 +300,23 @@ export interface UseComponentProgressPDFExportReturn {
     data: ReportData,
     projectName: string,
     dimension: GroupingDimension,
+    companyLogo?: string
+  ) => Promise<{ blob: Blob; url: string; filename: string }>;
+
+  /**
+   * Function to generate PDF preview for Manhour views (returns blob and URL without downloading)
+   * @param data - Manhour report data from TanStack Query
+   * @param projectName - Project name for header
+   * @param dimension - Report dimension
+   * @param viewMode - View mode: 'manhour' or 'manhour_percent'
+   * @param companyLogo - Optional base64 encoded logo
+   * @returns Promise resolving to { blob, url, filename }
+   */
+  generateManhourPDFPreview: (
+    data: ManhourReportData,
+    projectName: string,
+    dimension: GroupingDimension,
+    viewMode: ReportViewMode,
     companyLogo?: string
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
 

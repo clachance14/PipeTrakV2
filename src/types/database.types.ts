@@ -204,13 +204,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "components_area_id_fkey"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_area"
-            referencedColumns: ["area_id"]
-          },
-          {
             foreignKeyName: "components_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -260,13 +253,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "components_system_id_fkey"
-            columns: ["system_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_system"
-            referencedColumns: ["system_id"]
-          },
-          {
             foreignKeyName: "fk_components_test_package"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -279,13 +265,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_components_test_package"
-            columns: ["test_package_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_test_package"
-            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -380,13 +359,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "drawings_area_id_fkey"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_area"
-            referencedColumns: ["area_id"]
-          },
-          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -401,13 +373,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "drawings_system_id_fkey"
-            columns: ["system_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_system"
-            referencedColumns: ["system_id"]
-          },
-          {
             foreignKeyName: "drawings_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -420,13 +385,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "drawings_test_package_id_fkey"
-            columns: ["test_package_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_test_package"
-            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -873,13 +831,6 @@ export type Database = {
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "package_certificates_package_id_fkey"
-            columns: ["package_id"]
-            isOneToOne: true
-            referencedRelation: "vw_manhour_progress_by_test_package"
-            referencedColumns: ["test_package_id"]
-          },
         ]
       }
       package_drawing_assignments: {
@@ -929,13 +880,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "package_drawing_assignments_package_id_fkey"
-            columns: ["package_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_test_package"
-            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -1003,13 +947,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "package_workflow_stages_package_id_fkey"
-            columns: ["package_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_test_package"
-            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -1591,13 +1528,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "drawings_area_id_fkey"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_area"
-            referencedColumns: ["area_id"]
-          },
-          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1612,13 +1542,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "drawings_system_id_fkey"
-            columns: ["system_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_system"
-            referencedColumns: ["system_id"]
-          },
-          {
             foreignKeyName: "drawings_test_package_id_fkey"
             columns: ["test_package_id"]
             isOneToOne: false
@@ -1631,13 +1554,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "drawings_test_package_id_fkey"
-            columns: ["test_package_id"]
-            isOneToOne: false
-            referencedRelation: "vw_manhour_progress_by_test_package"
-            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -1807,15 +1723,7 @@ export type Database = {
           test_mh_earned: number | null
           total_mh_earned: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "areas_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vw_manhour_progress_by_system: {
         Row: {
@@ -1836,15 +1744,7 @@ export type Database = {
           test_mh_earned: number | null
           total_mh_earned: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "systems_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vw_manhour_progress_by_test_package: {
         Row: {
@@ -1865,15 +1765,7 @@ export type Database = {
           test_package_name: string | null
           total_mh_earned: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "test_packages_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vw_progress_by_area: {
         Row: {
