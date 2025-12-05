@@ -9,6 +9,8 @@ import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { useProjects } from '@/hooks/useProjects';
 import { useProgressReport } from '@/hooks/useProgressReport';
+import { useManhourProgressReport } from '@/hooks/useManhourProgressReport';
+import { useManhourBudget } from '@/hooks/useManhourBudget';
 import { useCreateReportConfig } from '@/hooks/useReportConfigs';
 import { ReportPreview } from '@/components/reports/ReportPreview';
 import { ExportButtons } from '@/components/reports/ExportButtons';
@@ -43,6 +45,16 @@ export function ReportViewPage() {
     isLoading,
     error,
   } = useProgressReport(selectedProjectId || '', dimension);
+
+  // Fetch manhour progress report (for manhour view toggle)
+  const { data: manhourReportData } = useManhourProgressReport(
+    selectedProjectId || '',
+    dimension
+  );
+
+  // Fetch manhour budget to check if manhour view should be enabled
+  const { data: manhourBudget } = useManhourBudget(selectedProjectId || '');
+  const hasManhourBudget = !!manhourBudget;
 
   // Save configuration dialog state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -156,7 +168,12 @@ export function ReportViewPage() {
               />
             </div>
           </div>
-          <ReportPreview data={reportData} projectName={currentProject?.name || 'Unknown Project'} />
+          <ReportPreview
+            data={reportData}
+            manhourData={manhourReportData}
+            projectName={currentProject?.name || 'Unknown Project'}
+            hasManhourBudget={hasManhourBudget}
+          />
         </div>
       )}
 
