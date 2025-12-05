@@ -358,34 +358,34 @@ describe('calculateWeight', () => {
       expect(result.metadata).toEqual({ diameter: 2, linearFeet: 10 });
     });
 
-    it('handles linear_feet with invalid value', () => {
+    it('handles linear_feet with invalid value by using diameter-based weight', () => {
       const identityKey = { size: '2', linear_feet: 'invalid' };
       const result = calculateWeight(identityKey, 'THREADED PIPE');
 
-      // Threaded pipe fallback is 1.0, not 0.5
-      expect(result.weight).toBe(1.0);
-      expect(result.basis).toBe('fixed');
-      expect(result.metadata).toEqual({ reason: 'invalid_linear_feet', linearFeet: 'invalid' });
+      // When linear_feet is invalid but diameter is valid, use diameter-based weight
+      expect(result.weight).toBeCloseTo(2.83, 2); // 2^1.5
+      expect(result.basis).toBe('dimension');
+      expect(result.metadata).toEqual({ reason: 'invalid_linear_feet', linearFeet: 'invalid', diameter: 2 });
     });
 
-    it('returns fixed weight for negative linear feet', () => {
+    it('returns diameter-based weight for negative linear feet', () => {
       const identityKey = { size: '2', linear_feet: '-5' };
       const result = calculateWeight(identityKey, 'THREADED PIPE');
 
-      // Negative linear feet should be treated as invalid
-      expect(result.weight).toBe(1.0);
-      expect(result.basis).toBe('fixed');
-      expect(result.metadata).toEqual({ reason: 'invalid_linear_feet', linearFeet: '-5' });
+      // When linear_feet is negative but diameter is valid, use diameter-based weight
+      expect(result.weight).toBeCloseTo(2.83, 2); // 2^1.5
+      expect(result.basis).toBe('dimension');
+      expect(result.metadata).toEqual({ reason: 'invalid_linear_feet', linearFeet: '-5', diameter: 2 });
     });
 
-    it('returns fixed weight for negative linear feet as number', () => {
+    it('returns diameter-based weight for negative linear feet as number', () => {
       const identityKey = { size: '2', linear_feet: -10 };
       const result = calculateWeight(identityKey, 'THREADED PIPE');
 
-      // Negative linear feet should be treated as invalid
-      expect(result.weight).toBe(1.0);
-      expect(result.basis).toBe('fixed');
-      expect(result.metadata).toEqual({ reason: 'invalid_linear_feet', linearFeet: -10 });
+      // When linear_feet is negative but diameter is valid, use diameter-based weight
+      expect(result.weight).toBeCloseTo(2.83, 2); // 2^1.5
+      expect(result.basis).toBe('dimension');
+      expect(result.metadata).toEqual({ reason: 'invalid_linear_feet', linearFeet: -10, diameter: 2 });
     });
 
     it('treats negative diameter as unparseable', () => {

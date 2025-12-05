@@ -197,12 +197,12 @@ export function calculateWeight(
 
   // Validate linear_feet if present for threaded pipe
   if (isThreadedPipe && linearFeetRaw !== undefined && linearFeetRaw !== null) {
-    // Invalid linear_feet value (null from parsing or negative) - use threaded pipe fallback (1.0)
+    // Invalid linear_feet value (null from parsing or negative) - use diameter-based weight since diameter is valid
     if (linearFeet === null || linearFeet < 0) {
       return {
-        weight: 1.0,
-        basis: 'fixed',
-        metadata: { reason: 'invalid_linear_feet', linearFeet: linearFeetRaw }
+        weight: Math.pow(diameter, 1.5),
+        basis: 'dimension',
+        metadata: { reason: 'invalid_linear_feet', linearFeet: linearFeetRaw, diameter }
       };
     }
 
