@@ -4,12 +4,12 @@
  *
  * Creates the permanent shared demo account for one-click demo access:
  * - Email: demo@pipetrak.co
- * - Password: demo123
+ * - Password: Set via DEMO_PASSWORD env var
  * - Organization: PipeTrak Demo
  * - Project: PipeTrak Demo Project
  * - Skeleton data: 5 areas, 5 systems, 10 test packages, 4 welders
  *
- * Run from project root: node scripts/create-shared-demo-account.mjs
+ * Run from project root: DEMO_PASSWORD=xxx node scripts/create-shared-demo-account.mjs
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -17,7 +17,7 @@ import { readFileSync } from 'fs'
 
 // Configuration
 const DEMO_EMAIL = 'demo@pipetrak.co'
-const DEMO_PASSWORD = 'demo123'
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || (() => { throw new Error('DEMO_PASSWORD env var required') })()
 const DEMO_FULL_NAME = 'Demo User'
 const ORG_NAME = 'PipeTrak Demo'
 const PROJECT_NAME = 'PipeTrak Demo Project'
