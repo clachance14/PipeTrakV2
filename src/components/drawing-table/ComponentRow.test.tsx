@@ -22,6 +22,12 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn()
 }))
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id', email: 'test@example.com' }
+  })
+}))
+
 describe('ComponentRow', () => {
   const mockComponent: ComponentRowType = {
     id: 'comp-1',
@@ -433,6 +439,261 @@ describe('ComponentRow', () => {
     // due to limitations in testing Radix UI Checkbox keyboard events and React synthetic
     // event handling with jsdom. The core bug fix (Enter key on input elements) is verified
     // and working correctly. Manual testing confirms the full functionality.
+  })
+
+  describe('Rollback Confirmation Modal Integration', () => {
+    it('opens modal when unchecking a discrete milestone (100 → 0)', async () => {
+      const { waitFor } = await import('@testing-library/react')
+
+      const componentWithCheckedMilestone: ComponentRowType = {
+        ...mockComponent,
+        current_milestones: {
+          Receive: 100,
+          Install: 0,
+          Punch: 0,
+          Test: 0,
+          Restore: 0
+        }
+      }
+
+      render(
+        <ComponentRow
+          component={componentWithCheckedMilestone}
+          drawing={mockDrawing}
+          area={componentWithCheckedMilestone.area}
+          system={componentWithCheckedMilestone.system}
+          testPackage={componentWithCheckedMilestone.test_package}
+          onMilestoneUpdate={mockOnMilestoneUpdate}
+        />
+      )
+
+      // Find the Receive checkbox (currently checked)
+      const checkboxes = screen.getAllByRole('checkbox')
+      const receiveCheckbox = checkboxes[0] // First milestone
+
+      // Uncheck it
+      receiveCheckbox.click()
+
+      // Should NOT call onMilestoneUpdate immediately
+      expect(mockOnMilestoneUpdate).not.toHaveBeenCalled()
+
+      // Check that rollback state was set (modal wrapper should exist)
+      await waitFor(() => {
+        expect(screen.getByTestId('rollback-modal-wrapper')).toBeInTheDocument()
+      })
+
+      // Should show the rollback confirmation modal (wait for portal to render)
+      await waitFor(() => {
+        expect(screen.getByText('Confirm Milestone Rollback')).toBeInTheDocument()
+      })
+
+      // Check that the modal mentions the Receive milestone
+      const modalDescription = screen.getByText(/You are about to uncheck/)
+      expect(modalDescription).toHaveTextContent('Receive')
+    })
+
+    it('opens modal when decreasing a partial milestone (50 → 25)', async () => {
+      const componentWithPartialProgress: ComponentRowType = {
+        ...mockComponent,
+        component_type: 'spool',
+        template: {
+          milestones_config: [
+            { name: 'Fabricate', label: 'Fabricate', is_partial: true, order: 1, requires_welder: false, weight: 100 }
+          ]
+        },
+        current_milestones: {
+          Fabricate: 50
+        }
+      }
+
+      render(
+        <ComponentRow
+          component={componentWithPartialProgress}
+          drawing={mockDrawing}
+          area={componentWithPartialProgress.area}
+          system={componentWithPartialProgress.system}
+          testPackage={componentWithPartialProgress.test_package}
+          onMilestoneUpdate={mockOnMilestoneUpdate}
+        />
+      )
+
+      // Find the Fabricate input
+      const input = screen.getByRole('spinbutton')
+
+      // Change value from 50 to 25 (rollback)
+      input.focus()
+      input.value = '25'
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+      input.blur()
+
+      // Should NOT call onMilestoneUpdate immediately
+      expect(mockOnMilestoneUpdate).not.toHaveBeenCalled()
+
+      // Should show the rollback confirmation modal
+      expect(screen.getByText('Confirm Milestone Rollback')).toBeInTheDocument()
+      expect(screen.getByText(/Fabricate/)).toBeInTheDocument()
+    })
+
+    it('does NOT open modal when checking a milestone (0 → 100)', () => {
+      render(
+        <ComponentRow
+          component={mockComponent}
+          drawing={mockDrawing}
+          area={mockComponent.area}
+          system={mockComponent.system}
+          testPackage={mockComponent.test_package}
+          onMilestoneUpdate={mockOnMilestoneUpdate}
+        />
+      )
+
+      // Find the Receive checkbox (currently unchecked)
+      const checkboxes = screen.getAllByRole('checkbox')
+      const receiveCheckbox = checkboxes[0]
+
+      // Check it
+      receiveCheckbox.click()
+
+      // Should call onMilestoneUpdate immediately (no modal)
+      expect(mockOnMilestoneUpdate).toHaveBeenCalledWith(mockComponent.id, 'Receive', 100)
+
+      // Should NOT show modal
+      expect(screen.queryByText('Confirm Milestone Rollback')).not.toBeInTheDocument()
+    })
+
+    it('does NOT open modal when increasing a partial milestone (25 → 50)', () => {
+      const componentWithPartialProgress: ComponentRowType = {
+        ...mockComponent,
+        component_type: 'spool',
+        template: {
+          milestones_config: [
+            { name: 'Fabricate', label: 'Fabricate', is_partial: true, order: 1, requires_welder: false, weight: 100 }
+          ]
+        },
+        current_milestones: {
+          Fabricate: 25
+        }
+      }
+
+      render(
+        <ComponentRow
+          component={componentWithPartialProgress}
+          drawing={mockDrawing}
+          area={componentWithPartialProgress.area}
+          system={componentWithPartialProgress.system}
+          testPackage={componentWithPartialProgress.test_package}
+          onMilestoneUpdate={mockOnMilestoneUpdate}
+        />
+      )
+
+      // Find the Fabricate input
+      const input = screen.getByRole('spinbutton')
+
+      // Change value from 25 to 50 (progress)
+      input.focus()
+      input.value = '50'
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+      input.blur()
+
+      // Should call onMilestoneUpdate immediately (no modal)
+      expect(mockOnMilestoneUpdate).toHaveBeenCalledWith(componentWithPartialProgress.id, 'Fabricate', 50)
+
+      // Should NOT show modal
+      expect(screen.queryByText('Confirm Milestone Rollback')).not.toBeInTheDocument()
+    })
+
+    it('calls onMilestoneUpdate with rollback reason after modal confirmation', async () => {
+      const componentWithCheckedMilestone: ComponentRowType = {
+        ...mockComponent,
+        current_milestones: {
+          Receive: 100,
+          Install: 0,
+          Punch: 0,
+          Test: 0,
+          Restore: 0
+        }
+      }
+
+      render(
+        <ComponentRow
+          component={componentWithCheckedMilestone}
+          drawing={mockDrawing}
+          area={componentWithCheckedMilestone.area}
+          system={componentWithCheckedMilestone.system}
+          testPackage={componentWithCheckedMilestone.test_package}
+          onMilestoneUpdate={mockOnMilestoneUpdate}
+        />
+      )
+
+      // Uncheck milestone to open modal
+      const checkboxes = screen.getAllByRole('checkbox')
+      checkboxes[0].click()
+
+      // Modal should be open
+      expect(screen.getByText('Confirm Milestone Rollback')).toBeInTheDocument()
+
+      // Select a rollback reason
+      const select = screen.getByRole('combobox')
+      select.click()
+
+      const reasonOption = screen.getByText('Data entry error')
+      reasonOption.click()
+
+      // Confirm rollback
+      const confirmButton = screen.getByText('Confirm Rollback')
+      confirmButton.click()
+
+      // Should call onMilestoneUpdate with rollback reason
+      expect(mockOnMilestoneUpdate).toHaveBeenCalledWith(
+        componentWithCheckedMilestone.id,
+        'Receive',
+        0,
+        {
+          reason: 'data_entry_error',
+          reasonLabel: 'Data entry error'
+        }
+      )
+    })
+
+    it('closes modal without updating when user cancels', () => {
+      const componentWithCheckedMilestone: ComponentRowType = {
+        ...mockComponent,
+        current_milestones: {
+          Receive: 100,
+          Install: 0,
+          Punch: 0,
+          Test: 0,
+          Restore: 0
+        }
+      }
+
+      render(
+        <ComponentRow
+          component={componentWithCheckedMilestone}
+          drawing={mockDrawing}
+          area={componentWithCheckedMilestone.area}
+          system={componentWithCheckedMilestone.system}
+          testPackage={componentWithCheckedMilestone.test_package}
+          onMilestoneUpdate={mockOnMilestoneUpdate}
+        />
+      )
+
+      // Uncheck milestone to open modal
+      const checkboxes = screen.getAllByRole('checkbox')
+      checkboxes[0].click()
+
+      // Modal should be open
+      expect(screen.getByText('Confirm Milestone Rollback')).toBeInTheDocument()
+
+      // Click cancel
+      const cancelButton = screen.getByText('Cancel')
+      cancelButton.click()
+
+      // Modal should close
+      expect(screen.queryByText('Confirm Milestone Rollback')).not.toBeInTheDocument()
+
+      // onMilestoneUpdate should NOT have been called
+      expect(mockOnMilestoneUpdate).not.toHaveBeenCalled()
+    })
   })
 
   describe('Aggregate Threaded Pipe Display (Feature 027)', () => {

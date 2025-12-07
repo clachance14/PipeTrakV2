@@ -61,26 +61,51 @@ export function MilestoneHistoryView({ componentId }: MilestoneHistoryViewProps)
 
   return (
     <div className="space-y-2">
-      {events.map((event) => (
-        <div
-          key={event.id}
-          className="flex items-start justify-between rounded-md border border-gray-200 bg-white p-3 hover:bg-gray-50"
-        >
-          <div className="flex-1">
-            <div className="font-medium text-gray-900">{event.milestone_name}</div>
-            <div className="mt-1 text-sm text-gray-500">
-              {formatTimestamp(event.created_at)}
+      {events.map((event) => {
+        // Extract rollback metadata if present
+        const metadata = event.metadata as { rollback_reason?: string; rollback_reason_label?: string; rollback_details?: string } | null
+        const hasRollbackInfo = event.action === 'rollback' && metadata?.rollback_reason_label
+
+        return (
+          <div
+            key={event.id}
+            className="flex items-start justify-between rounded-md border border-gray-200 bg-white p-3 hover:bg-gray-50"
+          >
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">{event.milestone_name}</div>
+              <div className="mt-1 text-sm text-gray-500">
+                {formatTimestamp(event.created_at)}
+              </div>
+              {hasRollbackInfo && (
+                <div className="mt-2 space-y-1">
+                  <div className="text-sm text-amber-700">
+                    <span className="font-medium">Reason:</span> {metadata.rollback_reason_label}
+                  </div>
+                  {metadata.rollback_details && (
+                    <div className="text-xs text-gray-600">
+                      {metadata.rollback_details}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+            {event.action === 'complete' && (
+              <div className="ml-4 flex-shrink-0">
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                  Completed
+                </span>
+              </div>
+            )}
+            {event.action === 'rollback' && (
+              <div className="ml-4 flex-shrink-0">
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                  Rolled Back
+                </span>
+              </div>
+            )}
           </div>
-          {event.action === 'complete' && (
-            <div className="ml-4 flex-shrink-0">
-              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                Completed
-              </span>
-            </div>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

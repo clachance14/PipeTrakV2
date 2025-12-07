@@ -69,6 +69,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       audit_log: {
@@ -115,6 +122,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "audit_log_user_id_fkey"
@@ -204,6 +218,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "components_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "components_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -246,11 +267,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "components_system_id_fkey"
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_system"
+            referencedColumns: ["system_id"]
           },
           {
             foreignKeyName: "fk_components_test_package"
@@ -265,6 +300,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_components_test_package"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -359,6 +401,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -366,11 +415,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "drawings_system_id_fkey"
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_system"
+            referencedColumns: ["system_id"]
           },
           {
             foreignKeyName: "drawings_test_package_id_fkey"
@@ -385,6 +448,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -426,6 +496,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_weld_report_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -545,6 +622,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "field_welds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "field_welds_welder_id_fkey"
             columns: ["welder_id"]
             isOneToOne: false
@@ -610,8 +694,10 @@ export type Database = {
       milestone_events: {
         Row: {
           action: string
+          category: string | null
           component_id: string
           created_at: string
+          delta_mh: number | null
           id: string
           metadata: Json | null
           milestone_name: string
@@ -621,8 +707,10 @@ export type Database = {
         }
         Insert: {
           action: string
+          category?: string | null
           component_id: string
           created_at?: string
+          delta_mh?: number | null
           id?: string
           metadata?: Json | null
           milestone_name: string
@@ -632,8 +720,10 @@ export type Database = {
         }
         Update: {
           action?: string
+          category?: string | null
           component_id?: string
           created_at?: string
+          delta_mh?: number | null
           id?: string
           metadata?: Json | null
           milestone_name?: string
@@ -735,6 +825,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "needs_review_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "needs_review_resolved_by_fkey"
             columns: ["resolved_by"]
             isOneToOne: false
@@ -831,6 +928,13 @@ export type Database = {
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "package_certificates_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "vw_manhour_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
+          },
         ]
       }
       package_drawing_assignments: {
@@ -880,6 +984,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_drawing_assignments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -948,6 +1059,13 @@ export type Database = {
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "package_workflow_stages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
+          },
         ]
       }
       package_workflow_templates: {
@@ -985,6 +1103,7 @@ export type Database = {
       }
       progress_templates: {
         Row: {
+          category: string | null
           component_type: string
           created_at: string
           id: string
@@ -993,6 +1112,7 @@ export type Database = {
           workflow_type: string
         }
         Insert: {
+          category?: string | null
           component_type: string
           created_at?: string
           id?: string
@@ -1001,6 +1121,7 @@ export type Database = {
           workflow_type: string
         }
         Update: {
+          category?: string | null
           component_type?: string
           created_at?: string
           id?: string
@@ -1052,10 +1173,18 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_manhour_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       project_progress_templates: {
         Row: {
+          category: string | null
           component_type: string
           created_at: string
           id: string
@@ -1068,6 +1197,7 @@ export type Database = {
           weight: number
         }
         Insert: {
+          category?: string | null
           component_type: string
           created_at?: string
           id?: string
@@ -1080,6 +1210,7 @@ export type Database = {
           weight: number
         }
         Update: {
+          category?: string | null
           component_type?: string
           created_at?: string
           id?: string
@@ -1098,6 +1229,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_progress_templates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1149,6 +1287,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_template_changes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1269,6 +1414,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "report_configs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       systems: {
@@ -1300,6 +1452,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "systems_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1350,6 +1509,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -1471,6 +1637,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "welders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "welders_verified_by_fkey"
             columns: ["verified_by"]
             isOneToOne: false
@@ -1505,6 +1678,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       mv_drawing_progress: {
@@ -1528,6 +1708,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_area"
+            referencedColumns: ["area_id"]
+          },
+          {
             foreignKeyName: "drawings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1535,11 +1722,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drawings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
             foreignKeyName: "drawings_system_id_fkey"
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_system"
+            referencedColumns: ["system_id"]
           },
           {
             foreignKeyName: "drawings_test_package_id_fkey"
@@ -1554,6 +1755,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_packages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawings_test_package_id_fkey"
+            columns: ["test_package_id"]
+            isOneToOne: false
+            referencedRelation: "vw_manhour_progress_by_test_package"
+            referencedColumns: ["test_package_id"]
           },
         ]
       }
@@ -1578,7 +1786,26 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
         ]
+      }
+      mv_template_milestone_weights: {
+        Row: {
+          category: string | null
+          component_type: string | null
+          is_partial: boolean | null
+          milestone_name: string | null
+          priority: number | null
+          project_id: string | null
+          weight: number | null
+        }
+        Relationships: []
       }
       vw_field_weld_progress_by_area: {
         Row: {
@@ -1702,6 +1929,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "welders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
         ]
       }
       vw_manhour_progress_by_area: {
@@ -1723,7 +1957,22 @@ export type Database = {
           test_mh_earned: number | null
           total_mh_earned: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
       vw_manhour_progress_by_system: {
         Row: {
@@ -1744,7 +1993,22 @@ export type Database = {
           test_mh_earned: number | null
           total_mh_earned: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "systems_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "systems_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
       vw_manhour_progress_by_test_package: {
         Row: {
@@ -1765,7 +2029,22 @@ export type Database = {
           test_package_name: string | null
           total_mh_earned: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
       vw_progress_by_area: {
         Row: {
@@ -1812,6 +2091,19 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_project_progress: {
+        Row: {
+          completed_components: number | null
+          has_explicit_budget: boolean | null
+          project_id: string | null
+          project_name: string | null
+          project_pct_complete: number | null
+          total_budget: number | null
+          total_components: number | null
+          total_earned: number | null
+        }
+        Relationships: []
+      }
       vw_recent_activity: {
         Row: {
           description: string | null
@@ -1828,6 +2120,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "milestone_events_user_id_fkey"
@@ -1868,6 +2167,24 @@ export type Database = {
         Args: { date_end: string; date_start: string }
         Returns: number
       }
+      calculate_category_earned_mh: {
+        Args: {
+          p_budgeted_manhours: number
+          p_component_type: string
+          p_current_milestones: Json
+          p_project_id: string
+        }
+        Returns: {
+          category: string
+          category_pct: number
+          category_weight: number
+          earned_mh: number
+        }[]
+      }
+      calculate_component_earned_mh: {
+        Args: { p_budgeted_manhours: number; p_percent_complete: number }
+        Returns: number
+      }
       calculate_component_percent:
         | {
             Args: { p_current_milestones: Json; p_template_id: string }
@@ -1875,21 +2192,30 @@ export type Database = {
           }
         | {
             Args: {
-              p_component_type?: string
+              p_component_type: string
               p_current_milestones: Json
-              p_project_id?: string
-              p_template_id: string
+              p_project_id: string
             }
             Returns: number
           }
-      calculate_earned_milestone_value: {
-        Args: {
-          p_component_type: string
-          p_milestones: Json
-          p_standard_milestone: string
-        }
-        Returns: number
-      }
+      calculate_earned_milestone_value:
+        | {
+            Args: {
+              p_component_type: string
+              p_milestones: Json
+              p_standard_milestone: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_category: string
+              p_component_type: string
+              p_milestones: Json
+              p_project_id?: string
+            }
+            Returns: number
+          }
       calculate_field_weld_delta: {
         Args: {
           p_dimension: string
@@ -1979,21 +2305,73 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: string
       }
+      get_component_template: {
+        Args: { p_component_type: string; p_project_id: string }
+        Returns: {
+          category: string
+          is_partial: boolean
+          milestone_name: string
+          milestone_order: number
+          weight: number
+        }[]
+      }
       get_current_user_email: { Args: never; Returns: string }
       get_current_user_org_id: { Args: never; Returns: string }
-      get_milestone_weight: {
+      get_field_weld_delta_by_dimension: {
         Args: {
-          p_component_type: string
+          p_dimension: string
+          p_end_date: string
           p_project_id: string
-          p_standard_milestone: string
+          p_start_date: string
         }
-        Returns: number
+        Returns: {
+          delta_accepted_count: number
+          delta_fitup_count: number
+          delta_pct_total: number
+          delta_weld_complete_count: number
+          dimension_id: string
+          dimension_name: string
+          stencil: string
+          welds_with_activity: number
+        }[]
       }
       get_most_common_spec_per_drawing: {
         Args: { p_project_id: string }
         Returns: {
           drawing_id: string
           most_common_spec: string
+        }[]
+      }
+      get_progress_delta_by_dimension: {
+        Args: {
+          p_dimension: string
+          p_end_date: string
+          p_project_id: string
+          p_start_date: string
+        }
+        Returns: {
+          components_with_activity: number
+          delta_install_mh_earned: number
+          delta_installed: number
+          delta_mh_pct_complete: number
+          delta_punch: number
+          delta_punch_mh_earned: number
+          delta_receive_mh_earned: number
+          delta_received: number
+          delta_restore_mh_earned: number
+          delta_restored: number
+          delta_test_mh_earned: number
+          delta_tested: number
+          delta_total: number
+          delta_total_mh_earned: number
+          dimension_id: string
+          dimension_name: string
+          install_mh_budget: number
+          mh_budget: number
+          punch_mh_budget: number
+          receive_mh_budget: number
+          restore_mh_budget: number
+          test_mh_budget: number
         }[]
       }
       get_project_template_summary: {
@@ -2063,6 +2441,7 @@ export type Database = {
       }
       is_super_admin: { Args: never; Returns: boolean }
       normalize_drawing_number: { Args: { raw: string }; Returns: string }
+      normalize_milestone_value: { Args: { p_raw: Json }; Returns: number }
       parse_size_diameter: { Args: { p_size: string }; Returns: number }
       recalculate_components_with_template: {
         Args: { target_component_type: string; target_project_id: string }
@@ -2074,6 +2453,7 @@ export type Database = {
       update_component_milestone: {
         Args: {
           p_component_id: string
+          p_metadata?: Json
           p_milestone_name: string
           p_new_value: number
           p_user_id: string
@@ -2127,6 +2507,16 @@ export type Database = {
       }
       validate_milestone_weights: {
         Args: { p_milestones_config: Json }
+        Returns: boolean
+      }
+      verify_category_mh_sum: {
+        Args: {
+          p_budgeted_manhours: number
+          p_component_type: string
+          p_current_milestones: Json
+          p_project_id: string
+          p_tolerance?: number
+        }
         Returns: boolean
       }
     }

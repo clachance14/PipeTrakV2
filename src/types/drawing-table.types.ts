@@ -217,6 +217,8 @@ export interface MilestoneUpdatePayload {
   value: boolean | number
   /** User UUID performing the update */
   user_id: string
+  /** Rollback reason (required when value decreases/unchecks a milestone) */
+  rollbackReason?: RollbackReasonData
 }
 
 /**
@@ -232,6 +234,44 @@ export interface MilestoneUpdateResponse {
   audit_event_id: string
   /** New calculated percent_complete */
   new_percent_complete: number
+}
+
+// ============================================================================
+// Rollback Reason Types
+// ============================================================================
+
+/**
+ * Preset reasons for milestone rollback
+ * Keys are stored in database, labels are displayed in UI
+ */
+export const ROLLBACK_REASONS = {
+  data_entry_error: 'Data entry error',
+  qc_rejection: 'QC/QA rejection',
+  failed_inspection: 'Failed inspection',
+  material_defect: 'Material defect',
+  engineering_change: 'Engineering change',
+  customer_request: 'Customer/client request',
+  damage_after_completion: 'Damage after completion',
+  incorrect_welder: 'Incorrect welder assigned',
+  other: 'Other (specify)',
+} as const
+
+/**
+ * Valid rollback reason keys (type-safe keys from ROLLBACK_REASONS)
+ */
+export type RollbackReasonKey = keyof typeof ROLLBACK_REASONS
+
+/**
+ * Data structure for rollback reason
+ * Passed to useUpdateMilestone and stored in milestone_events.metadata
+ */
+export interface RollbackReasonData {
+  /** Reason key (stored in database) */
+  reason: RollbackReasonKey
+  /** Human-readable label (stored for historical display) */
+  reasonLabel: string
+  /** Optional details (required when reason is 'other') */
+  details?: string
 }
 
 // ============================================================================

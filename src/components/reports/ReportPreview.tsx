@@ -1,7 +1,8 @@
 /**
- * ReportPreview Component (Feature 019 - T024, Feature 032)
+ * ReportPreview Component (Feature 019 - T024, Feature 032, Feature 033)
  * Displays generated report data with metadata (generation time, dimension)
  * Supports toggle between Count view and Manhour view
+ * Supports date range filtering for delta reports (Feature 033)
  */
 
 import { useEffect, useState } from 'react';
@@ -9,9 +10,13 @@ import { toast } from 'sonner';
 import { ReportTable } from './ReportTable';
 import { ManhourReportTable } from './ManhourReportTable';
 import { ManhourPercentReportTable } from './ManhourPercentReportTable';
+import { DeltaReportTable } from './DeltaReportTable';
+import { DateRangeFilter } from './DateRangeFilter';
+import { NoActivityFound } from './NoActivityFound';
 import { ReportViewModeToggle } from './ReportViewModeToggle';
 import { PDFPreviewDialog } from './PDFPreviewDialog';
 import { useComponentProgressPDFExport } from '@/hooks/useComponentProgressPDFExport';
+import { useProgressDeltaReport } from '@/hooks/useProgressDeltaReport';
 import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
 import type { ReportData, ManhourReportData, ReportViewMode } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
@@ -30,7 +35,17 @@ export function ReportPreview({
   hasManhourBudget,
 }: ReportPreviewProps) {
   const { generatePDFPreview, generateManhourPDFPreview, isGenerating } = useComponentProgressPDFExport();
-  const { viewMode, setViewMode } = useReportPreferencesStore();
+  const { viewMode, setViewMode, dateRange } = useReportPreferencesStore();
+
+  // Determine if delta mode is active (any date filter other than all_time)
+  const isDeltaMode = dateRange.preset !== 'all_time';
+
+  // Fetch delta data when in delta mode
+  const {
+    data: deltaData,
+    isLoading: isDeltaLoading,
+    error: deltaError,
+  } = useProgressDeltaReport(data.projectId, data.dimension, dateRange);
 
   // PDF Preview state
   const [previewState, setPreviewState] = useState<{
@@ -161,14 +176,19 @@ export function ReportPreview({
               </div>
             </div>
 
-            {/* Controls: View Mode Toggle + Export Button */}
+            {/* Controls: Date Range Filter + View Mode Toggle + Export Button */}
             <div className="flex flex-wrap items-center gap-3">
-              {/* View Mode Toggle */}
-              <ReportViewModeToggle
-                value={effectiveViewMode}
-                onChange={setViewMode}
-                hasBudget={hasManhourBudget}
-              />
+              {/* Date Range Filter */}
+              <DateRangeFilter />
+
+              {/* View Mode Toggle - only show when not in delta mode */}
+              {!isDeltaMode && (
+                <ReportViewModeToggle
+                  value={effectiveViewMode}
+                  onChange={setViewMode}
+                  hasBudget={hasManhourBudget}
+                />
+              )}
 
               {/* Export Button (Desktop only: ≥1024px) */}
               <div className="hidden lg:flex">
@@ -185,8 +205,24 @@ export function ReportPreview({
           </div>
         </div>
 
-        {/* Report Table - Conditional based on view mode */}
-        {effectiveViewMode === 'manhour_percent' && manhourData ? (
+        {/* Report Table - Conditional based on view mode and delta mode */}
+        {isDeltaMode ? (
+          // Delta mode: Show delta report or loading/error/empty states
+          isDeltaLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+            </div>
+          ) : deltaError ? (
+            <div className="text-center py-12 text-red-600">
+              Failed to load delta report. Please try again.
+            </div>
+          ) : deltaData && deltaData.rows.length > 0 ? (
+            <DeltaReportTable data={deltaData} />
+          ) : (
+            <NoActivityFound dateRange={dateRange} />
+          )
+        ) : // Standard mode: Show regular report tables
+        effectiveViewMode === 'manhour_percent' && manhourData ? (
           <ManhourPercentReportTable data={manhourData} />
         ) : effectiveViewMode === 'manhour' && manhourData ? (
           <ManhourReportTable data={manhourData} />
@@ -197,11 +233,13 @@ export function ReportPreview({
         {/* Report Footer */}
         <div className="text-xs text-muted-foreground text-center pt-4 border-t">
           <p>
-            {effectiveViewMode === 'manhour_percent'
-              ? 'This report shows completion percentage per milestone, calculated as (earned MH / budget MH) for each milestone.'
-              : effectiveViewMode === 'manhour'
-                ? 'This report shows manhour earned value calculated from component progress and project-specific milestone weights.'
-                : 'This report shows progress percentages calculated using earned value methodology. Percentages reflect partial completion where applicable.'}
+            {isDeltaMode
+              ? 'This report shows progress change (delta) for the selected time period. Positive values indicate progress gained, negative values indicate rollbacks.'
+              : effectiveViewMode === 'manhour_percent'
+                ? 'This report shows completion percentage per milestone, calculated as (earned MH / budget MH) for each milestone.'
+                : effectiveViewMode === 'manhour'
+                  ? 'This report shows manhour earned value calculated from component progress and project-specific milestone weights.'
+                  : 'This report shows progress percentages calculated using earned value methodology. Percentages reflect partial completion where applicable.'}
           </p>
         </div>
       </div>

@@ -72,6 +72,10 @@ function MilestoneEventRow({ event }: { event: MilestoneEvent }) {
       ? `${event.previous_value} → ${event.value}`
       : `${event.value}`;
 
+  // Extract rollback metadata if present
+  const metadata = event.metadata as { rollback_reason?: string; rollback_reason_label?: string; rollback_details?: string } | null
+  const hasRollbackInfo = event.action === 'rollback' && metadata?.rollback_reason_label
+
   return (
     <div className="flex items-start gap-2 p-2 bg-muted/50 rounded text-xs">
       <span className={`${actionColor} font-bold`}>{actionIcon}</span>
@@ -80,9 +84,16 @@ function MilestoneEventRow({ event }: { event: MilestoneEvent }) {
           {event.milestone_name}: {valueDisplay}
         </div>
         <div className="text-muted-foreground">{timestamp}</div>
-        {event.metadata && (
-          <div className="text-muted-foreground mt-1">
-            {JSON.stringify(event.metadata)}
+        {hasRollbackInfo && (
+          <div className="mt-2 space-y-1">
+            <div className="text-amber-700">
+              <span className="font-medium">Reason:</span> {metadata.rollback_reason_label}
+            </div>
+            {metadata.rollback_details && (
+              <div className="text-muted-foreground">
+                {metadata.rollback_details}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -97,6 +97,7 @@ export function useAssignDrawing() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
       queryClient.invalidateQueries({ queryKey: ['components'] });
+      queryClient.invalidateQueries({ queryKey: ['progress-report'] });
 
       console.log(
         `Drawing assigned successfully. ${data.components_inherited} components inherited.`
@@ -198,6 +199,7 @@ export function useAssignDrawingsBulk() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
       queryClient.invalidateQueries({ queryKey: ['components'] });
+      queryClient.invalidateQueries({ queryKey: ['progress-report'] });
 
       // Aggregate results
       const totalInherited = data.reduce((sum, d) => sum + d.components_inherited, 0);
