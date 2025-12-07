@@ -135,7 +135,7 @@ export function DrawingComponentTablePage() {
   }, [expandedDrawingId, drawings, componentsMap, isLoading])
 
   // Handle milestone update
-  const handleMilestoneUpdate = (componentId: string, milestoneName: string, value: boolean | number) => {
+  const handleMilestoneUpdate = (componentId: string, milestoneName: string, value: boolean | number, rollbackReason?: import('@/types/drawing-table.types').RollbackReasonData) => {
     if (!user?.id) {
       console.error('Cannot update milestone: User not authenticated')
       return
@@ -151,16 +151,16 @@ export function DrawingComponentTablePage() {
       }
     }
 
-    // Intercept "Weld Made" on field welds (first-time check only)
-    // Note: Template uses "Weld Made" as milestone name - this matches UI label
+    // Intercept "Weld Complete" on field welds (first-time check only)
+    // Note: Template uses "Weld Complete" as milestone name (migrated from "Weld Made")
     if (
       component &&
       component.component_type === 'field_weld' &&
-      milestoneName === 'Weld Made' &&
+      milestoneName === 'Weld Complete' &&
       (value === 100 || value === true) &&
-      component.current_milestones['Weld Made'] !== 100 &&
-      component.current_milestones['Weld Made'] !== true &&
-      component.current_milestones['Weld Made'] !== 1
+      component.current_milestones['Weld Complete'] !== 100 &&
+      component.current_milestones['Weld Complete'] !== true &&
+      component.current_milestones['Weld Complete'] !== 1
     ) {
       // Open welder assignment dialog instead of updating milestone directly
       setSelectedComponentId(componentId)
@@ -177,6 +177,7 @@ export function DrawingComponentTablePage() {
       milestone_name: milestoneName,
       value: numericValue,
       user_id: user.id,
+      rollbackReason,
     })
   }
 

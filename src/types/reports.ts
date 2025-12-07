@@ -381,3 +381,163 @@ export const XRAY_TIER_COLUMNS: FieldWeldReportColumn[] = [
   { key: 'xray10pctPassRate', label: '10% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
   { key: 'xray100pctPassRate', label: '100% Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
 ] as const;
+
+/**
+ * ============================================================================
+ * DATE RANGE FILTER TYPES (Feature 033 - Timeline Report Filter)
+ * ============================================================================
+ */
+
+// Re-export DateRangePreset from weldSummary.ts for convenience
+export type { DateRangePreset } from './weldSummary';
+
+// Import for local use
+import type { DateRangePreset } from './weldSummary';
+
+// Report date range state (includes preset and custom dates)
+export interface ReportDateRange {
+  preset: DateRangePreset;
+  startDate: string | null;  // ISO 8601 (YYYY-MM-DD)
+  endDate: string | null;    // ISO 8601 (YYYY-MM-DD)
+}
+
+// Default date range state
+export const DEFAULT_DATE_RANGE: ReportDateRange = {
+  preset: 'all_time',
+  startDate: null,
+  endDate: null,
+};
+
+// UI labels for date range presets
+export const DATE_RANGE_PRESET_LABELS: Record<DateRangePreset, string> = {
+  all_time: 'All Time',
+  last_7_days: 'Last 7 Days',
+  last_30_days: 'Last 30 Days',
+  last_90_days: 'Last 90 Days',
+  ytd: 'Year to Date',
+  custom: 'Custom Range',
+};
+
+/**
+ * ============================================================================
+ * COMPONENT PROGRESS DELTA REPORTS (Feature 033 - Timeline Report Filter)
+ * ============================================================================
+ */
+
+// Progress delta row data structure (count-based percentage deltas)
+export interface ProgressDeltaRow {
+  id: string;
+  name: string;
+  componentsWithActivity: number;
+  deltaReceived: number;    // percentage points
+  deltaInstalled: number;
+  deltaPunch: number;
+  deltaTested: number;
+  deltaRestored: number;
+  deltaTotal: number;       // weighted total
+}
+
+// Manhour delta row data structure
+export interface ManhourDeltaRow {
+  id: string;
+  name: string;
+  componentsWithActivity: number;
+  mhBudget: number;
+  // Category-specific budgets (for calculating category percentages)
+  receiveMhBudget: number;
+  installMhBudget: number;
+  punchMhBudget: number;
+  testMhBudget: number;
+  restoreMhBudget: number;
+  // Delta earned values
+  deltaReceiveMhEarned: number;
+  deltaInstallMhEarned: number;
+  deltaPunchMhEarned: number;
+  deltaTestMhEarned: number;
+  deltaRestoreMhEarned: number;
+  deltaTotalMhEarned: number;
+  deltaMhPctComplete: number;
+}
+
+// Grand total for progress delta (count-based)
+export interface ProgressDeltaGrandTotal {
+  name: 'Grand Total';
+  componentsWithActivity: number;
+  deltaReceived: number;
+  deltaInstalled: number;
+  deltaPunch: number;
+  deltaTested: number;
+  deltaRestored: number;
+  deltaTotal: number;
+}
+
+// Grand total for manhour delta
+export interface ManhourDeltaGrandTotal {
+  name: 'Grand Total';
+  componentsWithActivity: number;
+  mhBudget: number;
+  // Category-specific budgets (for calculating category percentages)
+  receiveMhBudget: number;
+  installMhBudget: number;
+  punchMhBudget: number;
+  testMhBudget: number;
+  restoreMhBudget: number;
+  // Delta earned values
+  deltaReceiveMhEarned: number;
+  deltaInstallMhEarned: number;
+  deltaPunchMhEarned: number;
+  deltaTestMhEarned: number;
+  deltaRestoreMhEarned: number;
+  deltaTotalMhEarned: number;
+  deltaMhPctComplete: number;
+}
+
+// Complete progress delta report data
+export interface ProgressDeltaReportData {
+  dimension: GroupingDimension;
+  rows: ProgressDeltaRow[];
+  manhourRows: ManhourDeltaRow[];
+  grandTotal: ProgressDeltaGrandTotal;
+  manhourGrandTotal: ManhourDeltaGrandTotal;
+  dateRange: ReportDateRange;
+  generatedAt: Date;
+  projectId: string;
+}
+
+/**
+ * ============================================================================
+ * FIELD WELD DELTA REPORTS (Feature 033 - Timeline Report Filter)
+ * ============================================================================
+ */
+
+// Field weld delta row data structure
+export interface FieldWeldDeltaRow {
+  id: string;
+  name: string;
+  stencil?: string;         // welder stencil (welder dimension only)
+  weldsWithActivity: number;
+  deltaFitupCount: number;
+  deltaWeldCompleteCount: number;
+  deltaAcceptedCount: number;
+  deltaPctTotal: number;
+}
+
+// Grand total for field weld delta
+export interface FieldWeldDeltaGrandTotal {
+  name: 'Grand Total';
+  weldsWithActivity: number;
+  deltaFitupCount: number;
+  deltaWeldCompleteCount: number;
+  deltaAcceptedCount: number;
+  deltaPctTotal: number;
+}
+
+// Complete field weld delta report data
+export interface FieldWeldDeltaReportData {
+  dimension: FieldWeldGroupingDimension;
+  rows: FieldWeldDeltaRow[];
+  grandTotal: FieldWeldDeltaGrandTotal;
+  dateRange: ReportDateRange;
+  generatedAt: Date;
+  projectId: string;
+}

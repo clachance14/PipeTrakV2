@@ -94,7 +94,7 @@ describe('useUpdateMilestone', () => {
     const mockRpc = await getMockRpc(); expect(mockRpc).toHaveBeenCalledWith('update_component_milestone', {
       p_component_id: 'comp-1-uuid',
       p_milestone_name: 'Receive',
-      p_new_value: 1, // Boolean true should be converted to numeric 1
+      p_new_value: 100, // Boolean true should be converted to numeric 100
       p_user_id: 'user-uuid',
     })
   })
@@ -351,5 +351,89 @@ describe('useUpdateMilestone', () => {
     })
 
     const mockRpc = await getMockRpc(); expect(mockRpc).toHaveBeenCalledTimes(2)
+  })
+
+  it('includes rollback reason in metadata when provided', async () => {
+    const { result } = renderHook(() => useUpdateMilestone(), { wrapper })
+
+    const payload: MilestoneUpdatePayload = {
+      component_id: 'comp-1-uuid',
+      milestone_name: 'Install',
+      value: false, // Unchecking (rollback)
+      user_id: 'user-uuid',
+      rollbackReason: {
+        reason: 'qc_rejection',
+        reasonLabel: 'QC/QA rejection',
+        details: 'Failed weld inspection',
+      },
+    }
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    const mockRpc = await getMockRpc()
+    expect(mockRpc).toHaveBeenCalledWith('update_component_milestone', {
+      p_component_id: 'comp-1-uuid',
+      p_milestone_name: 'Install',
+      p_new_value: 0,
+      p_user_id: 'user-uuid',
+      p_metadata: {
+        rollback_reason: 'qc_rejection',
+        rollback_reason_label: 'QC/QA rejection',
+        rollback_details: 'Failed weld inspection',
+      },
+    })
+  })
+
+  it('includes rollback reason without details when details not provided', async () => {
+    const { result } = renderHook(() => useUpdateMilestone(), { wrapper })
+
+    const payload: MilestoneUpdatePayload = {
+      component_id: 'comp-1-uuid',
+      milestone_name: 'Receive',
+      value: 0, // Rollback to 0
+      user_id: 'user-uuid',
+      rollbackReason: {
+        reason: 'data_entry_error',
+        reasonLabel: 'Data entry error',
+      },
+    }
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    const mockRpc = await getMockRpc()
+    expect(mockRpc).toHaveBeenCalledWith('update_component_milestone', {
+      p_component_id: 'comp-1-uuid',
+      p_milestone_name: 'Receive',
+      p_new_value: 0,
+      p_user_id: 'user-uuid',
+      p_metadata: {
+        rollback_reason: 'data_entry_error',
+        rollback_reason_label: 'Data entry error',
+      },
+    })
+  })
+
+  it('omits metadata parameter when rollback reason not provided', async () => {
+    const { result } = renderHook(() => useUpdateMilestone(), { wrapper })
+
+    const payload: MilestoneUpdatePayload = {
+      component_id: 'comp-1-uuid',
+      milestone_name: 'Receive',
+      value: true,
+      user_id: 'user-uuid',
+      // No rollbackReason
+    }
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    const mockRpc = await getMockRpc()
+    const callArgs = mockRpc.mock.calls[mockRpc.mock.calls.length - 1]
+    expect(callArgs[1]).not.toHaveProperty('p_metadata')
   })
 })

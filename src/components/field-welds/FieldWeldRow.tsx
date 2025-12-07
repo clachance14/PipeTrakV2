@@ -9,14 +9,20 @@ import { NDEResultDialog } from './NDEResultDialog'
 import { CreateRepairWeldDialog } from './CreateRepairWeldDialog'
 import { RepairHistoryDialog } from './RepairHistoryDialog'
 import { InlineWelderAssignment } from './InlineWelderAssignment'
+import { RollbackConfirmationModal } from '../drawing-table/RollbackConfirmationModal'
 import { Button } from '@/components/ui/button'
 import { UserCog, Microscope, History } from 'lucide-react'
-import type { ComponentRow as ComponentRowType } from '@/types/drawing-table.types'
+import type { ComponentRow as ComponentRowType, RollbackReasonData } from '@/types/drawing-table.types'
 
 export interface FieldWeldRowProps {
   component: ComponentRowType
   projectId: string
-  onMilestoneUpdate: (componentId: string, milestoneName: string, value: boolean | number) => void
+  onMilestoneUpdate: (
+    componentId: string,
+    milestoneName: string,
+    value: boolean | number,
+    rollbackReason?: RollbackReasonData
+  ) => void
   style?: React.CSSProperties
 }
 
@@ -46,6 +52,11 @@ export function FieldWeldRow({
   const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false)
   const [isRepairHistoryOpen, setIsRepairHistoryOpen] = useState(false)
   const [isAssigningWelder, setIsAssigningWelder] = useState(false)
+  const [rollbackPending, setRollbackPending] = useState<{
+    milestoneName: string
+    currentValue: number
+    newValue: number
+  } | null>(null)
 
   if (!component.id || component.id.includes(':')) {
     console.error('[FieldWeldRow] Invalid component ID:', component.id, 'Full component:', component)
@@ -56,13 +67,41 @@ export function FieldWeldRow({
   const { user } = useAuth()
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
-    // Special handling for "Weld Complete" milestone - trigger inline welder assignment
-    if (milestoneName === 'Weld Complete' && value === true && fieldWeld) {
+    // Convert to numeric early for consistent comparisons
+    const numericValue = typeof value === 'boolean' ? (value ? 100 : 0) : value
+    const currentValue = component.current_milestones[milestoneName]
+    const numericCurrentValue = typeof currentValue === 'boolean'
+      ? (currentValue ? 100 : 0)
+      : (currentValue || 0)
+
+    // Special handling for "Weld Made" or "Weld Complete" milestone - trigger inline welder assignment
+    // Only trigger if we're checking it (going from unchecked to checked)
+    // Note: Templates may use 'Weld Made' (old) or 'Weld Complete' (new) depending on when created
+    if (
+      (milestoneName === 'Weld Made' || milestoneName === 'Weld Complete') &&
+      numericValue === 100 &&
+      numericCurrentValue !== 100 &&
+      fieldWeld
+    ) {
       setIsAssigningWelder(true)
       setIsExpanded(true) // Ensure milestones are visible
       return
     }
 
+    // Detect rollback (decrease in value)
+    const isRollback = numericValue < numericCurrentValue
+
+    if (isRollback) {
+      // Show modal to collect rollback reason
+      setRollbackPending({
+        milestoneName,
+        currentValue: numericCurrentValue,
+        newValue: numericValue
+      })
+      return
+    }
+
+    // Normal forward progress - call update immediately
     onMilestoneUpdate(component.id, milestoneName, value)
   }
 
@@ -335,6 +374,26 @@ export function FieldWeldRow({
             onOpenChange={setIsRepairHistoryOpen}
           />
         </>
+      )}
+
+      {/* Rollback Confirmation Modal */}
+      {rollbackPending && (
+        <RollbackConfirmationModal
+          isOpen={!!rollbackPending}
+          onClose={() => setRollbackPending(null)}
+          onConfirm={(reasonData) => {
+            // Call the actual update with the rollback reason
+            onMilestoneUpdate(
+              component.id,
+              rollbackPending.milestoneName,
+              rollbackPending.newValue,
+              reasonData
+            )
+            setRollbackPending(null)
+          }}
+          componentName={component.identityDisplay || 'Unknown'}
+          milestoneName={rollbackPending.milestoneName}
+        />
       )}
     </>
   )

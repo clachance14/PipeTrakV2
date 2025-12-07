@@ -23,6 +23,8 @@ interface WeldLogFiltersProps {
   testPackages: { id: string; name: string }[]
   systems: { id: string; name: string }[]
   onFilteredWeldsChange: (filteredWelds: EnrichedFieldWeld[]) => void
+  /** External search term (when search is lifted to parent) */
+  searchTerm?: string
 }
 
 export function WeldLogFilters({
@@ -32,6 +34,7 @@ export function WeldLogFilters({
   testPackages,
   systems,
   onFilteredWeldsChange,
+  searchTerm: externalSearchTerm,
 }: WeldLogFiltersProps) {
   const isMobile = useMobileDetection()
   const {
@@ -105,13 +108,16 @@ export function WeldLogFilters({
     return () => clearTimeout(timer)
   }, [localSearchTerm, setSearchTerm])
 
+  // Use external search term if provided, otherwise use internal
+  const effectiveSearchTerm = externalSearchTerm ?? searchTerm
+
   // Apply filters with AND logic
   const filteredWelds = useMemo(() => {
     let filtered = welds
 
     // Search filter (weld ID, drawing number, welder name/stencil)
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
+    if (effectiveSearchTerm) {
+      const searchLower = effectiveSearchTerm.toLowerCase()
       filtered = filtered.filter(
         (weld) =>
           weld.identityDisplay.toLowerCase().includes(searchLower) ||
@@ -142,7 +148,7 @@ export function WeldLogFilters({
     }
 
     return filtered
-  }, [welds, searchTerm, drawingFilter, welderFilter, packageFilter, systemFilter])
+  }, [welds, effectiveSearchTerm, drawingFilter, welderFilter, packageFilter, systemFilter])
 
   // Notify parent of filtered results
   useEffect(() => {
@@ -155,7 +161,7 @@ export function WeldLogFilters({
   }
 
   const hasActiveFilters =
-    searchTerm ||
+    effectiveSearchTerm ||
     drawingFilter !== 'all' ||
     welderFilter !== 'all' ||
     packageFilter !== 'all' ||
@@ -288,97 +294,73 @@ export function WeldLogFilters({
     )
   }
 
-  // Desktop view (unchanged)
+  // Desktop view - simplified inline toolbar (no card wrapper)
   return (
-    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
-      {/* Search Box */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input
-          type="text"
-          placeholder="Search by weld ID, drawing, or welder..."
-          value={localSearchTerm}
-          onChange={(e) => setLocalSearchTerm(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* Filter Controls - inline dropdowns */}
+      <Select value={drawingFilter} onValueChange={setDrawingFilter}>
+        <SelectTrigger className="w-[160px] h-9">
+          <SelectValue placeholder="All Drawings" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Drawings</SelectItem>
+          {drawings.map((drawing) => (
+            <SelectItem key={drawing.id} value={drawing.id}>
+              {drawing.drawing_no_norm}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      {/* Filter Controls */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Drawing Filter */}
-        <Select value={drawingFilter} onValueChange={setDrawingFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Drawings" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Drawings</SelectItem>
-            {drawings.map((drawing) => (
-              <SelectItem key={drawing.id} value={drawing.id}>
-                {drawing.drawing_no_norm}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <Select value={welderFilter} onValueChange={setWelderFilter}>
+        <SelectTrigger className="w-[160px] h-9">
+          <SelectValue placeholder="All Welders" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Welders</SelectItem>
+          {welders.map((welder) => (
+            <SelectItem key={welder.id} value={welder.id}>
+              {welder.stencil} - {welder.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Welder Filter */}
-        <Select value={welderFilter} onValueChange={setWelderFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Welders" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Welders</SelectItem>
-            {welders.map((welder) => (
-              <SelectItem key={welder.id} value={welder.id}>
-                {welder.stencil} - {welder.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <Select value={packageFilter} onValueChange={setPackageFilter}>
+        <SelectTrigger className="w-[160px] h-9">
+          <SelectValue placeholder="All Packages" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Packages</SelectItem>
+          {testPackages.map((pkg) => (
+            <SelectItem key={pkg.id} value={pkg.id}>
+              {pkg.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Package Filter */}
-        <Select value={packageFilter} onValueChange={setPackageFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Packages" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Packages</SelectItem>
-            {testPackages.map((pkg) => (
-              <SelectItem key={pkg.id} value={pkg.id}>
-                {pkg.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <Select value={systemFilter} onValueChange={setSystemFilter}>
+        <SelectTrigger className="w-[160px] h-9">
+          <SelectValue placeholder="All Systems" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Systems</SelectItem>
+          {systems.map((system) => (
+            <SelectItem key={system.id} value={system.id}>
+              {system.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* System Filter */}
-        <Select value={systemFilter} onValueChange={setSystemFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Systems" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Systems</SelectItem>
-            {systems.map((system) => (
-              <SelectItem key={system.id} value={system.id}>
-                {system.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Results Count and Clear Button */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          Showing <span className="font-medium">{filteredWelds.length}</span> of{' '}
-          <span className="font-medium">{welds.length}</span> welds
-        </p>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={handleClearAllFilters} className="h-8">
-            <X className="mr-1 h-4 w-4" />
-            Clear Filters
-          </Button>
-        )}
-      </div>
+      {/* Clear button - only show when filters active */}
+      {hasActiveFilters && (
+        <Button variant="ghost" size="sm" onClick={handleClearAllFilters} className="h-9">
+          <X className="mr-1 h-4 w-4" />
+          Clear
+        </Button>
+      )}
     </div>
   )
 }

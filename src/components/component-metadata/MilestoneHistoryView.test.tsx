@@ -252,4 +252,150 @@ describe('MilestoneHistoryView', () => {
     expect(milestoneElements[0]).toHaveTextContent('Install')
     expect(milestoneElements[1]).toHaveTextContent('Receive')
   })
+
+  it('displays rollback reason label when present in metadata', () => {
+    const mockEvents = [
+      {
+        id: 'event-1',
+        component_id: mockComponentId,
+        milestone_name: 'Install',
+        action: 'rollback',
+        value: 0,
+        previous_value: 100,
+        user_id: 'user-1',
+        created_at: '2024-10-19T15:30:45.000000+00:00',
+        metadata: {
+          rollback_reason: 'qc_rejection',
+          rollback_reason_label: 'QC/QA rejection',
+        },
+      },
+    ]
+
+    vi.mocked(useMilestoneEventsModule.useMilestoneEvents).mockReturnValue({
+      data: mockEvents,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any)
+
+    render(
+      React.createElement(
+        createWrapper(),
+        null,
+        React.createElement(MilestoneHistoryView, { componentId: mockComponentId })
+      )
+    )
+
+    expect(screen.getByText('Install')).toBeInTheDocument()
+    expect(screen.getByText(/Reason:/)).toBeInTheDocument()
+    expect(screen.getByText(/QC\/QA rejection/)).toBeInTheDocument()
+  })
+
+  it('displays rollback details when present in metadata', () => {
+    const mockEvents = [
+      {
+        id: 'event-1',
+        component_id: mockComponentId,
+        milestone_name: 'Install',
+        action: 'rollback',
+        value: 0,
+        previous_value: 100,
+        user_id: 'user-1',
+        created_at: '2024-10-19T15:30:45.000000+00:00',
+        metadata: {
+          rollback_reason: 'qc_rejection',
+          rollback_reason_label: 'QC/QA rejection',
+          rollback_details: 'Weld failed X-ray, porosity detected',
+        },
+      },
+    ]
+
+    vi.mocked(useMilestoneEventsModule.useMilestoneEvents).mockReturnValue({
+      data: mockEvents,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any)
+
+    render(
+      React.createElement(
+        createWrapper(),
+        null,
+        React.createElement(MilestoneHistoryView, { componentId: mockComponentId })
+      )
+    )
+
+    expect(screen.getByText('Install')).toBeInTheDocument()
+    expect(screen.getByText(/Reason:/)).toBeInTheDocument()
+    expect(screen.getByText(/QC\/QA rejection/)).toBeInTheDocument()
+    expect(screen.getByText(/Weld failed X-ray, porosity detected/)).toBeInTheDocument()
+  })
+
+  it('does not display rollback info for non-rollback events', () => {
+    const mockEvents = [
+      {
+        id: 'event-1',
+        component_id: mockComponentId,
+        milestone_name: 'Install',
+        action: 'complete',
+        value: 100,
+        previous_value: 0,
+        user_id: 'user-1',
+        created_at: '2024-10-19T15:30:45.000000+00:00',
+        metadata: null,
+      },
+    ]
+
+    vi.mocked(useMilestoneEventsModule.useMilestoneEvents).mockReturnValue({
+      data: mockEvents,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any)
+
+    render(
+      React.createElement(
+        createWrapper(),
+        null,
+        React.createElement(MilestoneHistoryView, { componentId: mockComponentId })
+      )
+    )
+
+    expect(screen.getByText('Install')).toBeInTheDocument()
+    expect(screen.queryByText(/Reason:/)).not.toBeInTheDocument()
+  })
+
+  it('does not display rollback info when metadata lacks rollback_reason_label', () => {
+    const mockEvents = [
+      {
+        id: 'event-1',
+        component_id: mockComponentId,
+        milestone_name: 'Install',
+        action: 'rollback',
+        value: 0,
+        previous_value: 100,
+        user_id: 'user-1',
+        created_at: '2024-10-19T15:30:45.000000+00:00',
+        metadata: null,
+      },
+    ]
+
+    vi.mocked(useMilestoneEventsModule.useMilestoneEvents).mockReturnValue({
+      data: mockEvents,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any)
+
+    render(
+      React.createElement(
+        createWrapper(),
+        null,
+        React.createElement(MilestoneHistoryView, { componentId: mockComponentId })
+      )
+    )
+
+    expect(screen.getByText('Install')).toBeInTheDocument()
+    expect(screen.queryByText(/Reason:/)).not.toBeInTheDocument()
+  })
 })

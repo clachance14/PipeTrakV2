@@ -14,7 +14,7 @@ export interface DrawingTableProps {
   sortField: SortField
   sortDirection: SortDirection
   onToggleDrawing: (drawingId: string) => void
-  onMilestoneUpdate: (componentId: string, milestoneName: string, value: boolean | number) => void
+  onMilestoneUpdate: (componentId: string, milestoneName: string, value: boolean | number, rollbackReason?: import('@/types/drawing-table.types').RollbackReasonData) => void
   onSort: (field: SortField, direction: SortDirection) => void
   loading?: boolean
   // Feature 011: Selection mode props

@@ -3,7 +3,7 @@
  * QC-focused page displaying all field welds in a flat table with advanced filtering
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Layout } from '@/components/Layout'
 import { WeldLogFilters } from '@/components/weld-log/WeldLogFilters'
@@ -27,7 +27,8 @@ import { UpdateWeldDialog } from '@/components/field-welds/UpdateWeldDialog'
 import { CreateUnplannedWeldDialog } from '@/components/field-welds/CreateUnplannedWeldDialog'
 import { Button } from '@/components/ui/button'
 import { canCreateFieldWeld } from '@/lib/permissions'
-import { Plus, FileDown, FileSpreadsheet } from 'lucide-react'
+import { Plus, FileDown, FileSpreadsheet, Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 export function WeldLogPage() {
   const { user } = useAuth()
@@ -45,6 +46,21 @@ export function WeldLogPage() {
   })
 
   const [filteredWelds, setFilteredWelds] = useState<EnrichedFieldWeld[]>([])
+
+  // Search state (lifted from WeldLogFilters for toolbar integration)
+  const {
+    searchTerm,
+    setSearchTerm,
+  } = useWeldLogPreferencesStore()
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
+
+  // Debounce search term (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(localSearchTerm)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [localSearchTerm, setSearchTerm])
 
   // PDF export hooks
   const { generatePDFPreview, isGenerating: isPDFGenerating } = useWeldLogPDFExport()
@@ -234,30 +250,73 @@ export function WeldLogPage() {
 
   return (
     <Layout fixedHeight>
-      <div className="flex flex-col h-full mx-auto max-w-[1920px] px-4 py-3 md:py-8 sm:px-6 lg:px-8">
-        {/* Page Header - Fixed */}
-        <div className="flex-shrink-0 mb-3 md:mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg md:text-3xl font-bold text-slate-900">Weld Log</h1>
-              <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-600">
-                QC tracking for all project field welds - Sortable table with advanced filtering
-              </p>
+      <div className="flex flex-col h-full mx-auto max-w-[1920px] px-4 py-3 md:py-4 sm:px-6 lg:px-8">
+        {/* Toolbar Row 1: Title + Search + Count + Export + Add (Desktop) */}
+        <div className="flex-shrink-0 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-3 mb-2">
+          {/* Title - always visible */}
+          <h1 className="text-lg lg:text-2xl font-bold text-slate-900 whitespace-nowrap">
+            Weld Log
+          </h1>
+
+          {/* Search - grows to fill space on desktop, full width on mobile */}
+          <div className="flex-1 lg:max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search by weld ID, drawing, or welder..."
+                value={localSearchTerm}
+                onChange={(e) => setLocalSearchTerm(e.target.value)}
+                className="pl-9 h-9"
+              />
             </div>
-            {user?.role && canCreateFieldWeld(user.role) && (
-              <Button
-                onClick={() => setIsCreateUnplannedDialogOpen(true)}
-                className="min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Weld
-              </Button>
-            )}
           </div>
+
+          {/* Count badge - desktop only */}
+          <span className="hidden lg:inline text-sm text-slate-500 whitespace-nowrap">
+            {filteredWelds.length}/{welds.length}
+          </span>
+
+          {/* Export buttons - desktop only */}
+          <div className="hidden lg:flex items-center gap-2">
+            <Button
+              onClick={handlePDFExport}
+              disabled={isPDFGenerating || filteredWelds.length === 0}
+              variant="outline"
+              size="sm"
+              className="min-h-[36px]"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              {isPDFGenerating ? 'Generating...' : 'Preview & Export PDF'}
+            </Button>
+            <Button
+              onClick={handleExcelExport}
+              disabled={filteredWelds.length === 0}
+              variant="outline"
+              size="sm"
+              className="min-h-[36px]"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
+
+          {/* Add Weld button */}
+          {user?.role && canCreateFieldWeld(user.role) && (
+            <Button
+              onClick={() => setIsCreateUnplannedDialogOpen(true)}
+              size="sm"
+              className="min-h-[36px] lg:min-h-[36px] bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="h-4 w-4 lg:mr-1" />
+              <span className="hidden lg:inline">Add Weld</span>
+              <span className="lg:hidden">Add</span>
+            </Button>
+          )}
         </div>
 
-        {/* Filters - Fixed */}
-        <div className="flex-shrink-0 mb-3 md:mb-6">
+        {/* Filter Row - Simplified on desktop, collapsible on mobile */}
+        <div className="flex-shrink-0 mb-2">
           <WeldLogFilters
             welds={welds}
             drawings={drawings}
@@ -265,29 +324,8 @@ export function WeldLogPage() {
             testPackages={testPackages}
             systems={systems}
             onFilteredWeldsChange={setFilteredWelds}
+            searchTerm={searchTerm}
           />
-        </div>
-
-        {/* Export Buttons - Desktop Only */}
-        <div className="hidden lg:flex flex-shrink-0 mb-3 md:mb-6 gap-2">
-          <Button
-            onClick={handlePDFExport}
-            disabled={isPDFGenerating || filteredWelds.length === 0}
-            variant="outline"
-            className="min-h-[44px]"
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            {isPDFGenerating ? 'Generating Preview...' : 'Preview & Export PDF'}
-          </Button>
-          <Button
-            onClick={handleExcelExport}
-            disabled={filteredWelds.length === 0}
-            variant="outline"
-            className="min-h-[44px]"
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Export Excel
-          </Button>
         </div>
 
         {/* Table - Scrollable fills remaining space */}

@@ -1,7 +1,8 @@
 /**
- * ReportsPage (Feature 019 + Field Weld Reports + Feature 032 Manhour Earned Value)
+ * ReportsPage (Feature 019 + Field Weld Reports + Feature 032 + Feature 033)
  * Tabbed interface for Component Progress and Field Weld progress reports
  * Supports toggle between Count view and Manhour view for Component Progress
+ * Supports date range filtering for delta reports (Feature 033)
  */
 
 import { useState, useEffect } from 'react';
@@ -13,10 +14,15 @@ import { useProgressReport } from '@/hooks/useProgressReport';
 import { useManhourProgressReport } from '@/hooks/useManhourProgressReport';
 import { useManhourBudget } from '@/hooks/useManhourBudget';
 import { useFieldWeldProgressReport } from '@/hooks/useFieldWeldProgressReport';
+import { useFieldWeldDeltaReport } from '@/hooks/useFieldWeldDeltaReport';
 import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
+import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
 import { DimensionSelector } from '@/components/reports/DimensionSelector';
 import { ReportPreview } from '@/components/reports/ReportPreview';
 import { FieldWeldReportTable } from '@/components/reports/FieldWeldReportTable';
+import { FieldWeldDeltaReportTable } from '@/components/reports/FieldWeldDeltaReportTable';
+import { DateRangeFilter } from '@/components/reports/DateRangeFilter';
+import { NoActivityFound } from '@/components/reports/NoActivityFound';
 import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3 } from 'lucide-react';
@@ -29,6 +35,10 @@ export function ReportsPage() {
   const { data: projects } = useProjects();
   const currentProject = projects?.find((p) => p.id === selectedProjectId);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Date range state from store (Feature 033)
+  const { dateRange } = useReportPreferencesStore();
+  const isDeltaMode = dateRange.preset !== 'all_time';
 
   // Get tab and dimension from URL, with defaults
   const activeTab = searchParams.get('tab') || 'component-progress';
@@ -64,6 +74,13 @@ export function ReportsPage() {
     isLoading: isLoadingFieldWeld,
     error: fieldWeldError,
   } = useFieldWeldProgressReport(selectedProjectId || '', fieldWeldDimension);
+
+  // Fetch field weld delta report (Feature 033 - date range filtering)
+  const {
+    data: fieldWeldDeltaData,
+    isLoading: isLoadingFieldWeldDelta,
+    error: fieldWeldDeltaError,
+  } = useFieldWeldDeltaReport(selectedProjectId || '', fieldWeldDimension, dateRange);
 
   // Fetch welder summary report (tier-grouped format for welder dimension)
   const {
@@ -228,12 +245,16 @@ export function ReportsPage() {
           {/* Field Welds Tab */}
           <TabsContent value="field-welds" className="p-6 m-0 space-y-6">
             <div className="space-y-4">
-              <DimensionSelector
-                variant="field-weld"
-                value={fieldWeldDimension}
-                onChange={handleFieldWeldDimensionChange}
-                disabled={fieldWeldDimension === 'welder' ? isLoadingWelderSummary : isLoadingFieldWeld}
-              />
+              {/* Controls: Dimension Selector + Date Range Filter */}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <DimensionSelector
+                  variant="field-weld"
+                  value={fieldWeldDimension}
+                  onChange={handleFieldWeldDimensionChange}
+                  disabled={fieldWeldDimension === 'welder' ? isLoadingWelderSummary : isLoadingFieldWeld}
+                />
+                <DateRangeFilter />
+              </div>
 
               {/* Conditional rendering based on dimension */}
               {fieldWeldDimension === 'welder' ? (
@@ -270,6 +291,35 @@ export function ReportsPage() {
                           reportData={welderSummaryData}
                           projectName={currentProject?.name || 'Unknown Project'}
                         />
+                      )}
+                    </>
+                  )}
+                </>
+              ) : isDeltaMode ? (
+                <>
+                  {/* Delta Mode: Field Weld Delta Report */}
+                  {isLoadingFieldWeldDelta && (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-muted-foreground">Loading field weld delta report...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {fieldWeldDeltaError && (
+                    <div className="border border-destructive rounded-lg p-6 bg-destructive/10">
+                      <p className="text-destructive font-medium">Error loading field weld delta report:</p>
+                      <p className="text-sm text-destructive mt-2">{fieldWeldDeltaError.message}</p>
+                    </div>
+                  )}
+
+                  {!isLoadingFieldWeldDelta && !fieldWeldDeltaError && (
+                    <>
+                      {fieldWeldDeltaData && fieldWeldDeltaData.rows.length > 0 ? (
+                        <FieldWeldDeltaReportTable data={fieldWeldDeltaData} />
+                      ) : (
+                        <NoActivityFound dateRange={dateRange} />
                       )}
                     </>
                   )}

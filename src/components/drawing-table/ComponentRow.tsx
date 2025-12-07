@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MilestoneCheckbox } from './MilestoneCheckbox'
 import { PartialMilestoneInput } from './PartialMilestoneInput'
 import { MetadataCell } from './MetadataCell'
+import { RollbackConfirmationModal } from './RollbackConfirmationModal'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
@@ -11,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isDemoUser } from '@/components/demo/DemoModeBanner'
 import { cn } from '@/lib/utils'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
-import type { ComponentRow as ComponentRowType, MilestoneConfig } from '@/types/drawing-table.types'
+import type { ComponentRow as ComponentRowType, MilestoneConfig, RollbackReasonData } from '@/types/drawing-table.types'
 
 /**
  * Milestone label abbreviations for compact display
@@ -26,7 +27,7 @@ const LABEL_ABBREVIATIONS: Record<string, string> = {
 
 export interface ComponentRowProps {
   component: ComponentRowType
-  onMilestoneUpdate: (componentId: string, milestoneName: string, value: boolean | number) => void
+  onMilestoneUpdate: (componentId: string, milestoneName: string, value: boolean | number, rollbackReason?: RollbackReasonData) => void
   style?: React.CSSProperties
   /** Drawing this component belongs to (for inheritance detection) */
   drawing?: {
@@ -94,6 +95,13 @@ export function ComponentRow({
   const [isHighlighted, setIsHighlighted] = useState(false)
   const prevPercentRef = useRef(component.percent_complete)
 
+  // Rollback confirmation state
+  const [rollbackPending, setRollbackPending] = useState<{
+    milestoneName: string
+    currentValue: number
+    newValue: number
+  } | null>(null)
+
   useEffect(() => {
     if (isDemo && prevPercentRef.current !== component.percent_complete) {
       setIsHighlighted(true)
@@ -104,6 +112,25 @@ export function ComponentRow({
   }, [component.percent_complete, isDemo])
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
+    // Get current value (normalize to number for comparison)
+    const currentValue = component.current_milestones[milestoneName]
+    const currentNumeric = typeof currentValue === 'boolean' ? (currentValue ? 100 : 0) : (currentValue || 0)
+    const newNumeric = typeof value === 'boolean' ? (value ? 100 : 0) : value
+
+    // Check if this is a rollback (decrease in value)
+    const isRollback = newNumeric < currentNumeric
+
+    if (isRollback) {
+      // Open rollback confirmation modal
+      setRollbackPending({
+        milestoneName,
+        currentValue: currentNumeric,
+        newValue: newNumeric
+      })
+      return
+    }
+
+    // Not a rollback - proceed immediately
     // If offline, enqueue update to localStorage
     if (!isOnline) {
       enqueue({
@@ -116,6 +143,26 @@ export function ComponentRow({
     }
 
     onMilestoneUpdate(component.id, milestoneName, value)
+  }
+
+  const handleRollbackConfirm = (reasonData: RollbackReasonData) => {
+    if (!rollbackPending) return
+
+    const { milestoneName, newValue } = rollbackPending
+
+    // If offline, enqueue update to localStorage
+    if (!isOnline) {
+      enqueue({
+        component_id: component.id,
+        milestone_name: milestoneName,
+        value: newValue,
+        user_id: 'current-user-id' // TODO: Get from auth context
+      })
+      // Still call onMilestoneUpdate for optimistic UI
+    }
+
+    onMilestoneUpdate(component.id, milestoneName, newValue, reasonData)
+    setRollbackPending(null)
   }
 
   // Navigate to test package detail page
@@ -318,6 +365,19 @@ export function ComponentRow({
             </div>
           ))}
         </div>
+
+        {/* Rollback confirmation modal */}
+        {rollbackPending && (
+          <div data-testid="rollback-modal-wrapper">
+            <RollbackConfirmationModal
+              isOpen={!!rollbackPending}
+              onClose={() => setRollbackPending(null)}
+              onConfirm={handleRollbackConfirm}
+              componentName={identityDisplay}
+              milestoneName={rollbackPending.milestoneName}
+            />
+          </div>
+        )}
       </div>
     )
   }
@@ -489,6 +549,19 @@ export function ComponentRow({
 
       {/* Spacer for Items column (component rows don't show item count) */}
       <div className="min-w-[90px]" />
+
+      {/* Rollback confirmation modal */}
+      {rollbackPending && (
+        <div data-testid="rollback-modal-wrapper">
+          <RollbackConfirmationModal
+            isOpen={!!rollbackPending}
+            onClose={() => setRollbackPending(null)}
+            onConfirm={handleRollbackConfirm}
+            componentName={identityDisplay}
+            milestoneName={rollbackPending.milestoneName}
+          />
+        </div>
+      )}
     </div>
   )
 }

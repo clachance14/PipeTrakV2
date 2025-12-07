@@ -49,12 +49,37 @@ export function useUpdateMilestone() {
         throw new Error(`Invalid milestone value: ${payload.value}`);
       }
 
-      const { data, error } = await supabase.rpc('update_component_milestone', {
+      // Build RPC parameters
+      const rpcParams: {
+        p_component_id: string
+        p_milestone_name: string
+        p_new_value: number
+        p_user_id: string
+        p_metadata?: {
+          rollback_reason?: string
+          rollback_reason_label?: string
+          rollback_details?: string
+        }
+      } = {
         p_component_id: payload.component_id,
         p_milestone_name: payload.milestone_name,
         p_new_value: numericValue,
         p_user_id: payload.user_id,
-      })
+      }
+
+      // Add rollback reason to metadata if provided
+      if (payload.rollbackReason) {
+        rpcParams.p_metadata = {
+          rollback_reason: payload.rollbackReason.reason,
+          rollback_reason_label: payload.rollbackReason.reasonLabel,
+        }
+        // Only include details if provided
+        if (payload.rollbackReason.details) {
+          rpcParams.p_metadata.rollback_details = payload.rollbackReason.details
+        }
+      }
+
+      const { data, error } = await supabase.rpc('update_component_milestone', rpcParams)
 
       if (error) throw error
 

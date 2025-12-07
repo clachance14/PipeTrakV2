@@ -44,28 +44,28 @@ export function useAssignWelder() {
       // Mark milestones on component using RPC function
       // This preserves other milestones and triggers auto-calculation of percent_complete
 
-      // First mark Fit-Up as complete (prerequisite for Weld Made)
+      // First mark Fit-up as complete (prerequisite for Weld Complete)
       const { error: fitUpError } = await supabase.rpc('update_component_milestone', {
         p_component_id: fieldWeld.component_id,
-        p_milestone_name: 'Fit-Up',
+        p_milestone_name: 'Fit-up',
         p_new_value: 100,
         p_user_id: payload.user_id,
       })
 
       if (fitUpError) {
-        throw new Error(`Failed to update Fit-Up milestone: ${fitUpError.message}`)
+        throw new Error(`Failed to update Fit-up milestone: ${fitUpError.message}`)
       }
 
-      // Then mark Weld Made as complete
-      const { error: weldMadeError } = await supabase.rpc('update_component_milestone', {
+      // Then mark Weld Complete as complete
+      const { error: weldCompleteError } = await supabase.rpc('update_component_milestone', {
         p_component_id: fieldWeld.component_id,
-        p_milestone_name: 'Weld Made',
+        p_milestone_name: 'Weld Complete',
         p_new_value: 100,
         p_user_id: payload.user_id,
       })
 
-      if (weldMadeError) {
-        throw new Error(`Failed to update Weld Made milestone: ${weldMadeError.message}`)
+      if (weldCompleteError) {
+        throw new Error(`Failed to update Weld Complete milestone: ${weldCompleteError.message}`)
       }
 
       return { ...fieldWeld, ...payload }
