@@ -158,7 +158,7 @@ export function PendingInviteRow({ invitation }: PendingInviteRowProps) {
             <AlertDialogAction
               onClick={handleRevoke}
               disabled={revokeInvitationMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {revokeInvitationMutation.isPending ? 'Revoking...' : 'Revoke'}
             </AlertDialogAction>
