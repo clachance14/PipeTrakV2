@@ -143,7 +143,7 @@ export function RollbackConfirmationModal({
           <Button
             onClick={handleConfirm}
             disabled={!isValid}
-            className="h-10"
+            className="h-10 bg-blue-600 hover:bg-blue-700 text-white"
           >
             Confirm Rollback
           </Button>

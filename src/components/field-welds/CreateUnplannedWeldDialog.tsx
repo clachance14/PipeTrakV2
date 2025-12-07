@@ -305,7 +305,7 @@ export function CreateUnplannedWeldDialog({
             <Button
               type="submit"
               disabled={!isFormValid || isLoading}
-              className="min-h-[44px] min-w-[44px] bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300"
+              className="min-h-[44px] min-w-[44px] bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? 'Creating...' : 'Create Weld'}
             </Button>

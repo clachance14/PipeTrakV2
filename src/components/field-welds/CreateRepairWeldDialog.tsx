@@ -222,7 +222,6 @@ export function CreateRepairWeldDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-900"
             >
               Cancel
             </Button>

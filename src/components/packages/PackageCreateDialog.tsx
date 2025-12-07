@@ -515,7 +515,7 @@ export function PackageCreateDialog({
             <Button
               type="submit"
               disabled={!isFormValid}
-              className="min-h-[44px] min-w-[44px] bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300"
+              className="min-h-[44px] min-w-[44px] bg-blue-600 hover:bg-blue-700 text-white"
             >
               {createPackageMutation.isPending
                 ? 'Creating...'

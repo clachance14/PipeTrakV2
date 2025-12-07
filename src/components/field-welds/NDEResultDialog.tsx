@@ -243,7 +243,6 @@ export function NDEResultDialog({
                         variant="outline"
                         size="sm"
                         onClick={() => setShowConfirmation(false)}
-                        className="bg-white hover:bg-gray-100 text-gray-900 border-gray-300"
                       >
                         Cancel
                       </Button>
@@ -322,7 +321,6 @@ export function NDEResultDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-900"
               >
                 Cancel
               </Button>
