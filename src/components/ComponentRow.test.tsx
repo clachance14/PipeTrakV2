@@ -36,7 +36,7 @@ describe('ComponentRow', () => {
 
       // Should display the spool_id
       expect(screen.getByText('SP-002')).toBeInTheDocument()
-      expect(screen.getByText('spool')).toBeInTheDocument()
+      expect(screen.getByText('Spool')).toBeInTheDocument()
     })
 
     it('renders field_weld with weld_number', () => {
@@ -61,7 +61,7 @@ describe('ComponentRow', () => {
 
       // Should display the weld_number
       expect(screen.getByText('W-008')).toBeInTheDocument()
-      expect(screen.getByText('field_weld')).toBeInTheDocument()
+      expect(screen.getByText('Field Weld')).toBeInTheDocument()
     })
 
     it('renders valve with commodity_code format', () => {
@@ -91,7 +91,7 @@ describe('ComponentRow', () => {
 
       // Should display formatted commodity_code
       expect(screen.getByText(/VBALU-001/)).toBeInTheDocument()
-      expect(screen.getByText('valve')).toBeInTheDocument()
+      expect(screen.getByText('Valve')).toBeInTheDocument()
     })
   })
 

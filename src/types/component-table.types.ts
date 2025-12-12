@@ -9,6 +9,7 @@
 export type ComponentSortField =
   | 'identity_key'      // Sort by component identity (alphabetically)
   | 'drawing'           // Sort by drawing number
+  | 'component_type'    // Sort by component type
   | 'area'              // Sort by area name
   | 'system'            // Sort by system name
   | 'test_package'      // Sort by test package name

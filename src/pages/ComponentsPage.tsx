@@ -31,7 +31,7 @@ export function ComponentsPage({
 }: ComponentsPageProps) {
   const isMobile = useMobileDetection();
   const [filters, setFilters] = useState<ComponentFiltersState>({});
-  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+  const [selectedComponentIds, setSelectedComponentIds] = useState<Set<string>>(new Set());
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export function ComponentsPage({
   const { data: components = [], isLoading } = useComponents(projectId, filters);
   // Get total component count (unfiltered)
   const { data: allComponents = [] } = useComponents(projectId, {});
-  const { sortField, sortDirection, sortComponents, handleSort } = useComponentSort();
+  const { sortRules, sortComponents, handleSort, resetToDefaultSort, getSortInfo } = useComponentSort();
 
   // Sort components using the hook
   const sortedComponents = useMemo(
@@ -47,13 +47,47 @@ export function ComponentsPage({
     [components, sortComponents]
   );
 
-  const handleComponentClick = (component: any) => {
+  // Selection handlers
+  const handleSelectionChange = (componentId: string, isSelected: boolean) => {
+    setSelectedComponentIds(prev => {
+      const next = new Set(prev);
+      if (isSelected) {
+        next.add(componentId);
+      } else {
+        next.delete(componentId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedComponentIds(new Set(sortedComponents.map(c => c.id)));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedComponentIds(new Set());
+  };
+
+  // Compute selection state
+  const allSelected = selectedComponentIds.size === sortedComponents.length && sortedComponents.length > 0;
+  const someSelected = selectedComponentIds.size > 0 && !allSelected;
+
+  // View handler (opens detail modal)
+  const handleViewComponent = (component: any) => {
     setSelectedComponentId(component.id);
   };
 
   const handleAssignSuccess = () => {
-    setSelectedComponentIds([]);
+    setSelectedComponentIds(new Set());
     setShowAssignDialog(false);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = Object.values(filters).some(v => v !== undefined && v !== '');
+
+  // Clear all filters handler
+  const handleClearFilters = () => {
+    setFilters({});
   };
 
   return (
@@ -72,10 +106,10 @@ export function ComponentsPage({
           />
 
           {/* Assign Button */}
-          {selectedComponentIds.length > 0 && (
+          {selectedComponentIds.size > 0 && (
             <Button onClick={() => setShowAssignDialog(true)}>
-              Assign {selectedComponentIds.length} Component
-              {selectedComponentIds.length !== 1 ? 's' : ''}
+              Assign {selectedComponentIds.size} Component
+              {selectedComponentIds.size !== 1 ? 's' : ''}
             </Button>
           )}
         </div>
@@ -84,11 +118,21 @@ export function ComponentsPage({
         <div className="bg-white rounded-lg shadow h-[calc(100vh-280px)]">
           <ComponentList
             components={sortedComponents}
-            onComponentClick={handleComponentClick}
+            onComponentClick={undefined}
             isLoading={isLoading}
-            sortField={sortField}
-            sortDirection={sortDirection}
+            getSortInfo={getSortInfo}
             onSort={handleSort}
+            sortRules={sortRules}
+            onResetSort={resetToDefaultSort}
+            selectedIds={selectedComponentIds}
+            onSelectionChange={handleSelectionChange}
+            onSelectAll={handleSelectAll}
+            onClearSelection={handleClearSelection}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onViewComponent={handleViewComponent}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={handleClearFilters}
           />
         </div>
 
@@ -119,7 +163,7 @@ export function ComponentsPage({
         {/* Assign Dialog */}
         <ComponentAssignDialog
           projectId={projectId}
-          componentIds={selectedComponentIds}
+          componentIds={Array.from(selectedComponentIds)}
           open={showAssignDialog}
           onOpenChange={setShowAssignDialog}
           onSuccess={handleAssignSuccess}

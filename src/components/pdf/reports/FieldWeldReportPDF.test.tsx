@@ -66,7 +66,7 @@ vi.mock('../tables/Table', () => ({
 
 // Mock pdfUtils
 vi.mock('@/lib/pdfUtils', () => ({
-  transformToTableProps: (data: FieldWeldReportData, dimension: string) => ({
+  transformToTableProps: (data: FieldWeldReportData, dimension: string, _includeRepairRate?: boolean) => ({
     columns: [
       { key: 'name', label: 'Name', width: '40%' },
       { key: 'installed', label: 'Installed', width: '10%' },
@@ -84,6 +84,7 @@ vi.mock('@/lib/pdfUtils', () => ({
     };
     return labels[dimension] || dimension;
   },
+  hasNonZeroRepairRate: (_data: FieldWeldReportData) => true, // Always show repair rate in tests
 }));
 
 describe('FieldWeldReportPDF', () => {

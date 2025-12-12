@@ -15,6 +15,7 @@ import { useProjects } from '@/hooks/useProjects'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useWeldLogPDFExport } from '@/hooks/useWeldLogPDFExport'
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState'
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo'
 import { useWeldLogPreferencesStore } from '@/stores/useWeldLogPreferencesStore'
 import { sortFieldWelds } from '@/lib/weld-log-sorting'
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog'
@@ -65,6 +66,7 @@ export function WeldLogPage() {
   // PDF export hooks
   const { generatePDFPreview, isGenerating: isPDFGenerating } = useWeldLogPDFExport()
   const { previewState, openPreview, closePreview } = usePDFPreviewState()
+  const { data: companyLogo } = useOrganizationLogo()
 
   // Modal state management (Feature 022 - Phase 4)
   const [selectedWeld, setSelectedWeld] = useState<EnrichedFieldWeld | null>(null)
@@ -173,7 +175,8 @@ export function WeldLogPage() {
 
       const { blob, url, filename } = await generatePDFPreview(
         sortedWelds,
-        currentProject.name
+        currentProject.name,
+        companyLogo ?? undefined
       )
       openPreview(blob, url, filename)
     } catch (err) {

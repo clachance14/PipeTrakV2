@@ -846,6 +846,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           id: string
+          logo_url: string | null
           name: string
           updated_at: string | null
         }
@@ -854,6 +855,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           updated_at?: string | null
         }
@@ -862,6 +864,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           updated_at?: string | null
         }
@@ -2187,10 +2190,6 @@ export type Database = {
       }
       calculate_component_percent:
         | {
-            Args: { p_current_milestones: Json; p_template_id: string }
-            Returns: number
-          }
-        | {
             Args: {
               p_component_type: string
               p_current_milestones: Json
@@ -2198,21 +2197,25 @@ export type Database = {
             }
             Returns: number
           }
-      calculate_earned_milestone_value:
         | {
-            Args: {
-              p_component_type: string
-              p_milestones: Json
-              p_standard_milestone: string
-            }
+            Args: { p_current_milestones: Json; p_template_id: string }
             Returns: number
           }
+      calculate_earned_milestone_value:
         | {
             Args: {
               p_category: string
               p_component_type: string
               p_milestones: Json
               p_project_id?: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_component_type: string
+              p_milestones: Json
+              p_standard_milestone: string
             }
             Returns: number
           }

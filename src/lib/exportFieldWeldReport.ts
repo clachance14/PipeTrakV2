@@ -50,18 +50,29 @@ function formatDecimal(value: number | null, decimals: number = 1): string {
 }
 
 /**
- * Gets column headers based on dimension (includes welder-specific columns if dimension is 'welder')
+ * Check if any row (including grand total) has non-zero repair rate
  */
-function getColumnHeaders(dimension: FieldWeldGroupingDimension): string[] {
+function hasNonZeroRepairRate(reportData: FieldWeldReportData): boolean {
+  const rowsHaveRepairs = reportData.rows.some(row => row.repairRate > 0);
+  const grandTotalHasRepairs = reportData.grandTotal.repairRate > 0;
+  return rowsHaveRepairs || grandTotalHasRepairs;
+}
+
+/**
+ * Gets column headers based on dimension (includes welder-specific columns if dimension is 'welder')
+ * Note: fitupCount removed per user request
+ * @param dimension - Grouping dimension
+ * @param includeRepairRate - Whether to include repair rate column (default: true)
+ */
+function getColumnHeaders(dimension: FieldWeldGroupingDimension, includeRepairRate: boolean = true): string[] {
   const dimensionLabel = FIELD_WELD_DIMENSION_LABELS[dimension];
   const baseHeaders = [
     dimensionLabel,
     'Total Welds',
-    'Fit-up',
     'Weld Complete',
     'Accepted',
     'NDE Pass Rate',
-    'Repair Rate',
+    ...(includeRepairRate ? ['Repair Rate'] : []),
     '% Complete',
   ];
 
@@ -78,20 +89,25 @@ function getColumnHeaders(dimension: FieldWeldGroupingDimension): string[] {
 
 /**
  * Formats a row for export (converts to display values)
+ * Note: fitupCount removed per user request
+ * @param row - Row data to format
+ * @param dimension - Grouping dimension
+ * @param decimals - Number of decimal places for percentages
+ * @param includeRepairRate - Whether to include repair rate (default: true)
  */
 function formatRowForExport(
   row: FieldWeldProgressRow | FieldWeldGrandTotalRow,
   dimension: FieldWeldGroupingDimension,
-  decimals: number = 1
+  decimals: number = 1,
+  includeRepairRate: boolean = true
 ): (string | number)[] {
   const baseData = [
     row.name,
     row.totalWelds,
-    row.fitupCount,
     row.weldCompleteCount,
     row.acceptedCount,
     formatPercentage(row.ndePassRate, decimals),
-    formatPercentage(row.repairRate, decimals),
+    ...(includeRepairRate ? [formatPercentage(row.repairRate, decimals)] : []),
     formatPercentage(row.pctTotal, decimals),
   ];
 
@@ -117,6 +133,9 @@ export function exportFieldWeldReportToPDF(
   projectName: string,
   companyLogo?: string
 ): void {
+  // Check if we should include repair rate column
+  const includeRepairRate = hasNonZeroRepairRate(reportData);
+
   // Create PDF document in landscape orientation for multi-column table
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -152,30 +171,37 @@ export function exportFieldWeldReportToPDF(
   );
 
   // Prepare table data
-  const tableHead = [getColumnHeaders(reportData.dimension)];
+  const tableHead = [getColumnHeaders(reportData.dimension, includeRepairRate)];
 
   const tableBody = [
-    ...reportData.rows.map((row) => formatRowForExport(row, reportData.dimension, 1)),
+    ...reportData.rows.map((row) => formatRowForExport(row, reportData.dimension, 1, includeRepairRate)),
     // Add Grand Total row with bold formatting
-    formatRowForExport(reportData.grandTotal, reportData.dimension, 1),
+    formatRowForExport(reportData.grandTotal, reportData.dimension, 1, includeRepairRate),
   ];
 
-  // Define column widths based on dimension
+  // Define column widths based on dimension and whether repair rate is included
+  // Columns: Name, Total Welds, Weld Complete, Accepted, NDE Pass Rate, [Repair Rate], % Complete
   const isWelderDimension = reportData.dimension === 'welder';
   const columnStyles: Record<number, { halign: 'left' | 'right' | 'center'; cellWidth: number }> = {
-    0: { halign: 'left', cellWidth: isWelderDimension ? 35 : 40 }, // Name
-    1: { halign: 'right', cellWidth: 20 }, // Total Welds
-    2: { halign: 'right', cellWidth: 18 }, // Fit-up
-    3: { halign: 'right', cellWidth: 22 }, // Weld Complete
-    4: { halign: 'right', cellWidth: 18 }, // Accepted
-    5: { halign: 'right', cellWidth: 22 }, // NDE Pass Rate
-    6: { halign: 'right', cellWidth: 20 }, // Repair Rate
-    7: { halign: 'right', cellWidth: 22 }, // % Complete
+    0: { halign: 'left', cellWidth: isWelderDimension ? 35 : 45 }, // Name
+    1: { halign: 'right', cellWidth: 22 }, // Total Welds
+    2: { halign: 'right', cellWidth: 26 }, // Weld Complete
+    3: { halign: 'right', cellWidth: 22 }, // Accepted
+    4: { halign: 'right', cellWidth: 26 }, // NDE Pass Rate
   };
 
+  let colIndex = 5;
+  if (includeRepairRate) {
+    columnStyles[colIndex] = { halign: 'right', cellWidth: 22 }; // Repair Rate
+    colIndex++;
+  }
+  columnStyles[colIndex] = { halign: 'right', cellWidth: 24 }; // % Complete
+  colIndex++;
+
   if (isWelderDimension) {
-    columnStyles[8] = { halign: 'right', cellWidth: 22 }; // First Pass Rate
-    columnStyles[9] = { halign: 'right', cellWidth: 25 }; // Avg Days to Accept
+    columnStyles[colIndex] = { halign: 'right', cellWidth: 24 }; // First Pass Rate
+    colIndex++;
+    columnStyles[colIndex] = { halign: 'right', cellWidth: 28 }; // Avg Days to Accept
   }
 
   // Generate table with autoTable
@@ -222,27 +248,37 @@ export function exportFieldWeldReportToExcel(
   reportData: FieldWeldReportData,
   projectName: string
 ): void {
+  // Check if we should include repair rate column
+  const includeRepairRate = hasNonZeroRepairRate(reportData);
+
   // Prepare worksheet data
-  const headers = getColumnHeaders(reportData.dimension);
+  const headers = getColumnHeaders(reportData.dimension, includeRepairRate);
 
   // Create data rows (convert percentages to numbers for Excel formatting)
+  // Columns: Name, Total Welds, Weld Complete, Accepted, NDE Pass Rate, [Repair Rate], % Complete
   const rows = reportData.rows.map((row) => {
     const baseRow: Record<string, string | number | null> = {
       [headers[0] as string]: row.name,
       [headers[1] as string]: row.totalWelds,
-      [headers[2] as string]: row.fitupCount,
-      [headers[3] as string]: row.weldCompleteCount,
-      [headers[4] as string]: row.acceptedCount,
-      [headers[5] as string]: row.ndePassRate !== null ? row.ndePassRate / 100 : null,
-      [headers[6] as string]: row.repairRate / 100,
-      [headers[7] as string]: row.pctTotal / 100,
+      [headers[2] as string]: row.weldCompleteCount,
+      [headers[3] as string]: row.acceptedCount,
+      [headers[4] as string]: row.ndePassRate !== null ? row.ndePassRate / 100 : null,
     };
 
+    let headerIndex = 5;
+    if (includeRepairRate) {
+      baseRow[headers[headerIndex] as string] = row.repairRate / 100;
+      headerIndex++;
+    }
+    baseRow[headers[headerIndex] as string] = row.pctTotal / 100;
+    headerIndex++;
+
     if (reportData.dimension === 'welder') {
-      baseRow[headers[8] as string] = row.firstPassAcceptanceRate !== undefined && row.firstPassAcceptanceRate !== null
+      baseRow[headers[headerIndex] as string] = row.firstPassAcceptanceRate !== undefined && row.firstPassAcceptanceRate !== null
         ? row.firstPassAcceptanceRate / 100
         : null;
-      baseRow[headers[9] as string] = row.avgDaysToAcceptance ?? null;
+      headerIndex++;
+      baseRow[headers[headerIndex] as string] = row.avgDaysToAcceptance ?? null;
     }
 
     return baseRow;
@@ -252,20 +288,26 @@ export function exportFieldWeldReportToExcel(
   const grandTotalRow: Record<string, string | number | null> = {
     [headers[0] as string]: reportData.grandTotal.name,
     [headers[1] as string]: reportData.grandTotal.totalWelds,
-    [headers[2] as string]: reportData.grandTotal.fitupCount,
-    [headers[3] as string]: reportData.grandTotal.weldCompleteCount,
-    [headers[4] as string]: reportData.grandTotal.acceptedCount,
-    [headers[5] as string]: reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate / 100 : null,
-    [headers[6] as string]: reportData.grandTotal.repairRate / 100,
-    [headers[7] as string]: reportData.grandTotal.pctTotal / 100,
+    [headers[2] as string]: reportData.grandTotal.weldCompleteCount,
+    [headers[3] as string]: reportData.grandTotal.acceptedCount,
+    [headers[4] as string]: reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate / 100 : null,
   };
 
+  let gtHeaderIndex = 5;
+  if (includeRepairRate) {
+    grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.repairRate / 100;
+    gtHeaderIndex++;
+  }
+  grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.pctTotal / 100;
+  gtHeaderIndex++;
+
   if (reportData.dimension === 'welder') {
-    grandTotalRow[headers[8] as string] = reportData.grandTotal.firstPassAcceptanceRate !== undefined
+    grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.firstPassAcceptanceRate !== undefined
       && reportData.grandTotal.firstPassAcceptanceRate !== null
       ? reportData.grandTotal.firstPassAcceptanceRate / 100
       : null;
-    grandTotalRow[headers[9] as string] = reportData.grandTotal.avgDaysToAcceptance ?? null;
+    gtHeaderIndex++;
+    grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.avgDaysToAcceptance ?? null;
   }
 
   const allRows = [...rows, grandTotalRow];
@@ -289,8 +331,8 @@ export function exportFieldWeldReportToExcel(
     };
   }
 
-  // 2. Format count columns (columns 3-5) as integers
-  const countColumns = [2, 3, 4]; // Fit-up, Weld Complete, Accepted (zero-indexed)
+  // 2. Format count columns as integers (Weld Complete, Accepted)
+  const countColumns = [2, 3]; // Weld Complete, Accepted (zero-indexed)
   for (let row = range.s.r + 1; row <= range.e.r; row++) {
     for (const col of countColumns) {
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
@@ -299,10 +341,19 @@ export function exportFieldWeldReportToExcel(
     }
   }
 
-  // 3. Format percentage columns (columns 6-8, possibly 9 for welder)
-  const percentageColumns = [5, 6, 7]; // NDE Pass Rate, Repair Rate, % Complete (zero-indexed)
+  // 3. Format percentage columns
+  // Columns: NDE Pass Rate (4), [Repair Rate (5)], % Complete (5 or 6), [First Pass Rate (6 or 7)]
+  const percentageColumns = [4]; // NDE Pass Rate
+  let pctColIndex = 5;
+  if (includeRepairRate) {
+    percentageColumns.push(pctColIndex); // Repair Rate
+    pctColIndex++;
+  }
+  percentageColumns.push(pctColIndex); // % Complete
+  pctColIndex++;
+
   if (reportData.dimension === 'welder') {
-    percentageColumns.push(8); // First Pass Rate
+    percentageColumns.push(pctColIndex); // First Pass Rate
   }
 
   for (let row = range.s.r + 1; row <= range.e.r; row++) {
@@ -315,7 +366,7 @@ export function exportFieldWeldReportToExcel(
 
     // Format decimal column (Avg Days to Accept) if welder dimension
     if (reportData.dimension === 'welder') {
-      const decimalCol = 9;
+      const decimalCol = includeRepairRate ? 8 : 7;
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: decimalCol });
       if (ws[cellAddress]) {
         ws[cellAddress].z = '0.0'; // Decimal format with 1 place
@@ -323,7 +374,7 @@ export function exportFieldWeldReportToExcel(
     }
   }
 
-  // 3. Grand Total row: Bold, top border
+  // 4. Grand Total row: Bold, top border
   const grandTotalRowIndex = range.e.r;
   for (let col = range.s.c; col <= range.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: grandTotalRowIndex, c: col });
@@ -341,13 +392,15 @@ export function exportFieldWeldReportToExcel(
   const columnWidths = [
     { wch: 25 }, // Name
     { wch: 12 }, // Total Welds
-    { wch: 12 }, // Fit-up
     { wch: 15 }, // Weld Complete
     { wch: 12 }, // Accepted
     { wch: 15 }, // NDE Pass Rate
-    { wch: 12 }, // Repair Rate
-    { wch: 13 }, // % Complete
   ];
+
+  if (includeRepairRate) {
+    columnWidths.push({ wch: 12 }); // Repair Rate
+  }
+  columnWidths.push({ wch: 13 }); // % Complete
 
   if (reportData.dimension === 'welder') {
     columnWidths.push({ wch: 15 }); // First Pass Rate
@@ -378,19 +431,22 @@ export function exportFieldWeldReportToCSV(
   reportData: FieldWeldReportData,
   projectName: string
 ): void {
+  // Check if we should include repair rate column
+  const includeRepairRate = hasNonZeroRepairRate(reportData);
+
   // Prepare CSV data
-  const headers = getColumnHeaders(reportData.dimension);
+  const headers = getColumnHeaders(reportData.dimension, includeRepairRate);
 
   // Create data rows
+  // Columns: Name, Total Welds, Weld Complete, Accepted, NDE Pass Rate, [Repair Rate], % Complete
   const rows = reportData.rows.map((row) => {
     const baseRow = [
       row.name,
       row.totalWelds.toString(),
-      row.fitupCount.toString(),
       row.weldCompleteCount.toString(),
       row.acceptedCount.toString(),
       row.ndePassRate !== null ? row.ndePassRate.toFixed(1) : '',
-      (row.repairRate).toFixed(1),
+      ...(includeRepairRate ? [(row.repairRate).toFixed(1)] : []),
       (row.pctTotal).toFixed(1),
     ];
 
@@ -413,11 +469,10 @@ export function exportFieldWeldReportToCSV(
   const grandTotalRow = [
     reportData.grandTotal.name,
     reportData.grandTotal.totalWelds.toString(),
-    reportData.grandTotal.fitupCount.toString(),
     reportData.grandTotal.weldCompleteCount.toString(),
     reportData.grandTotal.acceptedCount.toString(),
     reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate.toFixed(1) : '',
-    reportData.grandTotal.repairRate.toFixed(1),
+    ...(includeRepairRate ? [reportData.grandTotal.repairRate.toFixed(1)] : []),
     reportData.grandTotal.pctTotal.toFixed(1),
   ];
 

@@ -15,6 +15,7 @@ import { usePackageDetails } from '@/hooks/usePackages';
 import { usePackageCompletionReport } from '@/hooks/usePackageCompletionReport';
 import { usePackageCompletionPDFExport } from '@/hooks/usePackageCompletionPDFExport';
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { PackageCompletionReport } from '@/components/packages/completion-report/PackageCompletionReport';
 import { PackageSummaryTables } from '@/components/packages/completion-report/PackageSummaryTables';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
@@ -42,6 +43,7 @@ export function PackageCompletionReportPage() {
 
   // PDF preview state
   const { previewState, openPreview, closePreview } = usePDFPreviewState();
+  const { data: companyLogo } = useOrganizationLogo();
 
   const isLoading = packageLoading || reportLoading;
 
@@ -55,7 +57,8 @@ export function PackageCompletionReportPage() {
     try {
       const { blob, url, filename } = await generatePDFPreview(
         reportData,
-        packageDetails.name || 'Unknown Project'
+        packageDetails.name || 'Unknown Project',
+        companyLogo ?? undefined
       );
       openPreview(blob, url, filename);
     } catch (err) {
