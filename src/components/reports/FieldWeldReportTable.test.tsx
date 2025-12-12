@@ -363,8 +363,9 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      // Grand total fitupCount: 130 → displays as "130"
-      expect(screen.getAllByText('130').length).toBeGreaterThan(0);
+      // Grand total weldCompleteCount: 122 → displays as "122"
+      // (fitupCount removed from report columns)
+      expect(screen.getAllByText('122').length).toBeGreaterThan(0);
     });
 
     it('formats decimal values (time metrics) with 1 decimal place', () => {
@@ -594,12 +595,14 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: /export.*pdf/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /preview.*export.*pdf/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /export.*excel/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /export.*csv/i })).toBeInTheDocument();
     });
 
-    it('calls onExport with "pdf" when PDF button clicked', async () => {
+    it('PDF button uses internal preview handler (not onExport)', async () => {
+      // Note: PDF export now uses internal handleEnhancedPDFExport which generates
+      // a preview using useFieldWeldPDFExport hook, not the onExport callback
       const user = userEvent.setup();
       render(
         <FieldWeldReportTable
@@ -609,11 +612,11 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      const pdfButton = screen.getByRole('button', { name: /export.*pdf/i });
+      const pdfButton = screen.getByRole('button', { name: /preview.*export.*pdf/i });
       await user.click(pdfButton);
 
-      expect(mockOnExport).toHaveBeenCalledWith('pdf');
-      expect(mockOnExport).toHaveBeenCalledTimes(1);
+      // onExport is NOT called for PDF - it uses internal preview flow
+      expect(mockOnExport).not.toHaveBeenCalled();
     });
 
     it('calls onExport with "excel" when Excel button clicked', async () => {

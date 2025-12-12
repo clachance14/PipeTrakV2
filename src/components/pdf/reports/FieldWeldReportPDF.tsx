@@ -31,7 +31,7 @@ import { BrandedHeader } from '../layout/BrandedHeader';
 import { ReportFooter } from '../layout/ReportFooter';
 import { Table } from '../tables/Table';
 import { commonStyles } from '../styles/commonStyles';
-import { transformToTableProps, getDimensionLabel } from '@/lib/pdfUtils';
+import { transformToTableProps, getDimensionLabel, hasNonZeroRepairRate } from '@/lib/pdfUtils';
 import type { FieldWeldReportPDFProps } from '@/types/pdf-components';
 
 const ROWS_PER_PAGE = 50; // Split into multiple pages if > 50 rows
@@ -53,7 +53,9 @@ export function FieldWeldReportPDF({
   generatedDate,
   companyLogo,
 }: FieldWeldReportPDFProps) {
-  const tableProps = transformToTableProps(reportData, dimension);
+  // Determine if repair rate column should be shown (hide if ALL rows have 0% repair rate)
+  const includeRepairRate = hasNonZeroRepairRate(reportData);
+  const tableProps = transformToTableProps(reportData, dimension, includeRepairRate);
   const dimensionLabel = getDimensionLabel(dimension);
 
   // Handle empty data

@@ -15,6 +15,7 @@ import {
   WELDER_PERFORMANCE_COLUMNS,
   XRAY_TIER_COLUMNS,
 } from '@/types/reports';
+import { hasNonZeroRepairRate } from '@/lib/pdfUtils';
 
 interface FieldWeldReportTableProps {
   reportData: FieldWeldReportData;
@@ -41,6 +42,9 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
 
   // Determine if welder-specific columns should be shown
   const isWelderDimension = reportData.dimension === 'welder';
+
+  // Determine if repair rate column should be shown (hide if ALL rows have 0% repair rate)
+  const showRepairRate = hasNonZeroRepairRate(reportData);
 
   // Enhanced PDF export handler (preview first, then download from dialog)
   const handleEnhancedPDFExport = async () => {
@@ -91,9 +95,13 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
   }, [previewState.url]);
 
   // Build column list based on dimension
-  const columns = isWelderDimension
+  // Filter out repair rate column if all rows have 0% repair rate
+  const baseColumns = isWelderDimension
     ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS, ...XRAY_TIER_COLUMNS]
     : FIELD_WELD_REPORT_COLUMNS;
+  const columns = showRepairRate
+    ? baseColumns
+    : baseColumns.filter(col => col.key !== 'repairRate');
 
   // Combine data rows + grand total for virtualization
   const allRows = [...reportData.rows, reportData.grandTotal];

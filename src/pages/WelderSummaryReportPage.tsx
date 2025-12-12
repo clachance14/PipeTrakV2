@@ -10,6 +10,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
 import { useWelderSummaryPDFExport } from '@/hooks/useWelderSummaryPDFExport';
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { DEFAULT_WELDER_SUMMARY_FILTERS } from '@/types/weldSummary';
@@ -40,6 +41,7 @@ export function WelderSummaryReportPage() {
 
   // PDF preview state
   const { previewState, openPreview, closePreview } = usePDFPreviewState();
+  const { data: companyLogo } = useOrganizationLogo();
 
   // Handle export
   const handleExport = async (format: 'pdf' | 'excel' | 'csv') => {
@@ -52,7 +54,8 @@ export function WelderSummaryReportPage() {
       try {
         const { blob, url, filename } = await generatePDFPreview(
           reportData,
-          currentProject.name
+          currentProject.name,
+          companyLogo ?? undefined
         );
         openPreview(blob, url, filename);
       } catch (err) {

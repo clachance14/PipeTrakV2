@@ -18,6 +18,7 @@ import { PDFPreviewDialog } from './PDFPreviewDialog';
 import { useComponentProgressPDFExport } from '@/hooks/useComponentProgressPDFExport';
 import { useProgressDeltaReport } from '@/hooks/useProgressDeltaReport';
 import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import type { ReportData, ManhourReportData, ReportViewMode } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
 
@@ -36,6 +37,7 @@ export function ReportPreview({
 }: ReportPreviewProps) {
   const { generatePDFPreview, generateManhourPDFPreview, isGenerating } = useComponentProgressPDFExport();
   const { viewMode, setViewMode, dateRange } = useReportPreferencesStore();
+  const { data: companyLogo } = useOrganizationLogo();
 
   // Determine if delta mode is active (any date filter other than all_time)
   const isDeltaMode = dateRange.preset !== 'all_time';
@@ -91,7 +93,7 @@ export function ReportPreview({
           data,
           projectName,
           data.dimension,
-          undefined // Optional company logo
+          companyLogo ?? undefined
         );
       } else if (manhourData) {
         // Manhour views use manhour progress PDF
@@ -100,7 +102,7 @@ export function ReportPreview({
           projectName,
           manhourData.dimension,
           effectiveViewMode,
-          undefined // Optional company logo
+          companyLogo ?? undefined
         );
       } else {
         throw new Error('Manhour data not available');

@@ -30,21 +30,34 @@ export function getDimensionLabel(dimension: FieldWeldGroupingDimension): string
 }
 
 /**
+ * Check if any row (including grand total) has non-zero repair rate
+ */
+export function hasNonZeroRepairRate(reportData: FieldWeldReportData): boolean {
+  const rowsHaveRepairs = reportData.rows.some(row => row.repairRate > 0);
+  const grandTotalHasRepairs = reportData.grandTotal.repairRate > 0;
+  return rowsHaveRepairs || grandTotalHasRepairs;
+}
+
+/**
  * Transform field weld report data to table props for PDF rendering
+ * @param reportData - Field weld report data
+ * @param dimension - Grouping dimension
+ * @param includeRepairRate - Whether to include repair rate column (default: true)
  */
 export function transformToTableProps(
   reportData: FieldWeldReportData,
-  dimension: FieldWeldGroupingDimension
+  dimension: FieldWeldGroupingDimension,
+  includeRepairRate: boolean = true
 ): TableProps {
   // Base columns (common to all dimensions)
+  // Note: fitupCount removed per user request
   const baseColumns: TableColumnDefinition[] = [
-    { key: 'name', label: getDimensionLabel(dimension), width: '25%', align: 'left', format: 'text' },
-    { key: 'totalWelds', label: 'Total Welds', width: '9%', align: 'right', format: 'number' },
-    { key: 'fitupCount', label: 'Fit-up', width: '8%', align: 'right', format: 'number' },
-    { key: 'weldCompleteCount', label: 'Weld Complete', width: '11%', align: 'right', format: 'number' },
-    { key: 'acceptedCount', label: 'Accepted', width: '9%', align: 'right', format: 'number' },
-    { key: 'ndePassRate', label: 'NDE Pass Rate', width: '11%', align: 'right', format: 'percentage' },
-    { key: 'repairRate', label: 'Repair Rate', width: '10%', align: 'right', format: 'percentage' },
+    { key: 'name', label: getDimensionLabel(dimension), width: '28%', align: 'left', format: 'text' },
+    { key: 'totalWelds', label: 'Total Welds', width: '12%', align: 'right', format: 'number' },
+    { key: 'weldCompleteCount', label: 'Weld Complete', width: '14%', align: 'right', format: 'number' },
+    { key: 'acceptedCount', label: 'Accepted', width: '12%', align: 'right', format: 'number' },
+    { key: 'ndePassRate', label: 'NDE Pass Rate', width: '14%', align: 'right', format: 'percentage' },
+    ...(includeRepairRate ? [{ key: 'repairRate', label: 'Repair Rate', width: '10%', align: 'right' as const, format: 'percentage' as const }] : []),
     { key: 'pctTotal', label: '% Complete', width: '10%', align: 'right', format: 'percentage' },
   ];
 
@@ -67,15 +80,17 @@ export function transformToTableProps(
       }
     );
 
-    // Adjust base column widths for welder dimension (to fit 10 columns)
-    if (baseColumns[0]) baseColumns[0].width = '20%'; // name
-    if (baseColumns[1]) baseColumns[1].width = '8%';  // totalWelds
-    if (baseColumns[2]) baseColumns[2].width = '7%';  // fitupCount
-    if (baseColumns[3]) baseColumns[3].width = '10%'; // weldCompleteCount
-    if (baseColumns[4]) baseColumns[4].width = '8%';  // acceptedCount
-    if (baseColumns[5]) baseColumns[5].width = '10%'; // ndePassRate
-    if (baseColumns[6]) baseColumns[6].width = '9%';  // repairRate
-    if (baseColumns[7]) baseColumns[7].width = '9%';  // pctTotal
+    // Adjust base column widths for welder dimension (to fit more columns)
+    if (baseColumns[0]) baseColumns[0].width = '22%'; // name
+    if (baseColumns[1]) baseColumns[1].width = '10%'; // totalWelds
+    if (baseColumns[2]) baseColumns[2].width = '12%'; // weldCompleteCount
+    if (baseColumns[3]) baseColumns[3].width = '10%'; // acceptedCount
+    if (baseColumns[4]) baseColumns[4].width = '12%'; // ndePassRate
+    // repairRate is at index 5 if included, pctTotal shifts accordingly
+    const repairRateIndex = includeRepairRate ? 5 : -1;
+    const pctTotalIndex = includeRepairRate ? 6 : 5;
+    if (repairRateIndex >= 0 && baseColumns[repairRateIndex]) baseColumns[repairRateIndex].width = '9%';
+    if (baseColumns[pctTotalIndex]) baseColumns[pctTotalIndex].width = '9%';
   }
 
   return {
@@ -83,11 +98,10 @@ export function transformToTableProps(
     data: reportData.rows.map((row) => ({
       name: row.name,
       totalWelds: row.totalWelds,
-      fitupCount: row.fitupCount ?? null,
       weldCompleteCount: row.weldCompleteCount ?? null,
       acceptedCount: row.acceptedCount ?? null,
       ndePassRate: row.ndePassRate ?? null,
-      repairRate: row.repairRate ?? null,
+      ...(includeRepairRate && { repairRate: row.repairRate ?? null }),
       pctTotal: row.pctTotal ?? null,
       ...(dimension === 'welder' && {
         firstPassAcceptanceRate: row.firstPassAcceptanceRate ?? null,
@@ -97,11 +111,10 @@ export function transformToTableProps(
     grandTotal: {
       name: reportData.grandTotal.name || 'Grand Total',
       totalWelds: reportData.grandTotal.totalWelds,
-      fitupCount: reportData.grandTotal.fitupCount ?? null,
       weldCompleteCount: reportData.grandTotal.weldCompleteCount ?? null,
       acceptedCount: reportData.grandTotal.acceptedCount ?? null,
       ndePassRate: reportData.grandTotal.ndePassRate ?? null,
-      repairRate: reportData.grandTotal.repairRate ?? null,
+      ...(includeRepairRate && { repairRate: reportData.grandTotal.repairRate ?? null }),
       pctTotal: reportData.grandTotal.pctTotal ?? null,
       ...(dimension === 'welder' && {
         firstPassAcceptanceRate: reportData.grandTotal.firstPassAcceptanceRate ?? null,

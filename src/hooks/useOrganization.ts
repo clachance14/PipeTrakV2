@@ -43,7 +43,7 @@ function useCurrentOrganizationQuery() {
 
       const { data: org, error: orgError } = await supabase
         .from('organizations')
-        .select('id, name, created_at')
+        .select('id, name, created_at, logo_url')
         .eq('id', userData.organization_id)
         .single()
 

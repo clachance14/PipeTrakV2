@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { Sliders, Database, FolderCog, Calculator, ArrowRight } from 'lucide-react'
+import { Sliders, Database, FolderCog, Calculator, ArrowRight, Building2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { Layout } from '@/components/Layout'
 
@@ -12,7 +12,7 @@ interface SettingsCard {
 
 export function SettingsIndexPage() {
   const { projectId } = useParams<{ projectId: string }>()
-  const { canManageProject } = usePermissions()
+  const { canManageProject, canManageTeam } = usePermissions()
 
   if (!canManageProject) {
     return (
@@ -84,6 +84,35 @@ export function SettingsIndexPage() {
             )
           })}
         </div>
+
+        {/* Organization Settings Section (owner/admin only) */}
+        {canManageTeam && (
+          <>
+            <div className="mt-12 mb-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-2">Organization Settings</h2>
+              <p className="text-slate-600">
+                Settings that apply to your entire organization
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Link
+                to="/settings/organization"
+                className="block p-6 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer"
+              >
+                <Building2 className="w-8 h-8 text-blue-600 mb-4" />
+                <h2 className="text-lg font-semibold text-slate-900 mb-2">Company Branding</h2>
+                <p className="text-sm text-slate-600 mb-4 min-h-[3rem]">
+                  Upload your company logo to display in the app header and PDF reports.
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-600 font-medium">Manage</span>
+                  <ArrowRight className="w-4 h-4 text-blue-600" />
+                </div>
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </Layout>
   )

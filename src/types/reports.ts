@@ -355,10 +355,11 @@ export interface FieldWeldReportColumn {
 }
 
 // Standard field weld report columns
+// Note: fitupCount removed per user request - only showing weld complete, accepted, NDE pass rate, % complete
+// Note: repairRate is conditionally shown (hidden when all rows have 0% repair rate)
 export const FIELD_WELD_REPORT_COLUMNS: FieldWeldReportColumn[] = [
   { key: 'name', label: 'Name', align: 'left', format: 'text' },
   { key: 'totalWelds', label: 'Total Welds', align: 'right', format: 'number' },
-  { key: 'fitupCount', label: 'Fit-up', align: 'right', format: 'number', hideOnMobile: true },
   { key: 'weldCompleteCount', label: 'Weld Complete', align: 'right', format: 'number', hideOnMobile: true },
   { key: 'acceptedCount', label: 'Accepted', align: 'right', format: 'number' },
   { key: 'ndePassRate', label: 'NDE Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },

@@ -19,6 +19,7 @@ import { useDeleteComponentAssignment, useCreateComponentAssignments, useDrawing
 import { usePackageWorkflow } from '@/hooks/usePackageWorkflow';
 import { usePackageWorkflowPDFExport } from '@/hooks/usePackageWorkflowPDFExport';
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { usePackageWorkflowCustomizationStore } from '@/stores/usePackageWorkflowCustomizationStore';
 import { usePackageWorkflowCustomization } from '@/hooks/usePackageWorkflowCustomization';
 import type { PackageWorkflowPDFOptions } from '@/stores/usePackageWorkflowCustomizationStore';
@@ -90,6 +91,7 @@ export function PackageDetailPage() {
 
   // PDF preview state
   const { previewState, openPreview, updatePreview, closePreview } = usePDFPreviewState();
+  const { data: companyLogo } = useOrganizationLogo();
 
   // PDF customization store
   const { options: pdfOptions, setOptions: setPDFOptions } = usePackageWorkflowCustomizationStore();
@@ -382,7 +384,7 @@ export function PackageDetailPage() {
           },
           workflowStages,
           packageData.package_name || 'Unknown Project',
-          undefined, // companyLogo (not implemented yet)
+          companyLogo ?? undefined,
           newOptions // Use new options
         );
         updatePreview(blob, url, filename); // Update existing preview
@@ -410,7 +412,7 @@ export function PackageDetailPage() {
         },
         workflowStages,
         packageData.package_name || 'Unknown Project',
-        undefined, // companyLogo (not implemented yet)
+        companyLogo ?? undefined,
         pdfOptions // Use saved options
       );
       openPreview(blob, url, filename);

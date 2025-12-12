@@ -42,6 +42,7 @@ import { ManhourBudgetPage } from '@/components/settings/manhour-budget/ManhourB
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { SettingsIndexPage } from '@/pages/SettingsIndexPage'
 import { ProjectDetailsPage } from '@/pages/ProjectDetailsPage'
+import { OrganizationSettingsPage } from '@/pages/OrganizationSettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TeamManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Organization settings (owner/admin only) */}
+            <Route
+              path="/settings/organization"
+              element={
+                <ProtectedRoute>
+                  <OrganizationSettingsPage />
                 </ProtectedRoute>
               }
             />

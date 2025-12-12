@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { QuickFilterChips } from '@/components/QuickFilterChips';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAreas } from '@/hooks/useAreas';
 import { useSystems } from '@/hooks/useSystems';
@@ -243,6 +244,19 @@ export function ComponentFilters({ projectId, onFilterChange, filteredCount, tot
                 </Select>
               </div>
 
+              {/* Quick Filter Chips */}
+              <QuickFilterChips
+                activeFilters={filters}
+                onFilterChange={(newFilters) => {
+                  setFilters(newFilters);
+                  onFilterChange({
+                    ...newFilters,
+                    search: debouncedSearch,
+                  });
+                }}
+                onClearAll={clearFilters}
+              />
+
               {/* Clear Button (if active filters) */}
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full">
@@ -354,6 +368,19 @@ export function ComponentFilters({ projectId, onFilterChange, filteredCount, tot
           </SelectContent>
         </Select>
       </div>
+
+      {/* Quick Filter Chips */}
+      <QuickFilterChips
+        activeFilters={filters}
+        onFilterChange={(newFilters) => {
+          setFilters(newFilters);
+          onFilterChange({
+            ...newFilters,
+            search: debouncedSearch,
+          });
+        }}
+        onClearAll={clearFilters}
+      />
 
       {/* Results Count and Clear Button */}
       <div className="flex items-center justify-between">

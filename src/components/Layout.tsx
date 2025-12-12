@@ -12,6 +12,7 @@ import { ChangelogModal } from '@/components/ChangelogModal'
 import { useNeedsReview } from '@/hooks/useNeedsReview'
 import { DemoModeBanner } from '@/components/demo/DemoModeBanner'
 import { DemoTour } from '@/components/demo/DemoTour'
+import { OrganizationLogoBadge } from '@/components/OrganizationLogoBadge'
 
 interface LayoutProps {
   children: ReactNode
@@ -148,6 +149,9 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
                 ))}
                 {!projectsLoading && <option value="__new__">➕ Add New Project</option>}
               </select>
+
+              {/* Organization Logo Badge (hidden on xs screens) */}
+              <OrganizationLogoBadge size="md" className="hidden sm:block" />
             </div>
 
             {/* Center: Search Bar (hidden on mobile) */}

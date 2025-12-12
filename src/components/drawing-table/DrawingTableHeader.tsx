@@ -31,6 +31,19 @@ export function DrawingTableHeader({
   onSelectAll,
   isMobile = false,
 }: DrawingTableHeaderProps) {
+  // Helper to get sort info for a field
+  const getSortInfo = (field: SortField) => {
+    if (sortField === field) {
+      return { direction: sortDirection, priority: 1 }
+    }
+    return null
+  }
+
+  // Wrapper to adapt old signature to new signature (ignore isAdditive for single-sort)
+  const handleSort = (field: SortField, direction: SortDirection, _isAdditive: boolean) => {
+    onSort(field, direction)
+  }
+
   return (
     <div className={`flex items-center ${isMobile ? 'gap-1 px-2 text-xs' : 'gap-4 px-5 text-sm'} py-3 bg-slate-100 border-b border-slate-300 font-semibold text-slate-700 sticky top-0 z-10`}>
       {/* Select All checkbox (shown only in selection mode) */}
@@ -50,9 +63,8 @@ export function DrawingTableHeader({
         <SortableColumnHeader
           label="Drawing"
           field="drawing_no_norm"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
+          sortInfo={getSortInfo('drawing_no_norm')}
+          onSort={handleSort}
         />
       </div>
 
@@ -62,9 +74,8 @@ export function DrawingTableHeader({
           <SortableColumnHeader
             label="Spec"
             field="spec"
-            currentSortField={sortField}
-            currentSortDirection={sortDirection}
-            onSort={onSort}
+            sortInfo={getSortInfo('spec')}
+            onSort={handleSort}
           />
         </div>
       )}
@@ -74,9 +85,8 @@ export function DrawingTableHeader({
         <SortableColumnHeader
           label="Area"
           field="area"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
+          sortInfo={getSortInfo('area')}
+          onSort={handleSort}
         />
       </div>
 
@@ -85,9 +95,8 @@ export function DrawingTableHeader({
         <SortableColumnHeader
           label="System"
           field="system"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
+          sortInfo={getSortInfo('system')}
+          onSort={handleSort}
         />
       </div>
 
@@ -97,9 +106,8 @@ export function DrawingTableHeader({
           <SortableColumnHeader
             label="Test Package"
             field="test_package"
-            currentSortField={sortField}
-            currentSortDirection={sortDirection}
-            onSort={onSort}
+            sortInfo={getSortInfo('test_package')}
+            onSort={handleSort}
           />
         </div>
       )}
@@ -109,9 +117,8 @@ export function DrawingTableHeader({
         <SortableColumnHeader
           label={isMobile ? 'Prog' : 'Progress'}
           field="avg_percent_complete"
-          currentSortField={sortField}
-          currentSortDirection={sortDirection}
-          onSort={onSort}
+          sortInfo={getSortInfo('avg_percent_complete')}
+          onSort={handleSort}
         />
       </div>
 
@@ -121,9 +128,8 @@ export function DrawingTableHeader({
           <SortableColumnHeader
             label="Items"
             field="total_components"
-            currentSortField={sortField}
-            currentSortDirection={sortDirection}
-            onSort={onSort}
+            sortInfo={getSortInfo('total_components')}
+            onSort={handleSort}
           />
         </div>
       )}
