@@ -117,7 +117,20 @@ describe('DensityToggle', () => {
 
     const buttons = screen.getAllByRole('button');
     buttons.forEach(button => {
-      expect(button).toHaveClass('rounded-none', 'h-8', 'px-2');
+      // h-11 (44px) for WCAG touch target compliance, px-3 for padding
+      expect(button).toHaveClass('rounded-none', 'h-11', 'px-3');
     });
+  });
+
+  it('should have proper aria-labels for accessibility', () => {
+    const onChange = vi.fn();
+
+    render(<DensityToggle density="compact" onChange={onChange} />);
+
+    const compactButton = screen.getByRole('button', { name: 'Compact view' });
+    const comfortableButton = screen.getByRole('button', { name: 'Comfortable view' });
+
+    expect(compactButton).toHaveAttribute('aria-pressed', 'true');
+    expect(comfortableButton).toHaveAttribute('aria-pressed', 'false');
   });
 });

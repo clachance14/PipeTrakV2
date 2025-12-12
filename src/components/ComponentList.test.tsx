@@ -206,7 +206,8 @@ describe('ComponentList', () => {
     it('renders component list with data', () => {
       render(<ComponentList {...defaultProps} />);
 
-      expect(screen.getByText(/1 components/i)).toBeInTheDocument();
+      // Using "1 component" (singular) since there's only one component
+      expect(screen.getByText(/1 component$/i)).toBeInTheDocument();
     });
 
     it('renders sortable column headers', () => {

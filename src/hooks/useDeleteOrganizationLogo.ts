@@ -28,9 +28,13 @@ export function useDeleteOrganizationLogo() {
   return useMutation<void, Error, DeleteOrgLogoParams>({
     mutationFn: async ({ organizationId }: DeleteOrgLogoParams) => {
       // 1. List files in org folder
-      const { data: files } = await supabase.storage
+      const { data: files, error: listError } = await supabase.storage
         .from('org-logos')
         .list(organizationId)
+
+      if (listError) {
+        throw listError
+      }
 
       // 2. Delete all files in folder (handles any extension)
       if (files && files.length > 0) {

@@ -144,10 +144,12 @@ export function ComponentList({
       {/* Toolbar - stays fixed at top */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b bg-background">
         <div className="text-sm text-muted-foreground">
-          {components.length} components
+          {components.length} {components.length === 1 ? 'component' : 'components'}
         </div>
         <div className="flex items-center gap-2">
-          {sortRules.length > 1 && (
+          {/* Show Reset Sort if not default (single sort on identity_key asc) */}
+          {(sortRules.length > 1 ||
+            (sortRules.length === 1 && (sortRules[0]?.field !== 'identity_key' || sortRules[0]?.direction !== 'asc'))) && (
             <Button variant="ghost" size="sm" onClick={onResetSort}>
               Reset Sort
             </Button>
@@ -165,7 +167,7 @@ export function ComponentList({
 
       {/* Header - stays fixed at top, outside scroll container */}
       <div className="flex-shrink-0 flex items-center gap-4 px-4 py-3 bg-muted border-b font-medium text-sm">
-        {/* Select All Checkbox */}
+        {/* Select All Checkbox - always visible */}
         <div className="w-10 flex items-center justify-center">
           <Checkbox
             checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -178,16 +180,18 @@ export function ComponentList({
         </div>
 
         {/* Drawing */}
-        <div className="flex-1 min-w-0 hidden md:block">
-          <SortableColumnHeader
-            label="Drawing"
-            field="drawing"
-            sortInfo={getSortInfo('drawing')}
-            onSort={onSort}
-          />
-        </div>
+        {visibleColumns.includes('drawing') && (
+          <div className="flex-1 min-w-0 hidden md:block">
+            <SortableColumnHeader
+              label="Drawing"
+              field="drawing"
+              sortInfo={getSortInfo('drawing')}
+              onSort={onSort}
+            />
+          </div>
+        )}
 
-        {/* Identity */}
+        {/* Identity - always visible (canHide: false) */}
         <div className="flex-1 min-w-0">
           <SortableColumnHeader
             label="Identity"
@@ -198,16 +202,18 @@ export function ComponentList({
         </div>
 
         {/* Type */}
-        <div className="w-24 hidden md:block">
-          <SortableColumnHeader
-            label="Type"
-            field="component_type"
-            sortInfo={getSortInfo('component_type')}
-            onSort={onSort}
-          />
-        </div>
+        {visibleColumns.includes('component_type') && (
+          <div className="w-24 hidden md:block">
+            <SortableColumnHeader
+              label="Type"
+              field="component_type"
+              sortInfo={getSortInfo('component_type')}
+              onSort={onSort}
+            />
+          </div>
+        )}
 
-        {/* Progress */}
+        {/* Progress - always visible (canHide: false) */}
         <div className="w-28">
           <SortableColumnHeader
             label="Progress"
@@ -218,41 +224,49 @@ export function ComponentList({
         </div>
 
         {/* Milestones */}
-        <div className="flex-1 min-w-0 hidden xl:block">
-          Milestones
-        </div>
+        {visibleColumns.includes('milestones') && (
+          <div className="flex-1 min-w-0 hidden xl:block">
+            Milestones
+          </div>
+        )}
 
         {/* Area */}
-        <div className="w-24 hidden lg:block">
-          <SortableColumnHeader
-            label="Area"
-            field="area"
-            sortInfo={getSortInfo('area')}
-            onSort={onSort}
-          />
-        </div>
+        {visibleColumns.includes('area') && (
+          <div className="w-24 hidden lg:block">
+            <SortableColumnHeader
+              label="Area"
+              field="area"
+              sortInfo={getSortInfo('area')}
+              onSort={onSort}
+            />
+          </div>
+        )}
 
         {/* System */}
-        <div className="w-24 hidden lg:block">
-          <SortableColumnHeader
-            label="System"
-            field="system"
-            sortInfo={getSortInfo('system')}
-            onSort={onSort}
-          />
-        </div>
+        {visibleColumns.includes('system') && (
+          <div className="w-24 hidden lg:block">
+            <SortableColumnHeader
+              label="System"
+              field="system"
+              sortInfo={getSortInfo('system')}
+              onSort={onSort}
+            />
+          </div>
+        )}
 
         {/* Package */}
-        <div className="w-24 hidden xl:block">
-          <SortableColumnHeader
-            label="Package"
-            field="test_package"
-            sortInfo={getSortInfo('test_package')}
-            onSort={onSort}
-          />
-        </div>
+        {visibleColumns.includes('test_package') && (
+          <div className="w-24 hidden xl:block">
+            <SortableColumnHeader
+              label="Package"
+              field="test_package"
+              sortInfo={getSortInfo('test_package')}
+              onSort={onSort}
+            />
+          </div>
+        )}
 
-        {/* Actions */}
+        {/* Actions - always visible (canHide: false) */}
         <div className="w-12 text-center">
           Actions
         </div>
@@ -279,6 +293,7 @@ export function ComponentList({
               <ComponentRow
                 key={component.id}
                 component={component}
+                visibleColumns={visibleColumns}
                 style={{
                   position: 'absolute',
                   top: 0,

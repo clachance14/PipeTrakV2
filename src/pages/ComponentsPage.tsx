@@ -3,7 +3,7 @@
  * Main page for viewing and managing components with filtering and assignment
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { ComponentFilters, ComponentFiltersState } from '@/components/ComponentFilters';
 import { ComponentList } from '@/components/ComponentList';
@@ -47,6 +47,19 @@ export function ComponentsPage({
     [components, sortComponents]
   );
 
+  // Prune selection when filtered results change (remove IDs no longer in view)
+  useEffect(() => {
+    setSelectedComponentIds(prev => {
+      const visibleIds = new Set(sortedComponents.map(c => c.id));
+      const pruned = new Set([...prev].filter(id => visibleIds.has(id)));
+      // Only update state if something was pruned
+      if (pruned.size !== prev.size) {
+        return pruned;
+      }
+      return prev;
+    });
+  }, [sortedComponents]);
+
   // Selection handlers
   const handleSelectionChange = (componentId: string, isSelected: boolean) => {
     setSelectedComponentIds(prev => {
@@ -73,7 +86,7 @@ export function ComponentsPage({
   const someSelected = selectedComponentIds.size > 0 && !allSelected;
 
   // View handler (opens detail modal)
-  const handleViewComponent = (component: any) => {
+  const handleViewComponent = (component: { id: string }) => {
     setSelectedComponentId(component.id);
   };
 

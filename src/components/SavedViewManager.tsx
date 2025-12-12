@@ -74,6 +74,7 @@ export function SavedViewManager() {
                     e.stopPropagation();
                     handleDelete(view.id);
                   }}
+                  aria-label={`Delete ${view.name} view`}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>

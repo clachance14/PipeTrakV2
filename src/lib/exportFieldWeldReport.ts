@@ -15,6 +15,7 @@ import type {
 import {
   FIELD_WELD_DIMENSION_LABELS,
 } from '@/types/reports';
+import { hasNonZeroRepairRate } from '@/lib/pdfUtils';
 
 /**
  * Formats a project name for use in filename by replacing invalid characters
@@ -47,15 +48,6 @@ function formatPercentage(value: number | null, decimals: number = 1): string {
 function formatDecimal(value: number | null, decimals: number = 1): string {
   if (value === null) return '-';
   return value.toFixed(decimals);
-}
-
-/**
- * Check if any row (including grand total) has non-zero repair rate
- */
-function hasNonZeroRepairRate(reportData: FieldWeldReportData): boolean {
-  const rowsHaveRepairs = reportData.rows.some(row => row.repairRate > 0);
-  const grandTotalHasRepairs = reportData.grandTotal.repairRate > 0;
-  return rowsHaveRepairs || grandTotalHasRepairs;
 }
 
 /**

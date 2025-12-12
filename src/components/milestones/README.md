@@ -33,7 +33,7 @@ function ComponentsTable() {
 
 - `milestonesConfig`: Array of milestone definitions from the project's milestone template
 - `currentMilestones`: Object mapping milestone names to their current values (boolean or number)
-- `compact` (optional): Abbreviate long milestone names (>10 chars) to first 8 chars + "..."
+- `compact` (optional): Use 3-letter abbreviations (RCV, INS, FIT, WLD, etc.) and smaller styling for narrow columns
 - `maxVisible` (optional): Limit number of visible chips and show "+N more" for overflow
 
 ## Color Logic

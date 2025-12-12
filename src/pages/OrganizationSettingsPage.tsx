@@ -12,7 +12,7 @@
  * - Permission-gated (requires canManageTeam - owner/admin only)
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { Upload, Trash2, Building2, X, Check } from 'lucide-react'
 import { Layout } from '@/components/Layout'
 import { useOrganization } from '@/hooks/useOrganization'
@@ -35,6 +35,15 @@ export function OrganizationSettingsPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  // Cleanup object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   // Permission check
   if (!canManageTeam) {
@@ -67,7 +76,7 @@ export function OrganizationSettingsPage() {
   const currentLogoUrl = orgData?.organization.logo_url
   const organizationName = orgData?.organization.name || 'Organization'
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 

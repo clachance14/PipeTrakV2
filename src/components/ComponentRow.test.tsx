@@ -3,12 +3,34 @@
  * Tests rendering of different component types with various identity_key structures
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ComponentRow } from './ComponentRow'
 import type { Database } from '@/types/database.types'
 
 type Component = Database['public']['Tables']['components']['Row']
+
+// Default visible columns for testing
+const defaultVisibleColumns = [
+  'selection',
+  'identity_key',
+  'component_type',
+  'percent_complete',
+  'milestones',
+  'area',
+  'system',
+  'test_package',
+  'drawing',
+  'actions',
+]
+
+// Default props required by ComponentRow
+const defaultRowProps = {
+  visibleColumns: defaultVisibleColumns,
+  isSelected: false,
+  onSelectionChange: vi.fn(),
+  onView: vi.fn(),
+}
 
 describe('ComponentRow', () => {
   const baseStyle = { position: 'absolute' as const, top: 0, left: 0, width: '100%' }
@@ -32,7 +54,7 @@ describe('ComponentRow', () => {
         test_package_id: null,
       }
 
-      render(<ComponentRow component={component} style={baseStyle} />)
+      render(<ComponentRow component={component} style={baseStyle} {...defaultRowProps} />)
 
       // Should display the spool_id
       expect(screen.getByText('SP-002')).toBeInTheDocument()
@@ -57,7 +79,7 @@ describe('ComponentRow', () => {
         test_package_id: null,
       }
 
-      render(<ComponentRow component={component} style={baseStyle} />)
+      render(<ComponentRow component={component} style={baseStyle} {...defaultRowProps} />)
 
       // Should display the weld_number
       expect(screen.getByText('W-008')).toBeInTheDocument()
@@ -87,7 +109,7 @@ describe('ComponentRow', () => {
         test_package_id: null,
       }
 
-      render(<ComponentRow component={component} style={baseStyle} />)
+      render(<ComponentRow component={component} style={baseStyle} {...defaultRowProps} />)
 
       // Should display formatted commodity_code
       expect(screen.getByText(/VBALU-001/)).toBeInTheDocument()
@@ -114,7 +136,7 @@ describe('ComponentRow', () => {
         test_package_id: null,
       }
 
-      render(<ComponentRow component={component} style={baseStyle} />)
+      render(<ComponentRow component={component} style={baseStyle} {...defaultRowProps} />)
 
       expect(screen.getByText('45.5%')).toBeInTheDocument()
     })
