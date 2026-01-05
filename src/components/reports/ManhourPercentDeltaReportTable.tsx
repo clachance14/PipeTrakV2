@@ -8,6 +8,8 @@ import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ManhourDeltaRow, ManhourDeltaGrandTotal } from '@/types/reports';
 import { DIMENSION_LABELS, type GroupingDimension } from '@/types/reports';
+import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { sortManhourDeltaReportRows } from '@/lib/report-sorting';
 
 interface ManhourPercentDeltaReportTableProps {
   rows: ManhourDeltaRow[];
@@ -59,6 +61,12 @@ function calculateMilestonePercentDelta(
   return formatPercentDelta(percentDelta);
 }
 
+// Sort indicator component
+function SortIndicator({ column, currentColumn, direction }: { column: string; currentColumn: string; direction: 'asc' | 'desc' }) {
+  if (column !== currentColumn) return null;
+  return <span className="ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export function ManhourPercentDeltaReportTable({
   rows,
   grandTotal,
@@ -66,8 +74,13 @@ export function ManhourPercentDeltaReportTable({
 }: ManhourPercentDeltaReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Combine data rows + grand total for virtualization
-  const allRows: (ManhourDeltaRow | ManhourDeltaGrandTotal)[] = [...rows, grandTotal];
+  // Get sort state from store (shares state with ManhourDeltaReportTable)
+  const { manhourDeltaReport, toggleManhourDeltaSort } = useReportPreferencesStore();
+  const { sortColumn, sortDirection } = manhourDeltaReport;
+
+  // Sort rows, then combine with grand total (grand total always at bottom)
+  const sortedRows = sortManhourDeltaReportRows(rows, sortColumn, sortDirection);
+  const allRows: (ManhourDeltaRow | ManhourDeltaGrandTotal)[] = [...sortedRows, grandTotal];
 
   const rowVirtualizer = useVirtualizer({
     count: allRows.length,
@@ -101,61 +114,87 @@ export function ManhourPercentDeltaReportTable({
           role="row"
           className="grid grid-cols-[2fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 text-sm font-semibold text-white"
         >
-          <div role="columnheader" className="text-left">
-            {dimensionLabel}
-          </div>
-          <div role="columnheader" className="text-right" aria-label="Manhour budget">
-            MH Budget
-          </div>
-          <div
+          <button
             role="columnheader"
-            className="text-right lg:hidden"
-            aria-label="Change in percent complete"
+            className="text-left hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('name')}
+            aria-label={`Sort by ${dimensionLabel}`}
+          >
+            {dimensionLabel}
+            <SortIndicator column="name" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('mhBudget')}
+            aria-label="Sort by MH Budget"
+          >
+            MH Budget
+            <SortIndicator column="mhBudget" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right lg:hidden hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaMhPctComplete')}
+            aria-label="Sort by percent complete delta"
           >
             Δ % Complete
-          </div>
-          <div
+            <SortIndicator column="deltaMhPctComplete" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
             role="columnheader"
-            className="text-right hidden lg:block"
-            aria-label="Change in receive manhour percentage"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaReceiveMhEarned')}
+            aria-label="Sort by receive percent delta"
           >
             Δ Received
-          </div>
-          <div
+            <SortIndicator column="deltaReceiveMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
             role="columnheader"
-            className="text-right hidden lg:block"
-            aria-label="Change in install manhour percentage"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaInstallMhEarned')}
+            aria-label="Sort by install percent delta"
           >
             Δ Installed
-          </div>
-          <div
+            <SortIndicator column="deltaInstallMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
             role="columnheader"
-            className="text-right hidden lg:block"
-            aria-label="Change in punch manhour percentage"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaPunchMhEarned')}
+            aria-label="Sort by punch percent delta"
           >
             Δ Punch
-          </div>
-          <div
+            <SortIndicator column="deltaPunchMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
             role="columnheader"
-            className="text-right hidden lg:block"
-            aria-label="Change in test manhour percentage"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaTestMhEarned')}
+            aria-label="Sort by test percent delta"
           >
             Δ Tested
-          </div>
-          <div
+            <SortIndicator column="deltaTestMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
             role="columnheader"
-            className="text-right hidden lg:block"
-            aria-label="Change in restore manhour percentage"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaRestoreMhEarned')}
+            aria-label="Sort by restore percent delta"
           >
             Δ Restored
-          </div>
-          <div
+            <SortIndicator column="deltaRestoreMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
             role="columnheader"
-            className="text-right hidden lg:block"
-            aria-label="Change in percent complete"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourDeltaSort('deltaMhPctComplete')}
+            aria-label="Sort by percent complete delta"
           >
             Δ % Complete
-          </div>
+            <SortIndicator column="deltaMhPctComplete" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
         </div>
       </div>
 

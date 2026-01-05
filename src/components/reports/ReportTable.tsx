@@ -1,22 +1,36 @@
 /**
  * ReportTable Component (Feature 019 - T023)
  * Virtualized table for displaying progress report with 7 columns + Grand Total row
+ * Supports column sorting with persistent preferences
  */
 
 import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ReportData } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
+import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { sortComponentReportRows } from '@/lib/report-sorting';
 
 interface ReportTableProps {
   data: ReportData;
 }
 
+// Sort indicator component
+function SortIndicator({ column, currentColumn, direction }: { column: string; currentColumn: string; direction: 'asc' | 'desc' }) {
+  if (column !== currentColumn) return null;
+  return <span className="ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export function ReportTable({ data }: ReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Combine data rows + grand total for virtualization
-  const allRows = [...data.rows, data.grandTotal];
+  // Get sort state from store
+  const { componentReport, toggleComponentSort } = useReportPreferencesStore();
+  const { sortColumn, sortDirection } = componentReport;
+
+  // Sort rows, then combine with grand total (grand total always at bottom)
+  const sortedRows = sortComponentReportRows(data.rows, sortColumn, sortDirection);
+  const allRows = [...sortedRows, data.grandTotal];
 
   const rowVirtualizer = useVirtualizer({
     count: allRows.length,
@@ -45,15 +59,87 @@ export function ReportTable({ data }: ReportTableProps) {
           role="row"
           className="grid grid-cols-[2fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 text-sm font-semibold text-white"
         >
-          <div role="columnheader" className="text-left">{dimensionLabel}</div>
-          <div role="columnheader" className="text-right">Budget</div>
-          <div role="columnheader" className="text-right lg:hidden" aria-label="Total percentage complete">% Complete</div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Received percentage">Received</div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Installed percentage">Installed</div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Punch percentage">Punch</div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Tested percentage">Tested</div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Restored percentage">Restored</div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Total percentage complete">% Complete</div>
+          <button
+            role="columnheader"
+            className="text-left hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('name')}
+            aria-label={`Sort by ${dimensionLabel}`}
+          >
+            {dimensionLabel}
+            <SortIndicator column="name" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('budget')}
+            aria-label="Sort by Budget"
+          >
+            Budget
+            <SortIndicator column="budget" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right lg:hidden hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctTotal')}
+            aria-label="Sort by percentage complete"
+          >
+            % Complete
+            <SortIndicator column="pctTotal" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctReceived')}
+            aria-label="Sort by Received percentage"
+          >
+            Received
+            <SortIndicator column="pctReceived" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctInstalled')}
+            aria-label="Sort by Installed percentage"
+          >
+            Installed
+            <SortIndicator column="pctInstalled" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctPunch')}
+            aria-label="Sort by Punch percentage"
+          >
+            Punch
+            <SortIndicator column="pctPunch" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctTested')}
+            aria-label="Sort by Tested percentage"
+          >
+            Tested
+            <SortIndicator column="pctTested" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctRestored')}
+            aria-label="Sort by Restored percentage"
+          >
+            Restored
+            <SortIndicator column="pctRestored" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleComponentSort('pctTotal')}
+            aria-label="Sort by percentage complete"
+          >
+            % Complete
+            <SortIndicator column="pctTotal" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
         </div>
       </div>
 

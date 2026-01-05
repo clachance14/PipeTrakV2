@@ -1,4 +1,5 @@
-import { ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export type SortDirection = 'asc' | 'desc'
 
@@ -7,24 +8,24 @@ interface SortableColumnHeaderProps<T extends string> {
   label: string
   /** Field name this column sorts by */
   field: T
-  /** Current active sort field */
-  currentSortField: T
-  /** Current sort direction */
-  currentSortDirection: SortDirection
+  /** Sort info for this field (null if not sorted) */
+  sortInfo: { direction: SortDirection; priority: number } | null
   /** Callback when column is clicked */
-  onSort: (field: T, direction: SortDirection) => void
+  onSort: (field: T, direction: SortDirection, isAdditive: boolean) => void
   /** Optional CSS classes */
   className?: string
 }
 
 /**
- * Sortable column header component
+ * Sortable column header component with multi-sort support
  *
  * Displays column label with sort indicator icon.
  * Clicking cycles through: asc → desc → back to asc
+ * Shift+click adds secondary/tertiary sorts (up to 3 total)
  *
  * Features:
- * - Visual sort indicator (ArrowUp/ArrowDown)
+ * - Visual sort indicator (ArrowUp/ArrowDown/ChevronsUpDown)
+ * - Priority badges for multi-sort (shows 2, 3 for secondary/tertiary)
  * - Keyboard accessible (Tab, Enter/Space)
  * - ARIA labels for screen readers
  * - Generic field type for reusability
@@ -32,31 +33,22 @@ interface SortableColumnHeaderProps<T extends string> {
 export function SortableColumnHeader<T extends string>({
   label,
   field,
-  currentSortField,
-  currentSortDirection,
+  sortInfo,
   onSort,
   className = '',
 }: SortableColumnHeaderProps<T>) {
-  const isActive = currentSortField === field
-
-  const handleClick = () => {
-    if (!isActive) {
-      // Not currently sorted by this column - sort ascending
-      onSort(field, 'asc')
-    } else if (currentSortDirection === 'asc') {
-      // Currently sorted ascending - switch to descending
-      onSort(field, 'desc')
-    } else {
-      // Currently sorted descending - cycle back to ascending
-      // Note: Reset behavior depends on parent component's default field
-      onSort(field, 'asc')
-    }
+  const handleClick = (e: React.MouseEvent) => {
+    const isAdditive = e.shiftKey
+    const newDirection = sortInfo?.direction === 'asc' ? 'desc' : 'asc'
+    onSort(field, newDirection, isAdditive)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      handleClick()
+      const isAdditive = e.shiftKey
+      const newDirection = sortInfo?.direction === 'asc' ? 'desc' : 'asc'
+      onSort(field, newDirection, isAdditive)
     }
   }
 
@@ -65,32 +57,45 @@ export function SortableColumnHeader<T extends string>({
       type="button"
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className={`
-        inline-flex items-center gap-1 font-medium text-left
-        hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-        transition-colors duration-150
-        ${isActive ? 'text-slate-900' : 'text-slate-700'}
-        ${className}
-      `}
+      className={cn(
+        'inline-flex items-center gap-1 font-medium text-left',
+        'hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
+        'transition-colors duration-150',
+        sortInfo ? 'text-slate-900' : 'text-slate-700',
+        className
+      )}
       aria-label={
-        isActive
-          ? `${label}, sorted ${currentSortDirection === 'asc' ? 'ascending' : 'descending'}. Click to ${
-              currentSortDirection === 'asc' ? 'sort descending' : 'sort ascending'
-            }.`
-          : `${label}, not sorted. Click to sort ascending.`
+        sortInfo
+          ? `${label}, sorted ${sortInfo.direction === 'asc' ? 'ascending' : 'descending'}${
+              sortInfo.priority > 1 ? ` (priority ${sortInfo.priority})` : ''
+            }. Click to ${
+              sortInfo.direction === 'asc' ? 'sort descending' : 'sort ascending'
+            }. Shift+click to add secondary sort.`
+          : `${label}, not sorted. Click to sort ascending. Shift+click to add secondary sort.`
       }
-      aria-sort={isActive ? (currentSortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+      aria-sort={sortInfo ? (sortInfo.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <span>{label}</span>
-      {isActive && (
-        <span aria-hidden="true">
-          {currentSortDirection === 'asc' ? (
-            <ArrowUp className="w-4 h-4" />
-          ) : (
-            <ArrowDown className="w-4 h-4" />
-          )}
-        </span>
-      )}
+      <span className="flex items-center">
+        {sortInfo ? (
+          <>
+            {/* Priority badge for multi-sort */}
+            {sortInfo.priority > 1 && (
+              <span className="text-xs bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center mr-0.5">
+                {sortInfo.priority}
+              </span>
+            )}
+            {/* Direction arrow */}
+            {sortInfo.direction === 'asc' ? (
+              <ArrowUp className="w-4 h-4" />
+            ) : (
+              <ArrowDown className="w-4 h-4" />
+            )}
+          </>
+        ) : (
+          <ChevronsUpDown className="w-4 h-4 opacity-50" />
+        )}
+      </span>
     </button>
   )
 }

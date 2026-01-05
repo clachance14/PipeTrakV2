@@ -6,8 +6,27 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FieldWeldReportTable } from './FieldWeldReportTable';
 import type { FieldWeldReportData } from '@/types/reports';
+
+// Create a wrapper with QueryClient for tests
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  });
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={createTestQueryClient()}>
+    {children}
+  </QueryClientProvider>
+);
+
+const renderWithProvider = (ui: React.ReactElement) => {
+  return render(ui, { wrapper: TestWrapper });
+};
 
 describe('FieldWeldReportTable', () => {
   const mockReportData: FieldWeldReportData = {
@@ -97,7 +116,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Rendering', () => {
     it('renders with valid data', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -139,7 +158,7 @@ describe('FieldWeldReportTable', () => {
         },
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={emptyData}
           projectName={mockProjectName}
@@ -151,7 +170,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('renders grand total row with distinct styling', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -166,7 +185,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('renders report metadata with project name and timestamp', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -181,7 +200,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Column Visibility', () => {
     it('renders standard columns for all dimensions', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -200,7 +219,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('does not show welder-specific columns when dimension is not "welder"', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -233,7 +252,7 @@ describe('FieldWeldReportTable', () => {
         },
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={welderData}
           projectName={mockProjectName}
@@ -247,7 +266,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('renders dimension-specific first column header (Area)', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -271,7 +290,7 @@ describe('FieldWeldReportTable', () => {
         ],
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={systemData}
           projectName={mockProjectName}
@@ -295,7 +314,7 @@ describe('FieldWeldReportTable', () => {
         ],
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={testPackageData}
           projectName={mockProjectName}
@@ -327,7 +346,7 @@ describe('FieldWeldReportTable', () => {
         },
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={welderData}
           projectName={mockProjectName}
@@ -341,7 +360,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Percentage Formatting', () => {
     it('formats percentage values with 1 decimal place', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -355,7 +374,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('displays milestone counts as integers', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -363,8 +382,9 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      // Grand total fitupCount: 130 → displays as "130"
-      expect(screen.getAllByText('130').length).toBeGreaterThan(0);
+      // Grand total weldCompleteCount: 122 → displays as "122"
+      // (fitupCount removed from report columns)
+      expect(screen.getAllByText('122').length).toBeGreaterThan(0);
     });
 
     it('formats decimal values (time metrics) with 1 decimal place', () => {
@@ -392,7 +412,7 @@ describe('FieldWeldReportTable', () => {
         },
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={welderData}
           projectName={mockProjectName}
@@ -434,7 +454,7 @@ describe('FieldWeldReportTable', () => {
         ],
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={zeroData}
           projectName={mockProjectName}
@@ -476,7 +496,7 @@ describe('FieldWeldReportTable', () => {
         ],
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={fullData}
           projectName={mockProjectName}
@@ -501,7 +521,7 @@ describe('FieldWeldReportTable', () => {
         ],
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={nullNDEData}
           projectName={mockProjectName}
@@ -538,7 +558,7 @@ describe('FieldWeldReportTable', () => {
         },
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={nullTimeData}
           projectName={mockProjectName}
@@ -571,7 +591,7 @@ describe('FieldWeldReportTable', () => {
         },
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={nullWelderData}
           projectName={mockProjectName}
@@ -586,7 +606,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Export Buttons', () => {
     it('renders all export buttons', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -594,14 +614,16 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: /export.*pdf/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /preview.*export.*pdf/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /export.*excel/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /export.*csv/i })).toBeInTheDocument();
     });
 
-    it('calls onExport with "pdf" when PDF button clicked', async () => {
+    it('PDF button uses internal preview handler (not onExport)', async () => {
+      // Note: PDF export now uses internal handleEnhancedPDFExport which generates
+      // a preview using useFieldWeldPDFExport hook, not the onExport callback
       const user = userEvent.setup();
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -609,16 +631,16 @@ describe('FieldWeldReportTable', () => {
         />
       );
 
-      const pdfButton = screen.getByRole('button', { name: /export.*pdf/i });
+      const pdfButton = screen.getByRole('button', { name: /preview.*export.*pdf/i });
       await user.click(pdfButton);
 
-      expect(mockOnExport).toHaveBeenCalledWith('pdf');
-      expect(mockOnExport).toHaveBeenCalledTimes(1);
+      // onExport is NOT called for PDF - it uses internal preview flow
+      expect(mockOnExport).not.toHaveBeenCalled();
     });
 
     it('calls onExport with "excel" when Excel button clicked', async () => {
       const user = userEvent.setup();
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -635,7 +657,7 @@ describe('FieldWeldReportTable', () => {
 
     it('calls onExport with "csv" when CSV button clicked', async () => {
       const user = userEvent.setup();
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -653,7 +675,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Virtualization', () => {
     it('uses virtualizer for rendering rows', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -693,7 +715,7 @@ describe('FieldWeldReportTable', () => {
         })),
       };
 
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={largeData}
           projectName={mockProjectName}
@@ -710,7 +732,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Accessibility', () => {
     it('uses semantic HTML with ARIA roles', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -725,7 +747,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('provides ARIA labels for export buttons', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -739,7 +761,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('provides ARIA label for table', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -751,7 +773,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('provides ARIA label for Grand Total row', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -765,7 +787,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('provides ARIA labels for data rows', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -784,7 +806,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Column Alignment', () => {
     it('aligns name column to the left', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -798,7 +820,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('aligns numeric columns to the right', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -814,7 +836,7 @@ describe('FieldWeldReportTable', () => {
     });
 
     it('aligns percentage columns to the right', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}
@@ -831,7 +853,7 @@ describe('FieldWeldReportTable', () => {
 
   describe('Sticky Headers', () => {
     it('renders headers with sticky positioning', () => {
-      render(
+      renderWithProvider(
         <FieldWeldReportTable
           reportData={mockReportData}
           projectName={mockProjectName}

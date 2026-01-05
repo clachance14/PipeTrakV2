@@ -8,6 +8,8 @@ import { useRef, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { FieldWeldDeltaReportData, FieldWeldDeltaRow, FieldWeldDeltaGrandTotal } from '@/types/reports';
 import { FIELD_WELD_DIMENSION_LABELS } from '@/types/reports';
+import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { sortFieldWeldDeltaReportRows } from '@/lib/report-sorting';
 
 interface FieldWeldDeltaReportTableProps {
   data: FieldWeldDeltaReportData;
@@ -43,11 +45,22 @@ function formatDeltaPercent(value: number): { text: string; className: string } 
   return { text: '0.0%', className: 'text-muted-foreground' };
 }
 
+// Sort indicator component
+function SortIndicator({ column, currentColumn, direction }: { column: string; currentColumn: string; direction: 'asc' | 'desc' }) {
+  if (column !== currentColumn) return null;
+  return <span className="ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export function FieldWeldDeltaReportTable({ data }: FieldWeldDeltaReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Combine data rows + grand total for virtualization
-  const allRows: (FieldWeldDeltaRow | FieldWeldDeltaGrandTotal)[] = [...data.rows, data.grandTotal];
+  // Get sort state from store
+  const { fieldWeldDeltaReport, toggleFieldWeldDeltaSort } = useReportPreferencesStore();
+  const { sortColumn, sortDirection } = fieldWeldDeltaReport;
+
+  // Sort rows, then combine with grand total (grand total always at bottom)
+  const sortedRows = sortFieldWeldDeltaReportRows(data.rows, sortColumn, sortDirection);
+  const allRows: (FieldWeldDeltaRow | FieldWeldDeltaGrandTotal)[] = [...sortedRows, data.grandTotal];
 
   // Check if any row has a stencil (welder dimension only)
   const hasStencilColumn = useMemo(() => {
@@ -90,32 +103,74 @@ export function FieldWeldDeltaReportTable({ data }: FieldWeldDeltaReportTablePro
               : 'grid-cols-[2fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr]'
           } gap-4 px-4 py-3 text-sm font-semibold text-white`}
         >
-          <div role="columnheader" className="text-left">
+          <button
+            role="columnheader"
+            className="text-left hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('name')}
+            aria-label={`Sort by ${dimensionLabel}`}
+          >
             {dimensionLabel}
-          </div>
+            <SortIndicator column="name" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
           {hasStencilColumn && (
             <div role="columnheader" className="text-left hidden lg:block">
               Stencil
             </div>
           )}
-          <div role="columnheader" className="text-right">
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('weldsWithActivity')}
+            aria-label="Sort by Active Welds"
+          >
             Active Welds
-          </div>
-          <div role="columnheader" className="text-right lg:hidden" aria-label="Change in percentage complete">
+            <SortIndicator column="weldsWithActivity" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right lg:hidden hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('deltaPctTotal')}
+            aria-label="Sort by percentage complete delta"
+          >
             Δ % Complete
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Change in fit-up count">
+            <SortIndicator column="deltaPctTotal" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('deltaFitupCount')}
+            aria-label="Sort by fit-up delta"
+          >
             Δ Fit-up
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Change in weld complete count">
+            <SortIndicator column="deltaFitupCount" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('deltaWeldCompleteCount')}
+            aria-label="Sort by weld complete delta"
+          >
             Δ Weld Complete
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Change in accepted count">
+            <SortIndicator column="deltaWeldCompleteCount" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('deltaAcceptedCount')}
+            aria-label="Sort by accepted delta"
+          >
             Δ Accepted
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Change in percentage complete">
+            <SortIndicator column="deltaAcceptedCount" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleFieldWeldDeltaSort('deltaPctTotal')}
+            aria-label="Sort by percentage complete delta"
+          >
             Δ % Complete
-          </div>
+            <SortIndicator column="deltaPctTotal" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
         </div>
       </div>
 

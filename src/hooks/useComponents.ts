@@ -36,6 +36,8 @@ interface ComponentsFilters {
 
 /**
  * Query components for a project with optional filters
+ * Fetches components and their effective templates in parallel,
+ * then merges them for milestone chip rendering
  */
 export function useComponents(
   projectId: string,
@@ -44,6 +46,7 @@ export function useComponents(
   return useQuery({
     queryKey: ['projects', projectId, 'components', filters],
     queryFn: async () => {
+      // Build base components query
       let query = supabase
         .from('components')
         .select(`
@@ -87,17 +90,40 @@ export function useComponents(
 
       query = query.order('last_updated_at', { ascending: false });
 
-      const { data, error } = await query;
+      // Fetch components and effective templates in parallel
+      const [componentsResult, templatesResult] = await Promise.all([
+        query,
+        supabase
+          .from('component_effective_templates')
+          .select('component_id, milestones_config, uses_project_templates')
+          .eq('project_id', projectId)
+      ]);
 
-      if (error) throw error;
+      if (componentsResult.error) throw componentsResult.error;
+      if (templatesResult.error) throw templatesResult.error;
 
-      // Transform plural table names to singular property names for ComponentRow
-      const transformedData = (data || []).map((component: any) => ({
+      // Build lookup map for effective templates
+      const templatesByComponentId = new Map<string, {
+        milestones_config: any[] | null;
+        uses_project_templates: boolean | null;
+      }>();
+      for (const template of templatesResult.data || []) {
+        if (template.component_id) {
+          templatesByComponentId.set(template.component_id, {
+            milestones_config: template.milestones_config as any[] | null,
+            uses_project_templates: template.uses_project_templates,
+          });
+        }
+      }
+
+      // Transform and merge data
+      const transformedData = (componentsResult.data || []).map((component: any) => ({
         ...component,
         drawing: component.drawings,
         area: component.areas,
         system: component.systems,
         test_package: component.test_packages,
+        effective_template: templatesByComponentId.get(component.id) || null,
       }));
 
       return transformedData;

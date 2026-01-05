@@ -1,6 +1,7 @@
 /**
  * FieldWeldReportTable Component (Weekly Field Weld Progress Reports)
  * Virtualized table for displaying field weld progress report with Grand Total row
+ * Supports column sorting with persistent preferences
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -8,13 +9,17 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFieldWeldPDFExport } from '@/hooks/useFieldWeldPDFExport';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
-import type { FieldWeldReportData, ExportFormat } from '@/types/reports';
+import type { FieldWeldReportData, ExportFormat, FieldWeldReportColumn } from '@/types/reports';
 import {
   FIELD_WELD_DIMENSION_LABELS,
   FIELD_WELD_REPORT_COLUMNS,
   WELDER_PERFORMANCE_COLUMNS,
   XRAY_TIER_COLUMNS,
 } from '@/types/reports';
+import { hasNonZeroRepairRate } from '@/lib/pdfUtils';
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
+import { useReportPreferencesStore, type FieldWeldReportSortColumn } from '@/stores/useReportPreferencesStore';
+import { sortFieldWeldReportRows } from '@/lib/report-sorting';
 
 interface FieldWeldReportTableProps {
   reportData: FieldWeldReportData;
@@ -25,6 +30,7 @@ interface FieldWeldReportTableProps {
 export function FieldWeldReportTable({ reportData, projectName, onExport }: FieldWeldReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { generatePDFPreview, isGenerating } = useFieldWeldPDFExport();
+  const { data: companyLogo } = useOrganizationLogo();
 
   // PDF Preview state
   const [previewState, setPreviewState] = useState<{
@@ -42,6 +48,9 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
   // Determine if welder-specific columns should be shown
   const isWelderDimension = reportData.dimension === 'welder';
 
+  // Determine if repair rate column should be shown (hide if ALL rows have 0% repair rate)
+  const showRepairRate = hasNonZeroRepairRate(reportData);
+
   // Enhanced PDF export handler (preview first, then download from dialog)
   const handleEnhancedPDFExport = async () => {
     try {
@@ -49,7 +58,7 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
         reportData,
         projectName,
         reportData.dimension,
-        undefined // Optional company logo
+        companyLogo ?? undefined
       );
 
       setPreviewState({
@@ -90,13 +99,22 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
     };
   }, [previewState.url]);
 
+  // Get sort state from store
+  const { fieldWeldReport, toggleFieldWeldSort } = useReportPreferencesStore();
+  const { sortColumn, sortDirection } = fieldWeldReport;
+
   // Build column list based on dimension
-  const columns = isWelderDimension
+  // Filter out repair rate column if all rows have 0% repair rate
+  const baseColumns = isWelderDimension
     ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS, ...XRAY_TIER_COLUMNS]
     : FIELD_WELD_REPORT_COLUMNS;
+  const columns = showRepairRate
+    ? baseColumns
+    : baseColumns.filter(col => col.key !== 'repairRate');
 
-  // Combine data rows + grand total for virtualization
-  const allRows = [...reportData.rows, reportData.grandTotal];
+  // Sort rows, then combine with grand total (grand total always at bottom)
+  const sortedRows = sortFieldWeldReportRows(reportData.rows, sortColumn, sortDirection);
+  const allRows = [...sortedRows, reportData.grandTotal];
 
   const rowVirtualizer = useVirtualizer({
     count: allRows.length,
@@ -130,6 +148,28 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
       default:
         return String(value);
     }
+  };
+
+  // Map column keys to sort column names (handles naming differences)
+  const mapColumnKeyToSortColumn = (key: FieldWeldReportColumn['key']): FieldWeldReportSortColumn => {
+    const mapping: Record<string, FieldWeldReportSortColumn> = {
+      name: 'name',
+      totalWelds: 'totalWelds',
+      weldCompleteCount: 'weldCompleteCount',
+      acceptedCount: 'acceptedCount',
+      ndePassRate: 'ndePassRate',
+      repairRate: 'repairRate',
+      pctTotal: 'pctTotal',
+      firstPassAcceptanceRate: 'firstPassRate',
+      avgDaysToAcceptance: 'avgDaysToAcceptance',
+      xray5pctCount: 'xray5Count',
+      xray10pctCount: 'xray10Count',
+      xray100pctCount: 'xray100Count',
+      xray5pctPassRate: 'xray5PassRate',
+      xray10pctPassRate: 'xray10PassRate',
+      xray100pctPassRate: 'xray100PassRate',
+    };
+    return mapping[key as string] ?? 'name';
   };
 
   // Get dimension-specific column header
@@ -194,27 +234,50 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
             }}
           >
             {/* Mobile: 3 columns */}
-            <div role="columnheader" className="text-left lg:hidden">
+            <button
+              role="columnheader"
+              className="text-left lg:hidden hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+              onClick={() => toggleFieldWeldSort('name')}
+              aria-label={`Sort by ${dimensionLabel}`}
+            >
               {dimensionLabel}
-            </div>
-            <div role="columnheader" className="text-right lg:hidden">
+              {sortColumn === 'name' && <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+            </button>
+            <button
+              role="columnheader"
+              className="text-right lg:hidden hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+              onClick={() => toggleFieldWeldSort('totalWelds')}
+              aria-label="Sort by Total Welds"
+            >
               Total Welds
-            </div>
-            <div role="columnheader" className="text-right lg:hidden" aria-label="Total percentage complete">
+              {sortColumn === 'totalWelds' && <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+            </button>
+            <button
+              role="columnheader"
+              className="text-right lg:hidden hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+              onClick={() => toggleFieldWeldSort('pctTotal')}
+              aria-label="Sort by percentage complete"
+            >
               % Complete
-            </div>
+              {sortColumn === 'pctTotal' && <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+            </button>
 
             {/* Desktop: All columns */}
-            {columns.map((col) => (
-              <div
-                key={String(col.key)}
-                role="columnheader"
-                className={`hidden lg:block ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}
-                aria-label={col.label}
-              >
-                {col.key === 'name' ? dimensionLabel : col.label}
-              </div>
-            ))}
+            {columns.map((col) => {
+              const sortKey = mapColumnKeyToSortColumn(col.key);
+              return (
+                <button
+                  key={String(col.key)}
+                  role="columnheader"
+                  className={`hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}
+                  onClick={() => toggleFieldWeldSort(sortKey)}
+                  aria-label={`Sort by ${col.label}`}
+                >
+                  {col.key === 'name' ? dimensionLabel : col.label}
+                  {sortColumn === sortKey && <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
 
