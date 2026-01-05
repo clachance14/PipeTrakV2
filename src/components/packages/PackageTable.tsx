@@ -70,12 +70,13 @@ export function PackageTable({ packages, onEdit, showManhours }: PackageTablePro
           else if (!b.targetDate) comparison = -1;
           else comparison = new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
           break;
-        case 'budgetedManhours':
+        case 'budgetedManhours': {
           // Nulls/zeros last, then sort descending (highest MH first)
           const aMh = a.budgetedManhours || 0;
           const bMh = b.budgetedManhours || 0;
           comparison = aMh - bMh;
           break;
+        }
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;
