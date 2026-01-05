@@ -140,7 +140,7 @@ export function ComponentDetailView({
   };
 
   // Handle milestone toggle
-  const handleMilestoneToggle = async (milestoneName: string, isPartial: boolean, currentValue: boolean | number) => {
+  const handleMilestoneToggle = async (milestoneName: string, _isPartial: boolean, currentValue: boolean | number) => {
     if (!component) return;
 
     // Normalize current value to numeric
