@@ -157,7 +157,7 @@ export function DrawingComponentTablePage() {
       component &&
       component.component_type === 'field_weld' &&
       milestoneName === 'Weld Complete' &&
-      (value === 100 || value === true) &&
+      (value === 100 || value === 1 || value === true) &&
       component.current_milestones['Weld Complete'] !== 100 &&
       component.current_milestones['Weld Complete'] !== true &&
       component.current_milestones['Weld Complete'] !== 1

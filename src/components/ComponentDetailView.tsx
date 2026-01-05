@@ -458,7 +458,7 @@ export function ComponentDetailView({
                             </div>
                           ) : (
                             <Checkbox
-                              checked={currentValue === 100 || currentValue === true}
+                              checked={currentValue === 100 || currentValue === 1 || currentValue === true}
                               onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
                               disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
                               className="h-6 w-6"
@@ -780,7 +780,7 @@ export function ComponentDetailView({
                             </div>
                           ) : (
                             <Checkbox
-                              checked={currentValue === 100 || currentValue === true}
+                              checked={currentValue === 100 || currentValue === 1 || currentValue === true}
                               onCheckedChange={() => handleMilestoneToggle(milestone.name, false, currentValue as boolean)}
                               disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
                               className="h-6 w-6"

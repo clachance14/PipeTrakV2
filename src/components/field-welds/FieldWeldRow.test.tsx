@@ -329,5 +329,29 @@ describe('FieldWeldRow', () => {
         expect(screen.getByText(/^welder:$/i)).toBeInTheDocument()
       })
     })
+
+    it('should treat legacy value === 1 as complete (checkbox checked)', async () => {
+      // Legacy migration (00084) converted boolean true to 1 before scale change (20251122152612)
+      // Some data may still have value = 1 instead of 100
+      const componentWithLegacyValue: ComponentRow = {
+        ...mockComponent,
+        current_milestones: {
+          'Weld Complete': 1, // Legacy value = 1 should be treated as complete
+          'Visual Inspection': 100,
+          'NDE': 0
+        }
+      }
+
+      renderComponent(componentWithLegacyValue)
+
+      // Expand to show milestones
+      const user = userEvent.setup()
+      const expandButton = screen.getByRole('button', { name: /expand/i })
+      await user.click(expandButton)
+
+      // The "Weld Complete" checkbox should be checked (value === 1 treated as complete)
+      const checkbox = screen.getByRole('checkbox', { name: /weld complete milestone/i })
+      expect(checkbox).toBeChecked()
+    })
   })
 })

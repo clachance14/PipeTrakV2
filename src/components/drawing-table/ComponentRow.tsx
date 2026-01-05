@@ -258,7 +258,7 @@ export function ComponentRow({
     return (
       <MilestoneCheckbox
         milestone={milestoneConfig}
-        checked={currentValue === 100 || currentValue === true}
+        checked={currentValue === 100 || currentValue === 1 || currentValue === true}
         onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked ? 100 : 0)}
         disabled={!component.canUpdate}
         abbreviate={isMobile}
@@ -477,7 +477,7 @@ export function ComponentRow({
             .filter(m => !m.is_partial)
             .map((milestone) => {
               const currentValue = component.current_milestones[milestone.name]
-              const checked = currentValue === 100 || currentValue === true
+              const checked = currentValue === 100 || currentValue === 1 || currentValue === true
               const abbreviation = LABEL_ABBREVIATIONS[milestone.name] || milestone.name
 
               return (
