@@ -51,6 +51,9 @@ export const useSidebarStore = create<SidebarStore>()(
     }),
     {
       name: 'pipetrak:sidebar-collapsed', // localStorage key
+      // Only persist isCollapsed (user preference), not transient states
+      // isHovering and isMobileOpen should reset on page load/navigation
+      partialize: (state) => ({ isCollapsed: state.isCollapsed }),
     }
   )
 )
