@@ -24,6 +24,7 @@ export interface PackageCard {
   blockerCount: number;
   targetDate: string | null; // ISO 8601 date
   statusColor: StatusColor;
+  budgetedManhours: number | null; // Sum of component manhours (from vw_manhour_progress_by_test_package)
 }
 
 /**
@@ -60,6 +61,7 @@ export function usePackageReadiness(
   projectId: string,
   filters?: PackageReadinessFilters
 ) {
+  // Fetch package readiness data
   const query = useQuery({
     queryKey: ['projects', projectId, 'package-readiness', 'raw'],
     queryFn: async () => {
@@ -73,6 +75,35 @@ export function usePackageReadiness(
     },
     staleTime: 60 * 1000, // 1 minute (matches materialized view refresh)
   });
+
+  // Fetch manhour data separately (permission-gated at UI level)
+  const manhourQuery = useQuery({
+    queryKey: ['projects', projectId, 'package-manhours'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vw_manhour_progress_by_test_package')
+        .select('test_package_id, mh_budget')
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+  });
+
+  // Create manhour lookup map
+  const manhourMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (manhourQuery.data) {
+      for (const row of manhourQuery.data) {
+        if (row.test_package_id) {
+          map.set(row.test_package_id, row.mh_budget || 0);
+        }
+      }
+    }
+    return map;
+  }, [manhourQuery.data]);
 
   // Transform and filter data
   const processedData = useMemo(() => {
@@ -90,6 +121,7 @@ export function usePackageReadiness(
         row.avg_percent_complete || 0,
         row.blocker_count || 0
       ),
+      budgetedManhours: manhourMap.get(row.package_id || '') ?? null,
     }));
 
     // Apply status filter
@@ -137,7 +169,7 @@ export function usePackageReadiness(
     }
 
     return cards;
-  }, [query.data, filters]);
+  }, [query.data, filters, manhourMap]);
 
   return {
     ...query,

@@ -10,11 +10,13 @@ import { EmptyState } from '@/components/EmptyState';
 import { Package, AlertCircle, Plus, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePackagePreferencesStore } from '@/stores/usePackagePreferencesStore';
+import { useManhourPermissions } from '@/lib/permissions/manhour-permissions';
 import type { Package as PackageType } from '@/types/package.types';
 
 export function PackagesPage() {
   const { selectedProjectId } = useProject();
   const { viewMode, setViewMode } = usePackagePreferencesStore();
+  const { canViewManhours } = useManhourPermissions();
 
   // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -105,6 +107,8 @@ export function PackagesPage() {
         : avgProgress === 100 && totalComponents > 0
         ? 'green'
         : 'blue') as 'green' | 'blue' | 'amber',
+      // Manhour data (permission-gated at display level)
+      budgetedManhours: row.budgeted_manhours ?? null,
       // Full package data for editing
       packageData: {
         id: row.package_id!,
@@ -179,6 +183,7 @@ export function PackagesPage() {
                 key={pkg.id}
                 package={pkg}
                 onEdit={() => handleEdit(pkg.packageData)}
+                showManhours={canViewManhours}
               />
             ))}
           </div>
@@ -189,6 +194,7 @@ export function PackagesPage() {
               const pkg = packages.find(p => p.id === pkgId);
               if (pkg) handleEdit(pkg.packageData);
             }}
+            showManhours={canViewManhours}
           />
         )}
 

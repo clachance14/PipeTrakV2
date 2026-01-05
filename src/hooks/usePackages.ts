@@ -10,6 +10,7 @@ import {
   UseQueryResult,
   UseMutationResult,
 } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { Database } from '@/types/database.types';
@@ -23,6 +24,11 @@ import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculat
 
 type PackageReadinessRow = Database['public']['Views']['mv_package_readiness']['Row'];
 
+/** Extended row type with manhour data */
+export type PackageReadinessRowWithManhours = PackageReadinessRow & {
+  budgeted_manhours?: number | null;
+};
+
 /**
  * Query package readiness data for a project
  * Returns all test packages with stats from materialized view (if available)
@@ -33,8 +39,9 @@ type PackageReadinessRow = Database['public']['Views']['mv_package_readiness']['
  */
 export function usePackageReadiness(
   projectId: string
-): UseQueryResult<PackageReadinessRow[], Error> {
-  return useQuery({
+) {
+  // Main query for package readiness
+  const query = useQuery({
     queryKey: ['package-readiness', projectId],
     queryFn: async () => {
       // Query 1: Get all test packages (authoritative source)
@@ -147,6 +154,50 @@ export function usePackageReadiness(
     },
     staleTime: 2 * 60 * 1000, // 2 minutes (view refreshes every 60s)
   });
+
+  // Separate query for manhour data (permission-gated at UI level)
+  const manhourQuery = useQuery({
+    queryKey: ['package-manhours', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vw_manhour_progress_by_test_package')
+        .select('test_package_id, mh_budget')
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!projectId,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // Create manhour lookup map
+  const manhourMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (manhourQuery.data) {
+      for (const row of manhourQuery.data) {
+        if (row.test_package_id) {
+          map.set(row.test_package_id, row.mh_budget || 0);
+        }
+      }
+    }
+    return map;
+  }, [manhourQuery.data]);
+
+  // Merge manhour data into results
+  const mergedData = useMemo(() => {
+    if (!query.data) return undefined;
+    return query.data.map((pkg) => ({
+      ...pkg,
+      budgeted_manhours: manhourMap.get(pkg.package_id || '') ?? null,
+    })) as PackageReadinessRowWithManhours[];
+  }, [query.data, manhourMap]);
+
+  return {
+    ...query,
+    data: mergedData,
+    manhourMap,
+  };
 }
 
 /**
