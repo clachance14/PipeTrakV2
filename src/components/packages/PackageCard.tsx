@@ -13,11 +13,13 @@ export interface PackageCardData {
   blockerCount: number;
   targetDate?: string;
   statusColor: 'green' | 'blue' | 'amber';
+  budgetedManhours?: number | null; // Feature: Package MH display
 }
 
 export interface PackageCardProps {
   package: PackageCardData;
   onEdit?: () => void;
+  showManhours?: boolean; // Permission-gated manhour display
 }
 
 /**
@@ -25,7 +27,7 @@ export interface PackageCardProps {
  * Shows progress, component count, blockers, description, and target date
  * Clicking navigates to package detail page
  */
-export function PackageCard({ package: pkg, onEdit }: PackageCardProps) {
+export function PackageCard({ package: pkg, onEdit, showManhours }: PackageCardProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -112,7 +114,16 @@ export function PackageCard({ package: pkg, onEdit }: PackageCardProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>{pkg.componentCount} component{pkg.componentCount !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-3">
+          <span>{pkg.componentCount} component{pkg.componentCount !== 1 ? 's' : ''}</span>
+          {showManhours && (
+            <span className="text-gray-500">
+              {pkg.budgetedManhours && pkg.budgetedManhours > 0
+                ? `${Math.round(pkg.budgetedManhours)} MH`
+                : '—'}
+            </span>
+          )}
+        </div>
         {pkg.targetDate && (
           <span>Target: {new Date(pkg.targetDate).toLocaleDateString()}</span>
         )}

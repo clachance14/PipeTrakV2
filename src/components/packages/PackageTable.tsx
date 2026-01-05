@@ -8,9 +8,10 @@ import { PackageCardData } from './PackageCard';
 export interface PackageTableProps {
   packages: PackageCardData[];
   onEdit?: (pkgId: string) => void;
+  showManhours?: boolean; // Permission-gated manhour display
 }
 
-type SortField = 'name' | 'description' | 'status' | 'progress' | 'componentCount' | 'blockerCount' | 'targetDate';
+type SortField = 'name' | 'description' | 'status' | 'progress' | 'componentCount' | 'blockerCount' | 'targetDate' | 'budgetedManhours';
 type SortDirection = 'asc' | 'desc';
 
 /**
@@ -18,7 +19,7 @@ type SortDirection = 'asc' | 'desc';
  * Shows packages in a data table with columns for name, description, status, progress, components, blockers, and target date
  * All columns are sortable by clicking the column header
  */
-export function PackageTable({ packages, onEdit }: PackageTableProps) {
+export function PackageTable({ packages, onEdit, showManhours }: PackageTableProps) {
   const navigate = useNavigate();
 
   // Sorting state
@@ -69,6 +70,13 @@ export function PackageTable({ packages, onEdit }: PackageTableProps) {
           else if (!b.targetDate) comparison = -1;
           else comparison = new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
           break;
+        case 'budgetedManhours': {
+          // Nulls/zeros last, then sort descending (highest MH first)
+          const aMh = a.budgetedManhours || 0;
+          const bMh = b.budgetedManhours || 0;
+          comparison = aMh - bMh;
+          break;
+        }
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -143,6 +151,14 @@ export function PackageTable({ packages, onEdit }: PackageTableProps) {
               >
                 Components <SortIcon field="componentCount" />
               </th>
+              {showManhours && (
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('budgetedManhours')}
+                >
+                  Manhours <SortIcon field="budgetedManhours" />
+                </th>
+              )}
               <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('blockerCount')}
@@ -199,6 +215,13 @@ export function PackageTable({ packages, onEdit }: PackageTableProps) {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {pkg.componentCount}
                 </td>
+                {showManhours && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {pkg.budgetedManhours && pkg.budgetedManhours > 0
+                      ? Math.round(pkg.budgetedManhours)
+                      : '—'}
+                  </td>
+                )}
                 <td className="px-6 py-4 whitespace-nowrap">
                   {pkg.blockerCount > 0 ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs font-medium">
