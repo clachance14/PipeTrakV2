@@ -34,6 +34,8 @@ import { useMilestoneHistory } from '@/hooks/useMilestoneHistory';
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog';
 import { UserPlus } from 'lucide-react';
 import { ComponentManhourSection } from '@/components/component-detail/ComponentManhourSection';
+import { RollbackConfirmationModal } from '@/components/drawing-table/RollbackConfirmationModal';
+import type { RollbackReasonData } from '@/types/drawing-table.types';
 
 interface ComponentDetailViewProps {
   componentId: string;
@@ -59,6 +61,11 @@ export function ComponentDetailView({
 }: ComponentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>(defaultTab);
   const [welderDialogOpen, setWelderDialogOpen] = useState(false);
+  const [rollbackPending, setRollbackPending] = useState<{
+    milestoneName: string;
+    currentValue: number;
+    newValue: number;
+  } | null>(null);
 
   const { data: componentData, isLoading } = useComponent(componentId);
   const { data: effectiveTemplate } = useEffectiveTemplate(componentId);
@@ -136,30 +143,44 @@ export function ComponentDetailView({
   const handleMilestoneToggle = async (milestoneName: string, isPartial: boolean, currentValue: boolean | number) => {
     if (!component) return;
 
-    let newValue: boolean | number;
-    if (isPartial) {
-      // Toggle partial between 0 and 100
-      newValue = currentValue === 100 ? 0 : 100;
-    } else {
-      // Toggle discrete milestone between 0 and 100
-      newValue = currentValue === 100 ? 0 : 100;
+    // Normalize current value to numeric
+    const currentNumeric = typeof currentValue === 'boolean'
+      ? (currentValue ? 100 : 0)
+      : (typeof currentValue === 'number' ? currentValue : 0);
+
+    // Toggle between 0 and 100
+    const newNumeric = currentNumeric === 100 ? 0 : 100;
+
+    // Detect rollback (decrease in value)
+    const isRollback = newNumeric < currentNumeric;
+
+    if (isRollback) {
+      // Open rollback confirmation modal
+      setRollbackPending({
+        milestoneName,
+        currentValue: currentNumeric,
+        newValue: newNumeric,
+      });
+      return;
     }
 
-    // For field welds: Auto-open welder dialog when Weld Made is checked
+    // For field welds: Auto-open welder dialog when Weld Made/Weld Complete is checked
+    // Note: Templates may use 'Weld Made' (old) or 'Weld Complete' (new) depending on when created
     if (
       component.component_type === 'field_weld' &&
-      milestoneName === 'Weld Made' &&
-      newValue === 100
+      (milestoneName === 'Weld Made' || milestoneName === 'Weld Complete') &&
+      newNumeric === 100
     ) {
       setWelderDialogOpen(true);
       return; // Don't update milestone yet - let welder assignment handle it
     }
 
+    // Not a rollback - proceed immediately
     try {
       await updateMilestoneMutation.mutateAsync({
         component_id: component.id,
         milestone_name: milestoneName,
-        value: newValue,
+        value: newNumeric,
       });
       toast.success(`${milestoneName} updated`);
     } catch (error) {
@@ -171,16 +192,67 @@ export function ComponentDetailView({
   const handleSliderChange = async (milestoneName: string, value: number[]) => {
     if (!component) return;
 
+    const newValue = value[0] ?? 0;
+    const currentMilestones = (component.current_milestones as Record<string, boolean | number>) || {};
+    const currentValue = currentMilestones[milestoneName];
+    const currentNumeric = typeof currentValue === 'number' ? currentValue : 0;
+
+    // Detect rollback (decrease in value)
+    const isRollback = newValue < currentNumeric;
+
+    if (isRollback) {
+      // Open rollback confirmation modal
+      setRollbackPending({
+        milestoneName,
+        currentValue: currentNumeric,
+        newValue,
+      });
+      return;
+    }
+
+    // Not a rollback - proceed immediately
     try {
       await updateMilestoneMutation.mutateAsync({
         component_id: component.id,
         milestone_name: milestoneName,
-        value: value[0] ?? 0,
+        value: newValue,
       });
     } catch (error) {
       toast.error(`Failed to update ${milestoneName}`);
       console.error(error);
     }
+  };
+
+  // Handle rollback confirmation
+  const handleRollbackConfirm = async (reasonData: RollbackReasonData) => {
+    if (!rollbackPending || !component) return;
+
+    const { milestoneName, newValue } = rollbackPending;
+
+    try {
+      await updateMilestoneMutation.mutateAsync({
+        component_id: component.id,
+        milestone_name: milestoneName,
+        value: newValue,
+        metadata: {
+          rollback: true,
+          rollbackReason: reasonData.reason,
+          rollbackReasonLabel: reasonData.reasonLabel,
+          rollbackDetails: reasonData.details,
+        },
+      });
+      toast.success(`${milestoneName} rolled back`);
+    } catch (error) {
+      toast.error(`Failed to rollback ${milestoneName}`);
+      console.error(error);
+    } finally {
+      setRollbackPending(null);
+    }
+  };
+
+  // Handle rollback cancellation
+  const handleRollbackCancel = () => {
+    setRollbackPending(null);
   };
 
   // Format identity based on type
@@ -869,6 +941,17 @@ export function ComponentDetailView({
             Done
           </Button>
         </DialogFooter>
+      )}
+
+      {/* Rollback Confirmation Modal */}
+      {rollbackPending && (
+        <RollbackConfirmationModal
+          isOpen={!!rollbackPending}
+          onClose={handleRollbackCancel}
+          onConfirm={handleRollbackConfirm}
+          componentName={identityDisplay}
+          milestoneName={rollbackPending.milestoneName}
+        />
       )}
 
       {/* Welder Assignment Dialog (for field welds) */}

@@ -111,6 +111,68 @@ vi.mock('@/hooks/useComponents', () => ({
       }
     }
 
+    // Component with completed milestone for rollback testing (comp-completed)
+    if (componentId === 'comp-completed') {
+      return {
+        data: {
+          id: 'comp-completed',
+          project_id: 'proj-1',
+          component_type: 'valve',
+          identity_key: { commodity_code: 'VALVE-ROLLBACK', size: '4', seq: 1 },
+          percent_complete: 50,
+          current_milestones: {
+            'Receive': 100,
+            'Install': 0,
+            'Test': 0,
+            'Punch': 0,
+            'Restore': 0,
+          },
+          progress_template: {
+            milestones_config: [
+              { name: 'Receive', weight: 10, is_partial: false, order: 1, requires_welder: false },
+              { name: 'Install', weight: 60, is_partial: false, order: 2, requires_welder: false },
+              { name: 'Test', weight: 15, is_partial: false, order: 3, requires_welder: false },
+              { name: 'Punch', weight: 10, is_partial: false, order: 4, requires_welder: false },
+              { name: 'Restore', weight: 5, is_partial: false, order: 5, requires_welder: false },
+            ]
+          },
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+        },
+        isLoading: false,
+      }
+    }
+
+    // Component with partial milestone for slider rollback testing (comp-partial)
+    if (componentId === 'comp-partial') {
+      return {
+        data: {
+          id: 'comp-partial',
+          project_id: 'proj-1',
+          component_type: 'pipe',
+          identity_key: { commodity_code: 'PIPE-001', size: '6', seq: 1 },
+          percent_complete: 30,
+          current_milestones: {
+            'Receive': 100,
+            'Fabricate': 50,
+            'Install': 0,
+          },
+          progress_template: {
+            milestones_config: [
+              { name: 'Receive', weight: 10, is_partial: false, order: 1, requires_welder: false },
+              { name: 'Fabricate', weight: 60, is_partial: true, order: 2, requires_welder: false },
+              { name: 'Install', weight: 30, is_partial: false, order: 3, requires_welder: false },
+            ]
+          },
+          area_id: null,
+          system_id: null,
+          test_package_id: null,
+        },
+        isLoading: false,
+      }
+    }
+
     // Default valve mock
     return {
       data: {
@@ -145,9 +207,12 @@ vi.mock('@/hooks/useMilestoneHistory', () => ({
   })
 }))
 
+// Track mutation calls for testing
+const mockMutateAsync = vi.fn()
+
 vi.mock('@/hooks/useMilestones', () => ({
   useUpdateMilestone: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: mockMutateAsync,
     isPending: false,
   })
 }))
@@ -379,6 +444,42 @@ describe('ComponentDetailView - Milestones Tab', () => {
 vi.mock('@/components/field-welds/WelderAssignDialog', () => ({
   WelderAssignDialog: ({ open }: { open: boolean }) => {
     return open ? <div role="dialog" data-testid="welder-dialog">Welder Assignment Dialog</div> : null
+  }
+}))
+
+// Mock RollbackConfirmationModal component
+let mockRollbackConfirmCallback: ((data: { reason: string; reasonLabel: string; details?: string }) => void) | null = null
+let mockRollbackCloseCallback: (() => void) | null = null
+
+vi.mock('@/components/drawing-table/RollbackConfirmationModal', () => ({
+  RollbackConfirmationModal: ({ isOpen, onClose, onConfirm, componentName, milestoneName }: {
+    isOpen: boolean
+    onClose: () => void
+    onConfirm: (data: { reason: string; reasonLabel: string; details?: string }) => void
+    componentName: string
+    milestoneName: string
+  }) => {
+    // Store callbacks for test interaction
+    mockRollbackConfirmCallback = onConfirm
+    mockRollbackCloseCallback = onClose
+
+    if (!isOpen) return null
+    return (
+      <div role="dialog" data-testid="rollback-modal">
+        <div>Rollback Confirmation</div>
+        <div data-testid="rollback-component">{componentName}</div>
+        <div data-testid="rollback-milestone">{milestoneName}</div>
+        <button
+          data-testid="rollback-confirm-btn"
+          onClick={() => onConfirm({ reason: 'data_entry_error', reasonLabel: 'Data entry error' })}
+        >
+          Confirm Rollback
+        </button>
+        <button data-testid="rollback-cancel-btn" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    )
   }
 }))
 
@@ -644,5 +745,218 @@ describe('ComponentDetailView - Manhour Section', () => {
     // Should render manhour section in overview tab
     expect(screen.getByTestId('manhour-section')).toBeInTheDocument()
     expect(screen.getByText('Budgeted: 100 MH')).toBeInTheDocument()
+  })
+})
+
+describe('ComponentDetailView - Rollback Confirmation', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, cacheTime: 0 },
+      mutations: { retry: false }
+    }
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+
+  beforeEach(() => {
+    mockMutateAsync.mockClear()
+  })
+
+  it('opens rollback confirmation modal when unchecking a completed milestone', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-completed"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Navigate to Milestones tab
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    expect(milestonesTab).toBeDefined()
+    fireEvent.click(milestonesTab!)
+
+    // Find the Receive milestone (which is completed - value 100)
+    await waitFor(() => {
+      expect(screen.getByText('Receive')).toBeInTheDocument()
+    })
+
+    // Get the Receive checkbox (first checkbox since it's first milestone)
+    const checkboxes = screen.getAllByRole('checkbox')
+    const receiveCheckbox = checkboxes[0]
+
+    // Initially, rollback modal should not be visible
+    expect(screen.queryByTestId('rollback-modal')).not.toBeInTheDocument()
+
+    // Uncheck the completed Receive milestone (this should be a rollback)
+    fireEvent.click(receiveCheckbox)
+
+    // Rollback confirmation modal should now be open
+    await waitFor(() => {
+      expect(screen.getByTestId('rollback-modal')).toBeInTheDocument()
+    })
+
+    // Modal should show correct component and milestone info
+    expect(screen.getByTestId('rollback-milestone')).toHaveTextContent('Receive')
+  })
+
+  it('passes rollback reason to mutation when user confirms rollback', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-completed"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Navigate to Milestones tab
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    fireEvent.click(milestonesTab!)
+
+    await waitFor(() => {
+      expect(screen.getByText('Receive')).toBeInTheDocument()
+    })
+
+    // Get the Receive checkbox and uncheck it
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
+
+    // Wait for modal to open
+    await waitFor(() => {
+      expect(screen.getByTestId('rollback-modal')).toBeInTheDocument()
+    })
+
+    // Click confirm button in the modal
+    const confirmBtn = screen.getByTestId('rollback-confirm-btn')
+    fireEvent.click(confirmBtn)
+
+    // Mutation should be called with rollback metadata
+    await waitFor(() => {
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          component_id: 'comp-completed',
+          milestone_name: 'Receive',
+          value: 0,
+          metadata: expect.objectContaining({
+            rollback: true,
+            rollbackReason: 'data_entry_error',
+            rollbackReasonLabel: 'Data entry error',
+          })
+        })
+      )
+    })
+  })
+
+  it('does not update milestone when rollback is cancelled', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-completed"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Navigate to Milestones tab
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    fireEvent.click(milestonesTab!)
+
+    await waitFor(() => {
+      expect(screen.getByText('Receive')).toBeInTheDocument()
+    })
+
+    // Get the Receive checkbox and uncheck it
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
+
+    // Wait for modal to open
+    await waitFor(() => {
+      expect(screen.getByTestId('rollback-modal')).toBeInTheDocument()
+    })
+
+    // Click cancel button
+    const cancelBtn = screen.getByTestId('rollback-cancel-btn')
+    fireEvent.click(cancelBtn)
+
+    // Modal should close
+    await waitFor(() => {
+      expect(screen.queryByTestId('rollback-modal')).not.toBeInTheDocument()
+    })
+
+    // Mutation should NOT have been called
+    expect(mockMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('does NOT show rollback modal when checking an incomplete milestone', async () => {
+    render(
+      <ComponentDetailView
+        componentId="comp-completed"
+        canUpdateMilestones={true}
+      />,
+      { wrapper }
+    )
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading component details...')).not.toBeInTheDocument()
+    })
+
+    // Navigate to Milestones tab
+    const tabs = screen.getAllByRole('tab')
+    const milestonesTab = tabs.find(tab => tab.textContent === 'Milestones')
+    fireEvent.click(milestonesTab!)
+
+    await waitFor(() => {
+      expect(screen.getByText('Install')).toBeInTheDocument()
+    })
+
+    // Get the Install checkbox (second checkbox, currently at 0/unchecked)
+    const checkboxes = screen.getAllByRole('checkbox')
+    const installCheckbox = checkboxes[1]
+
+    // Check the Install milestone (this is NOT a rollback)
+    fireEvent.click(installCheckbox)
+
+    // Rollback modal should NOT appear
+    expect(screen.queryByTestId('rollback-modal')).not.toBeInTheDocument()
+
+    // Mutation should be called directly (no rollback modal)
+    await waitFor(() => {
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          component_id: 'comp-completed',
+          milestone_name: 'Install',
+          value: 100,
+        })
+      )
+    })
+
+    // Should NOT have rollback metadata
+    expect(mockMutateAsync).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          rollback: true
+        })
+      })
+    )
   })
 })

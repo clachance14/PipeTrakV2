@@ -28,6 +28,7 @@ import { PackageWorkflowStepper } from '@/components/packages/PackageWorkflowSte
 import { DrawingSelectionList } from '@/components/packages/DrawingSelectionList';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { PackageWorkflowCustomizationDialog } from '@/components/packages/PackageWorkflowCustomizationDialog';
+import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -68,6 +69,7 @@ export function PackageDetailPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<string[]>([]);
   const [selectedAddComponentIds, setSelectedAddComponentIds] = useState<string[]>([]);
+  const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null);
 
   // Sorting state
   type SortField = 'drawing' | 'identity' | 'type' | 'progress';
@@ -824,11 +826,33 @@ export function PackageDetailPage() {
                               />
                             </td>
                           )}
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {component.drawing_no_norm || '—'}
+                          <td className="px-4 py-3 text-sm">
+                            {component.drawing_id ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/drawings?expanded=${component.drawing_id}`);
+                                }}
+                                className="text-blue-600 hover:underline cursor-pointer text-left"
+                              >
+                                {component.drawing_no_norm || '—'}
+                              </button>
+                            ) : (
+                              <span className="text-gray-900">{component.drawing_no_norm || '—'}</span>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {component.identityDisplay}
+                          <td className="px-4 py-3 text-sm">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMetadataModalComponentId(component.id);
+                              }}
+                              className="text-blue-600 hover:underline cursor-pointer text-left"
+                            >
+                              {component.identityDisplay}
+                            </button>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 capitalize">
                             {component.component_type}
@@ -1006,6 +1030,14 @@ export function PackageDetailPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Component Metadata Modal */}
+      <ComponentMetadataModal
+        componentId={metadataModalComponentId || ''}
+        open={!!metadataModalComponentId}
+        onClose={() => setMetadataModalComponentId(null)}
+        onMetadataChange={() => refetch()}
+      />
     </Layout>
   );
 }
