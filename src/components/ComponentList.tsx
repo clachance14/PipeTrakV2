@@ -299,7 +299,7 @@ export function ComponentList({
       <div
         ref={parentRef}
         className="flex-1 overflow-auto"
-        style={{ contain: 'strict' }}
+        style={{ contain: 'size layout' }}
       >
         <div
           style={{
