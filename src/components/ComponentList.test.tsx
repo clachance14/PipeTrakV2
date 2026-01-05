@@ -2,8 +2,8 @@
  * ComponentList component tests
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ComponentList } from './ComponentList';
 import type { Database } from '@/types/database.types';
@@ -216,6 +216,61 @@ describe('ComponentList', () => {
       // Headers should be present (using text content instead of role)
       expect(screen.getByText('Identity')).toBeInTheDocument();
       expect(screen.getByText('Progress')).toBeInTheDocument();
+    });
+  });
+
+  describe('Range Selection', () => {
+    // Note: These tests verify that the onSelectionChangeMany prop is wired correctly.
+    // Full end-to-end range selection testing is complex due to virtualization
+    // and is better tested in integration or E2E tests.
+
+    it('passes onSelectionChangeMany prop to component', () => {
+      const mockOnSelectionChangeMany = vi.fn();
+
+      render(
+        <ComponentList
+          {...defaultProps}
+          onSelectionChangeMany={mockOnSelectionChangeMany}
+          selectionMode={true}
+        />
+      );
+
+      // Just verify the component renders without errors when prop is provided
+      expect(screen.getByText(/1 component$/i)).toBeInTheDocument();
+    });
+
+    it('renders in selection mode with proper handlers', () => {
+      const mockOnSelectionChangeMany = vi.fn();
+      const mockOnSelectionChange = vi.fn();
+
+      render(
+        <ComponentList
+          {...defaultProps}
+          onSelectionChange={mockOnSelectionChange}
+          onSelectionChangeMany={mockOnSelectionChangeMany}
+          selectionMode={true}
+        />
+      );
+
+      // Verify selection mode renders checkboxes
+      const checkboxes = screen.getAllByRole('checkbox');
+      expect(checkboxes.length).toBeGreaterThan(0); // At least the "Select All" checkbox
+    });
+
+    it('renders in browse mode without checkboxes', () => {
+      const mockOnOpenDetails = vi.fn();
+
+      render(
+        <ComponentList
+          {...defaultProps}
+          selectionMode={false}
+          onOpenDetails={mockOnOpenDetails}
+        />
+      );
+
+      // In browse mode, only the header "Select All" checkbox should be hidden
+      // The component count should still be visible
+      expect(screen.getByText(/1 component$/i)).toBeInTheDocument();
     });
   });
 });

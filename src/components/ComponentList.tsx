@@ -4,7 +4,7 @@
  * Handles 10k+ components efficiently
  */
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ComponentRow } from './ComponentRow';
 import { SortableColumnHeader } from './table/SortableColumnHeader';
@@ -31,7 +31,6 @@ const COLUMNS = [
   { id: 'system', label: 'System', canHide: true },
   { id: 'test_package', label: 'Package', canHide: true },
   { id: 'drawing', label: 'Drawing', canHide: true },
-  { id: 'actions', label: 'Actions', canHide: false },
 ];
 
 interface ComponentListProps {
@@ -51,13 +50,18 @@ interface ComponentListProps {
   // Selection props
   selectedIds: Set<string>;
   onSelectionChange: (componentId: string, isSelected: boolean) => void;
+  onSelectionChangeMany?: (componentIds: string[], isSelected: boolean) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
   allSelected: boolean;
   someSelected: boolean;
 
+  // Mode control
+  selectionMode?: boolean; // Default true for backwards compatibility
+
   // View action
   onViewComponent: (component: Component) => void;
+  onOpenDetails?: (componentId: string) => void;
 
   // Filter state
   hasActiveFilters?: boolean;
@@ -79,15 +83,37 @@ export function ComponentList({
   onResetSort,
   selectedIds,
   onSelectionChange,
+  onSelectionChangeMany,
   onSelectAll,
   onClearSelection,
   allSelected,
   someSelected,
+  selectionMode = true, // Default true for backwards compatibility
   onViewComponent,
+  onOpenDetails,
   hasActiveFilters = false,
   onClearFilters,
 }: ComponentListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Track anchor index for range selection
+  const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
+
+  // Handle row click for individual and range selection
+  const handleRowClick = (index: number, shiftKey: boolean) => {
+    if (!selectionMode) return; // In browse mode, do nothing here (handled by ComponentRow)
+
+    if (shiftKey && anchorIndex !== null && onSelectionChangeMany) {
+      // Range selection
+      const [start, end] = [Math.min(anchorIndex, index), Math.max(anchorIndex, index)];
+      const idsToSelect = components.slice(start, end + 1).map(c => c.id);
+      onSelectionChangeMany(idsToSelect, true);
+    } else {
+      // Single click - update anchor
+      setAnchorIndex(index);
+      // Single selection toggle is handled by ComponentRow's onSelectionChange
+    }
+  };
 
   // Get preferences from store
   const {
@@ -167,17 +193,19 @@ export function ComponentList({
 
       {/* Header - stays fixed at top, outside scroll container */}
       <div className="flex-shrink-0 flex items-center gap-4 px-4 py-3 bg-muted border-b font-medium text-sm">
-        {/* Select All Checkbox - always visible */}
-        <div className="w-10 flex items-center justify-center">
-          <Checkbox
-            checked={allSelected ? true : someSelected ? "indeterminate" : false}
-            onCheckedChange={(checked) => {
-              if (checked) onSelectAll();
-              else onClearSelection();
-            }}
-            aria-label="Select all components"
-          />
-        </div>
+        {/* Select All Checkbox - only visible in selection mode */}
+        {selectionMode && (
+          <div className="w-10 flex items-center justify-center">
+            <Checkbox
+              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+              onCheckedChange={(checked) => {
+                if (checked) onSelectAll();
+                else onClearSelection();
+              }}
+              aria-label="Select all components"
+            />
+          </div>
+        )}
 
         {/* Drawing */}
         {visibleColumns.includes('drawing') && (
@@ -265,11 +293,6 @@ export function ComponentList({
             />
           </div>
         )}
-
-        {/* Actions - always visible (canHide: false) */}
-        <div className="w-12 text-center">
-          Actions
-        </div>
       </div>
 
       {/* Scroll container - only this part scrolls */}
@@ -306,7 +329,11 @@ export function ComponentList({
                 isSelected={selectedIds.has(component.id)}
                 onSelectionChange={(isSelected) => onSelectionChange(component.id, isSelected)}
                 onView={() => onViewComponent(component)}
+                onOpenDetails={onOpenDetails ? () => onOpenDetails(component.id) : undefined}
+                selectionMode={selectionMode}
+                rowIndex={virtualRow.index}
                 density={density}
+                onRowClick={(shiftKey) => handleRowClick(virtualRow.index, shiftKey)}
               />
             );
           })}

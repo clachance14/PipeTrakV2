@@ -8,9 +8,7 @@ import type { Database } from '@/types/database.types';
 import { formatIdentityKey as formatDrawingComponentKey } from '@/lib/formatIdentityKey';
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
 import { MilestoneChips } from '@/components/milestones/MilestoneChips';
-import { Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Component = Database['public']['Tables']['components']['Row'];
@@ -38,11 +36,17 @@ interface ComponentRowProps {
   style: CSSProperties; // Positioning styles from react-virtual
   onClick?: () => void; // Keep for backwards compat but won't be used
 
-  // NEW props
+  // Selection props
   isSelected: boolean;
   onSelectionChange: (isSelected: boolean) => void;
-  onView: () => void;
+  onView: () => void; // Keep for backwards compat
   density?: 'compact' | 'comfortable';
+
+  // NEW: Two-mode support (Feature 034)
+  selectionMode?: boolean; // Default true for backwards compat
+  onOpenDetails?: () => void; // Callback for browse mode row click
+  rowIndex: number; // For range selection
+  onRowClick?: (shiftKey: boolean) => void; // Callback for row click with shift key info
 }
 
 /**
@@ -60,7 +64,10 @@ function formatComponentType(type: string | null): string {
 /**
  * ComponentRow component
  * Displays a single component in the virtualized list
- * Includes selection checkbox, identity key, type, area, system, package, milestones, progress %, and actions
+ *
+ * Two modes:
+ * - Selection mode (selectionMode=true): Row click toggles selection, checkbox visible
+ * - Browse mode (selectionMode=false): Row click opens details, no checkbox
  */
 export function ComponentRow({
   component,
@@ -69,8 +76,12 @@ export function ComponentRow({
   onClick: _onClick, // Kept for backwards compat but unused
   isSelected,
   onSelectionChange,
-  onView,
-  density = 'comfortable'
+  onView: _onView, // Kept for backwards compat but unused
+  density = 'comfortable',
+  selectionMode = true, // Default true for backwards compat
+  onOpenDetails,
+  rowIndex: _rowIndex, // For debugging/logging
+  onRowClick
 }: ComponentRowProps) {
   // Format identity key based on component type
   const identityKey = component.identity_key as Record<string, unknown> | null;
@@ -104,23 +115,36 @@ export function ComponentRow({
   return (
     <div
       style={style}
-      onClick={() => onSelectionChange(!isSelected)}
+      onClick={(e) => {
+        if (selectionMode) {
+          // Notify parent about the click (with shift key state)
+          onRowClick?.(e.shiftKey);
+          // Toggle selection only if NOT shift-clicking (range selection handled by parent)
+          if (!e.shiftKey) {
+            onSelectionChange(!isSelected);
+          }
+        } else {
+          onOpenDetails?.();
+        }
+      }}
       className={cn(
         "flex items-center gap-4 px-4 border-b hover:bg-muted/50 cursor-pointer transition-colors",
         density === 'compact' ? 'py-1.5' : 'py-3',
-        isSelected && "bg-muted"
+        isSelected && selectionMode && "bg-muted"
       )}
     >
-      {/* Checkbox Column */}
-      <div className="w-10 flex-shrink-0 flex items-center justify-center">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(checked) => onSelectionChange(!!checked)}
-          onClick={(e) => e.stopPropagation()} // Prevent double-toggle
-          className="h-5 w-5"
-          aria-label={`Select ${identityDisplay}`}
-        />
-      </div>
+      {/* Checkbox Column - only visible in selection mode */}
+      {selectionMode && (
+        <div className="w-10 flex-shrink-0 flex items-center justify-center">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onSelectionChange(!!checked)}
+            onClick={(e) => e.stopPropagation()} // Prevent double-toggle
+            className="h-5 w-5"
+            aria-label={`Select ${identityDisplay}`}
+          />
+        </div>
+      )}
 
       {/* Drawing - hideable */}
       {visibleColumns.includes('drawing') && (
@@ -199,22 +223,6 @@ export function ComponentRow({
           </div>
         </div>
       )}
-
-      {/* Actions Column */}
-      <div className="w-12 flex items-center justify-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation(); // Don't toggle selection
-            onView();
-          }}
-          aria-label={`View details for ${identityDisplay}`}
-          className="h-8 w-8 p-0"
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
-      </div>
     </div>
   );
 }

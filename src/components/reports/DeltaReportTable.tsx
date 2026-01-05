@@ -26,9 +26,17 @@ import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ProgressDeltaReportData, ManhourDeltaRow, ManhourDeltaGrandTotal } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
+import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { sortDeltaReportRows } from '@/lib/report-sorting';
 
 interface DeltaReportTableProps {
   data: ProgressDeltaReportData;
+}
+
+// Sort indicator component
+function SortIndicator({ column, currentColumn, direction }: { column: string; currentColumn: string; direction: 'asc' | 'desc' }) {
+  if (column !== currentColumn) return null;
+  return <span className="ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
 }
 
 /**
@@ -135,8 +143,13 @@ function StackedDeltaCell({
 export function DeltaReportTable({ data }: DeltaReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Use manhour rows for display
-  const allRows: (ManhourDeltaRow | ManhourDeltaGrandTotal)[] = [...data.manhourRows, data.manhourGrandTotal];
+  // Get sort state from store
+  const { deltaReport, toggleDeltaSort } = useReportPreferencesStore();
+  const { sortColumn, sortDirection } = deltaReport;
+
+  // Sort rows, then combine with grand total (grand total always at bottom)
+  const sortedRows = sortDeltaReportRows(data.manhourRows, sortColumn, sortDirection);
+  const allRows: (ManhourDeltaRow | ManhourDeltaGrandTotal)[] = [...sortedRows, data.manhourGrandTotal];
 
   const rowVirtualizer = useVirtualizer({
     count: allRows.length,
@@ -169,35 +182,89 @@ export function DeltaReportTable({ data }: DeltaReportTableProps) {
           role="row"
           className="grid grid-cols-[2fr_1fr_1fr] lg:grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-1 px-4 py-3 text-xs font-medium text-slate-300 uppercase tracking-wider"
         >
-          <div role="columnheader" className="text-left">
+          <button
+            role="columnheader"
+            className="text-left hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('name')}
+            aria-label={`Sort by ${dimensionLabel}`}
+          >
             {dimensionLabel}
-          </div>
-          <div role="columnheader" className="text-right">
+            <SortIndicator column="name" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('mhBudget')}
+            aria-label="Sort by Budget"
+          >
             Budget
-          </div>
+            <SortIndicator column="mhBudget" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
           {/* Mobile: Just Total */}
-          <div role="columnheader" className="text-right lg:hidden">
+          <button
+            role="columnheader"
+            className="text-right lg:hidden hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaTotalMhEarned')}
+            aria-label="Sort by Delta Total"
+          >
             Δ Total
-          </div>
+            <SortIndicator column="deltaTotalMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
           {/* Desktop: All milestones */}
-          <div role="columnheader" className="text-right hidden lg:block">
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaReceiveMhEarned')}
+            aria-label="Sort by Received delta"
+          >
             Received
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block">
+            <SortIndicator column="deltaReceiveMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaInstallMhEarned')}
+            aria-label="Sort by Installed delta"
+          >
             Installed
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block">
+            <SortIndicator column="deltaInstallMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaPunchMhEarned')}
+            aria-label="Sort by Punch delta"
+          >
             Punch
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block">
+            <SortIndicator column="deltaPunchMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaTestMhEarned')}
+            aria-label="Sort by Tested delta"
+          >
             Tested
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block">
+            <SortIndicator column="deltaTestMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaRestoreMhEarned')}
+            aria-label="Sort by Restored delta"
+          >
             Restored
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block">
+            <SortIndicator column="deltaRestoreMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-700 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleDeltaSort('deltaTotalMhEarned')}
+            aria-label="Sort by Total delta"
+          >
             Total
-          </div>
+            <SortIndicator column="deltaTotalMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
         </div>
       </div>
 

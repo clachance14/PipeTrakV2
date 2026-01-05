@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -30,6 +30,7 @@ interface ComponentFiltersProps {
   onFilterChange: (filters: ComponentFiltersState) => void;
   filteredCount: number;
   totalCount: number;
+  searchTerm?: string; // External search management (search moved to page toolbar)
 }
 
 export interface ComponentFiltersState {
@@ -56,7 +57,7 @@ const COMPONENT_TYPES: { value: ComponentType; label: string }[] = [
   { value: 'misc_component', label: 'Misc Component' },
 ];
 
-export function ComponentFilters({ projectId, onFilterChange, filteredCount, totalCount }: ComponentFiltersProps) {
+export function ComponentFilters({ projectId, onFilterChange, filteredCount, totalCount, searchTerm }: ComponentFiltersProps) {
   const isMobile = useMobileDetection();
   const [filters, setFilters] = useState<ComponentFiltersState>({});
 
@@ -111,7 +112,11 @@ export function ComponentFilters({ projectId, onFilterChange, filteredCount, tot
     onFilterChange({});
   };
 
-  const hasActiveFilters = Object.keys(filters).some((key) => filters[key as keyof ComponentFiltersState]);
+  // Exclude search from hasActiveFilters when externally managed
+  const hasActiveFilters = Object.keys(filters).some((key) => {
+    if (key === 'search' && searchTerm !== undefined) return false;
+    return filters[key as keyof ComponentFiltersState];
+  });
 
   // Mobile collapsible view
   if (isMobile) {
@@ -270,130 +275,110 @@ export function ComponentFilters({ projectId, onFilterChange, filteredCount, tot
     );
   }
 
-  // Desktop view (unchanged - always visible)
+  // Desktop view - ultra-condensed single row toolbar
   return (
-    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
-      {/* Search Box */}
-      <div className="relative w-full md:w-[300px]">
-        <Input
-          id="search"
-          placeholder="Search by identity..."
-          value={filters.search || ''}
-          onChange={(e) => updateFilters({ search: e.target.value })}
-          className="w-full"
-        />
-      </div>
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* Component Type Filter */}
+      <Select
+        value={filters.component_type || 'all'}
+        onValueChange={(value) =>
+          updateFilters({
+            component_type: value === 'all' ? undefined : (value as ComponentType),
+          })
+        }
+      >
+        <SelectTrigger className="w-[120px] h-8 text-sm">
+          <SelectValue placeholder="Type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Types</SelectItem>
+          {COMPONENT_TYPES.map((type) => (
+            <SelectItem key={type.value} value={type.value}>
+              {type.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      {/* Filter Controls */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Component Type Filter */}
-        <Select
-          value={filters.component_type || 'all'}
-          onValueChange={(value) =>
-            updateFilters({
-              component_type: value === 'all' ? undefined : (value as ComponentType),
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {COMPONENT_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Area Filter */}
+      <Select
+        value={filters.area_id || 'all'}
+        onValueChange={(value) =>
+          updateFilters({ area_id: value === 'all' ? undefined : value })
+        }
+      >
+        <SelectTrigger className="w-[120px] h-8 text-sm">
+          <SelectValue placeholder="Area" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Areas</SelectItem>
+          {areas.map((area) => (
+            <SelectItem key={area.id} value={area.id}>
+              {area.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Area Filter */}
-        <Select
-          value={filters.area_id || 'all'}
-          onValueChange={(value) =>
-            updateFilters({ area_id: value === 'all' ? undefined : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All Areas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Areas</SelectItem>
-            {areas.map((area) => (
-              <SelectItem key={area.id} value={area.id}>
-                {area.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* System Filter */}
+      <Select
+        value={filters.system_id || 'all'}
+        onValueChange={(value) =>
+          updateFilters({ system_id: value === 'all' ? undefined : value })
+        }
+      >
+        <SelectTrigger className="w-[120px] h-8 text-sm">
+          <SelectValue placeholder="System" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Systems</SelectItem>
+          {systems.map((system) => (
+            <SelectItem key={system.id} value={system.id}>
+              {system.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* System Filter */}
-        <Select
-          value={filters.system_id || 'all'}
-          onValueChange={(value) =>
-            updateFilters({ system_id: value === 'all' ? undefined : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All Systems" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Systems</SelectItem>
-            {systems.map((system) => (
-              <SelectItem key={system.id} value={system.id}>
-                {system.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Test Package Filter */}
+      <Select
+        value={filters.test_package_id || 'all'}
+        onValueChange={(value) =>
+          updateFilters({ test_package_id: value === 'all' ? undefined : value })
+        }
+      >
+        <SelectTrigger className="w-[120px] h-8 text-sm">
+          <SelectValue placeholder="Package" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Packages</SelectItem>
+          {testPackages.map((pkg) => (
+            <SelectItem key={pkg.id} value={pkg.id}>
+              {pkg.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Test Package Filter */}
-        <Select
-          value={filters.test_package_id || 'all'}
-          onValueChange={(value) =>
-            updateFilters({ test_package_id: value === 'all' ? undefined : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All Packages" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Packages</SelectItem>
-            {testPackages.map((pkg) => (
-              <SelectItem key={pkg.id} value={pkg.id}>
-                {pkg.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Quick Filter Chips */}
+      {/* Quick Filter Chips - inline */}
       <QuickFilterChips
         activeFilters={filters}
         onFilterChange={(newFilters) => {
           setFilters(newFilters);
           onFilterChange({
             ...newFilters,
-            search: debouncedSearch,
+            search: searchTerm ?? debouncedSearch,
           });
         }}
         onClearAll={clearFilters}
       />
 
-      {/* Results Count and Clear Button */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          Showing <span className="font-medium">{filteredCount}</span> of{' '}
-          <span className="font-medium">{totalCount}</span> components
-        </p>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8">
-            Clear Filters
-          </Button>
-        )}
-      </div>
+      {/* Clear button - only show when filters active */}
+      {hasActiveFilters && (
+        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
+          <X className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

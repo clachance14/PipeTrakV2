@@ -8,9 +8,17 @@ import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ManhourReportData, ManhourProgressRow, ManhourGrandTotalRow } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
+import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { sortManhourReportRows } from '@/lib/report-sorting';
 
 interface ManhourReportTableProps {
   data: ManhourReportData;
+}
+
+// Sort indicator component
+function SortIndicator({ column, currentColumn, direction }: { column: string; currentColumn: string; direction: 'asc' | 'desc' }) {
+  if (column !== currentColumn) return null;
+  return <span className="ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
 }
 
 /**
@@ -33,8 +41,13 @@ function formatPercent(value: number, isGrandTotal: boolean): string {
 export function ManhourReportTable({ data }: ManhourReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Combine data rows + grand total for virtualization
-  const allRows: (ManhourProgressRow | ManhourGrandTotalRow)[] = [...data.rows, data.grandTotal];
+  // Get sort state from store
+  const { manhourReport, toggleManhourSort } = useReportPreferencesStore();
+  const { sortColumn, sortDirection } = manhourReport;
+
+  // Sort rows, then combine with grand total (grand total always at bottom)
+  const sortedRows = sortManhourReportRows(data.rows, sortColumn, sortDirection);
+  const allRows: (ManhourProgressRow | ManhourGrandTotalRow)[] = [...sortedRows, data.grandTotal];
 
   const rowVirtualizer = useVirtualizer({
     count: allRows.length,
@@ -68,33 +81,87 @@ export function ManhourReportTable({ data }: ManhourReportTableProps) {
           role="row"
           className="grid grid-cols-[2fr_1fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-4 py-3 text-sm font-semibold text-white"
         >
-          <div role="columnheader" className="text-left">
+          <button
+            role="columnheader"
+            className="text-left hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('name')}
+            aria-label={`Sort by ${dimensionLabel}`}
+          >
             {dimensionLabel}
-          </div>
-          <div role="columnheader" className="text-right">
+            <SortIndicator column="name" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('mhBudget')}
+            aria-label="Sort by MH Budget"
+          >
             MH Budget
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Receive manhours earned">
+            <SortIndicator column="mhBudget" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('receiveMhEarned')}
+            aria-label="Sort by Receive manhours earned"
+          >
             Receive
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Install manhours earned">
+            <SortIndicator column="receiveMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('installMhEarned')}
+            aria-label="Sort by Install manhours earned"
+          >
             Install
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Punch manhours earned">
+            <SortIndicator column="installMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('punchMhEarned')}
+            aria-label="Sort by Punch manhours earned"
+          >
             Punch
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Test manhours earned">
+            <SortIndicator column="punchMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('testMhEarned')}
+            aria-label="Sort by Test manhours earned"
+          >
             Test
-          </div>
-          <div role="columnheader" className="text-right hidden lg:block" aria-label="Restore manhours earned">
+            <SortIndicator column="testMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hidden lg:block hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('restoreMhEarned')}
+            aria-label="Sort by Restore manhours earned"
+          >
             Restore
-          </div>
-          <div role="columnheader" className="text-right" aria-label="Total manhours earned">
+            <SortIndicator column="restoreMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('totalMhEarned')}
+            aria-label="Sort by Total manhours earned"
+          >
             Total Earned
-          </div>
-          <div role="columnheader" className="text-right" aria-label="Percentage complete">
+            <SortIndicator column="totalMhEarned" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
+          <button
+            role="columnheader"
+            className="text-right hover:bg-slate-600 rounded px-1 -mx-1 cursor-pointer transition-colors"
+            onClick={() => toggleManhourSort('mhPctComplete')}
+            aria-label="Sort by Percentage complete"
+          >
             % Complete
-          </div>
+            <SortIndicator column="mhPctComplete" currentColumn={sortColumn} direction={sortDirection} />
+          </button>
         </div>
       </div>
 

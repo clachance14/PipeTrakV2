@@ -3,7 +3,6 @@
  * Provides quick-access filter buttons for common progress states
  */
 
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -51,7 +50,7 @@ const QUICK_FILTERS: QuickFilter[] = [
   },
 ];
 
-export function QuickFilterChips({ activeFilters, onFilterChange, onClearAll }: QuickFilterChipsProps) {
+export function QuickFilterChips({ activeFilters, onFilterChange, onClearAll: _onClearAll }: QuickFilterChipsProps) {
   // Determine which quick filters are active
   const getActiveFilters = () => {
     return QUICK_FILTERS.map(qf => ({
@@ -63,7 +62,6 @@ export function QuickFilterChips({ activeFilters, onFilterChange, onClearAll }: 
   };
 
   const filters = getActiveFilters();
-  const hasAnyFilter = Object.values(activeFilters).some(v => v !== undefined);
 
   const handleQuickFilter = (qf: QuickFilter) => {
     if (qf.isActive) {
@@ -83,9 +81,7 @@ export function QuickFilterChips({ activeFilters, onFilterChange, onClearAll }: 
   };
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-sm text-muted-foreground">Quick:</span>
-
+    <div className="flex items-center gap-1">
       {filters.map(qf => (
         <Button
           key={qf.id}
@@ -93,25 +89,13 @@ export function QuickFilterChips({ activeFilters, onFilterChange, onClearAll }: 
           size="sm"
           onClick={() => handleQuickFilter(qf)}
           className={cn(
-            'h-7 text-xs',
+            'h-7 px-2 text-xs',
             qf.isActive && 'ring-2 ring-offset-1'
           )}
         >
           {qf.label}
         </Button>
       ))}
-
-      {hasAnyFilter && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClearAll}
-          className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
-        >
-          <X className="h-3 w-3" />
-          Clear
-        </Button>
-      )}
     </div>
   );
 }
