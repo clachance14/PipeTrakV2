@@ -861,7 +861,7 @@ export function PackageDetailPage() {
                                   isPartialProgress = progressPercent > 0 && progressPercent < 100;
                                 } else {
                                   // Discrete milestone (stored as 100 or 0, or legacy true/false)
-                                  isComplete = milestoneState === 100 || milestoneState === true;
+                                  isComplete = milestoneState === 100 || milestoneState === 1 || milestoneState === true;
                                 }
 
                                 return (

@@ -314,7 +314,7 @@ export function FieldWeldRow({
               <div className="flex flex-wrap gap-4">
                 {component.template.milestones_config.map((milestoneConfig) => {
                   const currentValue = component.current_milestones[milestoneConfig.name]
-                  const isComplete = currentValue === 100 || currentValue === true
+                  const isComplete = currentValue === 100 || currentValue === 1 || currentValue === true
                   return (
                     <div key={milestoneConfig.name} className="flex items-center gap-2">
                       <MilestoneCheckbox
