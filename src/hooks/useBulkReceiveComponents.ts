@@ -74,6 +74,7 @@ export interface UseBulkReceiveReturn {
  *     .map(c => ({ id: c.id, current_milestones: c.current_milestones }))
  *
  *   const result = await bulkReceive({
+ *     projectId,
  *     components: selectedComponents,
  *     userId: user.id
  *   })

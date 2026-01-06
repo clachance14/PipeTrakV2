@@ -256,6 +256,7 @@ describe('useBulkReceiveComponents', () => {
         current_milestones: { Receive: 0 },
       }));
       const input: BulkReceiveInput = {
+        projectId: 'project-123',
         components,
         userId: 'user-123',
       };
