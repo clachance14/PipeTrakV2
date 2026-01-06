@@ -1,14 +1,23 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUpdateMilestone } from '@/hooks/useUpdateMilestone'
-import type { ComponentRow } from '@/types/drawing-table.types'
+
+/**
+ * Minimal component data needed for bulk receive
+ */
+export interface BulkReceiveComponent {
+  id: string
+  current_milestones: Record<string, boolean | number> | null
+}
 
 /**
  * Input for bulk receive operation
  */
 export interface BulkReceiveInput {
-  /** Array of component IDs to receive */
-  componentIds: string[]
+  /** Project ID for cache invalidation */
+  projectId: string
+  /** Components to potentially receive (already filtered to selected) */
+  components: BulkReceiveComponent[]
   /** User ID performing the operation */
   userId: string
 }
@@ -60,8 +69,12 @@ export interface UseBulkReceiveReturn {
  * const { bulkReceive, isProcessing, lastResult, resetResult } = useBulkReceiveComponents()
  *
  * const handleBulkReceive = async () => {
+ *   const selectedComponents = sortedComponents
+ *     .filter(c => selectedIds.has(c.id))
+ *     .map(c => ({ id: c.id, current_milestones: c.current_milestones }))
+ *
  *   const result = await bulkReceive({
- *     componentIds: ['id1', 'id2', 'id3'],
+ *     components: selectedComponents,
  *     userId: user.id
  *   })
  *
@@ -89,15 +102,8 @@ export function useBulkReceiveComponents(): UseBulkReceiveReturn {
     }
 
     try {
-      // Get component data from query cache
-      const allQueries = queryClient.getQueriesData<ComponentRow[]>({ queryKey: ['components'] })
-      const components = allQueries.flatMap(([_, data]) => data ?? [])
-
-      // Filter to only selected components that need receiving
-      // Skip components where Receive milestone is already >= 100
-      const toUpdate = components.filter((c) => {
-        if (!input.componentIds.includes(c.id)) return false
-
+      // Filter to components that need receiving (Receive < 100)
+      const toUpdate = input.components.filter((c) => {
         const receiveMilestone = c.current_milestones?.Receive
 
         // Skip if already received (value >= 100)
@@ -112,7 +118,7 @@ export function useBulkReceiveComponents(): UseBulkReceiveReturn {
         return true
       })
 
-      result.skipped = input.componentIds.length - toUpdate.length
+      result.skipped = input.components.length - toUpdate.length
       result.attempted = toUpdate.length
 
       // Implement throttled parallel execution (5 concurrent max)
@@ -142,6 +148,14 @@ export function useBulkReceiveComponents(): UseBulkReceiveReturn {
               result.errors[componentId] = r.reason?.message || 'Unknown error'
             }
           }
+        })
+      }
+
+      // Invalidate components query to trigger refetch with updated data
+      // This keeps the current view (filters, scroll) while refreshing the data
+      if (result.updated > 0) {
+        await queryClient.invalidateQueries({
+          queryKey: ['projects', input.projectId, 'components'],
         })
       }
 

@@ -148,8 +148,17 @@ export function ComponentsPage({
   const executeMarkReceived = async () => {
     if (!user?.id) return;
 
+    // Get selected components with their milestone data
+    const selectedComponents = sortedComponents
+      .filter(c => selectedComponentIds.has(c.id))
+      .map(c => ({
+        id: c.id,
+        current_milestones: c.current_milestones as Record<string, boolean | number> | null,
+      }));
+
     const result = await bulkReceive({
-      componentIds: Array.from(selectedComponentIds),
+      projectId,
+      components: selectedComponents,
       userId: user.id,
     });
 

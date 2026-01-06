@@ -12,18 +12,6 @@ vi.mock('./useUpdateMilestone', () => ({
   }),
 }));
 
-// Mock getQueriesData for the QueryClient
-const mockGetQueriesData = vi.fn();
-vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual('@tanstack/react-query');
-  return {
-    ...actual,
-    useQueryClient: () => ({
-      getQueriesData: mockGetQueriesData,
-    }),
-  };
-});
-
 describe('useBulkReceiveComponents', () => {
   let queryClient: QueryClient;
 
@@ -35,8 +23,6 @@ describe('useBulkReceiveComponents', () => {
     });
     vi.clearAllMocks();
     mockMutateAsync.mockResolvedValue({ success: true });
-    // getQueriesData returns an array of [queryKey, data] tuples
-    mockGetQueriesData.mockReturnValue([]);
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -45,31 +31,21 @@ describe('useBulkReceiveComponents', () => {
 
   describe('Skip Logic', () => {
     it('should skip components that are already received (Receive >= 100)', async () => {
-      // Arrange: Component with Receive milestone already at 100
-      const componentId = 'comp-1';
       const input: BulkReceiveInput = {
-        componentIds: [componentId],
+        projectId: 'project-123',
+        components: [{
+          id: 'comp-1',
+          current_milestones: { Receive: 100 },
+        }],
         userId: 'user-123',
       };
 
-      // getQueriesData returns array of [queryKey, data] tuples
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{
-          id: componentId,
-          current_milestones: {
-            Receive: 100,
-          },
-        }]],
-      ]);
-
-      // Act
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
       await act(async () => {
         bulkResult = await result.current.bulkReceive(input);
       });
 
-      // Assert - skipped because already at 100
       expect(bulkResult!.skipped).toBe(1);
       expect(bulkResult!.attempted).toBe(0);
       expect(bulkResult!.updated).toBe(0);
@@ -78,20 +54,14 @@ describe('useBulkReceiveComponents', () => {
     });
 
     it('should skip components with Receive > 100', async () => {
-      const componentId = 'comp-2';
       const input: BulkReceiveInput = {
-        componentIds: [componentId],
+        projectId: 'project-123',
+        components: [{
+          id: 'comp-2',
+          current_milestones: { Receive: 150 },
+        }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{
-          id: componentId,
-          current_milestones: {
-            Receive: 150, // Already exceeded
-          },
-        }]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -104,20 +74,14 @@ describe('useBulkReceiveComponents', () => {
     });
 
     it('should process components with Receive < 100', async () => {
-      const componentId = 'comp-3';
       const input: BulkReceiveInput = {
-        componentIds: [componentId],
+        projectId: 'project-123',
+        components: [{
+          id: 'comp-3',
+          current_milestones: { Receive: 50 },
+        }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{
-          id: componentId,
-          current_milestones: {
-            Receive: 50,
-          },
-        }]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -128,7 +92,7 @@ describe('useBulkReceiveComponents', () => {
       expect(bulkResult!.skipped).toBe(0);
       expect(bulkResult!.updated).toBe(1);
       expect(mockMutateAsync).toHaveBeenCalledWith({
-        component_id: componentId,
+        component_id: 'comp-3',
         milestone_name: 'Receive',
         value: 100,
         user_id: 'user-123',
@@ -136,20 +100,14 @@ describe('useBulkReceiveComponents', () => {
     });
 
     it('should process components with Receive = 0', async () => {
-      const componentId = 'comp-4';
       const input: BulkReceiveInput = {
-        componentIds: [componentId],
+        projectId: 'project-123',
+        components: [{
+          id: 'comp-4',
+          current_milestones: { Receive: 0 },
+        }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{
-          id: componentId,
-          current_milestones: {
-            Receive: 0,
-          },
-        }]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -166,18 +124,15 @@ describe('useBulkReceiveComponents', () => {
   describe('Summary Counts', () => {
     it('should return correct counts for mixed batch (updated, skipped)', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2', 'comp-3', 'comp-4'],
+        projectId: 'project-123',
+        components: [
+          { id: 'comp-1', current_milestones: { Receive: 0 } },
+          { id: 'comp-2', current_milestones: { Receive: 100 } },
+          { id: 'comp-3', current_milestones: { Receive: 50 } },
+          { id: 'comp-4', current_milestones: { Receive: 100 } },
+        ],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
-          { id: 'comp-1', current_milestones: { Receive: 0 } }, // Should update
-          { id: 'comp-2', current_milestones: { Receive: 100 } }, // Should skip
-          { id: 'comp-3', current_milestones: { Receive: 50 } }, // Should update
-          { id: 'comp-4', current_milestones: { Receive: 100 } }, // Should skip
-        ]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -185,7 +140,7 @@ describe('useBulkReceiveComponents', () => {
         bulkResult = await result.current.bulkReceive(input);
       });
 
-      expect(bulkResult!.attempted).toBe(2); // Only non-skipped attempted
+      expect(bulkResult!.attempted).toBe(2);
       expect(bulkResult!.updated).toBe(2);
       expect(bulkResult!.skipped).toBe(2);
       expect(bulkResult!.failed).toBe(0);
@@ -193,16 +148,13 @@ describe('useBulkReceiveComponents', () => {
 
     it('should return correct counts when all components are skipped', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
+        projectId: 'project-123',
+        components: [
           { id: 'comp-1', current_milestones: { Receive: 100 } },
           { id: 'comp-2', current_milestones: { Receive: 100 } },
-        ]],
-      ]);
+        ],
+        userId: 'user-123',
+      };
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -210,7 +162,7 @@ describe('useBulkReceiveComponents', () => {
         bulkResult = await result.current.bulkReceive(input);
       });
 
-      expect(bulkResult!.attempted).toBe(0); // None attempted since all skipped
+      expect(bulkResult!.attempted).toBe(0);
       expect(bulkResult!.updated).toBe(0);
       expect(bulkResult!.skipped).toBe(2);
       expect(bulkResult!.failed).toBe(0);
@@ -219,17 +171,14 @@ describe('useBulkReceiveComponents', () => {
 
     it('should return correct counts when all components are updated', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2', 'comp-3'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
+        projectId: 'project-123',
+        components: [
           { id: 'comp-1', current_milestones: { Receive: 0 } },
           { id: 'comp-2', current_milestones: { Receive: 25 } },
           { id: 'comp-3', current_milestones: { Receive: 75 } },
-        ]],
-      ]);
+        ],
+        userId: 'user-123',
+      };
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -246,11 +195,10 @@ describe('useBulkReceiveComponents', () => {
 
     it('should handle empty component list', async () => {
       const input: BulkReceiveInput = {
-        componentIds: [],
+        projectId: 'project-123',
+        components: [],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -269,28 +217,24 @@ describe('useBulkReceiveComponents', () => {
   describe('Throttling and Concurrency', () => {
     it('should process updates with limited concurrency', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2', 'comp-3', 'comp-4', 'comp-5'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
+        projectId: 'project-123',
+        components: [
           { id: 'comp-1', current_milestones: { Receive: 0 } },
           { id: 'comp-2', current_milestones: { Receive: 0 } },
           { id: 'comp-3', current_milestones: { Receive: 0 } },
           { id: 'comp-4', current_milestones: { Receive: 0 } },
           { id: 'comp-5', current_milestones: { Receive: 0 } },
-        ]],
-      ]);
+        ],
+        userId: 'user-123',
+      };
 
-      // Track concurrent calls
       let concurrentCalls = 0;
       let maxConcurrentCalls = 0;
 
       mockMutateAsync.mockImplementation(async () => {
         concurrentCalls++;
         maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
-        await new Promise(resolve => setTimeout(resolve, 50)); // Simulate delay
+        await new Promise(resolve => setTimeout(resolve, 50));
         concurrentCalls--;
         return { success: true };
       });
@@ -303,24 +247,18 @@ describe('useBulkReceiveComponents', () => {
 
       expect(bulkResult!.updated).toBe(5);
       expect(mockMutateAsync).toHaveBeenCalledTimes(5);
-      // Verify concurrency was limited (max 5 concurrent per implementation)
       expect(maxConcurrentCalls).toBeLessThanOrEqual(5);
     });
 
     it('should respect throttle limit for large batches', async () => {
-      const componentIds = Array.from({ length: 20 }, (_, i) => `comp-${i}`);
-      const input: BulkReceiveInput = {
-        componentIds,
-        userId: 'user-123',
-      };
-
-      const mockComponents = componentIds.map(id => ({
-        id,
+      const components = Array.from({ length: 20 }, (_, i) => ({
+        id: `comp-${i}`,
         current_milestones: { Receive: 0 },
       }));
-      mockGetQueriesData.mockReturnValue([
-        [['components'], mockComponents],
-      ]);
+      const input: BulkReceiveInput = {
+        components,
+        userId: 'user-123',
+      };
 
       const callOrder: number[] = [];
       mockMutateAsync.mockImplementation(async () => {
@@ -335,7 +273,6 @@ describe('useBulkReceiveComponents', () => {
       });
 
       expect(mockMutateAsync).toHaveBeenCalledTimes(20);
-      // Verify calls were throttled (not all simultaneous)
       expect(callOrder.length).toBe(20);
     });
   });
@@ -343,13 +280,10 @@ describe('useBulkReceiveComponents', () => {
   describe('Error Handling', () => {
     it('should increment failed count when update fails', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1'],
+        projectId: 'project-123',
+        components: [{ id: 'comp-1', current_milestones: { Receive: 0 } }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{ id: 'comp-1', current_milestones: { Receive: 0 } }]],
-      ]);
 
       mockMutateAsync.mockRejectedValueOnce(new Error('Update failed'));
 
@@ -367,19 +301,15 @@ describe('useBulkReceiveComponents', () => {
 
     it('should continue processing after failures', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2', 'comp-3'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
+        projectId: 'project-123',
+        components: [
           { id: 'comp-1', current_milestones: { Receive: 0 } },
           { id: 'comp-2', current_milestones: { Receive: 0 } },
           { id: 'comp-3', current_milestones: { Receive: 0 } },
-        ]],
-      ]);
+        ],
+        userId: 'user-123',
+      };
 
-      // Fail on second component, succeed on others
       mockMutateAsync
         .mockResolvedValueOnce({ success: true })
         .mockRejectedValueOnce(new Error('Network error'))
@@ -400,16 +330,13 @@ describe('useBulkReceiveComponents', () => {
 
     it('should include error details in result', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
+        projectId: 'project-123',
+        components: [
           { id: 'comp-1', current_milestones: { Receive: 0 } },
           { id: 'comp-2', current_milestones: { Receive: 0 } },
-        ]],
-      ]);
+        ],
+        userId: 'user-123',
+      };
 
       mockMutateAsync
         .mockRejectedValueOnce(new Error('Database timeout'))
@@ -429,18 +356,15 @@ describe('useBulkReceiveComponents', () => {
 
     it('should handle mixed success, skip, and failure scenarios', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2', 'comp-3', 'comp-4'],
+        projectId: 'project-123',
+        components: [
+          { id: 'comp-1', current_milestones: { Receive: 0 } },
+          { id: 'comp-2', current_milestones: { Receive: 100 } },
+          { id: 'comp-3', current_milestones: { Receive: 0 } },
+          { id: 'comp-4', current_milestones: { Receive: 50 } },
+        ],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
-          { id: 'comp-1', current_milestones: { Receive: 0 } }, // Will succeed
-          { id: 'comp-2', current_milestones: { Receive: 100 } }, // Will skip
-          { id: 'comp-3', current_milestones: { Receive: 0 } }, // Will fail
-          { id: 'comp-4', current_milestones: { Receive: 50 } }, // Will succeed
-        ]],
-      ]);
 
       mockMutateAsync
         .mockResolvedValueOnce({ success: true })
@@ -453,7 +377,7 @@ describe('useBulkReceiveComponents', () => {
         bulkResult = await result.current.bulkReceive(input);
       });
 
-      expect(bulkResult!.attempted).toBe(3); // 3 non-skipped
+      expect(bulkResult!.attempted).toBe(3);
       expect(bulkResult!.updated).toBe(2);
       expect(bulkResult!.skipped).toBe(1);
       expect(bulkResult!.failed).toBe(1);
@@ -463,13 +387,10 @@ describe('useBulkReceiveComponents', () => {
   describe('Hook State Management', () => {
     it('should set isProcessing to true during operation', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1'],
+        projectId: 'project-123',
+        components: [{ id: 'comp-1', current_milestones: { Receive: 0 } }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{ id: 'comp-1', current_milestones: { Receive: 0 } }]],
-      ]);
 
       mockMutateAsync.mockImplementation(async () => {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -500,16 +421,13 @@ describe('useBulkReceiveComponents', () => {
 
     it('should store lastResult after operation', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [
+        projectId: 'project-123',
+        components: [
           { id: 'comp-1', current_milestones: { Receive: 0 } },
           { id: 'comp-2', current_milestones: { Receive: 100 } },
-        ]],
-      ]);
+        ],
+        userId: 'user-123',
+      };
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
 
@@ -532,13 +450,10 @@ describe('useBulkReceiveComponents', () => {
 
     it('should reset result when resetResult is called', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1'],
+        projectId: 'project-123',
+        components: [{ id: 'comp-1', current_milestones: { Receive: 0 } }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{ id: 'comp-1', current_milestones: { Receive: 0 } }]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
 
@@ -559,16 +474,12 @@ describe('useBulkReceiveComponents', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle components not found in cache', async () => {
+    it('should handle component with null current_milestones', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1', 'comp-2'],
+        projectId: 'project-123',
+        components: [{ id: 'comp-1', current_milestones: null }],
         userId: 'user-123',
       };
-
-      // Return only one component (comp-2 missing from cache)
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{ id: 'comp-1', current_milestones: { Receive: 0 } }]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -576,41 +487,16 @@ describe('useBulkReceiveComponents', () => {
         bulkResult = await result.current.bulkReceive(input);
       });
 
-      // Missing component should be skipped (not found in cache)
-      expect(bulkResult!.updated).toBe(1);
-      expect(bulkResult!.skipped).toBe(1); // comp-2 not found in cache
-    });
-
-    it('should handle component with missing current_milestones', async () => {
-      const input: BulkReceiveInput = {
-        componentIds: ['comp-1'],
-        userId: 'user-123',
-      };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{ id: 'comp-1', current_milestones: null }]],
-      ]);
-
-      const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
-      let bulkResult;
-      await act(async () => {
-        bulkResult = await result.current.bulkReceive(input);
-      });
-
-      // Should handle gracefully - treat null milestones as eligible for update
       expect(bulkResult!.attempted).toBe(1);
       expect(bulkResult!.updated).toBe(1);
     });
 
-    it('should handle component with missing Receive milestone', async () => {
+    it('should handle component with empty current_milestones', async () => {
       const input: BulkReceiveInput = {
-        componentIds: ['comp-1'],
+        projectId: 'project-123',
+        components: [{ id: 'comp-1', current_milestones: {} }],
         userId: 'user-123',
       };
-
-      mockGetQueriesData.mockReturnValue([
-        [['components'], [{ id: 'comp-1', current_milestones: {} }]],
-      ]);
 
       const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
       let bulkResult;
@@ -618,8 +504,28 @@ describe('useBulkReceiveComponents', () => {
         bulkResult = await result.current.bulkReceive(input);
       });
 
-      // Treat missing Receive as eligible for update (undefined !== >= 100)
       expect(bulkResult!.attempted).toBe(1);
+      expect(bulkResult!.updated).toBe(1);
+    });
+
+    it('should handle boolean milestone values (legacy)', async () => {
+      const input: BulkReceiveInput = {
+        projectId: 'project-123',
+        components: [
+          { id: 'comp-1', current_milestones: { Receive: true } },
+          { id: 'comp-2', current_milestones: { Receive: false } },
+        ],
+        userId: 'user-123',
+      };
+
+      const { result } = renderHook(() => useBulkReceiveComponents(), { wrapper });
+      let bulkResult;
+      await act(async () => {
+        bulkResult = await result.current.bulkReceive(input);
+      });
+
+      // true converts to 100 (skip), false converts to 0 (update)
+      expect(bulkResult!.skipped).toBe(1);
       expect(bulkResult!.updated).toBe(1);
     });
   });
