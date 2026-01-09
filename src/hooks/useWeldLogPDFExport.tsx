@@ -5,7 +5,8 @@
  * Manages PDF generation lifecycle with loading states and error handling.
  *
  * Key Features:
- * - Lazy loads @react-pdf/renderer (700KB-1.2MB) only when needed
+ * - Supports two PDF engines: 'react-pdf' (default) and 'pdfmake'
+ * - Lazy loads PDF libraries only when needed
  * - Prevents multiple simultaneous exports
  * - Handles browser download triggering and permission errors
  * - Provides loading and error states for UI feedback
@@ -22,7 +23,8 @@
  *       const { blob, url, filename } = await generatePDFPreview(
  *         filteredWelds,
  *         'Project Name',
- *         companyLogo // optional
+ *         companyLogo, // optional
+ *         'pdfmake'    // optional: use pdfmake engine
  *       );
  *       openPreview(blob, url, filename);
  *       toast.success('PDF preview ready');
@@ -53,16 +55,25 @@ import { useState } from 'react';
 import { sanitizeFilename, formatDateForFilename } from '@/lib/pdfUtils';
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds';
 
+/**
+ * PDF rendering engine selection
+ * - 'react-pdf': Uses @react-pdf/renderer (flexbox-based, legacy)
+ * - 'pdfmake': Uses pdfmake (native tables, better alignment)
+ */
+export type PdfEngine = 'react-pdf' | 'pdfmake';
+
 export interface UseWeldLogPDFExportReturn {
   generatePDF: (
     welds: EnrichedFieldWeld[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    engine?: PdfEngine
   ) => Promise<Blob>;
   generatePDFPreview: (
     welds: EnrichedFieldWeld[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    engine?: PdfEngine
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
   isGenerating: boolean;
   error: Error | null;
@@ -91,30 +102,49 @@ export function useWeldLogPDFExport(): UseWeldLogPDFExportReturn {
   /**
    * Generate PDF blob for preview or download
    * Internal helper function used by both generatePDF and generatePDFPreview
+   *
+   * @param welds - Array of enriched field weld data
+   * @param projectName - Name of the project for header
+   * @param companyLogo - Optional base64-encoded logo
+   * @param engine - PDF engine to use ('react-pdf' or 'pdfmake')
    */
   const generatePDFBlob = async (
     welds: EnrichedFieldWeld[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    engine: PdfEngine = 'react-pdf'
   ): Promise<{ blob: Blob; filename: string }> => {
-    // Lazy load @react-pdf/renderer (dynamic import for code splitting)
-    const { pdf } = await import('@react-pdf/renderer');
-    const { WeldLogReportPDF } = await import(
-      '@/components/pdf/reports/WeldLogReportPDF'
-    );
-
     // Generate timestamp for filename
     const generatedDate = new Date().toISOString().split('T')[0] ?? ''; // YYYY-MM-DD
 
-    // Generate PDF blob from React component
-    const blob = await pdf(
-      <WeldLogReportPDF
-        welds={welds}
-        projectName={projectName}
-        generatedDate={generatedDate}
-        companyLogo={companyLogo}
-      />
-    ).toBlob();
+    let blob: Blob;
+
+    if (engine === 'pdfmake') {
+      // Lazy load pdfmake generator
+      const { generateWeldLogPdfMake } = await import('@/lib/pdf/weldLogPdfMake');
+      blob = await generateWeldLogPdfMake({
+        welds,
+        projectName,
+        generatedDate,
+        companyLogo,
+      });
+    } else {
+      // Lazy load @react-pdf/renderer (default)
+      const { pdf } = await import('@react-pdf/renderer');
+      const { WeldLogReportPDF } = await import(
+        '@/components/pdf/reports/WeldLogReportPDF'
+      );
+
+      // Generate PDF blob from React component
+      blob = await pdf(
+        <WeldLogReportPDF
+          welds={welds}
+          projectName={projectName}
+          generatedDate={generatedDate}
+          companyLogo={companyLogo}
+        />
+      ).toBlob();
+    }
 
     // Generate filename
     const filename = generateWeldLogPDFFilename(projectName, new Date());
@@ -124,11 +154,17 @@ export function useWeldLogPDFExport(): UseWeldLogPDFExportReturn {
 
   /**
    * Generate PDF preview (returns blob and object URL without downloading)
+   *
+   * @param welds - Array of enriched field weld data
+   * @param projectName - Name of the project for header
+   * @param companyLogo - Optional base64-encoded logo
+   * @param engine - PDF engine to use (default: 'react-pdf')
    */
   const generatePDFPreview = async (
     welds: EnrichedFieldWeld[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    engine: PdfEngine = 'react-pdf'
   ): Promise<{ blob: Blob; url: string; filename: string }> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -142,7 +178,8 @@ export function useWeldLogPDFExport(): UseWeldLogPDFExportReturn {
       const { blob, filename } = await generatePDFBlob(
         welds,
         projectName,
-        companyLogo
+        companyLogo,
+        engine
       );
 
       // Create object URL for preview (caller is responsible for cleanup)
@@ -163,11 +200,17 @@ export function useWeldLogPDFExport(): UseWeldLogPDFExportReturn {
 
   /**
    * Generate and download weld log PDF
+   *
+   * @param welds - Array of enriched field weld data
+   * @param projectName - Name of the project for header
+   * @param companyLogo - Optional base64-encoded logo
+   * @param engine - PDF engine to use (default: 'react-pdf')
    */
   const generatePDF = async (
     welds: EnrichedFieldWeld[],
     projectName: string,
-    companyLogo?: string
+    companyLogo?: string,
+    engine: PdfEngine = 'react-pdf'
   ): Promise<Blob> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -181,7 +224,8 @@ export function useWeldLogPDFExport(): UseWeldLogPDFExportReturn {
       const { blob, filename } = await generatePDFBlob(
         welds,
         projectName,
-        companyLogo
+        companyLogo,
+        engine
       );
 
       // Trigger browser download
