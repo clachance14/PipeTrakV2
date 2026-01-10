@@ -247,23 +247,50 @@ export async function generateWeldLogPdfMake(options: WeldLogPdfOptions): Promis
 
   console.log('[pdfmake] Modules loaded');
 
-  // Get the pdfmake instance
+  // Get the pdfmake instance (handles default export variations)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfMake = pdfMakeModule.default || pdfMakeModule;
+  const pdfMake = (pdfMakeModule as any).default || pdfMakeModule;
 
-  // Set up fonts - v0.1.72 uses pdfFonts.pdfMake.vfs structure
+  // Extract VFS fonts - handle all possible module structures
+  // Different bundlers (Vite dev vs production, webpack, etc.) export differently
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfFonts = pdfFontsModule as any;
+  let vfs: Record<string, string> | undefined;
+
   if (pdfFonts.pdfMake?.vfs) {
+    // Standard CommonJS structure (dev mode)
     console.log('[pdfmake] Using pdfFonts.pdfMake.vfs');
-    pdfMake.vfs = pdfFonts.pdfMake.vfs;
+    vfs = pdfFonts.pdfMake.vfs;
   } else if (pdfFonts.default?.pdfMake?.vfs) {
+    // ESM default export wrapping CommonJS
     console.log('[pdfmake] Using pdfFonts.default.pdfMake.vfs');
-    pdfMake.vfs = pdfFonts.default.pdfMake.vfs;
-  } else {
-    console.log('[pdfmake] Font structure:', Object.keys(pdfFonts).slice(0, 5));
-    console.log('[pdfmake] Default structure:', pdfFonts.default ? Object.keys(pdfFonts.default).slice(0, 5) : 'N/A');
+    vfs = pdfFonts.default.pdfMake.vfs;
+  } else if (pdfFonts.default?.vfs) {
+    // Vite production bundle structure
+    console.log('[pdfmake] Using pdfFonts.default.vfs');
+    vfs = pdfFonts.default.vfs;
+  } else if (pdfFonts.vfs) {
+    // Direct vfs export
+    console.log('[pdfmake] Using pdfFonts.vfs');
+    vfs = pdfFonts.vfs;
+  } else if (typeof pdfFonts.default === 'object') {
+    // Last resort: search for vfs object containing font files
+    console.log('[pdfmake] Searching for vfs in default object');
+    vfs = Object.values(pdfFonts.default).find(
+      (v): v is Record<string, string> =>
+        v != null && typeof v === 'object' && 'Roboto-Regular.ttf' in (v as object)
+    );
   }
+
+  if (!vfs) {
+    console.error('[pdfmake] Could not find VFS fonts. Module structure:', {
+      keys: Object.keys(pdfFonts),
+      defaultKeys: pdfFonts.default ? Object.keys(pdfFonts.default) : 'N/A',
+    });
+    throw new Error('Failed to load PDF fonts - VFS not found in any expected location');
+  }
+
+  pdfMake.vfs = vfs;
 
   // Build document definition
   console.log('[pdfmake] Building document definition...');
