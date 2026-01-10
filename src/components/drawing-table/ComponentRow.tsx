@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isDemoUser } from '@/components/demo/DemoModeBanner'
 import { cn } from '@/lib/utils'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
+import { isAggregatePipe, getMilestonePercentValue, isMilestoneComplete } from '@/lib/aggregatePipe'
 import type { ComponentRow as ComponentRowType, MilestoneConfig, RollbackReasonData } from '@/types/drawing-table.types'
 
 /**
@@ -172,14 +173,10 @@ export function ComponentRow({
 
   // Aggregate pipe display logic (Feature 027 + pipe aggregates)
   // Applies to both 'pipe' and 'threaded_pipe' component types with -AGG suffix
-  const isAggregatePipe =
-    (component.component_type === 'threaded_pipe' || component.component_type === 'pipe') &&
-    component.identity_key &&
-    'pipe_id' in component.identity_key &&
-    component.identity_key.pipe_id?.endsWith('-AGG')
+  const componentIsAggregatePipe = isAggregatePipe(component.component_type, component.identity_key)
 
   const getIdentityDisplay = () => {
-    if (!isAggregatePipe) {
+    if (!componentIsAggregatePipe) {
       return component.identityDisplay
     }
 
@@ -195,7 +192,7 @@ export function ComponentRow({
   }
 
   const getLineNumberTooltip = () => {
-    if (!isAggregatePipe) {
+    if (!componentIsAggregatePipe) {
       return undefined
     }
 
@@ -221,35 +218,14 @@ export function ComponentRow({
     })
   }
 
-  // Only threaded_pipe aggregates use _LF suffix keys for milestones
-  // Regular pipe aggregates use standard percentage keys
-  const isAggregateThreadedPipe = isAggregatePipe && component.component_type === 'threaded_pipe'
-
   const getMilestoneControl = (milestoneConfig: MilestoneConfig) => {
-    // For aggregate THREADED pipe only, database stores milestones with "_LF" suffix
-    // We need to convert absolute LF values back to percentages for display
-    // Regular pipe aggregates use standard percentage keys directly
-    let currentValue = component.current_milestones[milestoneConfig.name]
-
-    if (isAggregateThreadedPipe && milestoneConfig.is_partial) {
-      const lfKey = `${milestoneConfig.name}_LF`
-      const lfValue = component.current_milestones[lfKey]
-      const totalLF = component.attributes?.total_linear_feet ?? 0
-
-      if (typeof lfValue === 'number' && totalLF > 0) {
-        // Convert absolute LF to percentage: (LF / total) * 100
-        currentValue = Math.round((lfValue / totalLF) * 100)
-      } else {
-        currentValue = 0
-      }
-    }
-
     // Partial milestone (percentage) - inline numeric input
     if (milestoneConfig.is_partial) {
+      const percentValue = getMilestonePercentValue(component, milestoneConfig.name, true)
       return (
         <PartialMilestoneInput
           milestone={milestoneConfig}
-          currentValue={typeof currentValue === 'number' ? currentValue : 0}
+          currentValue={percentValue}
           onUpdate={(value) => handleMilestoneChange(milestoneConfig.name, value)}
           disabled={!component.canUpdate}
           isMobile={isMobile}
@@ -259,12 +235,12 @@ export function ComponentRow({
       )
     }
 
-    // Discrete milestone (checkbox) - increase hit area on mobile
-    // Database stores 100 (complete) or 0 (incomplete) as numeric values
+    // Discrete milestone (checkbox)
+    const currentValue = component.current_milestones[milestoneConfig.name]
     return (
       <MilestoneCheckbox
         milestone={milestoneConfig}
-        checked={currentValue === 100 || currentValue === 1 || currentValue === true}
+        checked={isMilestoneComplete(currentValue)}
         onChange={(checked) => handleMilestoneChange(milestoneConfig.name, checked ? 100 : 0)}
         disabled={!component.canUpdate}
         abbreviate={isMobile}
@@ -412,14 +388,12 @@ export function ComponentRow({
       <div className="w-3 flex-shrink-0" />
 
       {/* Component type and identity display */}
-      {isAggregatePipe ? (
+      {componentIsAggregatePipe ? (
         <div className="w-[280px] pr-4 flex-shrink-0">
           <div className="flex flex-col">
-            {/* Component type */}
             <div className="text-sm font-medium text-slate-600">
               {component.component_type === 'threaded_pipe' ? 'Threaded Pipe' : 'Pipe'}
             </div>
-            {/* Size and total LF */}
             <div className="font-mono text-xs text-slate-700" title={lineNumberTooltip}>
               {identityDisplay}
             </div>
@@ -430,69 +404,43 @@ export function ComponentRow({
           <span className="font-medium text-slate-600">
             {formatComponentType(component.component_type)}:
           </span>
-          <span
-            className="ml-2 font-mono text-slate-700"
-            title={lineNumberTooltip}
-          >
+          <span className="ml-2 font-mono text-slate-700" title={lineNumberTooltip}>
             {identityDisplay}
           </span>
         </div>
       )}
 
       {/* Milestone controls */}
-      {isAggregatePipe ? (
-        // Single merged milestone area spanning all milestone columns
+      {componentIsAggregatePipe ? (
         <div className="flex items-center gap-1 px-2">
-          {/* Partial milestones (5 inputs) - Use PartialMilestoneInput to prevent onChange saves */}
+          {/* Partial milestones */}
           {component.template.milestones_config
             .filter(m => m.is_partial)
-            .map((milestone) => {
-              let percentValue = 0
+            .map((milestone) => (
+              <PartialMilestoneInput
+                key={milestone.name}
+                milestone={milestone}
+                currentValue={getMilestonePercentValue(component, milestone.name, true)}
+                onUpdate={(value) => handleMilestoneChange(milestone.name, value)}
+                disabled={!component.canUpdate}
+                abbreviate={true}
+                component={component}
+                variant="compact"
+                showLinearFeetHelper={false}
+              />
+            ))}
 
-              if (isAggregateThreadedPipe) {
-                // For aggregate THREADED pipe, database stores milestones with "_LF" suffix
-                // We need to convert absolute LF values back to percentages for display
-                const lfKey = `${milestone.name}_LF`
-                const lfValue = component.current_milestones[lfKey]
-                const totalLF = component.attributes?.total_linear_feet ?? 0
-
-                if (typeof lfValue === 'number' && totalLF > 0) {
-                  // Convert absolute LF to percentage: (LF / total) * 100
-                  percentValue = Math.round((lfValue / totalLF) * 100)
-                }
-              } else {
-                // Regular pipe aggregates use standard percentage keys
-                const currentValue = component.current_milestones[milestone.name]
-                percentValue = typeof currentValue === 'number' ? currentValue : 0
-              }
-
-              return (
-                <PartialMilestoneInput
-                  key={milestone.name}
-                  milestone={milestone}
-                  currentValue={percentValue}
-                  onUpdate={(value) => handleMilestoneChange(milestone.name, value)}
-                  disabled={!component.canUpdate}
-                  abbreviate={true}
-                  component={component}
-                  variant="compact"
-                  showLinearFeetHelper={false}
-                />
-              )
-            })}
-
-          {/* QA checkboxes (3 discrete milestones) */}
+          {/* Discrete milestones (QA checkboxes) */}
           {component.template.milestones_config
             .filter(m => !m.is_partial)
             .map((milestone) => {
               const currentValue = component.current_milestones[milestone.name]
-              const checked = currentValue === 100 || currentValue === 1 || currentValue === true
               const abbreviation = LABEL_ABBREVIATIONS[milestone.name] || milestone.name
 
               return (
                 <label key={milestone.name} className="inline-flex items-center gap-1 cursor-pointer">
                   <Checkbox
-                    checked={checked}
+                    checked={isMilestoneComplete(currentValue)}
                     onCheckedChange={(checkedState) => handleMilestoneChange(milestone.name, checkedState === true ? 100 : 0)}
                     disabled={!component.canUpdate}
                     className={cn('h-3 w-3', !component.canUpdate && 'cursor-not-allowed')}
@@ -503,7 +451,6 @@ export function ComponentRow({
             })}
         </div>
       ) : (
-        // Regular milestone columns for non-aggregate components
         component.template.milestones_config.map((milestone) => (
           <div
             key={milestone.name}

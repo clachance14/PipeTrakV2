@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
+import { isAggregatePipe } from '@/lib/aggregatePipe'
 import type { MilestoneConfig, ComponentRow } from '@/types/drawing-table.types'
 
 export interface PartialMilestoneInputProps {
@@ -78,15 +79,13 @@ export function PartialMilestoneInput({
   const revertTimerRef = useRef<NodeJS.Timeout | null>(null)
   const justSavedRef = useRef(false)
 
-  // Feature 027: Aggregate pipe helper text (applies to both 'pipe' and 'threaded_pipe')
-  const isAggregatePipe =
-    (component?.component_type === 'threaded_pipe' || component?.component_type === 'pipe') &&
-    component?.identity_key &&
-    'pipe_id' in component.identity_key &&
-    component.identity_key.pipe_id?.endsWith('-AGG')
+  // Aggregate pipe helper text (Feature 027)
+  const componentIsAggregatePipe = component
+    ? isAggregatePipe(component.component_type, component.identity_key)
+    : false
 
   const totalLF = component?.attributes?.total_linear_feet
-  const linearFeet = totalLF && isAggregatePipe
+  const linearFeet = totalLF && componentIsAggregatePipe
     ? Math.round((localValue / 100) * totalLF)
     : null
 
@@ -229,8 +228,8 @@ export function PartialMilestoneInput({
     }
   }
 
-  // Force abbreviations for aggregate threaded pipe
-  const shouldAbbreviate = abbreviate || isAggregatePipe
+  // Force abbreviations for aggregate pipe
+  const shouldAbbreviate = abbreviate || componentIsAggregatePipe
   const finalLabel = shouldAbbreviate && LABEL_ABBREVIATIONS[milestone.name]
     ? LABEL_ABBREVIATIONS[milestone.name]
     : milestone.name
