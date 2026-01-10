@@ -241,9 +241,23 @@ export function buildDocDefinition(options: WeldLogPdfOptions): TDocumentDefinit
 export async function generateWeldLogPdfMake(options: WeldLogPdfOptions): Promise<Blob> {
   console.log('[pdfmake] Starting PDF generation with v0.1.72...');
 
+  // Set up global pdfMake object BEFORE importing vfs_fonts
+  // vfs_fonts.js does `this.pdfMake = this.pdfMake || {}` which fails in ESM
+  // when `this` is undefined. Setting up window.pdfMake first prevents this.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globalObj = typeof window !== 'undefined' ? window : globalThis;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(globalObj as any).pdfMake) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalObj as any).pdfMake = {};
+  }
+
   // Lazy load pdfmake and fonts (dynamic import for code splitting)
   const pdfMakeModule = await import('pdfmake/build/pdfmake');
-  const pdfFontsModule = await import('pdfmake/build/vfs_fonts');
+
+  // Import vfs_fonts - it will attach fonts to globalObj.pdfMake.vfs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfFontsModule = await import('pdfmake/build/vfs_fonts') as any;
 
   console.log('[pdfmake] Modules loaded');
 
@@ -251,43 +265,32 @@ export async function generateWeldLogPdfMake(options: WeldLogPdfOptions): Promis
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfMake = (pdfMakeModule as any).default || pdfMakeModule;
 
-  // Extract VFS fonts - handle all possible module structures
-  // Different bundlers (Vite dev vs production, webpack, etc.) export differently
+  // Get VFS from multiple possible locations:
+  // 1. Module export (test mocks, some bundlers)
+  // 2. Global object (production vfs_fonts attaches here)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfFonts = pdfFontsModule as any;
   let vfs: Record<string, string> | undefined;
 
-  if (pdfFonts.pdfMake?.vfs) {
-    // Standard CommonJS structure (dev mode)
-    console.log('[pdfmake] Using pdfFonts.pdfMake.vfs');
-    vfs = pdfFonts.pdfMake.vfs;
-  } else if (pdfFonts.default?.pdfMake?.vfs) {
-    // ESM default export wrapping CommonJS
-    console.log('[pdfmake] Using pdfFonts.default.pdfMake.vfs');
-    vfs = pdfFonts.default.pdfMake.vfs;
-  } else if (pdfFonts.default?.vfs) {
-    // Vite production bundle structure
-    console.log('[pdfmake] Using pdfFonts.default.vfs');
-    vfs = pdfFonts.default.vfs;
-  } else if (pdfFonts.vfs) {
-    // Direct vfs export
-    console.log('[pdfmake] Using pdfFonts.vfs');
-    vfs = pdfFonts.vfs;
-  } else if (typeof pdfFonts.default === 'object') {
-    // Last resort: search for vfs object containing font files
-    console.log('[pdfmake] Searching for vfs in default object');
-    vfs = Object.values(pdfFonts.default).find(
-      (v): v is Record<string, string> =>
-        v != null && typeof v === 'object' && 'Roboto-Regular.ttf' in (v as object)
-    );
+  // Check module export first (works with mocks and some bundlers)
+  if (pdfFontsModule.pdfMake?.vfs) {
+    console.log('[pdfmake] Using pdfFontsModule.pdfMake.vfs');
+    vfs = pdfFontsModule.pdfMake.vfs;
+  } else if (pdfFontsModule.default?.pdfMake?.vfs) {
+    console.log('[pdfmake] Using pdfFontsModule.default.pdfMake.vfs');
+    vfs = pdfFontsModule.default.pdfMake.vfs;
+  } else if ((globalObj as any).pdfMake?.vfs) {
+    // Check global object (production vfs_fonts attaches here)
+    console.log('[pdfmake] Using global pdfMake.vfs');
+    vfs = (globalObj as any).pdfMake.vfs;
   }
 
   if (!vfs) {
-    console.error('[pdfmake] Could not find VFS fonts. Module structure:', {
-      keys: Object.keys(pdfFonts),
-      defaultKeys: pdfFonts.default ? Object.keys(pdfFonts.default) : 'N/A',
+    console.error('[pdfmake] Could not find VFS fonts. Checked:', {
+      moduleKeys: Object.keys(pdfFontsModule),
+      moduleDefaultKeys: pdfFontsModule.default ? Object.keys(pdfFontsModule.default) : 'N/A',
+      globalPdfMakeKeys: (globalObj as any).pdfMake ? Object.keys((globalObj as any).pdfMake) : 'N/A',
     });
-    throw new Error('Failed to load PDF fonts - VFS not found in any expected location');
+    throw new Error('Failed to load PDF fonts - VFS not found');
   }
 
   pdfMake.vfs = vfs;

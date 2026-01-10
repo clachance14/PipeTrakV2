@@ -13,4 +13,10 @@ export default defineConfig({
   optimizeDeps: {
     include: ['pdfmake/build/pdfmake', 'pdfmake/build/vfs_fonts'],
   },
+  build: {
+    commonjsOptions: {
+      include: [/pdfmake/, /node_modules/],
+      transformMixedEsModules: true,
+    },
+  },
 })
