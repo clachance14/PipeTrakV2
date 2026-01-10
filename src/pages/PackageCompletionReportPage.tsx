@@ -4,8 +4,15 @@
  *
  * Dedicated page showing package components grouped by drawing
  * with weld log and NDE data for completion reporting.
+ *
+ * Export Features:
+ * - Export options dialog for detail level selection
+ * - Configurable weld detail (summary vs full log)
+ * - Large package warning (>500 welds)
+ * - PDF preview before download
  */
 
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ClipboardList, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,11 +20,15 @@ import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { usePackageDetails } from '@/hooks/usePackages';
 import { usePackageCompletionReport } from '@/hooks/usePackageCompletionReport';
-import { usePackageCompletionPDFExport } from '@/hooks/usePackageCompletionPDFExport';
+import {
+  usePackageCompletionPDFExport,
+  type PackageExportOptions,
+} from '@/hooks/usePackageCompletionPDFExport';
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
 import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { PackageCompletionReport } from '@/components/packages/completion-report/PackageCompletionReport';
 import { PackageSummaryTables } from '@/components/packages/completion-report/PackageSummaryTables';
+import { ExportOptionsDialog } from '@/components/packages/ExportOptionsDialog';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/EmptyState';
@@ -26,6 +37,9 @@ export function PackageCompletionReportPage() {
   const { packageId } = useParams<{ packageId: string }>();
   const { selectedProjectId } = useProject();
   const navigate = useNavigate();
+
+  // Export options dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Fetch package metadata for header
   const { data: packageDetails, isLoading: packageLoading } = usePackageDetails(packageId);
@@ -38,8 +52,12 @@ export function PackageCompletionReportPage() {
     error,
   } = usePackageCompletionReport(packageId, selectedProjectId || '');
 
-  // PDF export hook
-  const { generatePDFPreview, isGenerating } = usePackageCompletionPDFExport();
+  // PDF export hook - use new unified fetch methods
+  const {
+    generatePDFWithOptions,
+    generatePDFPreviewWithOptions,
+    isGenerating,
+  } = usePackageCompletionPDFExport();
 
   // PDF preview state
   const { previewState, openPreview, closePreview } = usePDFPreviewState();
@@ -47,23 +65,58 @@ export function PackageCompletionReportPage() {
 
   const isLoading = packageLoading || reportLoading;
 
-  // Handle PDF export (opens preview dialog)
-  const handleExportPDF = async () => {
+  // Open export options dialog
+  const handleOpenExportDialog = () => {
     if (!reportData || !packageDetails) {
       toast.error('Cannot export: report data not loaded');
       return;
     }
+    setExportDialogOpen(true);
+  };
+
+  // Handle PDF export with options (direct download)
+  const handleExport = async (options: PackageExportOptions) => {
+    if (!packageId || !selectedProjectId || !packageDetails) {
+      toast.error('Cannot export: missing package information');
+      return;
+    }
 
     try {
-      const { blob, url, filename } = await generatePDFPreview(
-        reportData,
+      await generatePDFWithOptions(
+        packageId,
+        selectedProjectId,
         packageDetails.name || 'Unknown Project',
+        options,
         companyLogo ?? undefined
       );
-      openPreview(blob, url, filename);
+      setExportDialogOpen(false);
+      toast.success('PDF downloaded successfully');
     } catch (err) {
       console.error('PDF export error:', err);
       toast.error('Failed to generate PDF');
+    }
+  };
+
+  // Handle PDF preview with options
+  const handlePreview = async (options: PackageExportOptions) => {
+    if (!packageId || !selectedProjectId || !packageDetails) {
+      toast.error('Cannot preview: missing package information');
+      return;
+    }
+
+    try {
+      const { blob, url, filename } = await generatePDFPreviewWithOptions(
+        packageId,
+        selectedProjectId,
+        packageDetails.name || 'Unknown Project',
+        options,
+        companyLogo ?? undefined
+      );
+      setExportDialogOpen(false);
+      openPreview(blob, url, filename);
+    } catch (err) {
+      console.error('PDF preview error:', err);
+      toast.error('Failed to generate PDF preview');
     }
   };
 
@@ -109,12 +162,12 @@ export function PackageCompletionReportPage() {
           {/* Export PDF Button (Desktop Only) */}
           <div className="hidden lg:flex gap-2">
             <Button
-              onClick={handleExportPDF}
+              onClick={handleOpenExportDialog}
               disabled={isGenerating || !reportData}
               className="gap-2"
             >
               <Download className="h-4 w-4" />
-              {isGenerating ? 'Generating...' : 'Preview & Export PDF'}
+              {isGenerating ? 'Generating...' : 'Export PDF'}
             </Button>
           </div>
         </div>
@@ -252,6 +305,17 @@ export function PackageCompletionReportPage() {
           </div>
         </div>
       </div>
+
+      {/* Export Options Dialog */}
+      <ExportOptionsDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={handleExport}
+        onPreview={handlePreview}
+        weldCount={reportData?.overall_nde_summary.total_welds ?? 0}
+        drawingCount={reportData?.drawing_groups.length ?? 0}
+        isGenerating={isGenerating}
+      />
 
       {/* PDF Preview Dialog */}
       <PDFPreviewDialog

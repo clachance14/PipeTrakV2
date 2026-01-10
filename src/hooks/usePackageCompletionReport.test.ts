@@ -572,14 +572,13 @@ describe('usePackageCompletionReport', () => {
       // Should have 1 row with quantity = 2 (grouped by identity excluding seq)
       expect(report?.component_summary).toHaveLength(1);
       expect(report?.component_summary[0]).toEqual({
-        drawing_no_norm: 'P-001',
         component_type: 'spool',
         identity_display: '1-SPOOL-A',
         quantity: 2,
       });
     });
 
-    it('should sort component summary by drawing then component type', async () => {
+    it('should sort component summary by component type then identity', async () => {
       const mixedComponents: PackageComponent[] = [
         {
           id: 'comp-1',
@@ -628,12 +627,9 @@ describe('usePackageCompletionReport', () => {
 
       const report = result.current.data;
 
-      // Should be sorted: P-001 (field_weld, then spool), then P-002 (valve)
-      expect(report?.component_summary[0].drawing_no_norm).toBe('P-001');
+      // Should be sorted by component_type first: field_weld, spool, valve
       expect(report?.component_summary[0].component_type).toBe('field_weld');
-      expect(report?.component_summary[1].drawing_no_norm).toBe('P-001');
       expect(report?.component_summary[1].component_type).toBe('spool');
-      expect(report?.component_summary[2].drawing_no_norm).toBe('P-002');
       expect(report?.component_summary[2].component_type).toBe('valve');
     });
 
