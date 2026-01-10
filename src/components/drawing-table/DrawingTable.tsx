@@ -145,13 +145,13 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
           // Moderately reduced height for mobile button layout
           return 70 + (milestoneRows * 53)
         }
-        // Check for aggregate threaded pipe (Title-cell layout)
-        const isAggregateThreadedPipe =
-          row.data.component_type === 'threaded_pipe' &&
+        // Check for aggregate pipe (Title-cell layout) - applies to both 'pipe' and 'threaded_pipe'
+        const isAggregatePipe =
+          (row.data.component_type === 'threaded_pipe' || row.data.component_type === 'pipe') &&
           row.data.identity_key &&
           'pipe_id' in row.data.identity_key &&
           row.data.identity_key.pipe_id?.endsWith('-AGG')
-        if (isAggregateThreadedPipe) {
+        if (isAggregatePipe) {
           // Card layout: type (14px) + size/LF (12px) + progress (12px) + gaps (8px) + padding (24px) = ~70px
           return 70
         }

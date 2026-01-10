@@ -170,15 +170,16 @@ export function ComponentRow({
     navigate(`/packages/${packageId}/components`)
   }
 
-  // Aggregate threaded pipe display logic (Feature 027)
-  const isAggregateThreadedPipe =
-    component.component_type === 'threaded_pipe' &&
+  // Aggregate pipe display logic (Feature 027 + pipe aggregates)
+  // Applies to both 'pipe' and 'threaded_pipe' component types with -AGG suffix
+  const isAggregatePipe =
+    (component.component_type === 'threaded_pipe' || component.component_type === 'pipe') &&
     component.identity_key &&
     'pipe_id' in component.identity_key &&
     component.identity_key.pipe_id?.endsWith('-AGG')
 
   const getIdentityDisplay = () => {
-    if (!isAggregateThreadedPipe) {
+    if (!isAggregatePipe) {
       return component.identityDisplay
     }
 
@@ -194,7 +195,7 @@ export function ComponentRow({
   }
 
   const getLineNumberTooltip = () => {
-    if (!isAggregateThreadedPipe) {
+    if (!isAggregatePipe) {
       return undefined
     }
 
@@ -220,9 +221,14 @@ export function ComponentRow({
     })
   }
 
+  // Only threaded_pipe aggregates use _LF suffix keys for milestones
+  // Regular pipe aggregates use standard percentage keys
+  const isAggregateThreadedPipe = isAggregatePipe && component.component_type === 'threaded_pipe'
+
   const getMilestoneControl = (milestoneConfig: MilestoneConfig) => {
-    // For aggregate threaded pipe, database stores milestones with "_LF" suffix
+    // For aggregate THREADED pipe only, database stores milestones with "_LF" suffix
     // We need to convert absolute LF values back to percentages for display
+    // Regular pipe aggregates use standard percentage keys directly
     let currentValue = component.current_milestones[milestoneConfig.name]
 
     if (isAggregateThreadedPipe && milestoneConfig.is_partial) {
@@ -406,20 +412,16 @@ export function ComponentRow({
       <div className="w-3 flex-shrink-0" />
 
       {/* Component type and identity display */}
-      {isAggregateThreadedPipe ? (
+      {isAggregatePipe ? (
         <div className="w-[280px] pr-4 flex-shrink-0">
           <div className="flex flex-col">
             {/* Component type */}
             <div className="text-sm font-medium text-slate-600">
-              Threaded Pipe
+              {component.component_type === 'threaded_pipe' ? 'Threaded Pipe' : 'Pipe'}
             </div>
             {/* Size and total LF */}
             <div className="font-mono text-xs text-slate-700" title={lineNumberTooltip}>
               {identityDisplay}
-            </div>
-            {/* Progress percentage */}
-            <div className="text-xs font-semibold text-slate-800">
-              {component.percent_complete.toFixed(0)}%
             </div>
           </div>
         </div>
@@ -438,23 +440,30 @@ export function ComponentRow({
       )}
 
       {/* Milestone controls */}
-      {isAggregateThreadedPipe ? (
+      {isAggregatePipe ? (
         // Single merged milestone area spanning all milestone columns
         <div className="flex items-center gap-1 px-2">
           {/* Partial milestones (5 inputs) - Use PartialMilestoneInput to prevent onChange saves */}
           {component.template.milestones_config
             .filter(m => m.is_partial)
             .map((milestone) => {
-              // For aggregate threaded pipe, database stores milestones with "_LF" suffix
-              // We need to convert absolute LF values back to percentages for display
-              const lfKey = `${milestone.name}_LF`
-              const lfValue = component.current_milestones[lfKey]
-              const totalLF = component.attributes?.total_linear_feet ?? 0
-
               let percentValue = 0
-              if (typeof lfValue === 'number' && totalLF > 0) {
-                // Convert absolute LF to percentage: (LF / total) * 100
-                percentValue = Math.round((lfValue / totalLF) * 100)
+
+              if (isAggregateThreadedPipe) {
+                // For aggregate THREADED pipe, database stores milestones with "_LF" suffix
+                // We need to convert absolute LF values back to percentages for display
+                const lfKey = `${milestone.name}_LF`
+                const lfValue = component.current_milestones[lfKey]
+                const totalLF = component.attributes?.total_linear_feet ?? 0
+
+                if (typeof lfValue === 'number' && totalLF > 0) {
+                  // Convert absolute LF to percentage: (LF / total) * 100
+                  percentValue = Math.round((lfValue / totalLF) * 100)
+                }
+              } else {
+                // Regular pipe aggregates use standard percentage keys
+                const currentValue = component.current_milestones[milestone.name]
+                percentValue = typeof currentValue === 'number' ? currentValue : 0
               }
 
               return (
@@ -539,12 +548,12 @@ export function ComponentRow({
         />
       </div>
 
-      {/* Progress percentage (hidden for aggregate threaded pipe, shown in Title column) */}
+      {/* Progress percentage */}
       <div className={cn(
         "min-w-[130px] text-sm font-semibold text-slate-800 transition-all duration-300",
         isHighlighted && "bg-yellow-200 text-yellow-900 rounded px-2 -mx-2 scale-110"
       )}>
-        {!isAggregateThreadedPipe && `${component.percent_complete.toFixed(0)}%`}
+        {component.percent_complete.toFixed(0)}%
       </div>
 
       {/* Spacer for Items column (component rows don't show item count) */}

@@ -713,9 +713,10 @@ describe('ComponentRow', () => {
           line_numbers: ['101', '205']
         },
         current_milestones: {
-          Fabricate: 50,
-          Install: 30,
-          Erect: 0,
+          // Aggregate pipe uses _LF suffix keys for partial milestones
+          Fabricate_LF: 50,  // 50 LF out of 100 total = 50%
+          Install_LF: 30,    // 30 LF out of 100 total = 30%
+          Erect_LF: 0,
           Connect: 0,
           Support: 0
         },

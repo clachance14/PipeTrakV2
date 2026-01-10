@@ -78,15 +78,15 @@ export function PartialMilestoneInput({
   const revertTimerRef = useRef<NodeJS.Timeout | null>(null)
   const justSavedRef = useRef(false)
 
-  // Feature 027: Aggregate threaded pipe helper text
-  const isAggregateThreadedPipe =
-    component?.component_type === 'threaded_pipe' &&
-    component.identity_key &&
+  // Feature 027: Aggregate pipe helper text (applies to both 'pipe' and 'threaded_pipe')
+  const isAggregatePipe =
+    (component?.component_type === 'threaded_pipe' || component?.component_type === 'pipe') &&
+    component?.identity_key &&
     'pipe_id' in component.identity_key &&
     component.identity_key.pipe_id?.endsWith('-AGG')
 
   const totalLF = component?.attributes?.total_linear_feet
-  const linearFeet = totalLF && isAggregateThreadedPipe
+  const linearFeet = totalLF && isAggregatePipe
     ? Math.round((localValue / 100) * totalLF)
     : null
 
@@ -230,7 +230,7 @@ export function PartialMilestoneInput({
   }
 
   // Force abbreviations for aggregate threaded pipe
-  const shouldAbbreviate = abbreviate || isAggregateThreadedPipe
+  const shouldAbbreviate = abbreviate || isAggregatePipe
   const finalLabel = shouldAbbreviate && LABEL_ABBREVIATIONS[milestone.name]
     ? LABEL_ABBREVIATIONS[milestone.name]
     : milestone.name
