@@ -13,7 +13,7 @@ import { useManhourBudget, useBudgetVersionHistory } from '@/hooks/useManhourBud
 import { BudgetCreateForm } from './BudgetCreateForm';
 import { DistributionResults } from './DistributionResults';
 import { BudgetVersionHistory } from './BudgetVersionHistory';
-import { Calendar, DollarSign, FileText, Plus } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus } from 'lucide-react';
 
 // Type for distribution result from RPC (matches CreateBudgetResult from BudgetCreateForm)
 interface DistributionResult {
@@ -40,18 +40,48 @@ function formatNumber(num: number): string {
   });
 }
 
-function formatDate(dateString: string): string {
-  // Parse as local date to avoid timezone shift for date-only strings
-  const parts = dateString.split('-').map(Number);
-  const year = parts[0] ?? 0;
-  const month = parts[1] ?? 1;
-  const day = parts[2] ?? 1;
-  const date = new Date(year, month - 1, day);
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
+function formatDate(dateString: string | null | undefined): string {
+  // Guard: Handle null/undefined
+  if (!dateString) {
+    return '—'; // Em dash for missing dates
+  }
+
+  try {
+    let date: Date;
+
+    // ISO 8601 timestamp detection: contains 'T' or space-separated with time
+    if (dateString.includes('T') || (dateString.includes(' ') && dateString.length > 10)) {
+      // Parse as full timestamp - displays in user's local timezone
+      date = new Date(dateString);
+    } else {
+      // Date-only string (YYYY-MM-DD) - parse as local to avoid timezone shift
+      const parts = dateString.split('-').map(Number);
+      const year = parts[0];
+      const month = parts[1];
+      const day = parts[2];
+
+      // Validate parsed parts
+      if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+        return dateString; // Fallback: show raw string
+      }
+
+      date = new Date(year, month - 1, day);
+    }
+
+    // Validate the resulting Date object
+    if (isNaN(date.getTime())) {
+      return dateString; // Fallback: show raw string
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(date);
+  } catch {
+    // Final fallback: return raw string rather than crash
+    return dateString;
+  }
 }
 
 export function ManhourBudgetPage() {
@@ -185,7 +215,7 @@ export function ManhourBudgetPage() {
                   {/* Total Budgeted Manhours */}
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-blue-50 rounded-lg">
-                      <DollarSign className="w-5 h-5 text-blue-600" />
+                      <Clock className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
                       <p className="text-sm text-slate-600">Total Budgeted</p>
