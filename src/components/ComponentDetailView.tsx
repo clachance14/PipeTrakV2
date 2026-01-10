@@ -67,6 +67,9 @@ export function ComponentDetailView({
     newValue: number;
   } | null>(null);
 
+  // Local state for milestone input values (for pipe/threaded_pipe input boxes)
+  const [localMilestoneValues, setLocalMilestoneValues] = useState<Record<string, number>>({});
+
   const { data: componentData, isLoading } = useComponent(componentId);
   const { data: effectiveTemplate } = useEffectiveTemplate(componentId);
   const updateMilestoneMutation = useUpdateMilestone();
@@ -223,6 +226,75 @@ export function ComponentDetailView({
     }
   };
 
+  // Handle input change for pipe/threaded_pipe milestone inputs
+  const handleInputChange = (milestoneName: string, inputValue: string) => {
+    // Parse as integer, treating empty as 0
+    // Use Number() to avoid leading zero issues (e.g., "0100" -> 100)
+    const value = inputValue === '' ? 0 : Number(inputValue);
+    if (!isNaN(value) && Number.isInteger(value)) {
+      setLocalMilestoneValues((prev) => ({ ...prev, [milestoneName]: value }));
+    }
+  };
+
+  // Handle input commit (blur or Enter) for pipe/threaded_pipe milestone inputs
+  const handleInputCommit = async (milestoneName: string) => {
+    if (!component) return;
+
+    const currentMilestones = (component.current_milestones as Record<string, boolean | number>) || {};
+    const existingValue = currentMilestones[milestoneName];
+    const currentNumeric = typeof existingValue === 'number' ? existingValue : 0;
+    const localValue = localMilestoneValues[milestoneName] ?? currentNumeric;
+
+    // Clamp to 0-100
+    const clampedValue = Math.max(0, Math.min(100, localValue));
+
+    // If value hasn't changed, skip
+    if (clampedValue === currentNumeric) {
+      // Reset local to match current if it was out of bounds
+      if (localValue !== clampedValue) {
+        setLocalMilestoneValues((prev) => ({ ...prev, [milestoneName]: clampedValue }));
+      }
+      return;
+    }
+
+    // Detect rollback (decrease in value)
+    const isRollback = clampedValue < currentNumeric;
+
+    if (isRollback) {
+      // Open rollback confirmation modal
+      setRollbackPending({
+        milestoneName,
+        currentValue: currentNumeric,
+        newValue: clampedValue,
+      });
+      return;
+    }
+
+    // Not a rollback - proceed immediately
+    try {
+      await updateMilestoneMutation.mutateAsync({
+        component_id: component.id,
+        milestone_name: milestoneName,
+        value: clampedValue,
+      });
+      toast.success(`${milestoneName} updated to ${clampedValue}%`);
+    } catch (error) {
+      toast.error(`Failed to update ${milestoneName}`);
+      console.error(error);
+      // Reset local value on error
+      setLocalMilestoneValues((prev) => ({ ...prev, [milestoneName]: currentNumeric }));
+    }
+  };
+
+  // Get display value for milestone input (local state or current value)
+  const getMilestoneInputValue = (milestoneName: string, currentValue: boolean | number | undefined): number => {
+    const localValue = localMilestoneValues[milestoneName];
+    if (localValue !== undefined) {
+      return localValue;
+    }
+    return typeof currentValue === 'number' ? currentValue : 0;
+  };
+
   // Handle rollback confirmation
   const handleRollbackConfirm = async (reasonData: RollbackReasonData) => {
     if (!rollbackPending || !component) return;
@@ -276,10 +348,15 @@ export function ComponentDetailView({
   const attributes = component?.attributes as {
     spec?: string;
     description?: string;
+    total_linear_feet?: number;
     [key: string]: unknown;
   } | null;
   const spec = attributes?.spec || 'Not specified';
   const description = attributes?.description || 'Not specified';
+
+  // Check if this is a pipe/threaded_pipe aggregate component (for linear feet display)
+  const totalLinearFeet = attributes?.total_linear_feet ?? 0;
+  const isPipeType = component?.component_type === 'pipe' || component?.component_type === 'threaded_pipe';
 
   // Calculate milestone stats
   // Use effective_template (project-specific) if available, fallback to progress_template (system default)
@@ -517,17 +594,51 @@ export function ComponentDetailView({
 
                         <div className="flex items-center gap-3">
                           {milestone.is_partial ? (
-                            <div className="w-48">
-                              <Slider
-                                value={[typeof currentValue === 'number' ? currentValue : 0]}
-                                onValueCommit={(val) => handleSliderChange(milestone.name, val)}
-                                min={0}
-                                max={100}
-                                step={1}
-                                disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-                                className="min-h-[44px]"
-                              />
-                            </div>
+                            isPipeType ? (
+                              /* Input box for pipe/threaded_pipe components */
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    max={100}
+                                    value={getMilestoneInputValue(milestone.name, currentValue)}
+                                    onChange={(e) => handleInputChange(milestone.name, e.target.value)}
+                                    onBlur={() => handleInputCommit(milestone.name)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleInputCommit(milestone.name);
+                                        (e.target as HTMLInputElement).blur();
+                                      }
+                                    }}
+                                    disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                                    className="w-16 h-10 text-center border rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                  />
+                                  <span className="text-sm text-muted-foreground">%</span>
+                                </div>
+                                {/* Linear feet helper for pipe/threaded_pipe */}
+                                {totalLinearFeet > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {Math.min(totalLinearFeet, parseFloat(((getMilestoneInputValue(milestone.name, currentValue) / 100) * totalLinearFeet).toFixed(1)))} / {totalLinearFeet} LF
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              /* Slider for other component types */
+                              <div className="w-48">
+                                <Slider
+                                  value={[typeof currentValue === 'number' ? currentValue : 0]}
+                                  onValueCommit={(val) => handleSliderChange(milestone.name, val)}
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                                  className="min-h-[44px]"
+                                />
+                              </div>
+                            )
                           ) : (
                             <Checkbox
                               checked={currentValue === 100 || currentValue === 1 || currentValue === true}
@@ -839,17 +950,51 @@ export function ComponentDetailView({
 
                         <div className="flex items-center gap-3">
                           {milestone.is_partial ? (
-                            <div className="w-48">
-                              <Slider
-                                value={[typeof currentValue === 'number' ? currentValue : 0]}
-                                onValueCommit={(val) => handleSliderChange(milestone.name, val)}
-                                min={0}
-                                max={100}
-                                step={1}
-                                disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
-                                className="min-h-[44px]"
-                              />
-                            </div>
+                            isPipeType ? (
+                              /* Input box for pipe/threaded_pipe components (mobile) */
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    max={100}
+                                    value={getMilestoneInputValue(milestone.name, currentValue)}
+                                    onChange={(e) => handleInputChange(milestone.name, e.target.value)}
+                                    onBlur={() => handleInputCommit(milestone.name)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleInputCommit(milestone.name);
+                                        (e.target as HTMLInputElement).blur();
+                                      }
+                                    }}
+                                    disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                                    className="w-16 h-12 text-center text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                  />
+                                  <span className="text-sm text-muted-foreground">%</span>
+                                </div>
+                                {/* Linear feet helper for pipe/threaded_pipe */}
+                                {totalLinearFeet > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {Math.min(totalLinearFeet, parseFloat(((getMilestoneInputValue(milestone.name, currentValue) / 100) * totalLinearFeet).toFixed(1)))} / {totalLinearFeet} LF
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              /* Slider for other component types (mobile) */
+                              <div className="w-48">
+                                <Slider
+                                  value={[typeof currentValue === 'number' ? currentValue : 0]}
+                                  onValueCommit={(val) => handleSliderChange(milestone.name, val)}
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  disabled={!canUpdateMilestones || updateMilestoneMutation.isPending}
+                                  className="min-h-[44px]"
+                                />
+                              </div>
+                            )
                           ) : (
                             <Checkbox
                               checked={currentValue === 100 || currentValue === 1 || currentValue === true}

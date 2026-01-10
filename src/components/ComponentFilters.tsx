@@ -53,6 +53,7 @@ const COMPONENT_TYPES: { value: ComponentType; label: string }[] = [
   { value: 'instrument', label: 'Instrument' },
   { value: 'tubing', label: 'Tubing' },
   { value: 'hose', label: 'Hose' },
+  { value: 'pipe', label: 'Pipe' },
   { value: 'threaded_pipe', label: 'Threaded Pipe' },
   { value: 'misc_component', label: 'Misc Component' },
 ];
