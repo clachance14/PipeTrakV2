@@ -1,5 +1,12 @@
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { ChevronDown, Clock } from 'lucide-react';
 
 export interface ComponentsBulkActionsProps {
   selectionMode: boolean;
@@ -7,6 +14,8 @@ export interface ComponentsBulkActionsProps {
   selectedCount: number;
   onClearSelection: () => void;
   onMarkReceived: () => void;
+  onMarkPostHydro?: () => void;
+  onClearPostHydro?: () => void;
   isProcessing?: boolean;
   className?: string;
 }
@@ -17,6 +26,8 @@ export function ComponentsBulkActions({
   selectedCount,
   onClearSelection,
   onMarkReceived,
+  onMarkPostHydro,
+  onClearPostHydro,
   isProcessing = false,
   className,
 }: ComponentsBulkActionsProps) {
@@ -66,6 +77,32 @@ export function ComponentsBulkActions({
           >
             {isProcessing ? 'Processing...' : 'Mark Received'}
           </Button>
+
+          {/* More Actions Dropdown */}
+          {(onMarkPostHydro || onClearPostHydro) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isProcessing}>
+                  More
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onMarkPostHydro && (
+                  <DropdownMenuItem onClick={onMarkPostHydro} disabled={isProcessing}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Mark as Post-Hydro
+                  </DropdownMenuItem>
+                )}
+                {onClearPostHydro && (
+                  <DropdownMenuItem onClick={onClearPostHydro} disabled={isProcessing}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Clear Post-Hydro
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </>
       )}
     </div>

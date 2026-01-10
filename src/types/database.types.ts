@@ -156,6 +156,7 @@ export type Database = {
           last_updated_by: string | null
           manhour_weight: number | null
           percent_complete: number
+          post_hydro_install: boolean
           progress_template_id: string
           project_id: string
           retire_reason: string | null
@@ -179,6 +180,7 @@ export type Database = {
           last_updated_by?: string | null
           manhour_weight?: number | null
           percent_complete?: number
+          post_hydro_install?: boolean
           progress_template_id: string
           project_id: string
           retire_reason?: string | null
@@ -202,6 +204,7 @@ export type Database = {
           last_updated_by?: string | null
           manhour_weight?: number | null
           percent_complete?: number
+          post_hydro_install?: boolean
           progress_template_id?: string
           project_id?: string
           retire_reason?: string | null
@@ -1777,8 +1780,11 @@ export type Database = {
           last_activity_at: string | null
           package_id: string | null
           package_name: string | null
+          post_hydro_components: number | null
           project_id: string | null
           target_date: string | null
+          test_ready_percent: number | null
+          testable_components: number | null
           total_components: number | null
         }
         Relationships: [
