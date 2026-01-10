@@ -176,7 +176,8 @@ export function WeldLogPage() {
       const { blob, url, filename } = await generatePDFPreview(
         sortedWelds,
         currentProject.name,
-        companyLogo ?? undefined
+        companyLogo ?? undefined,
+        'pdfmake' // Use pdfmake engine for better table alignment
       )
       openPreview(blob, url, filename)
     } catch (err) {

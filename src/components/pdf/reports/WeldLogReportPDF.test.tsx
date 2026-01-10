@@ -5,6 +5,7 @@
  * - Rendering weld log data
  * - Empty data edge case
  * - Multi-page reports (>50 rows)
+ * - Uses @ag-media/react-pdf-table for column alignment
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -24,6 +25,21 @@ vi.mock('@react-pdf/renderer', () => ({
   Text: ({ children }: any) => <span data-testid="pdf-text">{children}</span>,
   Image: ({ src }: any) => <img data-testid="pdf-image" src={src} alt="" />,
   StyleSheet: { create: (styles: any) => styles },
+  Font: {
+    registerHyphenationCallback: vi.fn(),
+  },
+}));
+
+// Mock @ag-media/react-pdf-table
+vi.mock('@ag-media/react-pdf-table', () => ({
+  Table: ({ children, weightings }: any) => (
+    <div data-testid="ag-table" data-weightings={weightings?.join(',')}>
+      {children}
+    </div>
+  ),
+  TH: ({ children }: any) => <div data-testid="ag-th">{children}</div>,
+  TR: ({ children }: any) => <div data-testid="ag-tr">{children}</div>,
+  TD: ({ children }: any) => <span data-testid="ag-td">{children}</span>,
 }));
 
 // Mock sub-components
@@ -42,26 +58,6 @@ vi.mock('../layout/ReportFooter', () => ({
   ReportFooter: ({ showPageNumbers }: any) => (
     <div data-testid="report-footer">
       {showPageNumbers && <span>Page Numbers</span>}
-    </div>
-  ),
-}));
-
-vi.mock('../tables/TableHeader', () => ({
-  TableHeader: ({ columns }: any) => (
-    <div data-testid="table-header">
-      {columns.map((col: any) => (
-        <span key={col.key} data-testid="column-header">{col.label}</span>
-      ))}
-    </div>
-  ),
-}));
-
-vi.mock('../tables/TableRow', () => ({
-  TableRow: ({ data }: any) => (
-    <div data-testid="table-row">
-      {Object.values(data).map((value: any, index: number) => (
-        <span key={index} data-testid="table-cell">{String(value)}</span>
-      ))}
     </div>
   ),
 }));
@@ -157,7 +153,7 @@ describe('WeldLogReportPDF', () => {
     expect(screen.getByText('No welds available in the weld log.')).toBeInTheDocument();
   });
 
-  it('renders table with correct number of columns', () => {
+  it('renders table with correct column headers', () => {
     render(
       <WeldLogReportPDF
         welds={[mockWeld]}
@@ -166,11 +162,31 @@ describe('WeldLogReportPDF', () => {
       />
     );
 
-    // Verify column headers are present (Progress % and Status columns removed)
+    // Verify column headers are present in the fixed header row
     expect(screen.getByText('Weld ID')).toBeInTheDocument();
     expect(screen.getByText('Drawing')).toBeInTheDocument();
     expect(screen.getByText('Welder')).toBeInTheDocument();
     expect(screen.getByText('NDE Result')).toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
+    expect(screen.getByText('Size')).toBeInTheDocument();
+    expect(screen.getByText('Area')).toBeInTheDocument();
+    expect(screen.getByText('System')).toBeInTheDocument();
+    expect(screen.getByText('Test Package')).toBeInTheDocument();
+  });
+
+  it('uses ag-media Table with correct weightings', () => {
+    render(
+      <WeldLogReportPDF
+        welds={[mockWeld]}
+        projectName="Test Project"
+        generatedDate="2025-01-21"
+      />
+    );
+
+    const table = screen.getByTestId('ag-table');
+    expect(table).toBeInTheDocument();
+    // Verify weightings are passed (0.12,0.12,0.15,0.10,0.06,0.04,0.09,0.10,0.10,0.12)
+    expect(table).toHaveAttribute('data-weightings', '0.12,0.12,0.15,0.1,0.06,0.04,0.09,0.1,0.1,0.12');
   });
 
   it('handles multiple welds', () => {
@@ -183,9 +199,11 @@ describe('WeldLogReportPDF', () => {
       />
     );
 
-    // Verify both weld IDs are rendered
+    // Verify both weld IDs are rendered in table rows
     expect(screen.getByText('W-1')).toBeInTheDocument();
     expect(screen.getByText('W-2')).toBeInTheDocument();
+    // Verify two TR elements are rendered
+    expect(screen.getAllByTestId('ag-tr')).toHaveLength(2);
   });
 
   it('renders with company logo', () => {
@@ -213,14 +231,7 @@ describe('WeldLogReportPDF', () => {
     expect(screen.getByTestId('pdf-page')).toHaveAttribute('data-orientation', 'landscape');
   });
 
-  it('table body has sufficient top margin to avoid header overlap', () => {
-    // This test verifies the fix for the header overlap bug
-    // Fixed header is at top: 70, extends to ~96-98
-    // Table body must start at position >= 97 to avoid overlap
-    // With paddingTop: 80, marginTop should be >= 17 (ideally 20)
-
-    // Note: This is a structural test. Visual verification with actual PDF
-    // generation is still required to confirm the fix works correctly.
+  it('renders table body with ag-media TR components', () => {
     render(
       <WeldLogReportPDF
         welds={[mockWeld]}
@@ -229,9 +240,59 @@ describe('WeldLogReportPDF', () => {
       />
     );
 
-    // Verify the document renders (structural integrity)
+    // Verify the document renders with ag-media components
     expect(screen.getByTestId('pdf-document')).toBeInTheDocument();
-    expect(screen.getByTestId('table-header')).toBeInTheDocument();
-    expect(screen.getByTestId('table-row')).toBeInTheDocument();
+    expect(screen.getByTestId('ag-table')).toBeInTheDocument();
+    expect(screen.getByTestId('ag-tr')).toBeInTheDocument();
+    // Each TR should have 10 TD cells
+    expect(screen.getAllByTestId('ag-td')).toHaveLength(10);
+  });
+
+  it('displays weld data correctly', () => {
+    render(
+      <WeldLogReportPDF
+        welds={[mockWeld]}
+        projectName="Test Project"
+        generatedDate="2025-01-21"
+      />
+    );
+
+    // Verify weld data is displayed
+    expect(screen.getByText('W-1')).toBeInTheDocument(); // identityDisplay
+    expect(screen.getByText('P-001')).toBeInTheDocument(); // drawing_no_norm
+    expect(screen.getByText('W1 - John Doe')).toBeInTheDocument(); // welder
+    expect(screen.getByText('BW')).toBeInTheDocument(); // weld_type
+    expect(screen.getByText('2"')).toBeInTheDocument(); // weld_size
+    expect(screen.getByText('PASS')).toBeInTheDocument(); // nde_result
+    expect(screen.getByText('Area A')).toBeInTheDocument(); // area
+    expect(screen.getByText('System 1')).toBeInTheDocument(); // system
+    expect(screen.getByText('Package A')).toBeInTheDocument(); // test_package
+  });
+
+  it('handles missing optional fields gracefully', () => {
+    const weldWithMissingFields: EnrichedFieldWeld = {
+      ...mockWeld,
+      weld_size: null,
+      nde_result: null,
+      area: null,
+      system: null,
+      test_package: null,
+      welder: null,
+    };
+
+    render(
+      <WeldLogReportPDF
+        welds={[weldWithMissingFields]}
+        projectName="Test Project"
+        generatedDate="2025-01-21"
+      />
+    );
+
+    // Verify document renders
+    expect(screen.getByTestId('pdf-document')).toBeInTheDocument();
+    // Check for placeholder values
+    expect(screen.getByText('Not Assigned')).toBeInTheDocument(); // welder
+    // There should be multiple '-' placeholders for missing fields
+    expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(4);
   });
 });

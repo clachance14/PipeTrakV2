@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import { Layout } from '@/components/Layout';
 import { useProject } from '@/contexts/ProjectContext';
 import { usePackageComponents, usePackageReadiness, usePackageDetails } from '@/hooks/usePackages';
-import { usePackageCertificate } from '@/hooks/usePackageCertificate';
+import { usePackageCompletionReport } from '@/hooks/usePackageCompletionReport';
+import { getKeyStages, formatStageForDisplay, getWorkflowSummary } from '@/lib/getKeyStages';
 import { useDeleteComponentAssignment, useCreateComponentAssignments, useDrawingsWithComponentCount } from '@/hooks/usePackageAssignments';
 import { usePackageWorkflow } from '@/hooks/usePackageWorkflow';
 import { usePackageWorkflowPDFExport } from '@/hooks/usePackageWorkflowPDFExport';
@@ -54,7 +55,6 @@ import {
 import { EmptyState } from '@/components/EmptyState';
 import { ArrowLeft, Package, AlertCircle, FileText, ClipboardList, Boxes, X, Trash2, Pencil, Plus, Download, Settings, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { PackageCertificate } from '@/hooks/usePackageCertificate';
 
 export function PackageDetailPage() {
   const { packageId } = useParams<{ packageId: string }>();
@@ -108,9 +108,11 @@ export function PackageDetailPage() {
   // Regeneration loading state
   const [isRegenerating, setIsRegenerating] = useState(false);
 
-  // Fetch certificate
-  const { data: certificate } =
-    usePackageCertificate(packageId);
+  // Fetch completion report data for Summary tab
+  const { data: completionReportData, isLoading: completionReportLoading } = usePackageCompletionReport(
+    packageId,
+    selectedProjectId || ''
+  );
 
   // Fetch components in this package
   const {
@@ -510,16 +512,11 @@ export function PackageDetailPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="certificate" className="space-y-6">
+        <Tabs defaultValue="summary" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="certificate">
+            <TabsTrigger value="summary">
               <FileText className="h-4 w-4 mr-2" />
-              Certificate
-              {certificate && (
-                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-green-500 rounded-full">
-                  ✓
-                </span>
-              )}
+              Summary
             </TabsTrigger>
             <TabsTrigger value="workflow">
               <ClipboardList className="h-4 w-4 mr-2" />
@@ -531,97 +528,143 @@ export function PackageDetailPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Certificate Tab */}
-          <TabsContent value="certificate" className="space-y-6">
-            {/* Package Details Section */}
-            {packageDetails && (
-              <div className="border rounded-lg p-6 space-y-6 bg-white">
-                <div className="flex items-center justify-between border-b pb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Package Information</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Package Name</div>
-                    <div className="text-base font-medium text-gray-900">{packageDetails.name}</div>
+          {/* Summary Tab - Paper/Document Style */}
+          <TabsContent value="summary" className="space-y-6">
+            {completionReportLoading ? (
+              <div className="space-y-4">
+                <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-48 bg-gray-100 rounded-lg animate-pulse" />
+              </div>
+            ) : completionReportData ? (
+              <div className="bg-white border border-gray-200 shadow-sm max-w-3xl mx-auto">
+                {/* Paper-like document with padding */}
+                <div className="px-12 py-10">
+                  {/* Document Header */}
+                  <div className="text-center border-b-2 border-gray-800 pb-6 mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight uppercase">
+                      Test Package Summary
+                    </h1>
+                    <p className="text-lg text-gray-700 mt-2">{completionReportData.package_name}</p>
                   </div>
 
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Test Type</div>
-                    <div className="text-base font-medium text-gray-900">
-                      {packageDetails.test_type || '—'}
-                    </div>
-                  </div>
+                  {/* Executive Summary Section */}
+                  <section className="mb-10">
+                    <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide border-b border-gray-300 pb-2 mb-6">
+                      Executive Summary
+                    </h2>
 
-                  {packageDetails.description && (
-                    <div className="md:col-span-2">
-                      <div className="text-sm text-gray-500 mb-1">Description</div>
-                      <div className="text-base text-gray-900">{packageDetails.description}</div>
-                    </div>
-                  )}
+                    <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Test Type</dt>
+                        <dd className="mt-1 text-base text-gray-900">{completionReportData.test_type || 'Not specified'}</dd>
+                      </div>
 
-                  {packageDetails.target_date && (
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Target Date</div>
-                      <div className="text-base font-medium text-gray-900">
-                        {new Date(packageDetails.target_date).toLocaleDateString()}
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Test Pressure</dt>
+                        <dd className="mt-1 text-base text-gray-900">
+                          {completionReportData.test_pressure != null
+                            ? `${completionReportData.test_pressure} ${completionReportData.test_pressure_unit || 'PSIG'}`
+                            : 'Not specified'}
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Piping Spec</dt>
+                        <dd className="mt-1 text-base text-gray-900">{completionReportData.piping_spec || 'Not specified'}</dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Components</dt>
+                        <dd className="mt-1 text-base text-gray-900">{completionReportData.total_components}</dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Welds</dt>
+                        <dd className="mt-1 text-base text-gray-900">{completionReportData.overall_nde_summary.total_welds}</dd>
+                      </div>
+
+                      <div>
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">X-rays Completed</dt>
+                        <dd className="mt-1 text-base text-gray-900">
+                          {completionReportData.overall_nde_summary.nde_pass_count + completionReportData.overall_nde_summary.nde_fail_count}
+                        </dd>
                       </div>
                     </div>
+
+                    {/* Workflow Progress - Featured */}
+                    <div className="mt-8 pt-6 border-t border-gray-200">
+                      <div className="flex items-baseline justify-between">
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Workflow Progress</dt>
+                        <dd className="text-xl font-bold text-gray-900">
+                          {(() => {
+                            const summary = getWorkflowSummary(workflowStages);
+                            return `${summary.completedStages}/${summary.totalStages}`;
+                          })()}
+                          {(() => {
+                            const summary = getWorkflowSummary(workflowStages);
+                            return summary.isComplete && (
+                              <span className="ml-2 text-sm font-normal text-green-600">Complete</span>
+                            );
+                          })()}
+                        </dd>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Key Approvals Section */}
+                  {workflowStages && workflowStages.length > 0 && (
+                    <section>
+                      <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide border-b border-gray-300 pb-2 mb-6">
+                        Key Approvals
+                      </h2>
+
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-300">
+                            <th className="text-left py-2 font-medium text-gray-700">Stage</th>
+                            <th className="text-left py-2 font-medium text-gray-700">Status</th>
+                            <th className="text-left py-2 font-medium text-gray-700">Company Rep</th>
+                            <th className="text-left py-2 font-medium text-gray-700">Client Rep</th>
+                            <th className="text-right py-2 font-medium text-gray-700">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getKeyStages(workflowStages).map((stage, index) => {
+                            const formatted = formatStageForDisplay(stage);
+                            const isLast = index === getKeyStages(workflowStages).length - 1;
+                            return (
+                              <tr key={stage.id} className={cn(!isLast && 'border-b border-gray-100')}>
+                                <td className="py-3 text-gray-900">{formatted.name}</td>
+                                <td className="py-3">
+                                  <span
+                                    className={cn(
+                                      formatted.status === 'completed' && 'text-green-700',
+                                      formatted.status === 'skipped' && 'text-gray-500 italic',
+                                      formatted.status === 'pending' && 'text-amber-600'
+                                    )}
+                                  >
+                                    {formatted.status === 'completed'
+                                      ? 'Completed'
+                                      : formatted.status === 'skipped'
+                                        ? 'Skipped'
+                                        : 'Pending'}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-gray-600">{formatted.companyRep || '—'}</td>
+                                <td className="py-3 text-gray-600">{formatted.clientRep || '—'}</td>
+                                <td className="py-3 text-right text-gray-600">{formatted.completedDate || '—'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </section>
                   )}
-
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Requires Coating</div>
-                    <div className="text-base font-medium text-gray-900">
-                      {packageDetails.requires_coating ? (
-                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">No</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Requires Insulation</div>
-                    <div className="text-base font-medium text-gray-900">
-                      {packageDetails.requires_insulation ? (
-                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">No</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Created</div>
-                    <div className="text-base text-gray-600">
-                      {new Date(packageDetails.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
                 </div>
               </div>
-            )}
-
-            {/* Certificate Section */}
-            {certificate ? (
-              <CertificateReadOnlyView
-                certificate={certificate}
-                onEdit={() => {
-                  // TODO: Implement certificate editing
-                  // PackageCertificateForm is now for creating NEW packages only
-                  // Need to create a separate edit form or adapt the form for both modes
-                  console.warn('Certificate editing not yet implemented');
-                }}
-              />
             ) : (
               <div className="p-4 text-gray-500 text-center border rounded-lg bg-gray-50">
-                <p>No certificate found for this package.</p>
-                <p className="text-sm mt-2">
-                  Packages are now created with certificates using the new "Create Package" form.
-                </p>
+                <p>Unable to load package summary.</p>
               </div>
             )}
           </TabsContent>
@@ -1039,76 +1082,5 @@ export function PackageDetailPage() {
         onMetadataChange={() => refetch()}
       />
     </Layout>
-  );
-}
-
-/**
- * Read-only certificate view with Edit button
- */
-interface CertificateReadOnlyViewProps {
-  certificate: PackageCertificate;
-  onEdit: () => void;
-}
-
-function CertificateReadOnlyView({
-  certificate,
-  onEdit,
-}: CertificateReadOnlyViewProps) {
-  return (
-    <div className="border rounded-lg p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Certificate Completed</h3>
-          <p className="text-sm text-gray-500">
-            Certificate #{certificate.certificate_number}
-          </p>
-        </div>
-        <Button variant="outline" onClick={onEdit}>
-          Edit Certificate
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <div className="text-sm text-gray-500 mb-1">Test Pressure</div>
-          <div className="text-base font-medium">
-            {certificate.test_pressure} {certificate.pressure_unit}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-sm text-gray-500 mb-1">Test Media</div>
-          <div className="text-base font-medium">{certificate.test_media}</div>
-        </div>
-
-        <div>
-          <div className="text-sm text-gray-500 mb-1">Temperature</div>
-          <div className="text-base font-medium">
-            {certificate.temperature} {certificate.temperature_unit}
-          </div>
-        </div>
-
-        {certificate.client && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">Client</div>
-            <div className="text-base font-medium">{certificate.client}</div>
-          </div>
-        )}
-
-        {certificate.client_spec && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">Client Specification</div>
-            <div className="text-base font-medium">{certificate.client_spec}</div>
-          </div>
-        )}
-
-        {certificate.line_number && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">Line Number</div>
-            <div className="text-base font-medium">{certificate.line_number}</div>
-          </div>
-        )}
-      </div>
-    </div>
   );
 }

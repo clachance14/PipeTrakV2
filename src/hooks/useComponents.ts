@@ -19,6 +19,7 @@ export type ComponentType =
   | 'instrument'
   | 'tubing'
   | 'hose'
+  | 'pipe'
   | 'misc_component'
   | 'threaded_pipe';
 

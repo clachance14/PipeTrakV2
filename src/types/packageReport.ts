@@ -39,6 +39,10 @@ export interface DrawingGroup {
   drawing_id: string;
   drawing_no_norm: string;
 
+  // Drawing-level metadata (derived from field_welds)
+  npd: string | null; // Most common weld_size in this drawing
+  piping_spec: string | null; // Most common spec in this drawing
+
   // Component counts and statistics
   component_count: number;
   unique_supports_count: number; // Distinct identity_key values where component_type = 'support'
@@ -71,13 +75,12 @@ export interface NDESummary {
  * Component Summary Row
  *
  * Package-level component summary with aggregated counts.
- * Groups components by identity (excluding seq field).
+ * Groups components by type + identity across entire package.
  */
 export interface ComponentSummaryRow {
-  drawing_no_norm: string;
   component_type: string;
   identity_display: string; // Human-readable tag (e.g., "1-SPOOL-001", "CS-2/2IN")
-  quantity: number; // Count of components with same identity (excluding seq)
+  quantity: number; // Count of components with same type + identity
 }
 
 /**
@@ -104,6 +107,9 @@ export interface PackageCompletionReport {
   package_name: string;
   test_type: string | null;
   target_date: string | null;
+  test_pressure: number | null; // From test_packages table
+  test_pressure_unit: string | null; // PSIG, BAR, KPA, PSI
+  piping_spec: string | null; // Most common spec across package
 
   // Summary tables (NEW - Feature 030)
   component_summary: ComponentSummaryRow[];

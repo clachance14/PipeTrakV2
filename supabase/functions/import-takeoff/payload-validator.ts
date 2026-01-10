@@ -125,8 +125,8 @@ export function validateRows(payload: ImportPayload): PayloadValidationResult {
         issue: `Invalid qty data type: expected number, got ${typeof row.qty}`,
         drawing: row.drawing
       });
-    } else if (row.type !== 'Threaded_Pipe' && !Number.isInteger(row.qty)) {
-      // Allow decimal for Threaded_Pipe (linear feet), require integer for all other types
+    } else if (!['Threaded_Pipe', 'Pipe'].includes(row.type) && !Number.isInteger(row.qty)) {
+      // Allow decimal for Threaded_Pipe and Pipe (linear feet aggregate model), require integer for all other types
       errors.push({
         row: rowNumber,
         issue: `Invalid qty: must be integer, got ${row.qty}`,

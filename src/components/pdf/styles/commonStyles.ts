@@ -64,7 +64,7 @@ export const commonStyles = StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
     flexDirection: 'row',
-    padding: 8,
+    padding: 6,
     borderTopLeftRadius: 4,
     borderTopRightRadius: 4,
   },
@@ -86,14 +86,12 @@ export const commonStyles = StyleSheet.create({
   tableCell: {
     fontSize: 10,
     color: colors.slate600,
-    paddingHorizontal: 4,
   },
 
   tableCellHeader: {
     fontSize: 10,
     color: colors.white,
     fontWeight: 'bold',
-    paddingHorizontal: 4,
   },
 
   // Text alignment utilities

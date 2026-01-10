@@ -5,6 +5,7 @@ import { ComponentRow } from './ComponentRow'
 import { DrawingTableSkeleton } from './DrawingTableSkeleton'
 import { DrawingTableHeader } from './DrawingTableHeader'
 import { isElementVisible, shouldScrollToElement, scrollToElement } from '@/utils/scroll-helpers'
+import { isAggregatePipe } from '@/lib/aggregatePipe'
 import type { DrawingRow as DrawingRowType, ComponentRow as ComponentRowType, SortField, SortDirection } from '@/types/drawing-table.types'
 
 export interface DrawingTableProps {
@@ -140,22 +141,14 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
       if (row?.type === 'component') {
         if (isMobile) {
           const milestoneCount = row.data.template.milestones_config.length
-          // Calculate rows needed (3 milestones per row in grid)
           const milestoneRows = Math.ceil(milestoneCount / 3)
-          // Moderately reduced height for mobile button layout
           return 70 + (milestoneRows * 53)
         }
-        // Check for aggregate threaded pipe (Title-cell layout)
-        const isAggregateThreadedPipe =
-          row.data.component_type === 'threaded_pipe' &&
-          row.data.identity_key &&
-          'pipe_id' in row.data.identity_key &&
-          row.data.identity_key.pipe_id?.endsWith('-AGG')
-        if (isAggregateThreadedPipe) {
-          // Card layout: type (14px) + size/LF (12px) + progress (12px) + gaps (8px) + padding (24px) = ~70px
+        // Aggregate pipes use compact card layout
+        if (isAggregatePipe(row.data.component_type, row.data.identity_key)) {
           return 70
         }
-        // Check if component has any partial milestones
+        // Partial milestones need extra height for labels + inputs
         const hasPartialMilestones = row.data.template.milestones_config.some(m => m.is_partial)
         return hasPartialMilestones ? 140 : 60
       }

@@ -8,6 +8,7 @@ import { FIELD_WELD_REQUIRED_HEADERS } from './weld-column-mapper'
 
 /**
  * Generate and download Material Takeoff Excel template
+ * Multi-sheet workbook with data template and instructions
  */
 export function generateMaterialTakeoffTemplate(): void {
   const headers = [
@@ -21,7 +22,6 @@ export function generateMaterialTakeoffTemplate(): void {
     'COMMENTS',
     'AREA',
     'SYSTEM',
-    'TEST_PACKAGE',
   ]
 
   const exampleRows = [
@@ -36,7 +36,6 @@ export function generateMaterialTakeoffTemplate(): void {
       'Shop fabricated',
       'Area 100',
       'Cooling Water',
-      'PKG-001',
     ],
     [
       '1001-P-001',
@@ -48,7 +47,6 @@ export function generateMaterialTakeoffTemplate(): void {
       '',
       'Field install',
       'Area 100',
-      '',
       '',
     ],
     [
@@ -62,13 +60,12 @@ export function generateMaterialTakeoffTemplate(): void {
       '',
       'Area 200',
       'Process Gas',
-      'PKG-002',
     ],
   ]
 
   const data = [headers, ...exampleRows]
 
-  // Create worksheet
+  // Create data worksheet
   const worksheet = XLSX.utils.aoa_to_sheet(data)
 
   // Auto-size columns
@@ -86,13 +83,48 @@ export function generateMaterialTakeoffTemplate(): void {
   const noteRow = data.length + 2
   XLSX.utils.sheet_add_aoa(
     worksheet,
-    [['* Required fields', '', '', '', '', '', '', '', '', '', '']],
+    [['* Required fields']],
     { origin: `A${noteRow}` }
   )
 
-  // Create workbook
+  // Create Instructions worksheet
+  const instructionsData = [
+    ['Material Takeoff Import Instructions'],
+    [''],
+    ['Column', 'Required', 'Description'],
+    ['DRAWING*', 'Yes', 'Drawing or isometric number (e.g., 1001-P-001)'],
+    ['TYPE*', 'Yes', 'Component type (see valid values below)'],
+    ['QTY*', 'Yes', 'Quantity (positive integer, decimals allowed for Threaded_Pipe)'],
+    ['CMDTY CODE*', 'Yes', 'Commodity code - unique identifier for the component'],
+    ['SIZE', 'No', 'Nominal pipe size (e.g., 6, 2, 4) - defaults to "NOSIZE" if empty'],
+    ['SPEC', 'No', 'Material specification (e.g., A106-B, A234-WPB)'],
+    ['DESCRIPTION', 'No', 'Component description'],
+    ['COMMENTS', 'No', 'Notes or remarks'],
+    ['AREA', 'No', 'Area name - auto-created if new'],
+    ['SYSTEM', 'No', 'System name - auto-created if new'],
+    [''],
+    ['Valid TYPE values:'],
+    ['Pipe, Valve, Fitting, Spool, Field_Weld, Instrument, Support, Flange, Tubing, Hose, Misc_Component, Threaded_Pipe'],
+    [''],
+    ['Notes:'],
+    ['- Columns marked with * are required'],
+    ['- Extra columns in your data will be stored as component attributes'],
+    ['- Duplicate components (same DRAWING + TYPE + CMDTY CODE + SIZE) will show an error'],
+  ]
+
+  const instructionsSheet = XLSX.utils.aoa_to_sheet(instructionsData)
+
+  // Set column widths for instructions sheet
+  instructionsSheet['!cols'] = [
+    { wch: 20 }, // Column
+    { wch: 10 }, // Required
+    { wch: 70 }, // Description
+  ]
+
+  // Create workbook with both sheets
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Material Takeoff')
+  XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions')
 
   // Download
   XLSX.writeFile(workbook, 'material-takeoff-template.xlsx')

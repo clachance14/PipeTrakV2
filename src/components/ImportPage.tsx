@@ -1,6 +1,6 @@
 /**
  * Import Page Component
- * Handles CSV file upload with drag-and-drop and displays import results
+ * Handles CSV and Excel file upload with drag-and-drop and displays import results
  */
 
 import { useCallback, useState } from 'react';
@@ -13,6 +13,9 @@ import { ImportPreview } from './ImportPreview';
 import { ImportPreviewErrorBoundary } from './ImportPreviewErrorBoundary';
 import { mapColumns, createColumnLookupMap } from '@/lib/csv/column-mapper';
 import { validateRows, createValidationSummary, getValidRows } from '@/lib/csv/csv-validator';
+import { generateMaterialTakeoffTemplate } from '@/lib/excel/generate-template';
+import { excelToCsv, isExcelFile } from '@/lib/excel/excel-to-csv';
+import { Button } from '@/components/ui/button';
 import type { ImportResult, ImportPreviewState } from '@/types/csv-import.types';
 
 interface ImportPageProps {
@@ -69,8 +72,15 @@ export function ImportPage({ projectId }: ImportPageProps) {
     setParsingProgress('Reading file...');
 
     try {
-      // Read file as text
-      const csvContent = await file.text();
+      // Handle Excel files by converting to CSV first
+      let csvContent: string;
+      if (isExcelFile(file)) {
+        setParsingProgress('Converting Excel to CSV...');
+        csvContent = await excelToCsv(file, { applyFieldWeldMapping: false });
+      } else {
+        // Read CSV file as text
+        csvContent = await file.text();
+      }
 
       setParsingProgress('Parsing CSV...');
       // Parse CSV with Papa Parse - configured for maximum flexibility
@@ -301,7 +311,11 @@ export function ImportPage({ projectId }: ImportPageProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'text/csv': ['.csv'] },
+    accept: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'text/csv': ['.csv'],
+    },
     maxSize: 5 * 1024 * 1024,
     multiple: false,
     disabled: isParsing || !!previewState // Disable during parsing or when preview is shown
@@ -330,18 +344,18 @@ export function ImportPage({ projectId }: ImportPageProps) {
         </ImportPreviewErrorBoundary>
       ) : (
         <>
-          {/* CSV Template Download */}
+          {/* Excel Template Download */}
           <div className="mb-4">
-            <a
-              href="/templates/material-takeoff-template.csv"
-              download="material-takeoff-template.csv"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+            <Button
+              variant="outline"
+              onClick={() => generateMaterialTakeoffTemplate()}
+              className="gap-2"
             >
               <Download className="h-4 w-4" />
-              Download Template CSV
-            </a>
+              Download Template
+            </Button>
             <p className="mt-2 text-sm text-muted-foreground">
-              Download a template with sample data. Columns marked with * are required.
+              Download an Excel template with sample data and instructions. Columns marked with * are required.
             </p>
           </div>
 
@@ -356,11 +370,11 @@ export function ImportPage({ projectId }: ImportPageProps) {
           >
             <input {...getInputProps()} />
             {isDragActive ? (
-              <p className="text-lg text-blue-600">Drop CSV here</p>
+              <p className="text-lg text-blue-600">Drop file here</p>
             ) : (
               <div>
-                <p className="text-lg mb-2">Drag CSV or click to upload</p>
-                <p className="text-sm text-gray-500">Maximum file size: 5MB</p>
+                <p className="text-lg mb-2">Drag Excel or CSV file, or click to upload</p>
+                <p className="text-sm text-gray-500">Supports .xlsx, .xls, and .csv (max 5MB)</p>
               </div>
             )}
           </div>
@@ -385,6 +399,7 @@ export function ImportPage({ projectId }: ImportPageProps) {
                   </h3>
                   <p className="text-green-700">
                     Successfully imported {importResult.componentsCreated} components.
+                    {importResult.componentsSkipped ? ` (${importResult.componentsSkipped} duplicates skipped)` : ''}
                   </p>
                   <p className="text-green-600 text-sm mt-2">
                     Created {importResult.drawingsCreated} drawings, {importResult.metadataCreated.areas} areas, {importResult.metadataCreated.systems} systems

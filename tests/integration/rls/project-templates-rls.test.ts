@@ -9,7 +9,7 @@
  * - Audit log immutability (no updates/deletes allowed)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
 
@@ -33,6 +33,28 @@ let otherProjectId: string
 let adminUserId: string
 let viewerUserId: string
 let outsiderUserId: string
+
+// Cleanup any straggler test users after all tests complete
+afterAll(async () => {
+  const serviceClient = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
+
+  // Delete any @test.com users from users table
+  await serviceClient
+    .from('users')
+    .delete()
+    .ilike('email', '%@test.com')
+
+  // List and delete auth users with @test.com emails
+  const { data: authUsers } = await serviceClient.auth.admin.listUsers()
+  if (authUsers?.users) {
+    const testUsers = authUsers.users.filter(u => u.email?.includes('@test.com'))
+    for (const user of testUsers) {
+      await serviceClient.auth.admin.deleteUser(user.id)
+    }
+  }
+})
 
 describe('RLS Policies: project_progress_templates', () => {
   beforeEach(async () => {

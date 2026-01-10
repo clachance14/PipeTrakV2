@@ -43,6 +43,9 @@ export function usePackageCompletionReport(
           package_name: '',
           test_type: null,
           target_date: null,
+          test_pressure: null,
+          test_pressure_unit: null,
+          piping_spec: null,
           component_summary: [],
           support_summary: [],
           is_draft: true,
@@ -64,7 +67,7 @@ export function usePackageCompletionReport(
       // Fetch package metadata
       const { data: packageData, error: packageError } = await supabase
         .from('test_packages')
-        .select('id, name, test_type, target_date')
+        .select('id, name, test_type, target_date, test_pressure, test_pressure_unit')
         .eq('id', packageId)
         .single();
 
@@ -88,6 +91,9 @@ export function usePackageCompletionReport(
           package_name: packageData.name,
           test_type: packageData.test_type,
           target_date: packageData.target_date,
+          test_pressure: packageData.test_pressure,
+          test_pressure_unit: packageData.test_pressure_unit,
+          piping_spec: null,
           component_summary: [],
           support_summary: [],
           is_draft,
@@ -152,9 +158,15 @@ export function usePackageCompletionReport(
           // Calculate NDE summary
           const nde_summary = calculateNDESummary(weldLog);
 
+          // Calculate most common NPD (weld_size) and piping spec for this drawing
+          const npd = getMostCommonValue(drawingWelds.map(w => w.weld_size).filter(Boolean) as string[]);
+          const piping_spec = getMostCommonValue(drawingWelds.map(w => w.spec).filter(Boolean) as string[]);
+
           return {
             drawing_id: drawingId,
             drawing_no_norm,
+            npd,
+            piping_spec,
             component_count: drawingComponents.length,
             unique_supports_count: uniqueSupportsCount,
             components: drawingComponents,
@@ -185,11 +197,18 @@ export function usePackageCompletionReport(
         overall_nde_summary.nde_pending_count += group.nde_summary.nde_pending_count;
       });
 
+      // Calculate package-level piping spec (most common across all welds)
+      const allSpecs = (fieldWelds || []).map(w => w.spec).filter(Boolean) as string[];
+      const packagePipingSpec = getMostCommonValue(allSpecs);
+
       return {
         package_id: packageData.id,
         package_name: packageData.name,
         test_type: packageData.test_type,
         target_date: packageData.target_date,
+        test_pressure: packageData.test_pressure,
+        test_pressure_unit: packageData.test_pressure_unit,
+        piping_spec: packagePipingSpec,
         component_summary,
         support_summary,
         is_draft,
@@ -202,6 +221,33 @@ export function usePackageCompletionReport(
     enabled: (!!packageId && !componentsQuery.isLoading) || !packageId, // Run when components query completes OR packageId is undefined
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
+}
+
+/**
+ * Get the most common value from an array of strings
+ * Returns null if array is empty
+ *
+ * @param values - Array of string values
+ * @returns Most common value or null
+ */
+function getMostCommonValue(values: string[]): string | null {
+  if (values.length === 0) return null;
+
+  const counts = new Map<string, number>();
+  values.forEach(v => {
+    counts.set(v, (counts.get(v) || 0) + 1);
+  });
+
+  let maxCount = 0;
+  let mostCommon: string | null = null;
+  counts.forEach((count, value) => {
+    if (count > maxCount) {
+      maxCount = count;
+      mostCommon = value;
+    }
+  });
+
+  return mostCommon;
 }
 
 /**
@@ -304,19 +350,20 @@ function calculateNDESummary(welds: WeldLogEntry[]): NDESummary {
 }
 
 /**
- * Calculate component summary aggregated by identity (excluding seq)
+ * Calculate component summary aggregated by type + identity across entire package
+ * (excluding seq for supports to group similar items)
  *
  * @param components - All package components
- * @returns Component summary rows sorted by drawing + type
+ * @returns Component summary rows sorted by type + identity
  */
 function calculateComponentSummary(components: PackageComponent[]): ComponentSummaryRow[] {
-  // Group by canonical identity (excluding seq)
+  // Group by canonical identity (excluding seq) across entire package
   const summaryMap = new Map<string, ComponentSummaryRow>();
 
   components.forEach(component => {
-    // Build canonical key: drawing + type + identity_without_seq
+    // Build canonical key: type + identity_without_seq (no drawing)
     const identity_display = buildIdentityDisplay(component);
-    const canonicalKey = `${component.drawing_no_norm}|${component.component_type}|${identity_display}`;
+    const canonicalKey = `${component.component_type}|${identity_display}`;
 
     if (summaryMap.has(canonicalKey)) {
       // Increment quantity
@@ -325,7 +372,6 @@ function calculateComponentSummary(components: PackageComponent[]): ComponentSum
     } else {
       // Create new entry
       summaryMap.set(canonicalKey, {
-        drawing_no_norm: component.drawing_no_norm || 'Unknown',
         component_type: component.component_type || 'unknown',
         identity_display,
         quantity: 1,
@@ -333,15 +379,15 @@ function calculateComponentSummary(components: PackageComponent[]): ComponentSum
     }
   });
 
-  // Convert to array and sort
+  // Convert to array and sort by component type then identity
   const summary = Array.from(summaryMap.values());
   summary.sort((a, b) => {
-    // Sort by drawing first
-    const drawingCompare = a.drawing_no_norm.localeCompare(b.drawing_no_norm);
-    if (drawingCompare !== 0) return drawingCompare;
+    // Sort by component type first
+    const typeCompare = a.component_type.localeCompare(b.component_type);
+    if (typeCompare !== 0) return typeCompare;
 
-    // Then by component type
-    return a.component_type.localeCompare(b.component_type);
+    // Then by identity
+    return a.identity_display.localeCompare(b.identity_display);
   });
 
   return summary;
