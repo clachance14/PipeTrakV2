@@ -8,6 +8,7 @@ import type { Database } from '@/types/database.types';
 import { formatIdentityKey as formatDrawingComponentKey } from '@/lib/formatIdentityKey';
 import { formatIdentityKey as formatFieldWeldKey } from '@/lib/field-weld-utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { MilestoneChips } from '@/components/milestones/MilestoneChips';
 import { cn } from '@/lib/utils';
 
@@ -157,7 +158,14 @@ export function ComponentRow({
 
       {/* Identity Key - always visible */}
       <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{identityDisplay}</div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium truncate">{identityDisplay}</span>
+          {component.post_hydro_install && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 flex-shrink-0">
+              Post-Hydro
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Type - hideable */}

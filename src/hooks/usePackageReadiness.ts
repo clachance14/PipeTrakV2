@@ -25,6 +25,10 @@ export interface PackageCard {
   targetDate: string | null; // ISO 8601 date
   statusColor: StatusColor;
   budgetedManhours: number | null; // Sum of component manhours (from vw_manhour_progress_by_test_package)
+  // Post-hydro tracking (Feature: post-hydro-install)
+  testReadyPercent: number; // % of non-post-hydro components at 100%
+  testableComponents: number; // Components that count toward test readiness
+  postHydroComponents: number; // Components deferred to post-hydro installation
 }
 
 /**
@@ -122,6 +126,10 @@ export function usePackageReadiness(
         row.blocker_count || 0
       ),
       budgetedManhours: manhourMap.get(row.package_id || '') ?? null,
+      // Post-hydro tracking fields from updated MV
+      testReadyPercent: row.test_ready_percent ?? 0,
+      testableComponents: row.testable_components ?? 0,
+      postHydroComponents: row.post_hydro_components ?? 0,
     }));
 
     // Apply status filter

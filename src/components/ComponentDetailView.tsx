@@ -83,6 +83,7 @@ export function ComponentDetailView({
     area_id: component?.area_id || null,
     system_id: component?.system_id || null,
     test_package_id: component?.test_package_id || null,
+    post_hydro_install: component?.post_hydro_install || false,
   });
   const [isDirty, setIsDirty] = useState(false);
 
@@ -93,6 +94,7 @@ export function ComponentDetailView({
         area_id: component.area_id,
         system_id: component.system_id,
         test_package_id: component.test_package_id,
+        post_hydro_install: component.post_hydro_install || false,
       });
       setIsDirty(false);
     }
@@ -122,6 +124,7 @@ export function ComponentDetailView({
         area_id: metadataForm.area_id,
         system_id: metadataForm.system_id,
         test_package_id: metadataForm.test_package_id,
+        post_hydro_install: metadataForm.post_hydro_install,
       });
 
       toast.success('Metadata updated successfully');
@@ -138,6 +141,7 @@ export function ComponentDetailView({
       area_id: component.area_id,
       system_id: component.system_id,
       test_package_id: component.test_package_id,
+      post_hydro_install: component.post_hydro_install || false,
     });
     setIsDirty(false);
   };
@@ -516,6 +520,25 @@ export function ComponentDetailView({
               </Select>
             </div>
 
+            {/* Post-Hydro Installation */}
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="post-hydro-install"
+                checked={metadataForm.post_hydro_install}
+                onCheckedChange={(checked) => {
+                  setMetadataForm({ ...metadataForm, post_hydro_install: !!checked });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              />
+              <label htmlFor="post-hydro-install" className="text-sm font-medium cursor-pointer">
+                Install after hydrotest
+                {!metadataForm.test_package_id && (
+                  <span className="text-muted-foreground ml-1">(applies when in test package)</span>
+                )}
+              </label>
+            </div>
+
             {/* Actions */}
             {canEditMetadata && (
               <div className="flex gap-2 pt-4">
@@ -871,6 +894,25 @@ export function ComponentDetailView({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Post-Hydro Installation */}
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="post-hydro-install-mobile"
+                checked={metadataForm.post_hydro_install}
+                onCheckedChange={(checked) => {
+                  setMetadataForm({ ...metadataForm, post_hydro_install: !!checked });
+                  setIsDirty(true);
+                }}
+                disabled={!canEditMetadata}
+              />
+              <label htmlFor="post-hydro-install-mobile" className="text-sm font-medium cursor-pointer">
+                Install after hydrotest
+                {!metadataForm.test_package_id && (
+                  <span className="text-muted-foreground ml-1">(applies when in test package)</span>
+                )}
+              </label>
             </div>
 
             {/* Actions */}
