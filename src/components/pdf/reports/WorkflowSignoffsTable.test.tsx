@@ -10,6 +10,7 @@
  * - Uses custom title when provided
  */
 
+import type { PropsWithChildren } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { WorkflowSignoffsTable } from './WorkflowSignoffsTable';
@@ -17,9 +18,9 @@ import type { PackageWorkflowStage } from '@/types/workflow.types';
 
 // Mock @react-pdf/renderer
 vi.mock('@react-pdf/renderer', () => ({
-  View: ({ children }: any) => <div data-testid="pdf-view">{children}</div>,
-  Text: ({ children }: any) => <span data-testid="pdf-text">{children}</span>,
-  StyleSheet: { create: (styles: any) => styles },
+  View: ({ children }: PropsWithChildren) => <div data-testid="pdf-view">{children}</div>,
+  Text: ({ children }: PropsWithChildren) => <span data-testid="pdf-text">{children}</span>,
+  StyleSheet: { create: (styles: Record<string, unknown>) => styles },
 }));
 
 // Mock getKeyStages - return first, test, and final stages
@@ -37,11 +38,12 @@ vi.mock('@/lib/getKeyStages', () => ({
   },
   formatStageForDisplay: (stage: PackageWorkflowStage) => ({
     name: stage.stage_name,
-    status: stage.status as 'completed' | 'pending' | 'skipped',
-    completedBy:
+    status: stage.status as 'completed' | 'pending' | 'skipped' | 'in_progress',
+    companyRep:
       stage.status === 'completed' && stage.completed_by_user
         ? stage.completed_by_user.full_name || stage.completed_by_user.email
         : null,
+    clientRep: null,
     completedDate: stage.status === 'completed' && stage.completed_at ? 'Jan 15, 2025' : null,
   }),
 }));
@@ -108,7 +110,8 @@ describe('WorkflowSignoffsTable', () => {
       const { container } = render(<WorkflowSignoffsTable stages={sampleStages} />);
       expect(container.textContent).toContain('Stage');
       expect(container.textContent).toContain('Status');
-      expect(container.textContent).toContain('Completed By');
+      expect(container.textContent).toContain('Company Rep');
+      expect(container.textContent).toContain('Client Rep');
       expect(container.textContent).toContain('Date');
     });
   });

@@ -133,11 +133,13 @@ function formatDate(dateString: string | null): string {
 
 /**
  * Chunk array into pages
+ * Guards against invalid size to prevent infinite loops
  */
 function chunkArray<T>(array: T[], size: number): T[][] {
+  const safeSize = Number.isFinite(size) && size > 0 ? Math.floor(size) : 1;
   const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
+  for (let i = 0; i < array.length; i += safeSize) {
+    chunks.push(array.slice(i, i + safeSize));
   }
   return chunks;
 }

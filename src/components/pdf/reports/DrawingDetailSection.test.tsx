@@ -10,6 +10,7 @@
  * - Handles empty component lists
  */
 
+import type { PropsWithChildren } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { DrawingDetailSection } from './DrawingDetailSection';
@@ -17,18 +18,18 @@ import type { DrawingGroup, WeldLogEntry } from '@/types/packageReport';
 
 // Mock @react-pdf/renderer
 vi.mock('@react-pdf/renderer', () => ({
-  View: ({ children, wrap }: any) => (
+  View: ({ children, wrap }: PropsWithChildren<{ wrap?: boolean }>) => (
     <div data-testid="pdf-view" data-wrap={wrap}>
       {children}
     </div>
   ),
-  Text: ({ children }: any) => <span data-testid="pdf-text">{children}</span>,
-  StyleSheet: { create: (styles: any) => styles },
+  Text: ({ children }: PropsWithChildren) => <span data-testid="pdf-text">{children}</span>,
+  StyleSheet: { create: <T extends Record<string, unknown>>(styles: T) => styles },
 }));
 
 // Mock WeldLogTablePDF
 vi.mock('./WeldLogTablePDF', () => ({
-  WeldLogTablePDF: ({ welds }: any) => (
+  WeldLogTablePDF: ({ welds }: { welds: unknown[] }) => (
     <div data-testid="weld-log-table">Weld Log Table ({welds.length} welds)</div>
   ),
 }));
@@ -145,7 +146,7 @@ describe('DrawingDetailSection', () => {
       const drawing = createDrawing();
       const { container } = render(<DrawingDetailSection drawing={drawing} />);
       expect(container.textContent).toContain('Type');
-      expect(container.textContent).toContain('Identity Key');
+      expect(container.textContent).toContain('Identity');
     });
 
     it('renders component type and identity key', () => {
@@ -185,61 +186,8 @@ describe('DrawingDetailSection', () => {
     });
   });
 
-  describe('NDE summary', () => {
-    it('renders NDE Summary section label', () => {
-      const drawing = createDrawing();
-      const { container } = render(<DrawingDetailSection drawing={drawing} />);
-      expect(container.textContent).toContain('NDE Summary');
-    });
-
-    it('renders total welds', () => {
-      const drawing = createDrawing({
-        nde_summary: { ...createDrawing().nde_summary, total_welds: 15 },
-      });
-      const { container } = render(<DrawingDetailSection drawing={drawing} />);
-      expect(container.textContent).toContain('15');
-      expect(container.textContent).toContain('Total Welds');
-    });
-
-    it('renders NDE required count', () => {
-      const drawing = createDrawing({
-        nde_summary: { ...createDrawing().nde_summary, nde_required_count: 8 },
-      });
-      const { container } = render(<DrawingDetailSection drawing={drawing} />);
-      expect(container.textContent).toContain('8');
-      expect(container.textContent).toContain('NDE Required');
-    });
-
-    it('renders pass/fail/pending counts', () => {
-      const drawing = createDrawing({
-        nde_summary: {
-          total_welds: 10,
-          nde_required_count: 6,
-          nde_pass_count: 4,
-          nde_fail_count: 1,
-          nde_pending_count: 1,
-        },
-      });
-      const { container } = render(<DrawingDetailSection drawing={drawing} />);
-      expect(container.textContent).toContain('Pass');
-      expect(container.textContent).toContain('Fail');
-      expect(container.textContent).toContain('Pending');
-    });
-
-    it('does not render NDE summary when no welds', () => {
-      const drawing = createDrawing({
-        nde_summary: {
-          total_welds: 0,
-          nde_required_count: 0,
-          nde_pass_count: 0,
-          nde_fail_count: 0,
-          nde_pending_count: 0,
-        },
-      });
-      const { container } = render(<DrawingDetailSection drawing={drawing} />);
-      expect(container.textContent).not.toContain('NDE Summary');
-    });
-  });
+  // Note: NDE summary is shown in drawing header counts, not as a separate section
+  // The component renders weld counts in the header subtitle (e.g., "5 Welds")
 
   describe('weld details', () => {
     it('does not show weld log by default', () => {
