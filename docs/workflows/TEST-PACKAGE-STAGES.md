@@ -1,75 +1,102 @@
 # Test Package Workflow Stages and Handoffs
 
-**Document Version**: 1.0
-**Last Updated**: 2025-11-23
-**Audience**: Project managers, QC coordinators, commissioning engineers
+**Document Version**: 2.0
+**Last Updated**: 2026-01-08
+**Audience**: Project managers, QC coordinators, field engineers
 
 ---
 
 ## Purpose
 
-This document defines the workflow stages for test packages in chemical plant and refinery construction, from initial planning through final turnover to commissioning. It details stage requirements, responsibilities, deliverables, and handoff procedures for each phase.
+This document defines the workflow stages for test packages at ICS, from initial planning through client handoff. It details stage requirements, responsibilities, deliverables, and handoff procedures for each phase.
+
+**Scope**: Contractor workflow through first client handoff. MC (Mechanical Complete) and subsequent activities are out of scope for this document.
 
 ---
 
 ## Workflow Overview
 
-### Three-Phase Construction Workflow
+### ICS Test Package Lifecycle (Contractor Scope)
 
 ```
 ┌─────────────────────┐
 │                     │
-│  MECHANICAL         │  Physical installation complete
-│  COMPLETION (MC)    │  All welds inspected
-│                     │  Punch lists resolved
+│      PLANNING       │  Define test packages, assign ISOs
+│                     │  Determine test type and pressure
 └──────────┬──────────┘
-           │
-           │ MC Certificate
            │
            ▼
 ┌─────────────────────┐
 │                     │
-│  PRE-COMMISSIONING  │  Testing with test fluids (water, air)
-│                     │  Hydrotest, pneumatic, flushing
-│                     │  Test packages executed
+│    CONSTRUCTION     │  Install welds, NDE inspection
+│                     │  Install TESTABLE components only
 └──────────┬──────────┘
-           │
-           │ Turnover Package
-           │
+           │ All welds + NDE + testable components complete
            ▼
 ┌─────────────────────┐
 │                     │
-│  COMMISSIONING      │  Testing with process fluids
-│                     │  System integration testing
-│                     │  Performance verification
+│   PRE-TEST PUNCH    │  QC walkdown
+│                     │  Verify test readiness
+└──────────┬──────────┘
+           │ QC approval
+           ▼
+┌─────────────────────┐
+│                     │
+│        TEST         │  Hydro or Pneumatic test
+│                     │  Repair in place if fails, retest
+└──────────┬──────────┘
+           │ Test passes
+           ▼
+┌─────────────────────┐
+│                     │
+│       RESTORE       │  Install spec gaskets
+│                     │  Install excluded components
+│                     │  Install instruments, relief valves
+└──────────┬──────────┘
+           │ All restoration items installed
+           ▼
+┌─────────────────────┐
+│                     │
+│   POST-TEST PUNCH   │  Verify restoration complete
+│                     │  Check for test damage
+│                     │  Confirm documentation complete
+└──────────┬──────────┘
+           │ QC approval
+           ▼
+┌─────────────────────┐
+│                     │
+│   CLIENT HANDOFF    │  Joint walkdown with client
+│                     │  Deliver Package Completion Report
+│                     │
 └─────────────────────┘
            │
-           │ Handover to Operations
-           │
            ▼
-      OPERATIONS
+    ┌─────────────────────────────────────────┐
+    │  OUT OF SCOPE:                          │
+    │  - Client punch review                  │
+    │  - MC (Mechanical Complete)             │
+    │  - Turnover to commissioning            │
+    └─────────────────────────────────────────┘
 ```
 
-**PipeTrak Scope**: Primarily supports **Mechanical Completion** and **Pre-Commissioning** phases. Commissioning typically uses separate systems (DCS, PI System, etc.).
+**Key Insight**: Mechanical Complete (MC) is a contractual milestone that occurs AFTER client handoff, with multiple signatures required. It is NOT a pre-testing gate.
 
 ---
 
 ## Stage Definitions
 
-### Stage 0: Planning
+### Stage 1: Planning
 
-**Status**: `planning`
-
-**Purpose**: Define test package scope, boundaries, and requirements before construction begins or during early construction.
+**Purpose**: Define test package scope, boundaries, and requirements before or during early construction.
 
 **Activities**:
 - Identify test package groupings (area, pressure class, service type)
 - Assign ISOs to test packages
 - Identify isolation points (flanges, valves, dead ends)
 - Determine test type (hydrotest vs pneumatic)
-- Calculate test pressure (1.5× design per ASME B31.3)
+- Receive test pressure from engineering (provided, NOT calculated by contractor)
 - Prepare test procedures
-- Coordinate with engineering (verify test boundaries acceptable)
+- Identify components to exclude from test (will be installed during Restore)
 
 **Responsibilities**:
 - **Piping Engineer / QC Lead**: Define test packages
@@ -85,32 +112,33 @@ This document defines the workflow stages for test packages in chemical plant an
 - [ ] Test packages defined (ISOs assigned)
 - [ ] Test boundaries identified (isolation points documented)
 - [ ] Test type determined (hydrotest or pneumatic)
+- [ ] Test pressure received from engineering
 - [ ] Test procedures prepared (draft or template)
+- [ ] Components excluded from test identified
 - [ ] Test package plan approved by project management
 
 **Deliverables**:
 - Test package list (ID, description, ISO count, test type)
 - Test boundary drawings or descriptions (isolation points)
 - Test procedures (hydrostatic or pneumatic per ASME B31.3)
+- List of components excluded from test
 
-**PipeTrak Support**: ✅ Test package creation, ISO assignment, metadata tracking
+**PipeTrak Support**: Test package creation, ISO assignment, metadata tracking
 
 ---
 
-### Stage 1: Construction
+### Stage 2: Construction
 
-**Status**: `construction`
-
-**Purpose**: Install all piping, components, and welds per approved ISOs. Track construction progress and quality.
+**Purpose**: Install all piping, components, and welds per approved ISOs. Install only components that will be tested.
 
 **Activities**:
 - Fabricate and install pipe spools (per ISOs)
 - Weld pipe joints (butt welds, socket welds, fillet welds)
 - Inspect welds (visual, NDE per code requirements)
-- Install valves, fittings, instruments
+- Install valves, fittings that are part of test
 - Pressure-test individual spools (shop hydrotest, if required)
 - Track component installation progress
-- Identify and track punch list items
+- Do NOT install components excluded from test (instruments, some relief valves, etc.)
 
 **Responsibilities**:
 - **Craft Labor**: Install piping and components
@@ -125,172 +153,105 @@ This document defines the workflow stages for test packages in chemical plant an
 - [ ] WPS approved (welding procedures qualified)
 
 **Exit Criteria**:
-- [ ] All components installed (per ISO)
+- [ ] All TESTABLE components installed (per ISO, excluding items marked for post-test install)
 - [ ] All welds completed (no open joints)
 - [ ] All NDE completed (radiography, ultrasonic per code)
 - [ ] All NDE reports accepted (no rejectable indications)
-- [ ] All punch list items identified (may not be resolved yet)
 
 **Deliverables**:
-- Installed piping (per ISOs)
+- Installed piping (per ISOs, testable scope)
 - Weld maps (weld locations, numbers, welders)
 - NDE reports (RT, UT, PT, MT results)
 - Material test certificates (MTCs for all materials)
-- Punch list (open items requiring resolution)
 
-**PipeTrak Support**: ✅ Component tracking, weld logging, welder assignments, NDE status, punch list management
+**PipeTrak Support**: Component tracking, weld logging, welder assignments, NDE status
 
 ---
 
-### Stage 2: Mechanical Completion (MC)
+### Stage 3: Pre-Test Punch
 
-**Status**: `mechanical_completion`
-
-**Purpose**: Verify all construction and inspection activities are complete and documented. Close all punch list items. Prepare system for pre-commissioning testing.
+**Purpose**: QC walkdown to verify system is ready for pressure testing. Identify and resolve any issues before test.
 
 **Activities**:
-- **Internal MC walkdown** (contractor QC team):
-  - Verify all components installed
+- **QC walkdown**:
+  - Verify all testable components installed
   - Verify all welds complete and inspected
   - Verify all NDE reports accepted
-  - Identify remaining punch list items
+  - Check physical installation (supports, hangers, alignment)
 
-- **Punch list resolution**:
-  - Category A items (must resolve before MC) → Repair and re-inspect
-  - Category B items (can defer if approved) → Document and track
-  - Category C items (cosmetic, defer to operations) → Document and track
-
-- **Documentation review**:
-  - Weld maps complete (all welds documented)
-  - NDE reports complete (all required NDE performed)
-  - MTCs collected (material traceability verified)
-  - Calibration certificates (instruments, test gauges)
-
-- **MC Certificate preparation**:
-  - MC Status Index (list of all systems/subsystems in package)
-  - Punch List Register (all open items documented)
-  - MC Certificate (cover sheet, signed by contractor QC manager)
-
-**Responsibilities**:
-- **Contractor QC Manager**: Lead MC walkdown, approve MC Certificate
-- **QC Inspectors**: Verify completeness, document punch list
-- **Craft Labor**: Resolve punch list items
-- **Client (optional)**: Witness MC walkdown, accept punch list plan
-
-**Entry Criteria**:
-- [ ] All construction complete (per Stage 1 exit criteria)
-- [ ] All NDE reports accepted
-- [ ] All punch list items identified
-
-**Exit Criteria**:
-- [ ] All Category A punch list items resolved
-- [ ] Category B/C items documented and approved for deferral (if applicable)
-- [ ] All documentation complete (weld maps, NDE reports, MTCs)
-- [ ] MC Certificate signed (contractor QC manager)
-- [ ] Client MC acceptance (if required by contract)
-
-**Deliverables**:
-- Mechanical Completion Certificate (MCC)
-- MC Status Index (system/subsystem list with completion status)
-- Punch List Register (all items categorized, resolved or deferred)
-- Weld inspection package (weld maps + NDE reports)
-- Material traceability package (MTCs for all components)
-
-**PipeTrak Support**: ✅ Strong support via milestone tracking, weld inspection status, punch list management, document links
-
----
-
-### Stage 3: Pre-Test Preparation
-
-**Status**: `pre_test_prep`
-
-**Purpose**: Prepare test package for pressure testing (hydrotest or pneumatic). Install test boundaries, test equipment, and verify system ready.
-
-**Activities**:
-- **Install test boundaries**:
+- **Test boundary verification**:
   - Blind flanges at isolation points
-  - Spectacle blinds (if permanent)
-  - Verify isolation valves close fully
-  - Install pipe caps/plugs at dead ends
-
-- **Install test equipment**:
-  - Pressure gauges (calibrated, 2× for redundancy)
-  - Test pump connection (for hydrotest) or compressor connection (for pneumatic)
-  - Vent valves (high points for air removal)
-  - Drain valves (low points for filling/draining)
-
-- **Verify supports**:
-  - Permanent supports installed and verified
-  - Temporary supports (if needed for water weight in hydrotest)
-  - Spring hangers locked (if required during test)
+  - Isolation valves verified closed
+  - Pipe caps/plugs at dead ends
+  - Test equipment ready (gauges calibrated, pump/compressor available)
 
 - **Safety review**:
-  - Test procedure reviewed and approved
-  - Hazards identified (falling water, pressurized system energy)
-  - Barricades installed (restrict access during test)
+  - Hazards identified
+  - Barricades planned
   - PPE requirements defined
-  - Emergency procedures communicated
 
 **Responsibilities**:
-- **Piping Lead / Test Coordinator**: Install test boundaries and equipment
-- **Safety Officer**: Review test procedure, approve safety plan
-- **QC Inspector**: Verify test equipment calibration
-- **Client / Third-Party (optional)**: Witness pre-test inspection
+- **QC Inspector**: Perform walkdown, approve test readiness
+- **Piping Lead / Test Coordinator**: Verify test boundaries and equipment
+- **Safety Officer**: Review safety plan
 
 **Entry Criteria**:
-- [ ] MC Certificate issued (system mechanically complete)
-- [ ] Test procedure approved (hydrotest or pneumatic)
-- [ ] Test equipment available (gauges calibrated, pump/compressor ready)
-- [ ] Test boundaries identified (isolation points known)
+- [ ] Construction complete (Stage 2 exit criteria met)
+- [ ] Test procedure approved
+- [ ] Test equipment available
 
 **Exit Criteria**:
-- [ ] Test boundaries installed (blinds, valves, caps)
-- [ ] Test equipment installed (gauges, vents, drains)
-- [ ] Supports verified adequate (for water weight if hydrotest)
-- [ ] Safety review complete (hazards identified, mitigated)
-- [ ] Pre-test inspection passed (contractor QC + third-party if required)
+- [ ] QC approval to proceed with test
+
+**Note**: No formal checklist required. QC inspector approval is the gate.
 
 **Deliverables**:
-- Test equipment installation checklist (gauges, vents, drains verified)
-- Calibration certificates (pressure gauges within calibration period)
-- Pre-test inspection report (ready for testing)
-- Safety plan (hazards, mitigation, emergency procedures)
+- QC approval (verbal or sign-off)
+- Pre-test inspection notes (if issues found and resolved)
 
-**PipeTrak Support**: ⚠️ Limited (pre-test checklist could be added as future enhancement)
+**PipeTrak Support**: Workflow stage tracking, sign-off capture
 
 ---
 
 ### Stage 4: Testing
 
-**Status**: `testing`
-
 **Purpose**: Execute pressure test per approved procedure. Verify system integrity (no leaks, no structural failures).
 
-**Activities**:
+**Test Parameters** (provided by engineering, NOT calculated by contractor):
+- **Test Type**: Hydrostatic, Pneumatic, Sensitive Leak, Alternative Leak, In-Service
+- **Test Pressure**: Per line list / engineering spec (typically 1.5× design pressure per ASME B31.3)
+- **Test Media**: Water, air, nitrogen, or specified medium
 
-#### For Hydrostatic Testing:
-1. **Fill system** with water (from low point)
-2. **Vent all high points** (remove all air)
-3. **Pressurize to intermediate hold** (½ test pressure or 25 psig)
-4. **Preliminary inspection** (check for leaks at lower pressure)
-5. **Pressurize to test pressure** (gradually)
-6. **Hold at test pressure** (minimum 10 minutes, typically 30-60 min)
-7. **Visual inspection** (all welds, flanges, fittings)
-8. **Record results** (pressure, time, temperature, leaks if any)
-9. **Depressurize and drain**
-10. **Document test** (test report, photos, inspector sign-off)
+#### Hydrostatic Testing Procedure:
+1. Fill system with water (from low point)
+2. Vent all high points (remove all air)
+3. Pressurize to ½ test pressure (preliminary check)
+4. Preliminary inspection (check for leaks at lower pressure)
+5. Pressurize to test pressure (gradually)
+6. Hold at test pressure (minimum 10 minutes, typically 30-60 min)
+7. Visual inspection (all welds, flanges, fittings)
+8. Record results (pressure, time, temperature, leaks if any)
+9. Depressurize and drain
+10. Document test (test report, photos, inspector sign-off)
 
-#### For Pneumatic Testing:
-1. **Initial leak check** at low pressure (25 psig, soap solution)
-2. **Pressurize to ½ test pressure** (graduated pressurization)
-3. **Hold at ½ test pressure** (10 minutes)
-4. **Increase in 1/10 increments** (per ASME B31.1 procedure)
-5. **Hold at test pressure** (minimum 10 minutes, typically 30-60 min)
-6. **Reduce to design pressure or 100 psig** (for leak detection)
-7. **Leak detection** (soap solution, ultrasonic, or pressure decay)
-8. **Record results** (pressure, time, leaks if any)
-9. **Depressurize slowly** (avoid rapid decompression hazards)
-10. **Document test** (test report, photos, inspector sign-off)
+#### Pneumatic Testing Procedure:
+1. Initial leak check at low pressure (25 psig, soap solution)
+2. Pressurize to ½ test pressure (graduated pressurization)
+3. Hold at ½ test pressure (10 minutes)
+4. Increase in 1/10 increments (per ASME B31.1 procedure)
+5. Hold at test pressure (minimum 10 minutes, typically 30-60 min)
+6. Reduce to design pressure or 100 psig (for leak detection)
+7. Leak detection (soap solution, ultrasonic, or pressure decay)
+8. Record results (pressure, time, leaks if any)
+9. Depressurize slowly (avoid rapid decompression hazards)
+10. Document test (test report, photos, inspector sign-off)
+
+**If Test Fails**:
+- Identify leak location(s)
+- Repair immediately in place (weld repair, flange re-torque, component replacement)
+- Re-inspect repairs (visual + NDE if weld repair)
+- Retest (full test procedure, same acceptance criteria)
+- No separate stage transition - repair and retest until pass
 
 **Responsibilities**:
 - **Test Coordinator**: Lead test execution, pressurization control
@@ -299,179 +260,181 @@ This document defines the workflow stages for test packages in chemical plant an
 - **Client (if required)**: Witness test, accept results
 
 **Entry Criteria**:
-- [ ] Pre-test preparation complete (Stage 3 exit criteria met)
-- [ ] Test procedure approved (specific to this test package)
+- [ ] Pre-Test Punch complete (QC approval)
+- [ ] Test procedure approved
 - [ ] Test team briefed (roles, responsibilities, safety)
-- [ ] Test area barricaded (personnel cleared during pressurization)
+- [ ] Test area barricaded
 
-**Exit Criteria** (for PASS):
+**Exit Criteria** (PASS):
 - [ ] Test pressure achieved and maintained (minimum 10 minutes)
 - [ ] No visible leakage (hydrotest) or detected leakage (pneumatic)
 - [ ] No structural deformation observed
-- [ ] Test report completed and signed (contractor QC inspector)
-- [ ] Third-party witness sign-off (if required)
-- [ ] Client acceptance (if required)
-
-**Exit Criteria** (for FAIL):
-- [ ] Leak location(s) identified and documented
-- [ ] Test report completed (failure mode documented)
-- [ ] Repair plan prepared (weld repair, flange re-torque, component replacement)
-- [ ] System depressurized and drained
-- [ ] Package returned to Construction or MC stage for repairs
+- [ ] Test report completed and signed
 
 **Deliverables**:
 - Test report (pressure, time, temperature, results, photos)
 - Inspector sign-off (contractor QC inspector certification)
 - Third-party sign-off (if required by contract)
-- Client acceptance (if required by contract)
-- Test photos (gauge readings, leaks if any, general setup)
 
-**PipeTrak Support**: ⚠️ Future enhancement opportunity (digital test execution, photo uploads, signature capture)
+**PipeTrak Support**: Workflow stage tracking, test certificate storage
 
 ---
 
-### Stage 5: Post-Test / Re-Test (If Initial Test Failed)
+### Stage 5: Restore
 
-**Status**: `repair_retest`
-
-**Purpose**: Repair defects found during testing. Re-inspect repairs. Re-test system.
+**Purpose**: Install all components that were excluded from pressure testing. Replace test materials with permanent materials.
 
 **Activities**:
-- **Identify root cause** of failure:
-  - Weld defect (porosity, lack of fusion, crack)
-  - Flange leak (gasket damage, insufficient torque, flange warp)
-  - Component defect (valve leak, fitting crack)
-  - System design issue (inadequate support, thermal expansion)
+- **Replace test materials**:
+  - Remove test gaskets, install spec gaskets (permanent)
+  - Remove test blinds (if temporary)
 
-- **Prepare repair plan**:
-  - Weld repair (grind out defect, re-weld per approved WPS)
-  - Flange repair (replace gasket, re-torque per sequence, check flange faces)
-  - Component replacement (replace defective valve, fitting)
+- **Install excluded components**:
+  - Instruments and transmitters
+  - Relief valves and safety devices
+  - Components that couldn't handle test pressure
+  - Any other items flagged as "exclude from test"
 
-- **Execute repairs**:
-  - Perform repair per approved procedure
-  - Document repair (weld repair log, replaced components)
-
-- **Re-inspect repairs**:
-  - Visual inspection (100%)
-  - NDE (if weld repair, same method as original inspection)
-  - Accept or reject repair (same criteria as original inspection)
-
-- **Re-test**:
-  - Full test procedure (same as Stage 4)
-  - No abbreviated re-test (entire system must pass)
+- **Final connections**:
+  - Torque flanges to spec (with permanent gaskets)
+  - Connect instrument tubing
+  - Install protective covers
 
 **Responsibilities**:
-- **QC Inspector**: Identify defect, approve repair plan
-- **Craft Labor / Welders**: Execute repairs
-- **NDE Technicians**: Re-inspect repairs (RT, UT, etc.)
-- **Test Coordinator**: Execute re-test
+- **Craft Labor**: Install restoration items
+- **Instrument Technicians**: Install instruments, transmitters
+- **QC Inspector**: Verify correct installation
 
 **Entry Criteria**:
-- [ ] Initial test failed (leaks detected)
-- [ ] Leak locations identified and documented
-- [ ] Root cause determined
-- [ ] Repair plan approved (QC manager, client if required)
+- [ ] Test passed (Stage 4 exit criteria met)
+- [ ] Restoration materials available (spec gaskets, instruments, relief valves)
 
 **Exit Criteria**:
-- [ ] Repairs completed per approved plan
-- [ ] Repairs inspected and accepted (visual + NDE if weld repair)
-- [ ] Re-test passed (no leaks, pressure maintained)
-- [ ] Test report updated (repair details, re-test results)
+- [ ] All spec gaskets installed (test gaskets removed)
+- [ ] All excluded components installed
+- [ ] All instruments installed
+- [ ] All relief valves/safety devices installed
 
 **Deliverables**:
-- Repair log (defect description, repair method, inspector sign-off)
-- Re-inspection reports (NDE if weld repair)
-- Re-test report (same format as initial test report)
+- Restoration completion checklist (informal)
+- Updated component status in PipeTrak
 
-**PipeTrak Support**: ⚠️ Future enhancement (link test failures to repairs, track re-test cycles)
+**PipeTrak Support**: Component tracking, status updates
 
 ---
 
-### Stage 6: Accepted / Turnover Ready
+### Stage 6: Post-Test Punch
 
-**Status**: `accepted`
-
-**Purpose**: Test package passed all testing, accepted by client (if required), ready for turnover to commissioning.
+**Purpose**: Final QC verification that restoration is complete, no test damage occurred, and documentation is ready for client handoff.
 
 **Activities**:
-- **Final documentation review**:
-  - Test reports (all tests passed)
-  - Inspector sign-offs (contractor QC + third-party + client)
-  - Weld inspection package (complete, all accepted)
-  - Punch list (all Category A resolved, B/C deferred with approval)
+- **Restoration verification**:
+  - All restoration items installed correctly
+  - Spec gaskets in place (no test gaskets remaining)
+  - Instruments properly connected
+  - Relief valves installed and tagged
 
-- **Compile turnover package**:
-  - As-built ISOs (if changes made during construction)
-  - Test package documentation (test reports, MC certificate)
-  - Weld maps and NDE reports
-  - Material traceability (MTCs)
-  - Calibration certificates (instruments in system)
-  - Punch list (deferred items documented)
+- **Test damage inspection**:
+  - Check for leaks at flanges (from gasket replacement)
+  - Check for support issues (from water weight during test)
+  - Check for any deformation or damage
 
-- **Client acceptance** (if required):
-  - Client review of turnover package
-  - Client acceptance sign-off
-  - Transfer of custody (contractor → client)
+- **Documentation verification**:
+  - Test reports complete and signed
+  - Weld inspection package complete
+  - Material test certificates collected
+  - As-built updates (if changes made)
 
 **Responsibilities**:
-- **Document Control / Turnover Coordinator**: Compile turnover package
-- **QC Manager**: Review and certify completeness
-- **Client**: Review, accept, sign
+- **QC Inspector**: Final walkdown, documentation review
+- **Document Control**: Compile package documentation
 
 **Entry Criteria**:
-- [ ] Testing complete and passed (Stage 4 exit criteria met)
-- [ ] All documentation complete (test reports, MC certificate, weld package)
-- [ ] All punch list items resolved or approved for deferral
+- [ ] Restore complete (Stage 5 exit criteria met)
+- [ ] All documentation ready for review
 
 **Exit Criteria**:
-- [ ] Turnover package compiled (all required documents)
-- [ ] Turnover package reviewed and accepted (internal QA)
-- [ ] Client acceptance received (if required by contract)
-- [ ] System ready for commissioning
+- [ ] QC approval of restoration
+- [ ] No test damage found (or repaired if found)
+- [ ] Documentation package complete
 
 **Deliverables**:
-- **Turnover Package** (comprehensive documentation set):
-  - As-built drawings (ISOs, layouts)
+- QC sign-off
+- Complete documentation package (ready for client)
+
+**PipeTrak Support**: Workflow stage tracking, document links
+
+---
+
+### Stage 7: Client Handoff
+
+**Purpose**: Joint walkdown with client construction team. Deliver documentation package. Transfer responsibility for package to client.
+
+**Activities**:
+- **Joint walkdown**:
+  - Contractor + client construction team walk package together
+  - Review installed scope
+  - Identify any client concerns
+  - Create joint punch list (if items found)
+
+- **Documentation delivery**:
+  - Present Package Completion Report
+  - Hand over documentation package (test reports, weld package, MTCs)
+
+**Responsibilities**:
+- **Contractor QC Manager / Project Manager**: Lead handoff
+- **Client Construction Team**: Receive package, conduct walkdown
+- **Document Control**: Provide documentation package
+
+**Entry Criteria**:
+- [ ] Post-Test Punch complete (QC approval)
+- [ ] Documentation package complete
+- [ ] Client available for joint walkdown
+
+**Exit Criteria**:
+- [ ] Joint walkdown complete
+- [ ] Package Completion Report delivered
+- [ ] Client acknowledges receipt
+
+**Deliverables**:
+- Package Completion Report (existing PipeTrak report)
+- Documentation package:
   - Test reports (hydrotest or pneumatic)
-  - Mechanical Completion Certificate
   - Weld inspection package (maps + NDE reports)
   - Material traceability package (MTCs)
-  - Instrument calibration certificates
-  - Punch list register (deferred items)
-  - Equipment data sheets (valves, instruments)
-  - Spare parts lists
-  - Operating procedures (if prepared)
+  - As-built ISOs (if changes made)
 
-- **Client Acceptance Certificate** (if required)
+**PipeTrak Support**: Package Completion Report generation
 
-**PipeTrak Support**: ⚠️ Future enhancement (auto-generate turnover package, digital handoff)
+**Note**: This is the END of contractor scope for this document. Client punch review, MC, and turnover to commissioning are handled separately.
 
 ---
 
-### Stage 7: Commissioned (Optional - Outside PipeTrak Scope)
+## Out of Scope: Post-Handoff Activities
 
-**Status**: `commissioned`
+The following activities occur AFTER client handoff and are NOT covered in this document:
 
-**Purpose**: Introduce process fluids, verify system operates as designed, integrate with overall plant systems.
+### Client Punch Review
+- Client construction team reviews package independently
+- Client may create additional punch list items
+- Contractor resolves client punch items
 
-**Activities**:
-- Pre-Commissioning Safety Review (PSSR)
-- Cold commissioning (process fluids, no heat/chemicals)
-- Hot commissioning (operating temperature/pressure)
-- Performance testing (verify design parameters)
-- Integration with DCS (Distributed Control System)
-- Operator training
-- Handover to operations
+### Mechanical Complete (MC)
+- **Contractual milestone** with multiple signatures required
+- Requires:
+  - All contractor punch items resolved
+  - All client punch items resolved (or approved deferrals)
+  - Complete documentation package accepted
+  - MC Certificate signed by:
+    - Contractor QC Manager
+    - Project Manager
+    - Client Representative
+    - Third-Party (if required)
 
-**Responsibilities**:
-- **Commissioning Team**: Lead commissioning activities
-- **Operations Team**: Participate in commissioning, prepare for handover
-- **Engineering Team**: Support troubleshooting, design verification
-
-**PipeTrak Scope**: ❌ Not primary focus (commissioning uses specialized systems: DCS, PI System, CMMS)
-
-**Note**: Some projects track basic commissioning status in construction database (PipeTrak), but detailed commissioning activities managed elsewhere.
+### Turnover to Commissioning
+- Formal transfer of custody
+- Commissioning team takes ownership
+- Pre-commissioning activities begin (PSSR, cold comm, hot comm)
 
 ---
 
@@ -482,110 +445,61 @@ This document defines the workflow stages for test packages in chemical plant an
 **Forward Transition** (to next stage):
 - Only when current stage exit criteria met
 - Requires QC approval (minimum)
-- May require client approval (per contract)
+- Some stages may require client witness (per contract)
 
-**Backward Transition** (to previous stage):
-- When testing fails → Return to Construction or MC for repairs
-- When punch list items found during later stage → Return to MC
-- When documentation incomplete → Return to appropriate stage
-
-**Skip Stages** (not allowed):
-- Cannot skip MC (required for safety and quality)
-- Cannot skip testing (required by code)
-- Sequential progression enforced
+**Backward Transition**:
+- Test fails → Repair in place and retest (no stage change)
+- Issues found during Post-Test Punch → Return to Restore to fix
+- Major issues → Return to appropriate earlier stage
 
 ### Approval Matrix
 
-| Stage Transition | Contractor QC | Third-Party | Client | Notes |
-|------------------|---------------|-------------|--------|-------|
-| Planning → Construction | Approve | - | Review (optional) | Internal contractor decision |
-| Construction → MC | Approve | - | - | QC verifies construction complete |
-| MC → Pre-Test Prep | Approve | - | Accept (optional) | MC Certificate issued |
-| Pre-Test Prep → Testing | Approve | Witness (optional) | Witness (optional) | Safety review required |
-| Testing → Accepted | Approve | Witness & Sign | Accept & Sign | Test report signed |
-| Accepted → Commissioned | - | - | Accept | Turnover package accepted |
-
-**Note**: Approval requirements vary by contract. Table shows typical requirements.
-
----
-
-## Handoff Procedures
-
-### Handoff 1: Construction → Mechanical Completion
-
-**Trigger**: All construction and NDE complete.
-
-**Handoff Meeting**:
-- **Attendees**: Construction lead, QC manager, MC coordinator
-- **Agenda**:
-  - Review construction status (all ISOs installed)
-  - Review NDE status (all reports accepted)
-  - Review punch list (items identified, categorized)
-  - Assign MC walkdown date
-  - Assign punch list resolution responsibilities
-
-**Documents Transferred**:
-- Weld maps (final)
-- NDE reports (all)
-- Punch list (preliminary)
-- Material traceability (MTCs collected)
-
-**PipeTrak Workflow**: Update package status to `mechanical_completion`, assign MC coordinator.
+| Stage Transition | Contractor QC | Client | Notes |
+|------------------|---------------|--------|-------|
+| Planning → Construction | Approve | Review (optional) | Internal decision |
+| Construction → Pre-Test Punch | Approve | - | QC verifies construction complete |
+| Pre-Test Punch → Test | Approve | Witness (optional) | QC approves test readiness |
+| Test → Restore | Approve | Witness (optional) | Test must pass |
+| Restore → Post-Test Punch | Approve | - | All items installed |
+| Post-Test Punch → Client Handoff | Approve | - | Ready for handoff |
+| Client Handoff | Approve | Acknowledge | Joint walkdown |
 
 ---
 
-### Handoff 2: Mechanical Completion → Pre-Commissioning
+## 7-Stage Workflow Sign-Offs (App Model)
 
-**Trigger**: MC Certificate issued, all Category A punch list items resolved.
+The PipeTrak app uses a 7-stage sign-off model for acceptance tracking within test packages:
 
-**Handoff Meeting**:
-- **Attendees**: QC manager, test coordinator, pre-commissioning lead, client (optional)
-- **Agenda**:
-  - Review MC Certificate (signed, accepted)
-  - Review test package plan (test type, boundaries, pressure)
-  - Review test schedule (dates, resources)
-  - Confirm test equipment availability (gauges, pump, compressor)
-  - Assign test execution responsibilities
+1. **Pre-Hydro Acceptance** - Maps to Pre-Test Punch QC approval
+2. **Test Acceptance** - Maps to Test completion sign-off
+3. **Drain/Flush Acceptance** - Post-test draining and cleaning
+4. **Post-Hydro Acceptance** - Maps to Restore verification
+5. **Protective Coatings Acceptance** - Coating application acceptance (if required)
+6. **Insulation Acceptance** - Insulation installation acceptance (if required)
+7. **Final Package Acceptance** - Maps to Client Handoff readiness
 
-**Documents Transferred**:
-- Mechanical Completion Certificate
-- MC Status Index
-- Punch List Register (resolved items, deferred items)
-- Weld inspection package
-- Material traceability package
-
-**PipeTrak Workflow**: Update package status to `pre_test_prep`, assign test coordinator.
+These sign-off stages are tracked in `package_workflow_stages` table. Not all stages are required for every package - stages can be skipped with reason (e.g., no coating required).
 
 ---
 
-### Handoff 3: Pre-Commissioning → Commissioning
+## Component Exclusion from Test
 
-**Trigger**: All test packages passed and accepted, turnover packages compiled.
+### Concept
+Some components cannot or should not be pressure tested:
+- Instruments/transmitters (can't handle test pressure)
+- Relief valves (may lift at test pressure, or need to be installed post-test)
+- Components with pressure ratings below test pressure
+- Items that would be damaged by test media (water)
 
-**Handoff Meeting**:
-- **Attendees**: Pre-commissioning lead, commissioning lead, QC manager, operations manager, client
-- **Agenda**:
-  - Review test package status (all passed, accepted)
-  - Review turnover packages (complete, accepted by client)
-  - Review deferred punch list items (Category B/C, plan for resolution)
-  - Review commissioning schedule (PSSR, cold comm, hot comm)
-  - Transfer custody (contractor → client/operations)
+### Workflow
+1. **During Planning**: Identify components to exclude from test
+2. **During Construction**: Do NOT install excluded components
+3. **During Restore**: Install excluded components after test passes
 
-**Documents Transferred**:
-- **Turnover Packages** (per system/subsystem):
-  - As-built drawings
-  - Test reports
-  - MC Certificates
-  - Weld inspection packages
-  - Material traceability
-  - Calibration certificates
-  - Punch list (deferred items)
-  - Equipment data sheets
-  - Operating procedures
-
-- **Client Acceptance Certificate** (signed)
-
-**PipeTrak Workflow**: Update package status to `commissioned` (or archive if commissioning tracked elsewhere).
+### PipeTrak Implementation (Future Enhancement)
+- "Exclude from test" flag on component-package assignment
+- Flag only - does not affect progress calculations
+- Excluded components shown in Restore checklist
 
 ---
 
@@ -596,13 +510,12 @@ This document defines the workflow stages for test packages in chemical plant an
 **Package Count by Stage**:
 - Planning: X packages
 - Construction: X packages
-- MC: X packages
-- Pre-Test Prep: X packages
+- Pre-Test Punch: X packages
 - Testing: X packages
-- Accepted: X packages
+- Restore: X packages
+- Post-Test Punch: X packages
+- Client Handoff: X packages
 - Total: X packages (100%)
-
-**Visual**: Stacked bar chart or pie chart showing distribution across stages.
 
 ### First-Time Pass Rate
 
@@ -613,9 +526,7 @@ First-Time Pass Rate = (Packages passed on first test) / (Total packages tested)
 
 **Target**: ≥85% (industry benchmark)
 
-**Tracking**: Count packages in `accepted` status without ever being in `repair_retest` status.
-
-**Use**: Quality metric (high pass rate = good construction quality, low pass rate = quality issues).
+**Use**: Quality metric (high pass rate = good construction quality)
 
 ### Average Cycle Time by Stage
 
@@ -625,25 +536,12 @@ Average Cycle Time = Σ(Stage Exit Date - Stage Entry Date) / Package Count
 ```
 
 **Track per Stage**:
-- Construction cycle time (days in construction)
-- MC cycle time (days in MC)
-- Pre-Test cycle time (days in pre-test prep)
-- Testing cycle time (days in testing, including re-tests)
+- Construction cycle time (days)
+- Pre-Test to Test cycle time (days)
+- Test to Restore cycle time (days)
+- Total cycle time (Planning to Client Handoff)
 
-**Use**: Identify bottlenecks (which stage takes longest, why).
-
-### Punch List Metrics
-
-**Open Punch List Items**:
-- Category A (must resolve before MC): X items
-- Category B (can defer with approval): X items
-- Category C (cosmetic, defer to operations): X items
-
-**Punch List Age**:
-- Average days open (from identification to resolution)
-- Items open >30 days (aging report)
-
-**Use**: Ensure punch list items resolved timely (prevent backlog).
+**Use**: Identify bottlenecks
 
 ### Test Failure Root Causes
 
@@ -654,62 +552,32 @@ Average Cycle Time = Σ(Stage Exit Date - Stage Entry Date) / Package Count
 - Component defect: X failures
 - Other: X failures
 
-**Use**: Identify systemic quality issues (e.g., repeated weld defects → welder training, WPS issues).
+**Use**: Identify systemic quality issues
 
 ---
 
 ## Future Enhancement Opportunities
 
-### Stage-Based Permissions and Workflows
+### Component Exclusion Tracking
+- Add "exclude from test" flag to component-package assignment
+- Show excluded components in separate section during Construction
+- Generate Restore checklist automatically from excluded components
 
-**Concept**: Role-based access control per stage.
+### Digital Test Execution
+- Mobile-friendly test execution form
+- Photo upload during test
+- Digital signature capture
+- Automatic test report generation
 
-**Implementation**:
-- Define roles (Construction Lead, QC Inspector, Test Coordinator, Client, etc.)
-- Define permissions per role per stage:
-  - Construction Lead: Edit package in `construction` stage
-  - QC Inspector: Approve MC in `mechanical_completion` stage
-  - Test Coordinator: Record results in `testing` stage
-  - Client: Accept package in `accepted` stage
-- Enforce stage transitions (only authorized roles can advance stage)
+### Stage-Based Permissions
+- Define roles per stage (who can approve transitions)
+- Enforce stage transitions (prevent skipping required stages)
+- Audit trail of all approvals
 
-**Benefits**: Workflow control, audit trail, prevent unauthorized changes.
-
-### Automated Stage Transition Checklists
-
-**Concept**: Digital checklist for each stage transition.
-
-**Implementation**:
-- Define checklist items per stage (e.g., MC → Pre-Test: all welds inspected, punch list resolved, MC cert signed)
-- User checks off items as complete
-- System validates all items checked before allowing stage transition
-- Checklist stored as audit record
-
-**Benefits**: Ensure completeness, reduce errors, compliance evidence.
-
-### Dashboard with Stage Visualization
-
-**Concept**: Visual dashboard showing test package status across stages.
-
-**Implementation**:
-- Kanban-style board (columns = stages, cards = test packages)
-- Drag-and-drop to move packages between stages
-- Color-coded cards (red = late, yellow = at risk, green = on track)
-- Metrics widgets (pass rate, cycle time, punch list count)
-
-**Benefits**: Real-time visibility, intuitive interface, project tracking.
-
-### Integration with Commissioning Systems
-
-**Concept**: Handoff data to commissioning system (CMMS, DCS, PI System).
-
-**Implementation**:
-- Export turnover package data (test reports, weld maps, MTCs)
-- API integration with commissioning system
-- Auto-populate commissioning checklists (based on turnover data)
-- Bi-directional sync (commissioning status visible in PipeTrak)
-
-**Benefits**: Eliminate duplicate data entry, seamless handoff, end-to-end visibility.
+### Dashboard Visualization
+- Kanban-style board (columns = stages, cards = packages)
+- Drag-and-drop stage transitions
+- Color-coded status (red = late, yellow = at risk, green = on track)
 
 ---
 
@@ -717,5 +585,4 @@ Average Cycle Time = Σ(Stage Exit Date - Stage Entry Date) / Package Count
 
 - [TEST-PACKAGE-WORKFLOW-CONTEXT.md](./TEST-PACKAGE-WORKFLOW-CONTEXT.md) - Industry standards and workflow overview
 - [TEST-PACKAGE-CREATION.md](./TEST-PACKAGE-CREATION.md) - ISO-based test package creation guide
-- [TESTING-PROCEDURES.md](./TESTING-PROCEDURES.md) - Hydrotest and pneumatic testing procedures
-- [TEST-PACKAGE-DATA-MODEL.md](./TEST-PACKAGE-DATA-MODEL.md) - Data model and schema enhancements
+- [TESTING-PROCEDURES.md](./TESTING-PROCEDURES.md) - Detailed hydrotest and pneumatic testing procedures

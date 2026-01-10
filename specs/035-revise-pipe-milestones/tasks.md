@@ -97,7 +97,7 @@
 **Purpose**: Finalize feature and update documentation
 
 - [x] T014 [P] Update specs/035-revise-pipe-milestones/tasks.md to mark all tasks complete
-- [ ] T015 Commit all changes with message: `feat: add v2 pipe template with 7 milestones`
+- [x] T015 Commit all changes with message: `feat: add v2 pipe template with 7 milestones`
 
 ---
 
