@@ -27,6 +27,7 @@ serve(async (req) => {
       const errorResult: ImportResult = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
@@ -59,6 +60,7 @@ serve(async (req) => {
       const errorResult: ImportResult = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
@@ -83,6 +85,7 @@ serve(async (req) => {
       const errorResult: ImportResult = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
@@ -109,6 +112,7 @@ serve(async (req) => {
       const errorResult: ImportResult = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
@@ -141,6 +145,7 @@ serve(async (req) => {
       const errorResult: ImportResult = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
@@ -166,6 +171,7 @@ serve(async (req) => {
       const errorResult: ImportResult = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },
@@ -189,6 +195,7 @@ serve(async (req) => {
       result = {
         success: false,
         componentsCreated: 0,
+        componentsSkipped: 0,
         drawingsCreated: 0,
         drawingsUpdated: 0,
         metadataCreated: { areas: 0, systems: 0, testPackages: 0 },

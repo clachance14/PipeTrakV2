@@ -100,8 +100,9 @@ export function validateRows(
       return;
     }
 
-    // Parse quantity (float for Threaded_Pipe, int for others)
-    const qty = validatedType === 'Threaded_Pipe'
+    // Parse quantity (float for aggregate types like Threaded_Pipe and Pipe, int for others)
+    const allowsDecimalQty = ['Threaded_Pipe', 'Pipe'];
+    const qty = allowsDecimalQty.includes(validatedType)
       ? parseFloat(qtyRaw ?? '0')
       : parseInt(qtyRaw ?? '0', 10);
 
@@ -216,9 +217,10 @@ function validateQuantity(
     };
   }
 
-  // Allow decimal quantities for Threaded_Pipe (linear feet)
+  // Allow decimal quantities for Threaded_Pipe and Pipe (linear feet aggregate model)
   // Require integer quantities for all other component types
-  if (componentType !== 'Threaded_Pipe' && !Number.isInteger(qty)) {
+  const allowsDecimalQty = ['Threaded_Pipe', 'Pipe'];
+  if (!allowsDecimalQty.includes(componentType) && !Number.isInteger(qty)) {
     return {
       rowNumber,
       status: 'error',

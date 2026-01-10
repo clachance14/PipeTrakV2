@@ -368,6 +368,28 @@ describe('csv-validator', () => {
       expect(results[2]?.status).toBe('valid');
       expect(results[2]?.data?.qty).toBe(10.5);
     });
+
+    it('should allow decimal quantities for Pipe (linear feet aggregate model)', () => {
+      const rows = [
+        { DRAWING: 'P-55502', TYPE: 'Pipe', QTY: '12.5', 'CMDTY CODE': 'PIPE-001' },
+        { DRAWING: 'P-55503', TYPE: 'pipe', QTY: '30.75', 'CMDTY CODE': 'PIPE-002' }
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      expect(results).toHaveLength(2);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[0]?.data?.qty).toBe(12.5);
+      expect(results[1]?.status).toBe('valid');
+      expect(results[1]?.data?.qty).toBe(30.75);
+    });
   });
 
   describe('Duplicate Detection', () => {

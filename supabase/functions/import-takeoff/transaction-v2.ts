@@ -248,6 +248,51 @@ async function processDrawings(
 }
 
 /**
+ * Build lookup key for deduplication: type::identity_key_json
+ */
+function buildIdentityLookupKey(componentType: string, identityKey: Record<string, unknown>): string {
+  const sortedKey = Object.keys(identityKey).sort().reduce((acc, key) => {
+    acc[key] = identityKey[key];
+    return acc;
+  }, {} as Record<string, unknown>);
+  return `${componentType}::${JSON.stringify(sortedKey)}`;
+}
+
+/**
+ * Query existing component identity keys in bulk
+ * Returns Set of lookup keys (component_type::identity_key_json)
+ */
+async function getExistingIdentityKeys(
+  supabase: SupabaseClient,
+  projectId: string,
+  components: Array<{ component_type: string; identity_key: Record<string, unknown> }>
+): Promise<Set<string>> {
+  const existingKeys = new Set<string>();
+  if (components.length === 0) return existingKeys;
+
+  // Get unique component types from the import
+  const types = new Set(components.map(c => c.component_type));
+
+  // Query all existing components for these types in the project
+  // (Can't use .in() with JSONB, so we fetch all and filter client-side)
+  for (const type of types) {
+    const { data, error } = await supabase
+      .from('components')
+      .select('identity_key')
+      .eq('project_id', projectId)
+      .eq('component_type', type)
+      .eq('is_retired', false);
+
+    if (error) throw new Error(`Failed to check existing components: ${error.message}`);
+
+    for (const row of data || []) {
+      existingKeys.add(buildIdentityLookupKey(type, row.identity_key));
+    }
+  }
+  return existingKeys;
+}
+
+/**
  * Process import with transaction safety
  */
 export async function processImportV2(
@@ -273,14 +318,21 @@ export async function processImportV2(
       payload.rows
     );
 
-    // Step 3: Fetch progress templates
+    // Step 3: Fetch progress templates - LATEST VERSION ONLY
+    // Order by version DESC so first occurrence per component type is the latest version
     const { data: templates } = await supabase
       .from('progress_templates')
-      .select('id, component_type');
+      .select('id, component_type, version')
+      .order('version', { ascending: false });
 
-    const templateMap = new Map(
-      (templates || []).map(t => [t.component_type.toLowerCase(), t.id])
-    );
+    // Build map: component_type -> template_id (first entry per type is latest due to ORDER BY)
+    const templateMap = new Map<string, string>();
+    for (const t of templates || []) {
+      const key = t.component_type.toLowerCase();
+      if (!templateMap.has(key)) {
+        templateMap.set(key, t.id);
+      }
+    }
 
     // Step 4: Generate components
     const components: any[] = [];
@@ -290,6 +342,8 @@ export async function processImportV2(
 
     // For threaded_pipe: Track existing aggregates to update
     const threadedPipeAggregates = new Map<string, any>(); // pipe_id -> component data
+    // For pipe: Track existing aggregates to update (same aggregate model as threaded_pipe)
+    const pipeAggregates = new Map<string, any>(); // pipe_id -> component data
 
     payload.rows.forEach((row, index) => {
       // Skip rows with QTY = 0
@@ -395,6 +449,46 @@ export async function processImportV2(
           };
           threadedPipeAggregates.set(pipeId, newAggregate);
         }
+      } else if (typeLower === 'pipe') {
+        // Pipe: aggregate model (one component per drawing+size+commodity)
+        // QTY represents linear feet, not individual components
+        const sizeNorm = normalizeSize(row.size);
+        const pipeId = `${normalized}-${sizeNorm}-${row.cmdtyCode}-AGG`;
+        const lineNumber = String(index + 1); // CSV row number (1-indexed)
+
+        // Check if we've already seen this pipe_id in this import batch
+        if (pipeAggregates.has(pipeId)) {
+          // Update existing aggregate in this batch
+          const existing = pipeAggregates.get(pipeId);
+          existing.attributes.total_linear_feet += row.qty;
+          if (!existing.attributes.line_numbers.includes(lineNumber)) {
+            existing.attributes.line_numbers.push(lineNumber);
+          }
+        } else {
+          // Add to batch (will check database for existing component later)
+          const newAggregate = {
+            ...baseComponent,
+            identity_key: {
+              pipe_id: pipeId
+            },
+            attributes: {
+              ...baseComponent.attributes,
+              total_linear_feet: row.qty,
+              line_numbers: [lineNumber]
+            },
+            // Initialize milestones for v2 pipe template (hybrid: partial 0-100 + discrete 0/1)
+            current_milestones: {
+              Receive: 0,
+              Erect: 0,
+              Connect: 0,
+              Support: 0,
+              Punch: false,
+              Test: false,
+              Restore: false
+            }
+          };
+          pipeAggregates.set(pipeId, newAggregate);
+        }
       } else {
         // All other types: quantity explosion
         for (let i = 1; i <= row.qty; i++) {
@@ -422,7 +516,7 @@ export async function processImportV2(
             .rpc('upsert_aggregate_threaded_pipe', {
               p_project_id: payload.projectId,
               p_drawing_id: newAggregate.drawing_id,
-              p_template_id: newAggregate.template_id,
+              p_template_id: newAggregate.progress_template_id,
               p_identity_key: newAggregate.identity_key,
               p_attributes: {
                 ...newAggregate.attributes,
@@ -455,10 +549,91 @@ export async function processImportV2(
       // componentsByType already incremented in main loop (line 308)
     }
 
-    // Step 6: Insert new components in batches
+    // Step 4.6: Process pipe aggregates (simpler approach - check exists, update or insert)
+    if (pipeAggregates.size > 0) {
+      for (const [pipeId, newAggregate] of pipeAggregates.entries()) {
+        // Check if this pipe aggregate already exists in the database
+        // Use ->> for JSONB text extraction in PostgREST
+        const { data: existingPipe, error: checkError } = await supabase
+          .from('components')
+          .select('id, attributes')
+          .eq('project_id', payload.projectId)
+          .eq('component_type', 'pipe')
+          .eq('identity_key->>pipe_id', pipeId)
+          .eq('is_retired', false)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 = "no rows returned" which is expected for new components
+          throw new Error(`Failed to check existing pipe ${pipeId}: ${checkError.message}`);
+        }
+
+        if (existingPipe) {
+          // Update existing pipe aggregate - add linear feet and line numbers
+          const existingLF = (existingPipe.attributes as any)?.total_linear_feet || 0;
+          const existingLineNumbers = (existingPipe.attributes as any)?.line_numbers || [];
+          const newLineNumbers = [...new Set([...existingLineNumbers, ...newAggregate.attributes.line_numbers])];
+
+          const { error: updateError } = await supabase
+            .from('components')
+            .update({
+              attributes: {
+                ...(existingPipe.attributes as any),
+                total_linear_feet: existingLF + newAggregate.attributes.total_linear_feet,
+                line_numbers: newLineNumbers
+              }
+            })
+            .eq('id', existingPipe.id);
+
+          if (updateError) {
+            throw new Error(`Failed to update pipe aggregate ${pipeId}: ${updateError.message}`);
+          }
+          componentsUpdated += 1;
+        } else {
+          // Insert new pipe aggregate
+          const { error: insertError } = await supabase
+            .from('components')
+            .insert(newAggregate);
+
+          if (insertError) {
+            throw new Error(`Failed to insert pipe aggregate ${pipeId}: ${insertError.message}`);
+          }
+          componentsCreated += 1;
+        }
+      }
+    }
+
+    // Step 5: Filter out existing components (skip duplicates)
+    const existingKeys = await getExistingIdentityKeys(supabase, payload.projectId, components);
+    console.log(`[DEBUG] Found ${existingKeys.size} existing identity keys in database`);
+
+    // Log first 3 existing keys for debugging
+    const existingKeysArray = Array.from(existingKeys);
+    if (existingKeysArray.length > 0) {
+      console.log(`[DEBUG] Sample existing keys:`, existingKeysArray.slice(0, 3));
+    }
+
+    const newComponents: typeof components = [];
+    let componentsSkipped = 0;
+
+    // Log first 3 new component keys for comparison
+    const sampleNewKeys = components.slice(0, 3).map(c => buildIdentityLookupKey(c.component_type, c.identity_key));
+    console.log(`[DEBUG] Sample new component keys:`, sampleNewKeys);
+
+    for (const component of components) {
+      const lookupKey = buildIdentityLookupKey(component.component_type, component.identity_key);
+      if (existingKeys.has(lookupKey)) {
+        componentsSkipped++;
+      } else {
+        newComponents.push(component);
+      }
+    }
+    console.log(`[DEBUG] Components to insert: ${newComponents.length}, skipped: ${componentsSkipped}`);
+
+    // Step 6: Insert only NEW components in batches
     const BATCH_SIZE = 1000;
-    for (let i = 0; i < components.length; i += BATCH_SIZE) {
-      const batch = components.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < newComponents.length; i += BATCH_SIZE) {
+      const batch = newComponents.slice(i, i + BATCH_SIZE);
 
       const { error: componentError } = await supabase
         .from('components')
@@ -475,8 +650,9 @@ export async function processImportV2(
 
     return {
       success: true,
-      componentsCreated: components.length + componentsCreated,
+      componentsCreated: newComponents.length + componentsCreated,
       componentsUpdated,
+      componentsSkipped,
       drawingsCreated,
       drawingsUpdated: drawingIdMap.size - drawingsCreated,
       metadataCreated,
@@ -490,6 +666,7 @@ export async function processImportV2(
       success: false,
       componentsCreated: 0,
       componentsUpdated: 0,
+      componentsSkipped: 0,
       drawingsCreated: 0,
       drawingsUpdated: 0,
       metadataCreated: {

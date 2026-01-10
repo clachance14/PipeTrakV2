@@ -500,6 +500,9 @@ export interface ImportResult {
   /** Count of components updated (Feature 027: aggregate threaded pipe quantity summing) */
   componentsUpdated?: number;
 
+  /** Count of duplicate components that were skipped */
+  componentsSkipped?: number;
+
   /** Count of new drawings created */
   drawingsCreated: number;
 
