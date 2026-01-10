@@ -34,13 +34,17 @@ export function TableHeader({ columns }: TableHeaderProps) {
           key={column.key}
           style={{
             width: column.width,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: column.align === 'right' ? 'flex-end' :
-                           column.align === 'center' ? 'center' : 'flex-start',
+            flexShrink: 0,
+            flexGrow: 0,
+            flexBasis: column.width,
+            overflow: 'hidden',
+            paddingHorizontal: 2,
           }}
         >
-          <Text style={commonStyles.tableCellHeader}>
+          <Text style={{
+            ...commonStyles.tableCellHeader,
+            textAlign: column.align || 'left',
+          }}>
             {column.label}
           </Text>
         </View>

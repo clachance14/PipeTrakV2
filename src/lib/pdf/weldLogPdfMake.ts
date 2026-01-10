@@ -56,19 +56,19 @@ export const COLUMN_HEADERS = [
 /**
  * Column widths as percentages
  * Order matches COLUMN_HEADERS
- * Sum: 9+10+14+10+6+5+9+12+10+10 = 95% (leaving 5% for padding)
+ * Sum: 9+10+13+11+6+5+9+12+10+10 = 95% (leaving 5% for padding)
  */
 export const COLUMN_WIDTHS = [
-  '9%',
-  '10%',
-  '14%',
-  '10%',
-  '6%',
-  '5%',
-  '9%',
-  '12%',
-  '10%',
-  '10%',
+  '9%',   // Weld ID
+  '10%',  // Drawing
+  '13%',  // Welder (reduced from 14%)
+  '11%',  // Date Welded (increased from 10% to prevent wrapping)
+  '6%',   // Type
+  '5%',   // Size
+  '9%',   // NDE Result
+  '12%',  // Area
+  '10%',  // System
+  '10%',  // Test Package
 ] as const;
 
 /**
@@ -140,12 +140,13 @@ export function buildDocDefinition(options: WeldLogPdfOptions): TDocumentDefinit
 
   // Build content array
   const content: Content[] = [
-    // Title
+    // Title - centered, minimal top margin
     {
       text: 'PipeTrak Weld Log',
       fontSize: 18,
       color: COLORS.titleColor,
-      margin: [0, 0, 0, 15],
+      alignment: 'center' as const,
+      margin: [0, -10, 0, 10], // Negative top margin moves it up
     },
     // Table
     {
