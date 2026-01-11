@@ -17,6 +17,7 @@ import { usePackageComponents, usePackageReadiness, usePackageDetails } from '@/
 import { usePackageCompletionReport } from '@/hooks/usePackageCompletionReport';
 import { getKeyStages, formatStageForDisplay, getWorkflowSummary } from '@/lib/getKeyStages';
 import { useDeleteComponentAssignment, useCreateComponentAssignments, useDrawingsWithComponentCount } from '@/hooks/usePackageAssignments';
+import { useBulkUpdatePostHydro } from '@/hooks/useBulkUpdatePostHydro';
 import { usePackageWorkflow } from '@/hooks/usePackageWorkflow';
 import { usePackageWorkflowPDFExport } from '@/hooks/usePackageWorkflowPDFExport';
 import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
@@ -30,6 +31,7 @@ import { DrawingSelectionList } from '@/components/packages/DrawingSelectionList
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { PackageWorkflowCustomizationDialog } from '@/components/packages/PackageWorkflowCustomizationDialog';
 import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -147,6 +149,38 @@ export function PackageDetailPage() {
     packageId || '',
     selectedProjectId || ''
   );
+
+  // Post-hydro bulk update mutation
+  const updatePostHydro = useBulkUpdatePostHydro();
+
+  // Handler for single component post-hydro toggle
+  const handleTogglePostHydro = async (componentId: string, postHydro: boolean) => {
+    try {
+      await updatePostHydro.mutateAsync({
+        componentIds: [componentId],
+        postHydroInstall: postHydro,
+      });
+      refetch();
+    } catch (error) {
+      toast.error('Failed to update post-hydro status');
+    }
+  };
+
+  // Handler for bulk post-hydro update
+  const handleBulkPostHydro = async (postHydro: boolean) => {
+    if (selectedComponentIds.length === 0) return;
+    try {
+      await updatePostHydro.mutateAsync({
+        componentIds: selectedComponentIds,
+        postHydroInstall: postHydro,
+      });
+      toast.success(`${postHydro ? 'Marked' : 'Cleared'} ${selectedComponentIds.length} component(s) as post-hydro`);
+      setSelectedComponentIds([]);
+      refetch();
+    } catch (error) {
+      toast.error('Failed to update post-hydro status');
+    }
+  };
 
   // Handlers for component removal
   const handleRemoveComponent = (componentId: string) => {
@@ -750,15 +784,33 @@ export function PackageDetailPage() {
                     <span className="text-sm font-medium text-blue-900">
                       {selectedComponentIds.length} component{selectedComponentIds.length !== 1 ? 's' : ''} selected
                     </span>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleRemoveBulk}
-                      disabled={deleteComponentAssignment.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remove Selected
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkPostHydro(true)}
+                        disabled={updatePostHydro.isPending}
+                      >
+                        Mark Post-Hydro
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkPostHydro(false)}
+                        disabled={updatePostHydro.isPending}
+                      >
+                        Clear Post-Hydro
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemoveBulk}
+                        disabled={deleteComponentAssignment.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Selected
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -837,6 +889,9 @@ export function PackageDetailPage() {
                             )}
                           </button>
                         </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 w-24">
+                          Post-Hydro
+                        </th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
                           Milestones
                         </th>
@@ -912,6 +967,21 @@ export function PackageDetailPage() {
                                 {Math.round(componentProgress)}%
                               </span>
                             </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {editMode ? (
+                              <Checkbox
+                                checked={component.post_hydro_install || false}
+                                onCheckedChange={(checked) => handleTogglePostHydro(component.id, !!checked)}
+                                disabled={updatePostHydro.isPending}
+                              />
+                            ) : (
+                              component.post_hydro_install && (
+                                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                                  Post-Hydro
+                                </Badge>
+                              )
+                            )}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex items-center gap-2">

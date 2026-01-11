@@ -54,6 +54,7 @@ export function useBulkUpdatePostHydro(): UseMutationResult<
       queryClient.invalidateQueries({ queryKey: ['components'] });
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] });
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['package-components'] });
 
       console.log(`Successfully updated post_hydro_install for ${data.updatedCount} components`);
     },

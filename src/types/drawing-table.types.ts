@@ -188,6 +188,8 @@ export interface ComponentRow {
   system?: { id: string; name: string } | null
   /** Test package metadata (optional) */
   test_package?: { id: string; name: string } | null
+  /** Post-hydro installation flag - component installed after hydrotest */
+  post_hydro_install?: boolean
 
   // Joined from progress_templates
   /** Progress template for this component type */
