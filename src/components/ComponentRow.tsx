@@ -161,7 +161,11 @@ export function ComponentRow({
         <div className="flex items-center gap-2">
           <span className="font-medium truncate">{identityDisplay}</span>
           {component.post_hydro_install && (
-            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 flex-shrink-0">
+            <Badge
+              variant="outline"
+              className="text-xs bg-amber-50 text-amber-700 border-amber-200 flex-shrink-0"
+              aria-label="Post-Hydro installation"
+            >
               Post-Hydro
             </Badge>
           )}

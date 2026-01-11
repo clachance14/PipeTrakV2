@@ -342,7 +342,12 @@ export function ComponentRow({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="inline-block w-2 h-2 rounded-full bg-amber-400 cursor-help" />
+                  <span
+                    className="inline-block w-2 h-2 rounded-full bg-amber-400 cursor-help"
+                    tabIndex={0}
+                    role="img"
+                    aria-label="Post-hydro installation indicator"
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>This component is to be installed after hydrotest</p>
@@ -510,7 +515,12 @@ export function ComponentRow({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-block w-2 h-2 rounded-full bg-amber-400 cursor-help flex-shrink-0" />
+                <span
+                  className="inline-block w-2 h-2 rounded-full bg-amber-400 cursor-help flex-shrink-0"
+                  tabIndex={0}
+                  role="img"
+                  aria-label="Post-hydro installation indicator"
+                />
               </TooltipTrigger>
               <TooltipContent>
                 <p>This component is to be installed after hydrotest</p>
