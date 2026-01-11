@@ -69,6 +69,8 @@ export function useComponentsByDrawings(drawingIds: string[]) {
             area: component.areas,
             system: component.systems,
             test_package: component.test_packages,
+            // Post-hydro flag
+            post_hydro_install: component.post_hydro_install || false,
             // Joined template
             template: component.progress_templates as any,
             // Computed fields

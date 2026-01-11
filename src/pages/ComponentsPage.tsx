@@ -15,6 +15,7 @@ import { useComponents } from '@/hooks/useComponents';
 import { useComponentSort } from '@/hooks/useComponentSort';
 import { useMobileDetection } from '@/hooks/useMobileDetection';
 import { useBulkReceiveComponents } from '@/hooks/useBulkReceiveComponents';
+import { useBulkUpdatePostHydro } from '@/hooks/useBulkUpdatePostHydro';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ export function ComponentsPage({
   const isMobile = useMobileDetection();
   const { user } = useAuth();
   const { bulkReceive, isProcessing } = useBulkReceiveComponents();
+  const bulkUpdatePostHydroMutation = useBulkUpdatePostHydro();
   const [filters, setFilters] = useState<ComponentFiltersState>({});
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
@@ -184,6 +186,39 @@ export function ComponentsPage({
     setShowConfirmDialog(false);
   };
 
+  // Bulk post-hydro handlers
+  const handleMarkPostHydro = async () => {
+    if (selectedComponentIds.size === 0) return;
+
+    try {
+      await bulkUpdatePostHydroMutation.mutateAsync({
+        componentIds: Array.from(selectedComponentIds),
+        postHydroInstall: true,
+      });
+      toast.success(`Marked ${selectedComponentIds.size} component(s) as post-hydro`);
+      handleClearSelection();
+    } catch (error) {
+      toast.error('Failed to update post-hydro status');
+      console.error(error);
+    }
+  };
+
+  const handleClearPostHydro = async () => {
+    if (selectedComponentIds.size === 0) return;
+
+    try {
+      await bulkUpdatePostHydroMutation.mutateAsync({
+        componentIds: Array.from(selectedComponentIds),
+        postHydroInstall: false,
+      });
+      toast.success(`Cleared post-hydro from ${selectedComponentIds.size} component(s)`);
+      handleClearSelection();
+    } catch (error) {
+      toast.error('Failed to update post-hydro status');
+      console.error(error);
+    }
+  };
+
   // Compute selection state
   const allSelected = selectedComponentIds.size === sortedComponents.length && sortedComponents.length > 0;
   const someSelected = selectedComponentIds.size > 0 && !allSelected;
@@ -273,7 +308,9 @@ export function ComponentsPage({
             selectedCount={selectedComponentIds.size}
             onClearSelection={handleClearSelection}
             onMarkReceived={handleMarkReceived}
-            isProcessing={isProcessing}
+            onMarkPostHydro={handleMarkPostHydro}
+            onClearPostHydro={handleClearPostHydro}
+            isProcessing={isProcessing || bulkUpdatePostHydroMutation.isPending}
           />
         </div>
 

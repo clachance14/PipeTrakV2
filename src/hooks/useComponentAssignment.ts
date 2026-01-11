@@ -14,6 +14,7 @@ interface AssignComponentsParams {
   area_id?: string | null;
   system_id?: string | null;
   test_package_id?: string | null;
+  post_hydro_install?: boolean;
 }
 
 interface AssignComponentsResult {
@@ -35,10 +36,10 @@ export function useAssignComponents(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ component_ids, area_id, system_id, test_package_id }) => {
+    mutationFn: async ({ component_ids, area_id, system_id, test_package_id, post_hydro_install }) => {
       // Validate that at least one assignment is provided
-      if (!area_id && !system_id && !test_package_id) {
-        throw new Error('At least one of area_id, system_id, or test_package_id must be provided');
+      if (area_id === undefined && system_id === undefined && test_package_id === undefined && post_hydro_install === undefined) {
+        throw new Error('At least one of area_id, system_id, test_package_id, or post_hydro_install must be provided');
       }
 
       // Validate component_ids is not empty
@@ -51,6 +52,7 @@ export function useAssignComponents(): UseMutationResult<
       if (area_id !== undefined) updates.area_id = area_id;
       if (system_id !== undefined) updates.system_id = system_id;
       if (test_package_id !== undefined) updates.test_package_id = test_package_id;
+      if (post_hydro_install !== undefined) updates.post_hydro_install = post_hydro_install;
 
       // Perform bulk update
       const { data, error } = await supabase

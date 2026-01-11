@@ -5,6 +5,7 @@ import { PartialMilestoneInput } from './PartialMilestoneInput'
 import { MetadataCell } from './MetadataCell'
 import { RollbackConfirmationModal } from './RollbackConfirmationModal'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useOfflineQueue } from '@/hooks/useOfflineQueue'
@@ -337,6 +338,23 @@ export function ComponentRow({
             componentId={component.id}
             isMobile={true}
           />
+          {component.post_hydro_install && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-block w-2 h-2 rounded-full bg-amber-400 cursor-help"
+                    tabIndex={0}
+                    role="img"
+                    aria-label="Post-hydro installation indicator"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>This component is to be installed after hydrotest</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {/* Line 3: Milestone controls (grid layout for better space efficiency) */}
@@ -483,8 +501,8 @@ export function ComponentRow({
         />
       </div>
 
-      {/* Test Package */}
-      <div className="min-w-[80px]">
+      {/* Test Package + Post-Hydro indicator */}
+      <div className="min-w-[80px] flex items-center gap-1">
         <MetadataCell
           value={testPackage}
           drawingValue={drawing?.test_package}
@@ -493,6 +511,23 @@ export function ComponentRow({
           isMobile={false}
           onClick={handleTestPackageClick}
         />
+        {component.post_hydro_install && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="inline-block w-2 h-2 rounded-full bg-amber-400 cursor-help flex-shrink-0"
+                  tabIndex={0}
+                  role="img"
+                  aria-label="Post-hydro installation indicator"
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>This component is to be installed after hydrotest</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Progress percentage */}

@@ -14,6 +14,10 @@ export interface PackageCardData {
   targetDate?: string;
   statusColor: 'green' | 'blue' | 'amber';
   budgetedManhours?: number | null; // Feature: Package MH display
+  // Post-hydro tracking (Feature: post-hydro-install)
+  testReadyPercent?: number; // % of non-post-hydro components at 100%
+  testableComponents?: number; // Components that count toward test readiness
+  postHydroComponents?: number; // Components deferred to post-hydro installation
 }
 
 export interface PackageCardProps {
@@ -98,18 +102,60 @@ export function PackageCard({ package: pkg, onEdit, showManhours }: PackageCardP
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-sm text-gray-600">Progress</span>
-          <span className="text-sm font-semibold text-gray-900">{pkg.progress}%</span>
+      {/* Progress section */}
+      <div className="mb-4 space-y-3">
+        {/* Test Ready - Primary metric (only show if package has post-hydro components) */}
+        {pkg.postHydroComponents !== undefined && pkg.postHydroComponents > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium text-gray-700">Test Ready</span>
+              <span className="text-sm font-semibold text-green-600">
+                {Math.round(pkg.testReadyPercent ?? 0)}%
+              </span>
+            </div>
+            <div className="w-full h-2 bg-green-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 transition-all duration-300"
+                style={{ width: `${pkg.testReadyPercent ?? 0}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Overall Progress */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className={cn(
+              "text-sm",
+              pkg.postHydroComponents && pkg.postHydroComponents > 0
+                ? "text-gray-500"
+                : "text-gray-600"
+            )}>
+              {pkg.postHydroComponents && pkg.postHydroComponents > 0 ? 'Overall Progress' : 'Progress'}
+            </span>
+            <span className={cn(
+              "text-sm font-semibold",
+              pkg.postHydroComponents && pkg.postHydroComponents > 0
+                ? "text-gray-600"
+                : "text-gray-900"
+            )}>
+              {pkg.progress}%
+            </span>
+          </div>
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={cn('h-full transition-all duration-300', progressColorClass)}
+              style={{ width: `${pkg.progress}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className={cn('h-full transition-all duration-300', progressColorClass)}
-            style={{ width: `${pkg.progress}%` }}
-          />
-        </div>
+
+        {/* Post-hydro note */}
+        {pkg.postHydroComponents !== undefined && pkg.postHydroComponents > 0 && (
+          <p className="text-xs text-amber-600">
+            {pkg.postHydroComponents} component{pkg.postHydroComponents !== 1 ? 's' : ''} deferred to post-hydro
+          </p>
+        )}
       </div>
 
       {/* Footer */}

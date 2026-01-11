@@ -11,7 +11,7 @@ export interface PackageTableProps {
   showManhours?: boolean; // Permission-gated manhour display
 }
 
-type SortField = 'name' | 'description' | 'status' | 'progress' | 'componentCount' | 'blockerCount' | 'targetDate' | 'budgetedManhours';
+type SortField = 'name' | 'description' | 'status' | 'progress' | 'testReadyPercent' | 'componentCount' | 'blockerCount' | 'targetDate' | 'budgetedManhours';
 type SortDirection = 'asc' | 'desc';
 
 /**
@@ -57,6 +57,9 @@ export function PackageTable({ packages, onEdit, showManhours }: PackageTablePro
           break;
         case 'progress':
           comparison = a.progress - b.progress;
+          break;
+        case 'testReadyPercent':
+          comparison = (a.testReadyPercent ?? 0) - (b.testReadyPercent ?? 0);
           break;
         case 'componentCount':
           comparison = a.componentCount - b.componentCount;
@@ -147,6 +150,12 @@ export function PackageTable({ packages, onEdit, showManhours }: PackageTablePro
               </th>
               <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('testReadyPercent')}
+              >
+                Test Ready <SortIcon field="testReadyPercent" />
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('componentCount')}
               >
                 Components <SortIcon field="componentCount" />
@@ -211,6 +220,23 @@ export function PackageTable({ packages, onEdit, showManhours }: PackageTablePro
                       {pkg.progress}%
                     </span>
                   </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {pkg.postHydroComponents && pkg.postHydroComponents > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-2 bg-green-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 transition-all duration-300"
+                          style={{ width: `${pkg.testReadyPercent ?? 0}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-green-600 min-w-[3rem] text-right">
+                        {Math.round(pkg.testReadyPercent ?? 0)}%
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500">—</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {pkg.componentCount}

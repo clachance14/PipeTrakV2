@@ -33,6 +33,7 @@ interface ComponentsFilters {
   progress_min?: number; // 0-100 filter by minimum % complete
   progress_max?: number; // 0-100 filter by maximum % complete
   search?: string; // Search identity key (partial match, case-insensitive)
+  post_hydro_only?: boolean; // Filter to show only post-hydro components
 }
 
 /**
@@ -87,6 +88,9 @@ export function useComponents(
       if (filters?.search) {
         // Search in identity_key JSONB - cast to text for partial match
         query = query.ilike('identity_key::text', `%${filters.search}%`);
+      }
+      if (filters?.post_hydro_only) {
+        query = query.eq('post_hydro_install', true);
       }
 
       query = query.order('last_updated_at', { ascending: false });

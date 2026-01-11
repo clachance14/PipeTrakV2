@@ -378,6 +378,7 @@ export function usePackageComponents(
           percent_complete,
           current_milestones,
           progress_template_id,
+          post_hydro_install,
           progress_templates!inner (
             milestones_config
           )
@@ -433,6 +434,7 @@ export function usePackageComponents(
         current_milestones: row.current_milestones,
         progress_template_id: row.progress_template_id,
         milestones_config: row.progress_templates?.milestones_config || [],
+        post_hydro_install: row.post_hydro_install || false,
       }));
 
       return components;

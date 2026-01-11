@@ -129,4 +129,5 @@ export interface PackageComponent {
   current_milestones?: any;
   progress_template_id?: string;
   milestones_config?: any;
+  post_hydro_install?: boolean; // Post-hydro installation flag
 }

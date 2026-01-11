@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { QuickFilterChips } from '@/components/QuickFilterChips';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAreas } from '@/hooks/useAreas';
@@ -41,6 +42,7 @@ export interface ComponentFiltersState {
   progress_min?: number;
   progress_max?: number;
   search?: string;
+  post_hydro_only?: boolean; // Filter to show only post-hydro components
 }
 
 const COMPONENT_TYPES: { value: ComponentType; label: string }[] = [
@@ -248,6 +250,23 @@ export function ComponentFilters({ projectId, onFilterChange, filteredCount, tot
                     ))}
                   </SelectContent>
                 </Select>
+
+                {/* Post-Hydro Filter */}
+                <div className="flex items-center space-x-2 py-1">
+                  <Checkbox
+                    id="filter-post-hydro-mobile"
+                    checked={filters.post_hydro_only || false}
+                    onCheckedChange={(checked) =>
+                      updateFilters({ post_hydro_only: checked === true ? true : undefined })
+                    }
+                  />
+                  <label
+                    htmlFor="filter-post-hydro-mobile"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Post-hydro only
+                  </label>
+                </div>
               </div>
 
               {/* Quick Filter Chips */}
@@ -360,6 +379,24 @@ export function ComponentFilters({ projectId, onFilterChange, filteredCount, tot
           ))}
         </SelectContent>
       </Select>
+
+      {/* Post-Hydro Filter */}
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="filter-post-hydro-desktop"
+          checked={filters.post_hydro_only || false}
+          onCheckedChange={(checked) =>
+            updateFilters({ post_hydro_only: checked === true ? true : undefined })
+          }
+          className="h-4 w-4"
+        />
+        <label
+          htmlFor="filter-post-hydro-desktop"
+          className="text-sm text-gray-600 whitespace-nowrap"
+        >
+          Post-hydro only
+        </label>
+      </div>
 
       {/* Quick Filter Chips - inline */}
       <QuickFilterChips
