@@ -8,6 +8,7 @@ import { MetricCard } from '@/components/dashboard/MetricCard';
 import { ProgressRing } from '@/components/dashboard/ProgressRing';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { ManhourSummaryWidget } from '@/components/dashboard/ManhourSummaryWidget';
+import { TopPackagesWidget } from '@/components/dashboard/TopPackagesWidget';
 import {
   LayoutDashboard,
   Package,
@@ -91,11 +92,6 @@ const quickLinks: QuickLink[] = [
 
 const metricConfigs: MetricConfig[] = [
   {
-    title: 'Packages Ready',
-    icon: Package,
-    getValue: (metrics) => metrics.readyPackages,
-  },
-  {
     title: 'Needs Review',
     icon: AlertCircle,
     getValue: (metrics) => metrics.needsReviewCount,
@@ -169,6 +165,9 @@ export function DashboardPage() {
               {metrics.componentCount.toLocaleString()} component{metrics.componentCount !== 1 ? 's' : ''}
             </p>
           </div>
+
+          {/* Top Packages - replaces Packages Ready */}
+          <TopPackagesWidget projectId={selectedProjectId} />
 
           {metricConfigs.map((config) => (
             <MetricCard
