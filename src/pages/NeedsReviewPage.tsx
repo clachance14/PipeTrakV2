@@ -134,20 +134,23 @@ export function NeedsReviewPage() {
   // Handler: View NDE (already recorded)
   const handleViewNDE = async (reviewId: string, payload: WeldCompletedPayload) => {
     // Fetch fresh NDE data and resolve with note
-    const { data: weld } = await supabase
+    const { data: weld, error } = await supabase
       .from('field_welds')
       .select('nde_result, nde_type, nde_date')
       .eq('id', payload.weld_id)
       .single();
 
-    if (weld) {
-      await resolveMutation.mutateAsync({
-        id: reviewId,
-        status: 'resolved',
-        resolution_note: `Reviewed existing NDE: ${weld.nde_type} - ${weld.nde_result} (${weld.nde_date})`,
-      });
-      toast.success('Review resolved');
+    if (error || !weld) {
+      toast.error('Failed to fetch NDE data');
+      return;
     }
+
+    await resolveMutation.mutateAsync({
+      id: reviewId,
+      status: 'resolved',
+      resolution_note: `Reviewed existing NDE: ${weld.nde_type} - ${weld.nde_result} (${weld.nde_date})`,
+    });
+    toast.success('Review resolved');
   };
 
   // Handler: NDE success callback (auto-resolve)

@@ -24,13 +24,16 @@ function parseSize(s: string): number {
     const whole = parseInt(mixedMatch[1], 10)
     const numerator = parseInt(mixedMatch[2], 10)
     const denominator = parseInt(mixedMatch[3], 10)
+    if (denominator === 0) return whole
     return whole + numerator / denominator
   }
 
   // Handle simple fractions like "1/2"
   const fractionMatch = s.match(/(\d+)\/(\d+)/)
   if (fractionMatch && fractionMatch[1] && fractionMatch[2]) {
-    return parseInt(fractionMatch[1], 10) / parseInt(fractionMatch[2], 10)
+    const denominator = parseInt(fractionMatch[2], 10)
+    if (denominator === 0) return 0
+    return parseInt(fractionMatch[1], 10) / denominator
   }
 
   // Handle whole numbers
