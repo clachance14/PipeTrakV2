@@ -42,9 +42,9 @@ export function useWeldAttributesByDrawing(drawingId: string | null) {
 
       return {
         weldSizes: sortWeldSizes(weldSizes),
-        specs: specs.sort(),
-        schedules: schedules.sort(),
-        baseMetals: baseMetals.sort(),
+        specs: [...specs].sort(),
+        schedules: [...schedules].sort(),
+        baseMetals: [...baseMetals].sort(),
       }
     },
     enabled: !!drawingId,

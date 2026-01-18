@@ -20,6 +20,7 @@ export function TeamSearch({
       onChange={(e) => onChange(e.target.value)}
       className="flex-1 min-w-0"
       data-testid="team-search"
+      aria-label="Search team members"
     />
   );
 }

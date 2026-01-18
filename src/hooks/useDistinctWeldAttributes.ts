@@ -43,9 +43,9 @@ export function useDistinctWeldAttributes(projectId: string) {
 
       return {
         weldSizes: sortWeldSizes(weldSizes),
-        specs: specs.sort(),
-        schedules: schedules.sort(),
-        baseMetals: baseMetals.sort(),
+        specs: [...specs].sort(),
+        schedules: [...schedules].sort(),
+        baseMetals: [...baseMetals].sort(),
       }
     },
     enabled: !!projectId,
