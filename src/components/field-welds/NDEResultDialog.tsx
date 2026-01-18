@@ -23,6 +23,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { AlertTriangle } from 'lucide-react'
 
+export interface NDESuccessPayload {
+  ndeType: string
+  ndeResult: 'PASS' | 'FAIL' | 'PENDING'
+  ndeDate: string
+  ndeNotes?: string
+}
+
 interface NDEResultDialogProps {
   fieldWeldId: string
   componentId: string
@@ -31,6 +38,7 @@ interface NDEResultDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onFailure?: () => void
+  onSuccess?: (payload: NDESuccessPayload) => void
 }
 
 const NDE_TYPES = [
@@ -51,6 +59,7 @@ export function NDEResultDialog({
   open,
   onOpenChange,
   onFailure,
+  onSuccess,
 }: NDEResultDialogProps) {
   const [ndeType, setNdeType] = useState<string>('')
   const [ndeResult, setNdeResult] = useState<NDEResult | ''>('')
@@ -127,6 +136,16 @@ export function NDEResultDialog({
       } else {
         toast.info('NDE result recorded', {
           description: 'Result marked as pending',
+        })
+      }
+
+      // Call onSuccess callback with NDE payload for auto-resolve workflows
+      if (onSuccess) {
+        onSuccess({
+          ndeType,
+          ndeResult: ndeResult as 'PASS' | 'FAIL' | 'PENDING',
+          ndeDate,
+          ndeNotes: ndeNotes.trim() || undefined,
         })
       }
 

@@ -90,7 +90,7 @@ export function useComponentsByDrawings(drawingIds: string[]) {
 
         // Apply natural sorting by identity display for proper alphanumeric order
         // (e.g., SPOOL1, SPOOL2, SPOOL3 instead of SPOOL1, SPOOL10, SPOOL2)
-        const sortedComponents = components.sort((a, b) =>
+        const sortedComponents = [...components].sort((a, b) =>
           naturalCompare(a.identityDisplay, b.identityDisplay)
         )
 

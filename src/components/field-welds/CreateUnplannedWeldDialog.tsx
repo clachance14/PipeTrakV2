@@ -2,10 +2,17 @@
  * Component: CreateUnplannedWeldDialog
  *
  * Feature: 028-add-unplanned-welds
- * Date: 2025-11-17
+ * Updated: 2026-01-12
  *
  * Dialog for creating individual unplanned field welds with auto-generated weld numbers,
- * required field validation, and mobile-optimized UI (≥44px touch targets).
+ * smart auto-populate based on selected drawing, and mobile-optimized UI (≥44px touch targets).
+ *
+ * Smart dropdown behavior:
+ * - When drawing is selected, queries existing welds on that drawing
+ * - If a field has exactly 1 unique value, auto-populates (if field is empty)
+ * - If multiple values exist, shows them as dropdown suggestions
+ * - Falls back to all project values if drawing has no welds
+ * - User can always type custom values
  */
 
 import { useState, useEffect, useMemo } from 'react'
@@ -16,9 +23,12 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SearchableCombobox } from '@/components/component-metadata/SearchableCombobox'
 import { supabase } from '@/lib/supabase'
 import { useCreateUnplannedWeld } from '@/hooks/useCreateUnplannedWeld'
+import { useDistinctWeldAttributes } from '@/hooks/useDistinctWeldAttributes'
+import { useWeldAttributesByDrawing } from '@/hooks/useWeldAttributesByDrawing'
 import { findNextWeldNumber } from '@/lib/weld-numbering'
 import { toast } from 'sonner'
 import type { MetadataOption } from '@/types/metadata'
@@ -44,7 +54,22 @@ export function CreateUnplannedWeldDialog({
   const [notes, setNotes] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
+  // Track which fields user has manually edited (to prevent auto-populate overwriting)
+  const [userEditedFields, setUserEditedFields] = useState<Set<string>>(new Set())
+
+  // Popover open states for each field
+  const [weldSizeOpen, setWeldSizeOpen] = useState(false)
+  const [specOpen, setSpecOpen] = useState(false)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+  const [baseMetalOpen, setBaseMetalOpen] = useState(false)
+
   const createMutation = useCreateUnplannedWeld()
+
+  // Fetch weld attributes for the selected drawing
+  const { data: drawingAttrs } = useWeldAttributesByDrawing(drawingId || null)
+
+  // Fetch project-wide weld attributes (fallback when drawing has no welds)
+  const { data: projectAttrs } = useDistinctWeldAttributes(projectId)
 
   // Fetch drawings for the project
   const { data: drawings = [] } = useQuery({
@@ -78,6 +103,52 @@ export function CreateUnplannedWeldDialog({
       void generateWeldNumber()
     }
   }, [open, projectId])
+
+  // Auto-populate fields when drawing changes (only if field is empty and not user-edited)
+  useEffect(() => {
+    if (!drawingId || !drawingAttrs) return
+
+    // Auto-populate if drawing has exactly 1 value and field is empty and not user-edited
+    const firstWeldSize = drawingAttrs.weldSizes[0]
+    const firstSpec = drawingAttrs.specs[0]
+    const firstSchedule = drawingAttrs.schedules[0]
+    const firstBaseMetal = drawingAttrs.baseMetals[0]
+
+    if (drawingAttrs.weldSizes.length === 1 && firstWeldSize && !weldSize && !userEditedFields.has('weldSize')) {
+      setWeldSize(firstWeldSize)
+    }
+    if (drawingAttrs.specs.length === 1 && firstSpec && !spec && !userEditedFields.has('spec')) {
+      setSpec(firstSpec)
+    }
+    if (drawingAttrs.schedules.length === 1 && firstSchedule && !schedule && !userEditedFields.has('schedule')) {
+      setSchedule(firstSchedule)
+    }
+    if (drawingAttrs.baseMetals.length === 1 && firstBaseMetal && !baseMetal && !userEditedFields.has('baseMetal')) {
+      setBaseMetal(firstBaseMetal)
+    }
+  }, [drawingId, drawingAttrs, weldSize, spec, schedule, baseMetal, userEditedFields])
+
+  // Reset user edits tracking when drawing changes
+  useEffect(() => {
+    setUserEditedFields(new Set())
+  }, [drawingId])
+
+  // Determine dropdown options (drawing values, or fallback to project)
+  const weldSizeOptions = (drawingAttrs?.weldSizes.length ?? 0) > 0
+    ? drawingAttrs!.weldSizes
+    : projectAttrs?.weldSizes ?? []
+
+  const specOptions = (drawingAttrs?.specs.length ?? 0) > 0
+    ? drawingAttrs!.specs
+    : projectAttrs?.specs ?? []
+
+  const scheduleOptions = (drawingAttrs?.schedules.length ?? 0) > 0
+    ? drawingAttrs!.schedules
+    : projectAttrs?.schedules ?? []
+
+  const baseMetalOptions = (drawingAttrs?.baseMetals.length ?? 0) > 0
+    ? drawingAttrs!.baseMetals
+    : projectAttrs?.baseMetals ?? []
 
   const generateWeldNumber = async () => {
     try {
@@ -153,10 +224,74 @@ export function CreateUnplannedWeldDialog({
     setBaseMetal('')
     setNotes('')
     setErrorMessage('')
+    setUserEditedFields(new Set())
   }
 
   const isFormValid = !!(weldNumber && drawingId && weldType && weldSize && spec && notes.trim())
   const isLoading = createMutation.isPending
+
+  // Helper to render input with suggestions popover
+  const renderInputWithSuggestions = (
+    id: string,
+    value: string,
+    onChange: (value: string) => void,
+    options: string[],
+    placeholder: string,
+    isOpen: boolean,
+    setIsOpen: (open: boolean) => void,
+    fieldKey: string,
+  ) => {
+    const filteredOptions = options.filter(opt =>
+      opt.toLowerCase().includes(value.toLowerCase())
+    )
+
+    return (
+      <Popover open={isOpen && filteredOptions.length > 0} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <div className="relative w-full">
+            <Input
+              id={id}
+              value={value}
+              onChange={(e) => {
+                onChange(e.target.value)
+                setUserEditedFields(prev => new Set(prev).add(fieldKey))
+                setIsOpen(true)
+              }}
+              onFocus={() => setIsOpen(true)}
+              placeholder={placeholder}
+              className="min-h-[44px]"
+              autoComplete="off"
+            />
+          </div>
+        </PopoverTrigger>
+        {filteredOptions.length > 0 && (
+          <PopoverContent
+            className="p-1 w-[var(--radix-popover-trigger-width)] !bg-white border border-slate-200 shadow-lg"
+            align="start"
+            sideOffset={4}
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onInteractOutside={() => setIsOpen(false)}
+          >
+            <div className="max-h-[200px] overflow-y-auto bg-white">
+              {filteredOptions.map((opt) => (
+                <div
+                  key={opt}
+                  onClick={() => {
+                    onChange(opt)
+                    setUserEditedFields(prev => new Set(prev).add(fieldKey))
+                    setIsOpen(false)
+                  }}
+                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none bg-white hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {opt}
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        )}
+      </Popover>
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,56 +347,68 @@ export function CreateUnplannedWeldDialog({
               </Select>
             </div>
 
-            {/* Weld Size (Required) */}
+            {/* Weld Size (Required) - with suggestions */}
             <div className="space-y-2">
               <Label htmlFor="weld-size">
                 Weld Size <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="weld-size"
-                value={weldSize}
-                onChange={(e) => setWeldSize(e.target.value)}
-                placeholder='e.g., 2", 1/2"'
-                className="min-h-[44px]"
-              />
+              {renderInputWithSuggestions(
+                'weld-size',
+                weldSize,
+                setWeldSize,
+                weldSizeOptions,
+                'Type or select weld size...',
+                weldSizeOpen,
+                setWeldSizeOpen,
+                'weldSize'
+              )}
             </div>
 
-            {/* Spec (Required) */}
+            {/* Spec (Required) - with suggestions */}
             <div className="space-y-2">
               <Label htmlFor="spec">
                 Spec <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="spec"
-                value={spec}
-                onChange={(e) => setSpec(e.target.value)}
-                placeholder="e.g., HC05"
-                className="min-h-[44px]"
-              />
+              {renderInputWithSuggestions(
+                'spec',
+                spec,
+                setSpec,
+                specOptions,
+                'Type or select spec...',
+                specOpen,
+                setSpecOpen,
+                'spec'
+              )}
             </div>
 
-            {/* Schedule (Optional) */}
+            {/* Schedule (Optional) - with suggestions */}
             <div className="space-y-2">
               <Label htmlFor="schedule">Schedule</Label>
-              <Input
-                id="schedule"
-                value={schedule}
-                onChange={(e) => setSchedule(e.target.value)}
-                placeholder="e.g., XS, STD"
-                className="min-h-[44px]"
-              />
+              {renderInputWithSuggestions(
+                'schedule',
+                schedule,
+                setSchedule,
+                scheduleOptions,
+                'Type or select schedule...',
+                scheduleOpen,
+                setScheduleOpen,
+                'schedule'
+              )}
             </div>
 
-            {/* Base Metal (Optional) */}
+            {/* Base Metal (Optional) - with suggestions */}
             <div className="space-y-2">
               <Label htmlFor="base-metal">Base Metal</Label>
-              <Input
-                id="base-metal"
-                value={baseMetal}
-                onChange={(e) => setBaseMetal(e.target.value)}
-                placeholder="e.g., CS, SS"
-                className="min-h-[44px]"
-              />
+              {renderInputWithSuggestions(
+                'base-metal',
+                baseMetal,
+                setBaseMetal,
+                baseMetalOptions,
+                'Type or select base metal...',
+                baseMetalOpen,
+                setBaseMetalOpen,
+                'baseMetal'
+              )}
             </div>
 
             {/* Notes (Required) */}

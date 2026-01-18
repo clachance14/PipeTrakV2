@@ -380,8 +380,7 @@ function calculateComponentSummary(components: PackageComponent[]): ComponentSum
   });
 
   // Convert to array and sort by component type then identity
-  const summary = Array.from(summaryMap.values());
-  summary.sort((a, b) => {
+  const summary = Array.from(summaryMap.values()).sort((a, b) => {
     // Sort by component type first
     const typeCompare = a.component_type.localeCompare(b.component_type);
     if (typeCompare !== 0) return typeCompare;
@@ -429,8 +428,7 @@ function calculateSupportSummary(components: PackageComponent[]): SupportSummary
   });
 
   // Convert to array and sort
-  const summary = Array.from(summaryMap.values());
-  summary.sort((a, b) => {
+  const summary = Array.from(summaryMap.values()).sort((a, b) => {
     // Sort by commodity_code first
     const codeCompare = a.commodity_code.localeCompare(b.commodity_code);
     if (codeCompare !== 0) return codeCompare;

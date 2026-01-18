@@ -1,4 +1,4 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ClipboardCheck, Eye } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -27,6 +27,8 @@ export interface ReviewItem {
 export interface ReviewItemCardProps {
   item: ReviewItem;
   onResolve: (id: string, note?: string) => void;
+  onRecordNDE?: (id: string, payload: WeldCompletedPayload) => void;
+  onViewNDE?: (id: string, payload: WeldCompletedPayload) => void;
 }
 
 const typeLabels: Record<ReviewType, string> = {
@@ -51,11 +53,82 @@ const typeBadgeColors: Record<ReviewType, string> = {
 
 /**
  * Review item card component
- * Displays flagged item with type badge, description, age, and resolve button
+ * Displays flagged item with type badge, description, age, and context-aware action button
+ * - weld_completed + current_nde_result: "View NDE"
+ * - weld_completed (no NDE recorded): "Record NDE"
+ * - other types: "Resolve"
  */
-export function ReviewItemCard({ item, onResolve }: ReviewItemCardProps) {
+export function ReviewItemCard({
+  item,
+  onResolve,
+  onRecordNDE,
+  onViewNDE
+}: ReviewItemCardProps) {
   const handleResolve = () => {
     onResolve(item.id);
+  };
+
+  // Render context-aware action button for weld_completed items
+  const renderActionButton = () => {
+    // For non-weld_completed types, always show Resolve
+    if (item.type !== 'weld_completed') {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleResolve}
+          className="flex-shrink-0"
+        >
+          <AlertCircle className="h-4 w-4 mr-1" />
+          Resolve
+        </Button>
+      );
+    }
+
+    const payload = item.payload as WeldCompletedPayload;
+
+    // NDE already recorded - show View NDE button
+    if (payload.current_nde_result && onViewNDE) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onViewNDE(item.id, payload)}
+          className="flex-shrink-0"
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View NDE
+        </Button>
+      );
+    }
+
+    // NDE required but not recorded - show Record NDE button
+    if (onRecordNDE) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onRecordNDE(item.id, payload)}
+          className="flex-shrink-0"
+        >
+          <ClipboardCheck className="h-4 w-4 mr-1" />
+          Record NDE
+        </Button>
+      );
+    }
+
+    // Fallback to Resolve button
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleResolve}
+        className="flex-shrink-0"
+      >
+        <AlertCircle className="h-4 w-4 mr-1" />
+        Resolve
+      </Button>
+    );
   };
 
   // Render custom content for weld_completed type
@@ -119,17 +192,9 @@ export function ReviewItemCard({ item, onResolve }: ReviewItemCardProps) {
           )}
         </div>
 
-        {/* Resolve button (permission-gated) */}
+        {/* Action button (permission-gated) */}
         <PermissionGate permission="can_resolve_reviews">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleResolve}
-            className="flex-shrink-0"
-          >
-            <AlertCircle className="h-4 w-4 mr-1" />
-            Resolve
-          </Button>
+          {renderActionButton()}
         </PermissionGate>
       </div>
     </Card>

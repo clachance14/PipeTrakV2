@@ -10,6 +10,9 @@ export interface WeldCompletedPayload {
   date_welded: string;
   weld_type: 'BW' | 'SW' | 'FW' | 'TW';
   nde_required: boolean;
+  // Optional fields for current NDE state (fetched fresh when button clicked)
+  current_nde_result?: 'PASS' | 'FAIL' | 'PENDING' | null;
+  current_nde_type?: string | null;
 }
 
 export type NeedsReviewPayload =
