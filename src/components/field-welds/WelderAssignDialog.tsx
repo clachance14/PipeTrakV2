@@ -82,8 +82,9 @@ export function WelderAssignDialog({
     if (open) {
       if (isEditMode && resolvedWelderId) {
         // Pre-fill with existing values in edit mode
+        // Don't default to today's date if null - user must explicitly choose
         setSelectedWelderId(resolvedWelderId)
-        setDateWelded(resolvedDateWelded || new Date().toISOString().split('T')[0]!)
+        setDateWelded(resolvedDateWelded || '')
       } else {
         // Reset to defaults in assign mode
         setSelectedWelderId('')

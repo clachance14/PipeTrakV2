@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useFieldWeld } from '@/hooks/useFieldWeld'
 import { useAssignWelder } from '@/hooks/useAssignWelder'
 import { useClearWelderAssignment } from '@/hooks/useClearWelderAssignment'
@@ -70,6 +70,28 @@ export function FieldWeldRow({
 
   // Track whether dialog is in edit mode (welder already assigned)
   const hasWelderAssigned = !!fieldWeld?.welder_id
+
+  // Track previous milestone value to detect rollbacks
+  // This allows us to clear welder AFTER milestone update is confirmed in cache
+  const weldCompleteMilestone = component.current_milestones['Weld Complete'] ?? component.current_milestones['Weld Made']
+  const prevWeldCompleteRef = useRef<number | boolean | undefined>(weldCompleteMilestone)
+
+  useEffect(() => {
+    const prevValue = prevWeldCompleteRef.current
+    const currentValue = weldCompleteMilestone
+
+    // Check if milestone was just rolled back (went from complete to incomplete)
+    const wasComplete = prevValue === 100 || prevValue === true || prevValue === 1
+    const isNowIncomplete = currentValue === 0 || currentValue === false || currentValue === undefined
+
+    if (wasComplete && isNowIncomplete && fieldWeld?.id && fieldWeld.welder_id) {
+      // Milestone was rolled back and welder is still assigned - clear it
+      clearWelderMutation.mutate({ field_weld_id: fieldWeld.id })
+    }
+
+    // Update ref for next comparison
+    prevWeldCompleteRef.current = currentValue
+  }, [weldCompleteMilestone, fieldWeld?.id, fieldWeld?.welder_id, clearWelderMutation])
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     // Convert to numeric early for consistent comparisons
@@ -391,22 +413,14 @@ export function FieldWeldRow({
           onClose={() => setRollbackPending(null)}
           onConfirm={(reasonData) => {
             // Call the actual update with the rollback reason
+            // Note: Welder clearing is handled by useEffect that watches for milestone changes
+            // This ensures welder is only cleared AFTER milestone update succeeds
             onMilestoneUpdate(
               component.id,
               rollbackPending.milestoneName,
               rollbackPending.newValue,
               reasonData
             )
-
-            // If rolling back Weld Complete/Weld Made, also clear the welder assignment
-            if (
-              (rollbackPending.milestoneName === 'Weld Complete' ||
-                rollbackPending.milestoneName === 'Weld Made') &&
-              fieldWeld?.id &&
-              fieldWeld.welder_id
-            ) {
-              clearWelderMutation.mutate({ field_weld_id: fieldWeld.id })
-            }
 
             setRollbackPending(null)
           }}
