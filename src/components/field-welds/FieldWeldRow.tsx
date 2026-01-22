@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useFieldWeld } from '@/hooks/useFieldWeld'
 import { useAssignWelder } from '@/hooks/useAssignWelder'
+import { useClearWelderAssignment } from '@/hooks/useClearWelderAssignment'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatWeldType, formatNDEType, getStatusBadgeColor } from '@/lib/field-weld-utils'
 import { MilestoneCheckbox } from '../drawing-table/MilestoneCheckbox'
@@ -64,7 +65,33 @@ export function FieldWeldRow({
 
   const { data: fieldWeld, isLoading } = useFieldWeld({ componentId: component.id })
   const assignWelderMutation = useAssignWelder()
+  const clearWelderMutation = useClearWelderAssignment()
   const { user } = useAuth()
+
+  // Track whether dialog is in edit mode (welder already assigned)
+  const hasWelderAssigned = !!fieldWeld?.welder_id
+
+  // Track previous milestone value to detect rollbacks
+  // This allows us to clear welder AFTER milestone update is confirmed in cache
+  const weldCompleteMilestone = component.current_milestones['Weld Complete'] ?? component.current_milestones['Weld Made']
+  const prevWeldCompleteRef = useRef<number | boolean | undefined>(weldCompleteMilestone)
+
+  useEffect(() => {
+    const prevValue = prevWeldCompleteRef.current
+    const currentValue = weldCompleteMilestone
+
+    // Check if milestone was just rolled back (went from complete to incomplete)
+    const wasComplete = prevValue === 100 || prevValue === true || prevValue === 1
+    const isNowIncomplete = currentValue === 0 || currentValue === false || currentValue === undefined
+
+    if (wasComplete && isNowIncomplete && fieldWeld?.id && fieldWeld.welder_id) {
+      // Milestone was rolled back and welder is still assigned - clear it
+      clearWelderMutation.mutate({ field_weld_id: fieldWeld.id })
+    }
+
+    // Update ref for next comparison
+    prevWeldCompleteRef.current = currentValue
+  }, [weldCompleteMilestone, fieldWeld?.id, fieldWeld?.welder_id, clearWelderMutation])
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     // Convert to numeric early for consistent comparisons
@@ -267,10 +294,10 @@ export function FieldWeldRow({
                   variant="outline"
                   onClick={() => setIsAssignWelderOpen(true)}
                   className="text-xs"
-                  aria-label="Assign welder"
+                  aria-label={hasWelderAssigned ? 'Edit welder' : 'Assign welder'}
                 >
                   <UserCog className="mr-1 h-3 w-3" />
-                  Assign Welder
+                  {hasWelderAssigned ? 'Edit Welder' : 'Assign Welder'}
                 </Button>
                 <Button
                   size="sm"
@@ -341,6 +368,9 @@ export function FieldWeldRow({
             projectId={projectId}
             open={isAssignWelderOpen}
             onOpenChange={setIsAssignWelderOpen}
+            mode={hasWelderAssigned ? 'edit' : 'assign'}
+            currentWelderId={fieldWeld.welder_id}
+            currentDateWelded={fieldWeld.date_welded}
           />
 
           <NDEResultDialog
@@ -383,12 +413,15 @@ export function FieldWeldRow({
           onClose={() => setRollbackPending(null)}
           onConfirm={(reasonData) => {
             // Call the actual update with the rollback reason
+            // Note: Welder clearing is handled by useEffect that watches for milestone changes
+            // This ensures welder is only cleared AFTER milestone update succeeds
             onMilestoneUpdate(
               component.id,
               rollbackPending.milestoneName,
               rollbackPending.newValue,
               reasonData
             )
+
             setRollbackPending(null)
           }}
           componentName={component.identityDisplay || 'Unknown'}

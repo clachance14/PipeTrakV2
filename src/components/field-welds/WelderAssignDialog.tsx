@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useWelders } from '@/hooks/useWelders'
 import { useAssignWelder } from '@/hooks/useAssignWelder'
+import { useUpdateWelderAssignment } from '@/hooks/useUpdateWelderAssignment'
 import { useFieldWeld } from '@/hooks/useFieldWeld'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -32,6 +33,12 @@ interface WelderAssignDialogProps {
   projectId: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Edit mode - when true, updates existing assignment without affecting milestones */
+  mode?: 'assign' | 'edit'
+  /** Current welder ID (for edit mode) */
+  currentWelderId?: string | null
+  /** Current date welded (for edit mode) */
+  currentDateWelded?: string | null
 }
 
 export function WelderAssignDialog({
@@ -40,6 +47,9 @@ export function WelderAssignDialog({
   projectId,
   open,
   onOpenChange,
+  mode,
+  currentWelderId,
+  currentDateWelded,
 }: WelderAssignDialogProps) {
   const { user } = useAuth()
 
@@ -48,6 +58,13 @@ export function WelderAssignDialog({
     componentId: componentId || '',
     enabled: open && !!componentId && !fieldWeldId,
   })
+
+  // Determine edit mode:
+  // - Explicit mode prop takes precedence
+  // - Otherwise, auto-detect based on whether welder is already assigned
+  const resolvedWelderId = currentWelderId ?? fieldWeld?.welder_id ?? null
+  const resolvedDateWelded = currentDateWelded ?? fieldWeld?.date_welded ?? null
+  const isEditMode = mode === 'edit' || (mode === undefined && !!resolvedWelderId)
 
   // Use provided fieldWeldId or queried field weld ID
   const resolvedFieldWeldId = fieldWeldId || fieldWeld?.id
@@ -58,14 +75,23 @@ export function WelderAssignDialog({
 
   const { data: welders, isLoading: isLoadingWelders } = useWelders({ projectId })
   const assignWelderMutation = useAssignWelder()
+  const updateWelderMutation = useUpdateWelderAssignment()
 
-  // Reset form when dialog opens
+  // Reset/initialize form when dialog opens or when fieldWeld data loads
   useEffect(() => {
     if (open) {
-      setSelectedWelderId('')
-      setDateWelded(new Date().toISOString().split('T')[0]!)
+      if (isEditMode && resolvedWelderId) {
+        // Pre-fill with existing values in edit mode
+        // Don't default to today's date if null - user must explicitly choose
+        setSelectedWelderId(resolvedWelderId)
+        setDateWelded(resolvedDateWelded || '')
+      } else {
+        // Reset to defaults in assign mode
+        setSelectedWelderId('')
+        setDateWelded(new Date().toISOString().split('T')[0]!)
+      }
     }
-  }, [open])
+  }, [open, isEditMode, resolvedWelderId, resolvedDateWelded])
 
   const sortedWelders = welders?.sort((a, b) =>
     a.stencil.localeCompare(b.stencil)
@@ -103,25 +129,37 @@ export function WelderAssignDialog({
     }
 
     try {
-      await assignWelderMutation.mutateAsync({
-        field_weld_id: resolvedFieldWeldId,
-        welder_id: selectedWelderId,
-        date_welded: dateWelded,
-        user_id: user.id,
-      })
+      if (isEditMode) {
+        // Edit mode: only update welder assignment, don't touch milestones
+        await updateWelderMutation.mutateAsync({
+          field_weld_id: resolvedFieldWeldId,
+          welder_id: selectedWelderId,
+          date_welded: dateWelded,
+        })
+      } else {
+        // Assign mode: update welder and mark milestones complete
+        await assignWelderMutation.mutateAsync({
+          field_weld_id: resolvedFieldWeldId,
+          welder_id: selectedWelderId,
+          date_welded: dateWelded,
+          user_id: user.id,
+        })
 
-      toast.success('Welder assigned successfully', {
-        description: 'Progress updated to 70% (Weld Made)',
-      })
+        toast.success('Welder assigned successfully', {
+          description: 'Progress updated to 70% (Weld Made)',
+        })
+      }
 
       onOpenChange(false)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to assign welder'
-      toast.error('Error assigning welder', {
+      const errorMessage = error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'assign'} welder`
+      toast.error(`Error ${isEditMode ? 'updating' : 'assigning'} welder`, {
         description: errorMessage,
       })
     }
   }
+
+  const isPending = isEditMode ? updateWelderMutation.isPending : assignWelderMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,9 +168,11 @@ export function WelderAssignDialog({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Assign Welder</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Welder Assignment' : 'Assign Welder'}</DialogTitle>
           <DialogDescription>
-            Select the welder who completed this weld and the date it was welded.
+            {isEditMode
+              ? 'Update the welder or date for this weld.'
+              : 'Select the welder who completed this weld and the date it was welded.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -197,14 +237,16 @@ export function WelderAssignDialog({
               />
             </div>
 
-            {/* Info Panel */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 flex gap-2">
-              <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-800">
-                This will mark the <span className="font-medium">"Weld Made"</span> milestone
-                and update progress to <span className="font-medium">70%</span>.
-              </p>
-            </div>
+            {/* Info Panel - only show in assign mode */}
+            {!isEditMode && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 flex gap-2">
+                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-800">
+                  This will mark the <span className="font-medium">"Weld Made"</span> milestone
+                  and update progress to <span className="font-medium">70%</span>.
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -217,10 +259,12 @@ export function WelderAssignDialog({
             </Button>
             <Button
               type="submit"
-              disabled={assignWelderMutation.isPending || isLoadingFieldWeld || !selectedWelderId || !dateWelded || !resolvedFieldWeldId}
+              disabled={isPending || isLoadingFieldWeld || !selectedWelderId || !dateWelded || !resolvedFieldWeldId}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {assignWelderMutation.isPending ? 'Assigning...' : 'Assign Welder'}
+              {isPending
+                ? (isEditMode ? 'Saving...' : 'Assigning...')
+                : (isEditMode ? 'Save Changes' : 'Assign Welder')}
             </Button>
           </DialogFooter>
         </form>
