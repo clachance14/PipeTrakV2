@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useFieldWeld } from '@/hooks/useFieldWeld'
 import { useAssignWelder } from '@/hooks/useAssignWelder'
+import { useClearWelderAssignment } from '@/hooks/useClearWelderAssignment'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatWeldType, formatNDEType, getStatusBadgeColor } from '@/lib/field-weld-utils'
 import { MilestoneCheckbox } from '../drawing-table/MilestoneCheckbox'
@@ -64,7 +65,11 @@ export function FieldWeldRow({
 
   const { data: fieldWeld, isLoading } = useFieldWeld({ componentId: component.id })
   const assignWelderMutation = useAssignWelder()
+  const clearWelderMutation = useClearWelderAssignment()
   const { user } = useAuth()
+
+  // Track whether dialog is in edit mode (welder already assigned)
+  const hasWelderAssigned = !!fieldWeld?.welder_id
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     // Convert to numeric early for consistent comparisons
@@ -267,10 +272,10 @@ export function FieldWeldRow({
                   variant="outline"
                   onClick={() => setIsAssignWelderOpen(true)}
                   className="text-xs"
-                  aria-label="Assign welder"
+                  aria-label={hasWelderAssigned ? 'Edit welder' : 'Assign welder'}
                 >
                   <UserCog className="mr-1 h-3 w-3" />
-                  Assign Welder
+                  {hasWelderAssigned ? 'Edit Welder' : 'Assign Welder'}
                 </Button>
                 <Button
                   size="sm"
@@ -341,6 +346,9 @@ export function FieldWeldRow({
             projectId={projectId}
             open={isAssignWelderOpen}
             onOpenChange={setIsAssignWelderOpen}
+            mode={hasWelderAssigned ? 'edit' : 'assign'}
+            currentWelderId={fieldWeld.welder_id}
+            currentDateWelded={fieldWeld.date_welded}
           />
 
           <NDEResultDialog
@@ -389,6 +397,17 @@ export function FieldWeldRow({
               rollbackPending.newValue,
               reasonData
             )
+
+            // If rolling back Weld Complete/Weld Made, also clear the welder assignment
+            if (
+              (rollbackPending.milestoneName === 'Weld Complete' ||
+                rollbackPending.milestoneName === 'Weld Made') &&
+              fieldWeld?.id &&
+              fieldWeld.welder_id
+            ) {
+              clearWelderMutation.mutate({ field_weld_id: fieldWeld.id })
+            }
+
             setRollbackPending(null)
           }}
           componentName={component.identityDisplay || 'Unknown'}

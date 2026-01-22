@@ -383,6 +383,9 @@ export function WeldLogPage() {
             projectId={projectId}
             open={isWelderDialogOpen}
             onOpenChange={setIsWelderDialogOpen}
+            mode={selectedWeld.welder_id ? 'edit' : 'assign'}
+            currentWelderId={selectedWeld.welder_id}
+            currentDateWelded={selectedWeld.date_welded}
           />
 
           {/* NDE Result Dialog (reused from Feature 015) */}
