@@ -3,7 +3,7 @@
  * Flat table displaying all field welds with sorting and inline actions
  */
 
-import { ArrowUpDown, ArrowUp, ArrowDown, Info } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Info, Pencil } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -230,7 +230,7 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE,
                 {/* Actions */}
                 {!isMobile && (
                   <td className="whitespace-nowrap px-3 py-2 text-sm">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       {showAssignWelder && (
                         <Button
                           size="sm"
@@ -239,16 +239,6 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE,
                           className="h-7 text-xs"
                         >
                           Update Weld
-                        </Button>
-                      )}
-                      {showEditWelder && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onEditWelder?.(weld.id)}
-                          className="h-7 text-xs"
-                        >
-                          Edit Weld
                         </Button>
                       )}
                       {showRecordNDE && (
@@ -260,6 +250,20 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE,
                         >
                           Record NDE
                         </Button>
+                      )}
+                      {showEditWelder && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => onEditWelder?.(weld.id)}
+                              className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                              aria-label="Edit weld"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Weld</TooltipContent>
+                        </Tooltip>
                       )}
                       {weld.status !== 'active' && (
                         <span className="text-xs text-slate-400">No actions</span>
