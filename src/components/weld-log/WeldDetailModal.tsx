@@ -19,10 +19,11 @@ interface WeldDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdateWeld: () => void
+  onEditWelder?: () => void
   onRecordNDE: () => void
 }
 
-export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onRecordNDE }: WeldDetailModalProps) {
+export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEditWelder, onRecordNDE }: WeldDetailModalProps) {
   // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-'
@@ -198,6 +199,16 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onReco
                   aria-label="Update weld milestones"
                 >
                   Update Weld
+                </button>
+              )}
+
+              {weld.welder_id && onEditWelder && (
+                <button
+                  onClick={onEditWelder}
+                  className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  aria-label="Edit weld details"
+                >
+                  Edit Weld
                 </button>
               )}
 

@@ -21,6 +21,34 @@ vi.mock('@/hooks/useWelders', () => ({
 vi.mock('@/hooks/useAssignWelder', () => ({
   useAssignWelder: () => ({
     mutateAsync: vi.fn().mockResolvedValue({}),
+    isPending: false,
+  }),
+}))
+
+vi.mock('@/hooks/useUpdateWelderAssignment', () => ({
+  useUpdateWelderAssignment: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({}),
+    isPending: false,
+  }),
+}))
+
+vi.mock('@/hooks/useClearWelderAssignment', () => ({
+  useClearWelderAssignment: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}))
+
+vi.mock('@/hooks/useFieldWeld', () => ({
+  useFieldWeld: () => ({
+    data: null,
+    isLoading: false,
+  }),
+}))
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id' },
   }),
 }))
 
@@ -35,7 +63,9 @@ describe('WelderAssignDialog', () => {
       />
     )
 
-    expect(screen.getByText(/assign welder/i)).toBeInTheDocument()
+    // Dialog title should be "Assign Welder"
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /assign welder/i })).toBeInTheDocument()
   })
 
   it('date defaults to today', () => {
@@ -63,8 +93,9 @@ describe('WelderAssignDialog', () => {
       />
     )
 
-    expect(screen.getByText(/weld complete.*milestone/i)).toBeInTheDocument()
-    expect(screen.getByText(/95%/)).toBeInTheDocument()
+    // The info panel text is split across elements, so check for parts
+    expect(screen.getByText(/"Weld Made"/)).toBeInTheDocument()
+    expect(screen.getByText(/70%/)).toBeInTheDocument()
   })
 
   it('submits assignment with welder and date', async () => {
@@ -80,7 +111,7 @@ describe('WelderAssignDialog', () => {
       />
     )
 
-    const submitButton = screen.getByRole('button', { name: /assign/i })
+    const submitButton = screen.getByRole('button', { name: /^assign welder$/i })
     await user.click(submitButton)
 
     // Form should validate and submit

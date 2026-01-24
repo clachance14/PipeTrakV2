@@ -3,7 +3,7 @@
  * Flat table displaying all field welds with sorting and inline actions
  */
 
-import { ArrowUpDown, ArrowUp, ArrowDown, Info } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, Info, Pencil } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,13 +26,14 @@ import { sortFieldWelds, type SortColumn } from '@/lib/weld-log-sorting'
 interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
   onAssignWelder?: (weldId: string) => void
+  onEditWelder?: (weldId: string) => void
   onRecordNDE?: (weldId: string) => void
   userRole?: string
   isMobile?: boolean
   onRowClick?: (weld: EnrichedFieldWeld) => void
 }
 
-export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
+export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
   const { sortColumn, sortDirection, toggleSort } = useWeldLogPreferencesStore()
   const isMobileDetected = useMobileDetection()
   const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
@@ -105,6 +106,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
         <tbody className="divide-y divide-slate-100">
           {sortedWelds.map((weld) => {
             const showAssignWelder = canAssignWelder && weld.status === 'active' && !weld.welder_id
+            const showEditWelder = canAssignWelder && weld.status === 'active' && weld.welder_id !== null
             const showRecordNDE = canRecordNDE && weld.status === 'active' && weld.welder_id
 
             return (
@@ -228,7 +230,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                 {/* Actions */}
                 {!isMobile && (
                   <td className="whitespace-nowrap px-3 py-2 text-sm">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       {showAssignWelder && (
                         <Button
                           size="sm"
@@ -248,6 +250,20 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                         >
                           Record NDE
                         </Button>
+                      )}
+                      {showEditWelder && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => onEditWelder?.(weld.id)}
+                              className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                              aria-label="Edit weld"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Weld</TooltipContent>
+                        </Tooltip>
                       )}
                       {weld.status !== 'active' && (
                         <span className="text-xs text-slate-400">No actions</span>

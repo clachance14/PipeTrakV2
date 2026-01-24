@@ -88,7 +88,7 @@ export function useAssignWelder() {
 
       // Optimistic update: field welds list query (for Weld Log table)
       queryClient.setQueriesData({ queryKey: ['field-welds'] }, (old: any) => {
-        if (!old) return old
+        if (!old || !Array.isArray(old)) return old
         return old.map((weld: any) =>
           weld.id === payload.field_weld_id
             ? { ...weld, welder_id: payload.welder_id, date_welded: payload.date_welded }

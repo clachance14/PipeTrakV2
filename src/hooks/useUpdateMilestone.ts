@@ -174,6 +174,9 @@ export function useUpdateMilestone() {
       queryClient.invalidateQueries({ queryKey: ['drawing-progress'] })
       queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
+      // Invalidate field weld queries for Weld Log page
+      queryClient.invalidateQueries({ queryKey: ['field-weld'] })
+      queryClient.invalidateQueries({ queryKey: ['field-welds'] })
     },
   })
 }
