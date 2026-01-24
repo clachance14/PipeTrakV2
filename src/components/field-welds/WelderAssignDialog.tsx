@@ -166,15 +166,12 @@ export function WelderAssignDialog({
         })
       } else {
         // Assign mode: update welder and mark milestones complete
+        // Note: useAssignWelder shows its own success toast
         await assignWelderMutation.mutateAsync({
           field_weld_id: resolvedFieldWeldId,
           welder_id: selectedWelderId,
           date_welded: dateWelded,
           user_id: user.id,
-        })
-
-        toast.success('Welder assigned successfully', {
-          description: 'Progress updated to 70% (Weld Made)',
         })
       }
 
@@ -272,8 +269,8 @@ export function WelderAssignDialog({
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 flex gap-2">
                   <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-800">
-                    This will mark the <span className="font-medium">"Weld Made"</span> milestone
-                    and update progress to <span className="font-medium">70%</span>.
+                    This will mark the <span className="font-medium">"Weld Complete"</span> milestone
+                    and update component progress.
                   </p>
                 </div>
               )}

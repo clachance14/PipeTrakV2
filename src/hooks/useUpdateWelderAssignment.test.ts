@@ -3,6 +3,7 @@
  *
  * Tests for updating welder assignment on existing field welds
  * without affecting milestone state.
+ * Uses RPC (update_weld_assignment) for audit logging.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
@@ -12,18 +13,10 @@ import { createElement, type ReactNode } from 'react'
 import { useUpdateWelderAssignment } from './useUpdateWelderAssignment'
 import { supabase } from '@/lib/supabase'
 
-// Mock Supabase client
+// Mock Supabase client with RPC
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          select: vi.fn(() => ({
-            maybeSingle: vi.fn()
-          }))
-        }))
-      }))
-    }))
+    rpc: vi.fn()
   }
 }))
 
@@ -54,29 +47,12 @@ describe('useUpdateWelderAssignment hook', () => {
   })
 
   describe('Successful Update', () => {
-    it('updates welder assignment via Supabase update', async () => {
-      // Arrange: Mock successful update response
-      const mockResponse = {
-        id: 'field-weld-uuid',
-        component_id: 'comp-uuid',
-        welder_id: 'new-welder-uuid',
-        date_welded: '2025-01-20'
-      }
-
-      const maybeSingleMock = vi.fn().mockResolvedValue({
-        data: mockResponse,
+    it('updates welder assignment via RPC', async () => {
+      // Arrange: Mock successful RPC response
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
         error: null
       })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: maybeSingleMock
-            })
-          })
-        })
-      } as any)
 
       // Act: Render hook and trigger mutation
       const { result } = renderHook(() => useUpdateWelderAssignment(), {
@@ -86,7 +62,8 @@ describe('useUpdateWelderAssignment hook', () => {
       const payload = {
         field_weld_id: 'field-weld-uuid',
         welder_id: 'new-welder-uuid',
-        date_welded: '2025-01-20'
+        date_welded: '2025-01-20',
+        user_id: 'user-uuid'
       }
 
       result.current.mutate(payload)
@@ -96,33 +73,27 @@ describe('useUpdateWelderAssignment hook', () => {
         expect(result.current.isSuccess).toBe(true)
       })
 
-      expect(supabase.from).toHaveBeenCalledWith('field_welds')
-      expect(result.current.data).toEqual(mockResponse)
-    })
-
-    it('updates welder_id and date_welded fields only', async () => {
-      // Arrange
-      const mockResponse = {
-        id: 'field-weld-uuid',
-        component_id: 'comp-uuid',
-        welder_id: 'corrected-welder-uuid',
-        date_welded: '2025-01-18'
-      }
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: mockResponse,
-              error: null
-            })
-          })
-        })
+      expect(supabase.rpc).toHaveBeenCalledWith('update_weld_assignment', {
+        p_field_weld_id: 'field-weld-uuid',
+        p_welder_id: 'new-welder-uuid',
+        p_date_welded: '2025-01-20',
+        p_user_id: 'user-uuid'
       })
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock
-      } as any)
+      // Verify returned data
+      expect(result.current.data).toEqual({
+        id: 'field-weld-uuid',
+        welder_id: 'new-welder-uuid',
+        date_welded: '2025-01-20'
+      })
+    })
+
+    it('passes correct parameters to RPC', async () => {
+      // Arrange
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
+      })
 
       // Act
       const { result } = renderHook(() => useUpdateWelderAssignment(), {
@@ -132,41 +103,31 @@ describe('useUpdateWelderAssignment hook', () => {
       result.current.mutate({
         field_weld_id: 'field-weld-uuid',
         welder_id: 'corrected-welder-uuid',
-        date_welded: '2025-01-18'
+        date_welded: '2025-01-18',
+        user_id: 'auth-user-uuid'
       })
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true)
       })
 
-      // Assert: Only welder_id and date_welded are updated
-      expect(updateMock).toHaveBeenCalledWith({
-        welder_id: 'corrected-welder-uuid',
-        date_welded: '2025-01-18'
+      // Assert: RPC called with correct parameters
+      expect(supabase.rpc).toHaveBeenCalledWith('update_weld_assignment', {
+        p_field_weld_id: 'field-weld-uuid',
+        p_welder_id: 'corrected-welder-uuid',
+        p_date_welded: '2025-01-18',
+        p_user_id: 'auth-user-uuid'
       })
     })
   })
 
   describe('Error Handling', () => {
-    it('handles database error', async () => {
+    it('handles RPC error', async () => {
       // Arrange: Mock error response
-      const mockError = {
-        message: 'Row not found',
-        code: 'PGRST116'
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: mockError
-              })
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'Field weld not found', code: 'PGRST116' }
+      })
 
       // Act
       const { result } = renderHook(() => useUpdateWelderAssignment(), {
@@ -176,7 +137,8 @@ describe('useUpdateWelderAssignment hook', () => {
       result.current.mutate({
         field_weld_id: 'non-existent-uuid',
         welder_id: 'welder-uuid',
-        date_welded: '2025-01-20'
+        date_welded: '2025-01-20',
+        user_id: 'user-uuid'
       })
 
       // Assert: Error state is set
@@ -187,20 +149,12 @@ describe('useUpdateWelderAssignment hook', () => {
       expect(result.current.error?.message).toContain('Failed to update welder assignment')
     })
 
-    it('handles field weld not found (null data)', async () => {
-      // Arrange: Mock null data response (RLS denied or not found)
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: null
-              })
-            })
-          })
-        })
-      } as any)
+    it('handles access denied error', async () => {
+      // Arrange: Mock permission error
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'Access denied: user does not have permission', code: '42501' }
+      })
 
       // Act
       const { result } = renderHook(() => useUpdateWelderAssignment(), {
@@ -210,20 +164,21 @@ describe('useUpdateWelderAssignment hook', () => {
       result.current.mutate({
         field_weld_id: 'inaccessible-uuid',
         welder_id: 'welder-uuid',
-        date_welded: '2025-01-20'
+        date_welded: '2025-01-20',
+        user_id: 'user-uuid'
       })
 
-      // Assert: Error about not found/access denied
+      // Assert: Error about access denied
       await waitFor(() => {
         expect(result.current.isError).toBe(true)
       })
 
-      expect(result.current.error?.message).toContain('not found or access denied')
+      expect(result.current.error?.message).toContain('Access denied')
     })
   })
 
   describe('Query Invalidation', () => {
-    it('invalidates field-weld and field-welds queries on success', async () => {
+    it('invalidates field-weld, field-welds, and related queries on success', async () => {
       // Arrange
       const queryClient = new QueryClient({
         defaultOptions: {
@@ -237,18 +192,10 @@ describe('useUpdateWelderAssignment hook', () => {
       const wrapper = ({ children }: { children: ReactNode }) =>
         createElement(QueryClientProvider, { client: queryClient }, children)
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'weld-uuid', component_id: 'comp-uuid' },
-                error: null
-              })
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
+      })
 
       // Act
       const { result } = renderHook(() => useUpdateWelderAssignment(), {
@@ -258,10 +205,11 @@ describe('useUpdateWelderAssignment hook', () => {
       result.current.mutate({
         field_weld_id: 'weld-uuid',
         welder_id: 'welder-uuid',
-        date_welded: '2025-01-20'
+        date_welded: '2025-01-20',
+        user_id: 'user-uuid'
       })
 
-      // Assert: Both query keys are invalidated
+      // Assert: All related query keys are invalidated
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true)
       })
@@ -272,6 +220,71 @@ describe('useUpdateWelderAssignment hook', () => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith(
         expect.objectContaining({ queryKey: ['field-welds'] })
       )
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['components'] })
+      )
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['drawings-with-progress'] })
+      )
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['package-readiness'] })
+      )
+    })
+  })
+
+  describe('Optimistic Updates', () => {
+    it('optimistically updates welder data in cache', async () => {
+      // Arrange
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false }
+        }
+      })
+
+      // Pre-populate cache with existing field weld data
+      queryClient.setQueryData(['field-weld', 'weld-uuid'], {
+        id: 'weld-uuid',
+        welder_id: 'old-welder-uuid',
+        date_welded: '2025-01-15'
+      })
+
+      const setQueriesDataSpy = vi.spyOn(queryClient, 'setQueriesData')
+
+      const wrapper = ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children)
+
+      // Create a delayed response to observe optimistic update
+      vi.mocked(supabase.rpc).mockImplementation(() =>
+        new Promise(resolve =>
+          setTimeout(() => resolve({
+            data: { success: true },
+            error: null
+          }), 50)
+        )
+      )
+
+      // Act
+      const { result } = renderHook(() => useUpdateWelderAssignment(), {
+        wrapper
+      })
+
+      result.current.mutate({
+        field_weld_id: 'weld-uuid',
+        welder_id: 'new-welder-uuid',
+        date_welded: '2025-01-20',
+        user_id: 'user-uuid'
+      })
+
+      // Assert: Optimistic update called
+      await waitFor(() => {
+        expect(setQueriesDataSpy).toHaveBeenCalled()
+      })
+
+      // Wait for success
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
     })
   })
 })

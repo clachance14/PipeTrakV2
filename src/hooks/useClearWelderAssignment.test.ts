@@ -2,7 +2,8 @@
  * Test Suite: useClearWelderAssignment Hook
  *
  * Tests for clearing welder assignment from field welds
- * when rolling back the "Weld Complete" milestone.
+ * when rolling back the "Weld Complete" milestone or manually clearing.
+ * Uses RPC (clear_weld_assignment) for audit logging.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
@@ -12,18 +13,10 @@ import { createElement, type ReactNode } from 'react'
 import { useClearWelderAssignment } from './useClearWelderAssignment'
 import { supabase } from '@/lib/supabase'
 
-// Mock Supabase client
+// Mock Supabase client with RPC
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          select: vi.fn(() => ({
-            maybeSingle: vi.fn()
-          }))
-        }))
-      }))
-    }))
+    rpc: vi.fn()
   }
 }))
 
@@ -54,153 +47,130 @@ describe('useClearWelderAssignment hook', () => {
   })
 
   describe('Successful Clear', () => {
-    it('clears welder_id and date_welded by setting them to null', async () => {
-      // Arrange: Mock successful update response
-      const mockResponse = {
-        id: 'field-weld-uuid',
-        component_id: 'comp-uuid'
-      }
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: mockResponse,
-              error: null
-            })
-          })
-        })
+    it('clears welder assignment via RPC', async () => {
+      // Arrange: Mock successful RPC response
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
       })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock
-      } as any)
 
       // Act: Render hook and trigger mutation
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper: createWrapper()
       })
 
-      result.current.mutate({ field_weld_id: 'field-weld-uuid' })
+      result.current.mutate({
+        field_weld_id: 'field-weld-uuid',
+        user_id: 'user-uuid'
+      })
 
-      // Assert: Mutation succeeds and clears fields
+      // Assert: Mutation succeeds
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true)
       })
 
-      expect(supabase.from).toHaveBeenCalledWith('field_welds')
-      expect(updateMock).toHaveBeenCalledWith({
-        welder_id: null,
-        date_welded: null
+      expect(supabase.rpc).toHaveBeenCalledWith('clear_weld_assignment', {
+        p_field_weld_id: 'field-weld-uuid',
+        p_user_id: 'user-uuid',
+        p_metadata: null
       })
-      expect(result.current.data).toEqual(mockResponse)
+
+      expect(result.current.data).toEqual({ success: true })
     })
 
-    it('returns component_id for cache invalidation purposes', async () => {
+    it('passes metadata with rollback reason to RPC', async () => {
       // Arrange
-      const mockResponse = {
-        id: 'field-weld-uuid',
-        component_id: 'component-uuid-123'
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: mockResponse,
-                error: null
-              })
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
+      })
 
       // Act
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper: createWrapper()
       })
 
-      result.current.mutate({ field_weld_id: 'field-weld-uuid' })
+      result.current.mutate({
+        field_weld_id: 'field-weld-uuid',
+        user_id: 'user-uuid',
+        metadata: {
+          rollback_reason: 'incorrect_welder',
+          rollback_reason_label: 'Incorrect welder assigned',
+          rollback_details: 'Wrong stencil was selected'
+        }
+      })
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true)
       })
 
-      expect(result.current.data?.component_id).toBe('component-uuid-123')
+      // Assert: RPC called with metadata
+      expect(supabase.rpc).toHaveBeenCalledWith('clear_weld_assignment', {
+        p_field_weld_id: 'field-weld-uuid',
+        p_user_id: 'user-uuid',
+        p_metadata: {
+          rollback_reason: 'incorrect_welder',
+          rollback_reason_label: 'Incorrect welder assigned',
+          rollback_details: 'Wrong stencil was selected'
+        }
+      })
     })
   })
 
   describe('Error Handling', () => {
-    it('handles database error', async () => {
+    it('handles RPC error', async () => {
       // Arrange
-      const mockError = {
-        message: 'Permission denied',
-        code: '42501'
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: mockError
-              })
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'Permission denied', code: '42501' }
+      })
 
       // Act
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper: createWrapper()
       })
 
-      result.current.mutate({ field_weld_id: 'field-weld-uuid' })
+      result.current.mutate({
+        field_weld_id: 'field-weld-uuid',
+        user_id: 'user-uuid'
+      })
 
       // Assert
       await waitFor(() => {
         expect(result.current.isError).toBe(true)
       })
 
-      expect(result.current.error?.message).toContain('Failed to clear welder assignment')
+      expect(result.current.error?.message).toBe('Permission denied')
     })
 
-    it('handles field weld not found (null data with no error)', async () => {
-      // Arrange: RLS might hide row, returning null
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: null
-              })
-            })
-          })
-        })
-      } as any)
+    it('handles NDE exists error', async () => {
+      // Arrange: Mock NDE block error
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'Cannot clear assignment - NDE results exist. Clear NDE first.', code: 'P0001' }
+      })
 
       // Act
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper: createWrapper()
       })
 
-      result.current.mutate({ field_weld_id: 'non-existent-uuid' })
+      result.current.mutate({
+        field_weld_id: 'field-weld-uuid',
+        user_id: 'user-uuid'
+      })
 
       // Assert
       await waitFor(() => {
         expect(result.current.isError).toBe(true)
       })
 
-      expect(result.current.error?.message).toContain('not found or access denied')
+      expect(result.current.error?.message).toContain('NDE results exist')
     })
   })
 
   describe('Query Invalidation', () => {
-    it('invalidates field-weld and field-welds queries on success', async () => {
+    it('invalidates field-weld, field-welds, and related queries on success', async () => {
       // Arrange
       const queryClient = new QueryClient({
         defaultOptions: {
@@ -214,25 +184,20 @@ describe('useClearWelderAssignment hook', () => {
       const wrapper = ({ children }: { children: ReactNode }) =>
         createElement(QueryClientProvider, { client: queryClient }, children)
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'weld-uuid', component_id: 'comp-uuid' },
-                error: null
-              })
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
+      })
 
       // Act
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper
       })
 
-      result.current.mutate({ field_weld_id: 'weld-uuid' })
+      result.current.mutate({
+        field_weld_id: 'weld-uuid',
+        user_id: 'user-uuid'
+      })
 
       // Assert
       await waitFor(() => {
@@ -244,6 +209,15 @@ describe('useClearWelderAssignment hook', () => {
       )
       expect(invalidateQueriesSpy).toHaveBeenCalledWith(
         expect.objectContaining({ queryKey: ['field-welds'] })
+      )
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['components'] })
+      )
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['drawings-with-progress'] })
+      )
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['package-readiness'] })
       )
     })
 
@@ -261,25 +235,20 @@ describe('useClearWelderAssignment hook', () => {
       const wrapper = ({ children }: { children: ReactNode }) =>
         createElement(QueryClientProvider, { client: queryClient }, children)
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: { message: 'Error', code: '42501' }
-              })
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'Error', code: '42501' }
+      })
 
       // Act
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper
       })
 
-      result.current.mutate({ field_weld_id: 'weld-uuid' })
+      result.current.mutate({
+        field_weld_id: 'weld-uuid',
+        user_id: 'user-uuid'
+      })
 
       // Assert
       await waitFor(() => {
@@ -314,29 +283,24 @@ describe('useClearWelderAssignment hook', () => {
         createElement(QueryClientProvider, { client: queryClient }, children)
 
       // Create a delayed response to observe optimistic update
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockImplementation(() =>
-                new Promise(resolve =>
-                  setTimeout(() => resolve({
-                    data: { id: 'weld-uuid', component_id: 'comp-uuid' },
-                    error: null
-                  }), 50)
-                )
-              )
-            })
-          })
-        })
-      } as any)
+      vi.mocked(supabase.rpc).mockImplementation(() =>
+        new Promise(resolve =>
+          setTimeout(() => resolve({
+            data: { success: true },
+            error: null
+          }), 50)
+        )
+      )
 
       // Act
       const { result } = renderHook(() => useClearWelderAssignment(), {
         wrapper
       })
 
-      result.current.mutate({ field_weld_id: 'weld-uuid' })
+      result.current.mutate({
+        field_weld_id: 'weld-uuid',
+        user_id: 'user-uuid'
+      })
 
       // Assert: Optimistic update called
       await waitFor(() => {
@@ -347,6 +311,65 @@ describe('useClearWelderAssignment hook', () => {
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true)
       })
+    })
+  })
+
+  describe('Toast Notifications', () => {
+    it('shows success toast when metadata is provided (manual clear)', async () => {
+      // Arrange
+      const { toast } = await import('sonner')
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
+      })
+
+      // Act
+      const { result } = renderHook(() => useClearWelderAssignment(), {
+        wrapper: createWrapper()
+      })
+
+      result.current.mutate({
+        field_weld_id: 'weld-uuid',
+        user_id: 'user-uuid',
+        metadata: {
+          rollback_reason: 'test',
+          rollback_reason_label: 'Test Reason'
+        }
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      // Assert: Success toast shown for manual clear
+      expect(toast.success).toHaveBeenCalledWith('Welder assignment cleared')
+    })
+
+    it('does NOT show success toast without metadata (auto rollback)', async () => {
+      // Arrange
+      const { toast } = await import('sonner')
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true },
+        error: null
+      })
+
+      // Act
+      const { result } = renderHook(() => useClearWelderAssignment(), {
+        wrapper: createWrapper()
+      })
+
+      result.current.mutate({
+        field_weld_id: 'weld-uuid',
+        user_id: 'user-uuid'
+        // No metadata - simulates auto rollback
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      // Assert: No success toast for auto rollback
+      expect(toast.success).not.toHaveBeenCalled()
     })
   })
 })
