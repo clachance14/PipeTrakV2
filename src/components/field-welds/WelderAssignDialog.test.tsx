@@ -32,6 +32,13 @@ vi.mock('@/hooks/useUpdateWelderAssignment', () => ({
   }),
 }))
 
+vi.mock('@/hooks/useClearWelderAssignment', () => ({
+  useClearWelderAssignment: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}))
+
 vi.mock('@/hooks/useFieldWeld', () => ({
   useFieldWeld: () => ({
     data: null,

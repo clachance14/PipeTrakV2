@@ -2,6 +2,7 @@
  * useUpdateWelderAssignment Hook
  * Mutation hook for updating welder assignment on an existing field weld
  * WITHOUT affecting milestone state (use this for editing, not initial assignment)
+ * Now uses RPC for audit logging
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -12,36 +13,37 @@ interface UpdateWelderAssignmentPayload {
   field_weld_id: string
   welder_id: string
   date_welded: string
+  user_id: string
 }
 
 /**
  * Mutation hook: Update welder assignment without changing milestones
  * Use this when editing an existing welder assignment (e.g., correcting a mistake)
+ * Records audit event in field_weld_events table via RPC
  */
 export function useUpdateWelderAssignment() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (payload: UpdateWelderAssignmentPayload) => {
-      const { data: fieldWeld, error } = await supabase
-        .from('field_welds')
-        .update({
-          welder_id: payload.welder_id,
-          date_welded: payload.date_welded,
-        })
-        .eq('id', payload.field_weld_id)
-        .select('id, component_id, welder_id, date_welded')
-        .maybeSingle()
+      // Call RPC for audit logging
+      const { error } = await supabase.rpc('update_weld_assignment', {
+        p_field_weld_id: payload.field_weld_id,
+        p_welder_id: payload.welder_id,
+        p_date_welded: payload.date_welded,
+        p_user_id: payload.user_id,
+      })
 
       if (error) {
         throw new Error(`Failed to update welder assignment: ${error.message}`)
       }
 
-      if (!fieldWeld) {
-        throw new Error('Field weld not found or access denied')
+      // Return payload info (RPC returns { success: true })
+      return {
+        id: payload.field_weld_id,
+        welder_id: payload.welder_id,
+        date_welded: payload.date_welded,
       }
-
-      return fieldWeld
     },
     onMutate: async (payload) => {
       // Cancel outgoing queries
@@ -96,6 +98,9 @@ export function useUpdateWelderAssignment() {
       // Invalidate caches to refresh UI
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
       queryClient.invalidateQueries({ queryKey: ['field-welds'] })
+      queryClient.invalidateQueries({ queryKey: ['components'] })
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
 
       toast.success('Welder assignment updated')
     },

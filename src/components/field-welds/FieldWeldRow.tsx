@@ -84,14 +84,18 @@ export function FieldWeldRow({
     const wasComplete = prevValue === 100 || prevValue === true || prevValue === 1
     const isNowIncomplete = currentValue === 0 || currentValue === false || currentValue === undefined
 
-    if (wasComplete && isNowIncomplete && fieldWeld?.id && fieldWeld.welder_id) {
+    if (wasComplete && isNowIncomplete && fieldWeld?.id && fieldWeld.welder_id && user?.id) {
       // Milestone was rolled back and welder is still assigned - clear it
-      clearWelderMutation.mutate({ field_weld_id: fieldWeld.id })
+      // Note: No metadata passed for auto-clear (milestone rollback provides its own audit trail)
+      clearWelderMutation.mutate({
+        field_weld_id: fieldWeld.id,
+        user_id: user.id,
+      })
     }
 
     // Update ref for next comparison
     prevWeldCompleteRef.current = currentValue
-  }, [weldCompleteMilestone, fieldWeld?.id, fieldWeld?.welder_id, clearWelderMutation])
+  }, [weldCompleteMilestone, fieldWeld?.id, fieldWeld?.welder_id, clearWelderMutation, user?.id])
 
   const handleMilestoneChange = (milestoneName: string, value: boolean | number) => {
     // Convert to numeric early for consistent comparisons
@@ -294,10 +298,10 @@ export function FieldWeldRow({
                   variant="outline"
                   onClick={() => setIsAssignWelderOpen(true)}
                   className="text-xs"
-                  aria-label={hasWelderAssigned ? 'Edit welder' : 'Assign welder'}
+                  aria-label={hasWelderAssigned ? 'Edit weld' : 'Assign welder'}
                 >
                   <UserCog className="mr-1 h-3 w-3" />
-                  {hasWelderAssigned ? 'Edit Welder' : 'Assign Welder'}
+                  {hasWelderAssigned ? 'Edit Weld' : 'Assign Welder'}
                 </Button>
                 <Button
                   size="sm"
@@ -371,6 +375,8 @@ export function FieldWeldRow({
             mode={hasWelderAssigned ? 'edit' : 'assign'}
             currentWelderId={fieldWeld.welder_id}
             currentDateWelded={fieldWeld.date_welded}
+            currentNdeResult={fieldWeld.nde_result}
+            weldIdentity={component.identityDisplay}
           />
 
           <NDEResultDialog

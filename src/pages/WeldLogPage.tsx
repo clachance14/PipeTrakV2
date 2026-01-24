@@ -148,6 +148,14 @@ export function WeldLogPage() {
     setIsWelderDialogOpen(true)
   }
 
+  const handleEditWelder = (weldId: string) => {
+    const weld = filteredWelds.find((w) => w.id === weldId)
+    if (weld) {
+      setSelectedWeld(weld)
+      setIsWelderDialogOpen(true)
+    }
+  }
+
   const handleRecordNDE = () => {
     // Close detail modal, then open NDE dialog
     setIsDetailModalOpen(false)
@@ -346,6 +354,7 @@ export function WeldLogPage() {
                 setIsUpdateDialogOpen(true)
               }
             }}
+            onEditWelder={handleEditWelder}
             onRecordNDE={(weldId) => {
               const weld = filteredWelds.find((w) => w.id === weldId)
               if (weld) {
@@ -366,6 +375,7 @@ export function WeldLogPage() {
             open={isDetailModalOpen}
             onOpenChange={setIsDetailModalOpen}
             onUpdateWeld={handleUpdateWeld}
+            onEditWelder={handleTriggerWelderDialog}
             onRecordNDE={handleRecordNDE}
           />
 
@@ -386,6 +396,8 @@ export function WeldLogPage() {
             mode={selectedWeld.welder_id ? 'edit' : 'assign'}
             currentWelderId={selectedWeld.welder_id}
             currentDateWelded={selectedWeld.date_welded}
+            currentNdeResult={selectedWeld.nde_result}
+            weldIdentity={selectedWeld.identityDisplay}
           />
 
           {/* NDE Result Dialog (reused from Feature 015) */}

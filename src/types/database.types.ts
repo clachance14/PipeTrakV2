@@ -461,6 +461,88 @@ export type Database = {
           },
         ]
       }
+      field_weld_events: {
+        Row: {
+          action: string
+          created_at: string
+          date_welded: string | null
+          field_weld_id: string
+          id: string
+          metadata: Json | null
+          previous_date_welded: string | null
+          previous_welder_id: string | null
+          user_id: string
+          welder_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          date_welded?: string | null
+          field_weld_id: string
+          id?: string
+          metadata?: Json | null
+          previous_date_welded?: string | null
+          previous_welder_id?: string | null
+          user_id: string
+          welder_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          date_welded?: string | null
+          field_weld_id?: string
+          id?: string
+          metadata?: Json | null
+          previous_date_welded?: string | null
+          previous_welder_id?: string | null
+          user_id?: string
+          welder_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_weld_events_field_weld_id_fkey"
+            columns: ["field_weld_id"]
+            isOneToOne: false
+            referencedRelation: "field_welds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_weld_events_previous_welder_id_fkey"
+            columns: ["previous_welder_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_welder"
+            referencedColumns: ["welder_id"]
+          },
+          {
+            foreignKeyName: "field_weld_events_previous_welder_id_fkey"
+            columns: ["previous_welder_id"]
+            isOneToOne: false
+            referencedRelation: "welders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_weld_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_weld_events_welder_id_fkey"
+            columns: ["welder_id"]
+            isOneToOne: false
+            referencedRelation: "vw_field_weld_progress_by_welder"
+            referencedColumns: ["welder_id"]
+          },
+          {
+            foreignKeyName: "field_weld_events_welder_id_fkey"
+            columns: ["welder_id"]
+            isOneToOne: false
+            referencedRelation: "welders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_weld_report_snapshots: {
         Row: {
           created_at: string
@@ -2243,6 +2325,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: boolean
       }
+      clear_weld_assignment: {
+        Args: { p_field_weld_id: string; p_metadata?: Json; p_user_id: string }
+        Returns: Json
+      }
       clone_system_templates_for_project: {
         Args: { target_project_id: string }
         Returns: number
@@ -2486,6 +2572,15 @@ export type Database = {
           p_package_id: string
           p_target_date?: string
           p_user_id?: string
+        }
+        Returns: Json
+      }
+      update_weld_assignment: {
+        Args: {
+          p_date_welded: string
+          p_field_weld_id: string
+          p_user_id: string
+          p_welder_id: string
         }
         Returns: Json
       }

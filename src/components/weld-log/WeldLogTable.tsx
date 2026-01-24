@@ -26,13 +26,14 @@ import { sortFieldWelds, type SortColumn } from '@/lib/weld-log-sorting'
 interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
   onAssignWelder?: (weldId: string) => void
+  onEditWelder?: (weldId: string) => void
   onRecordNDE?: (weldId: string) => void
   userRole?: string
   isMobile?: boolean
   onRowClick?: (weld: EnrichedFieldWeld) => void
 }
 
-export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
+export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
   const { sortColumn, sortDirection, toggleSort } = useWeldLogPreferencesStore()
   const isMobileDetected = useMobileDetection()
   const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
@@ -105,6 +106,7 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
         <tbody className="divide-y divide-slate-100">
           {sortedWelds.map((weld) => {
             const showAssignWelder = canAssignWelder && weld.status === 'active' && !weld.welder_id
+            const showEditWelder = canAssignWelder && weld.status === 'active' && weld.welder_id !== null
             const showRecordNDE = canRecordNDE && weld.status === 'active' && weld.welder_id
 
             return (
@@ -237,6 +239,16 @@ export function WeldLogTable({ welds, onAssignWelder, onRecordNDE, userRole, isM
                           className="h-7 text-xs"
                         >
                           Update Weld
+                        </Button>
+                      )}
+                      {showEditWelder && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onEditWelder?.(weld.id)}
+                          className="h-7 text-xs"
+                        >
+                          Edit Weld
                         </Button>
                       )}
                       {showRecordNDE && (

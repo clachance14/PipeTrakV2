@@ -1,50 +1,60 @@
 /**
  * useClearWelderAssignment Hook
  * Mutation hook for clearing welder assignment from a field weld
- * Used when rolling back the "Weld Complete" milestone
+ * Used when rolling back the "Weld Complete" milestone or manually clearing via Edit Weld dialog
+ * Now uses RPC for audit logging with optional rollback reason
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import type { Json } from '@/types/database.types'
+
+interface ClearWelderAssignmentMetadata {
+  rollback_reason: string
+  rollback_reason_label: string
+  rollback_details?: string
+}
 
 interface ClearWelderAssignmentPayload {
   field_weld_id: string
-}
-
-interface ClearWelderAssignmentResult {
-  id: string
-  component_id: string
+  user_id: string
+  metadata?: ClearWelderAssignmentMetadata
 }
 
 /**
  * Mutation hook: Clear welder assignment (set welder_id and date_welded to null)
- * Used when a weld is marked incomplete after being completed
+ * Used when a weld is marked incomplete after being completed, or manually cleared
+ * Records audit event in field_weld_events table via RPC
+ * Blocks if NDE results exist
  */
 export function useClearWelderAssignment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: ClearWelderAssignmentPayload): Promise<ClearWelderAssignmentResult> => {
-      const { data: fieldWeld, error } = await supabase
-        .from('field_welds')
-        .update({
-          welder_id: null,
-          date_welded: null,
-        })
-        .eq('id', payload.field_weld_id)
-        .select('id, component_id')
-        .maybeSingle()
+    mutationFn: async (payload: ClearWelderAssignmentPayload): Promise<{ success: boolean }> => {
+      // Convert metadata to Json type for RPC
+      const metadataJson: Json | null = payload.metadata
+        ? {
+            rollback_reason: payload.metadata.rollback_reason,
+            rollback_reason_label: payload.metadata.rollback_reason_label,
+            rollback_details: payload.metadata.rollback_details,
+          }
+        : null
+
+      // Call RPC for audit logging
+      const { error } = await supabase.rpc('clear_weld_assignment', {
+        p_field_weld_id: payload.field_weld_id,
+        p_user_id: payload.user_id,
+        p_metadata: metadataJson,
+      })
 
       if (error) {
-        throw new Error(`Failed to clear welder assignment: ${error.message}`)
+        throw new Error(error.message)
       }
 
-      if (!fieldWeld) {
-        throw new Error('Field weld not found or access denied')
-      }
-
-      return fieldWeld
+      // RPC returns { success: true }
+      return { success: true }
     },
     onMutate: async (payload) => {
       // Cancel outgoing queries
@@ -96,12 +106,19 @@ export function useClearWelderAssignment() {
       }
       toast.error(`Failed to clear welder: ${error.message}`)
     },
-    onSuccess: () => {
+    onSuccess: (_data, payload) => {
       // Invalidate caches to refresh UI
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
       queryClient.invalidateQueries({ queryKey: ['field-welds'] })
-      // Note: We don't show a success toast here since this is called as part of
-      // milestone rollback flow which has its own feedback
+      queryClient.invalidateQueries({ queryKey: ['components'] })
+      queryClient.invalidateQueries({ queryKey: ['drawings-with-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
+
+      // Show success toast only when called with metadata (manual clear)
+      // Automatic rollback via milestone change has its own feedback
+      if (payload.metadata) {
+        toast.success('Welder assignment cleared')
+      }
     },
   })
 }
