@@ -47,6 +47,10 @@ interface WelderAssignDialogProps {
   weldIdentity?: string
 }
 
+// Helper to get today's date in local timezone (YYYY-MM-DD format)
+// Using 'en-CA' locale which outputs ISO format (YYYY-MM-DD)
+const getTodayLocal = () => new Date().toLocaleDateString('en-CA')
+
 export function WelderAssignDialog({
   fieldWeldId,
   componentId,
@@ -79,9 +83,7 @@ export function WelderAssignDialog({
   // Use provided fieldWeldId or queried field weld ID
   const resolvedFieldWeldId = fieldWeldId || fieldWeld?.id
   const [selectedWelderId, setSelectedWelderId] = useState<string>('')
-  const [dateWelded, setDateWelded] = useState<string>(
-    new Date().toISOString().split('T')[0]!
-  )
+  const [dateWelded, setDateWelded] = useState<string>(getTodayLocal())
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   const { data: welders, isLoading: isLoadingWelders } = useWelders({ projectId })
@@ -100,7 +102,7 @@ export function WelderAssignDialog({
       } else {
         // Reset to defaults in assign mode
         setSelectedWelderId('')
-        setDateWelded(new Date().toISOString().split('T')[0]!)
+        setDateWelded(getTodayLocal())
       }
       // Reset clear confirm state when dialog opens
       setShowClearConfirm(false)
@@ -258,7 +260,7 @@ export function WelderAssignDialog({
                   type="date"
                   value={dateWelded}
                   onChange={(e) => setDateWelded(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={getTodayLocal()}
                   required
                   aria-label="Date welded"
                 />
