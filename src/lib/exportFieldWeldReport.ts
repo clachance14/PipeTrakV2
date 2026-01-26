@@ -62,6 +62,7 @@ function getColumnHeaders(dimension: FieldWeldGroupingDimension, includeRepairRa
     dimensionLabel,
     'Total Welds',
     'Weld Complete',
+    ...(dimension !== 'welder' ? ['Remaining'] : []),
     'Accepted',
     'NDE Pass Rate',
     ...(includeRepairRate ? ['Repair Rate'] : []),
@@ -97,6 +98,7 @@ function formatRowForExport(
     row.name,
     row.totalWelds,
     row.weldCompleteCount,
+    ...(dimension !== 'welder' ? [row.remainingCount] : []),
     row.acceptedCount,
     formatPercentage(row.ndePassRate, decimals),
     ...(includeRepairRate ? [formatPercentage(row.repairRate, decimals)] : []),
@@ -172,17 +174,24 @@ export function exportFieldWeldReportToPDF(
   ];
 
   // Define column widths based on dimension and whether repair rate is included
-  // Columns: Name, Total Welds, Weld Complete, Accepted, NDE Pass Rate, [Repair Rate], % Complete
+  // Non-welder: Name, Total Welds, Weld Complete, Remaining, Accepted, NDE Pass Rate, [Repair Rate], % Complete
+  // Welder: Name, Total Welds, Weld Complete, Accepted, NDE Pass Rate, [Repair Rate], % Complete, First Pass Rate, Avg Days
   const isWelderDimension = reportData.dimension === 'welder';
   const columnStyles: Record<number, { halign: 'left' | 'right' | 'center'; cellWidth: number }> = {
-    0: { halign: 'left', cellWidth: isWelderDimension ? 35 : 45 }, // Name
+    0: { halign: 'left', cellWidth: isWelderDimension ? 35 : 40 }, // Name
     1: { halign: 'right', cellWidth: 22 }, // Total Welds
-    2: { halign: 'right', cellWidth: 26 }, // Weld Complete
-    3: { halign: 'right', cellWidth: 22 }, // Accepted
-    4: { halign: 'right', cellWidth: 26 }, // NDE Pass Rate
+    2: { halign: 'right', cellWidth: 24 }, // Weld Complete
   };
 
-  let colIndex = 5;
+  let colIndex = 3;
+  if (!isWelderDimension) {
+    columnStyles[colIndex] = { halign: 'right', cellWidth: 22 }; // Remaining
+    colIndex++;
+  }
+  columnStyles[colIndex] = { halign: 'right', cellWidth: 22 }; // Accepted
+  colIndex++;
+  columnStyles[colIndex] = { halign: 'right', cellWidth: 26 }; // NDE Pass Rate
+  colIndex++;
   if (includeRepairRate) {
     columnStyles[colIndex] = { halign: 'right', cellWidth: 22 }; // Repair Rate
     colIndex++;
@@ -247,17 +256,24 @@ export function exportFieldWeldReportToExcel(
   const headers = getColumnHeaders(reportData.dimension, includeRepairRate);
 
   // Create data rows (convert percentages to numbers for Excel formatting)
-  // Columns: Name, Total Welds, Weld Complete, Accepted, NDE Pass Rate, [Repair Rate], % Complete
+  // Columns: Name, Total Welds, Weld Complete, [Remaining], Accepted, NDE Pass Rate, [Repair Rate], % Complete
+  const isWelderDimension = reportData.dimension === 'welder';
   const rows = reportData.rows.map((row) => {
     const baseRow: Record<string, string | number | null> = {
       [headers[0] as string]: row.name,
       [headers[1] as string]: row.totalWelds,
       [headers[2] as string]: row.weldCompleteCount,
-      [headers[3] as string]: row.acceptedCount,
-      [headers[4] as string]: row.ndePassRate !== null ? row.ndePassRate / 100 : null,
     };
 
-    let headerIndex = 5;
+    let headerIndex = 3;
+    if (!isWelderDimension) {
+      baseRow[headers[headerIndex] as string] = row.remainingCount;
+      headerIndex++;
+    }
+    baseRow[headers[headerIndex] as string] = row.acceptedCount;
+    headerIndex++;
+    baseRow[headers[headerIndex] as string] = row.ndePassRate !== null ? row.ndePassRate / 100 : null;
+    headerIndex++;
     if (includeRepairRate) {
       baseRow[headers[headerIndex] as string] = row.repairRate / 100;
       headerIndex++;
@@ -265,7 +281,7 @@ export function exportFieldWeldReportToExcel(
     baseRow[headers[headerIndex] as string] = row.pctTotal / 100;
     headerIndex++;
 
-    if (reportData.dimension === 'welder') {
+    if (isWelderDimension) {
       baseRow[headers[headerIndex] as string] = row.firstPassAcceptanceRate !== undefined && row.firstPassAcceptanceRate !== null
         ? row.firstPassAcceptanceRate / 100
         : null;
@@ -281,11 +297,17 @@ export function exportFieldWeldReportToExcel(
     [headers[0] as string]: reportData.grandTotal.name,
     [headers[1] as string]: reportData.grandTotal.totalWelds,
     [headers[2] as string]: reportData.grandTotal.weldCompleteCount,
-    [headers[3] as string]: reportData.grandTotal.acceptedCount,
-    [headers[4] as string]: reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate / 100 : null,
   };
 
-  let gtHeaderIndex = 5;
+  let gtHeaderIndex = 3;
+  if (!isWelderDimension) {
+    grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.remainingCount;
+    gtHeaderIndex++;
+  }
+  grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.acceptedCount;
+  gtHeaderIndex++;
+  grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.ndePassRate !== null ? reportData.grandTotal.ndePassRate / 100 : null;
+  gtHeaderIndex++;
   if (includeRepairRate) {
     grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.repairRate / 100;
     gtHeaderIndex++;
@@ -293,7 +315,7 @@ export function exportFieldWeldReportToExcel(
   grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.pctTotal / 100;
   gtHeaderIndex++;
 
-  if (reportData.dimension === 'welder') {
+  if (isWelderDimension) {
     grandTotalRow[headers[gtHeaderIndex] as string] = reportData.grandTotal.firstPassAcceptanceRate !== undefined
       && reportData.grandTotal.firstPassAcceptanceRate !== null
       ? reportData.grandTotal.firstPassAcceptanceRate / 100
@@ -323,8 +345,10 @@ export function exportFieldWeldReportToExcel(
     };
   }
 
-  // 2. Format count columns as integers (Weld Complete, Accepted)
-  const countColumns = [2, 3]; // Weld Complete, Accepted (zero-indexed)
+  // 2. Format count columns as integers (Weld Complete, [Remaining], Accepted)
+  // Non-welder: Name(0), Total Welds(1), Weld Complete(2), Remaining(3), Accepted(4)
+  // Welder: Name(0), Total Welds(1), Weld Complete(2), Accepted(3)
+  const countColumns = isWelderDimension ? [2, 3] : [2, 3, 4];
   for (let row = range.s.r + 1; row <= range.e.r; row++) {
     for (const col of countColumns) {
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
@@ -334,9 +358,11 @@ export function exportFieldWeldReportToExcel(
   }
 
   // 3. Format percentage columns
-  // Columns: NDE Pass Rate (4), [Repair Rate (5)], % Complete (5 or 6), [First Pass Rate (6 or 7)]
-  const percentageColumns = [4]; // NDE Pass Rate
-  let pctColIndex = 5;
+  // Non-welder: NDE Pass Rate(5), [Repair Rate(6)], % Complete(6 or 7)
+  // Welder: NDE Pass Rate(4), [Repair Rate(5)], % Complete(5 or 6), First Pass Rate(6 or 7)
+  const ndePassRateCol = isWelderDimension ? 4 : 5;
+  const percentageColumns = [ndePassRateCol]; // NDE Pass Rate
+  let pctColIndex = ndePassRateCol + 1;
   if (includeRepairRate) {
     percentageColumns.push(pctColIndex); // Repair Rate
     pctColIndex++;
@@ -344,7 +370,7 @@ export function exportFieldWeldReportToExcel(
   percentageColumns.push(pctColIndex); // % Complete
   pctColIndex++;
 
-  if (reportData.dimension === 'welder') {
+  if (isWelderDimension) {
     percentageColumns.push(pctColIndex); // First Pass Rate
   }
 
@@ -357,7 +383,7 @@ export function exportFieldWeldReportToExcel(
     }
 
     // Format decimal column (Avg Days to Accept) if welder dimension
-    if (reportData.dimension === 'welder') {
+    if (isWelderDimension) {
       const decimalCol = includeRepairRate ? 8 : 7;
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: decimalCol });
       if (ws[cellAddress]) {
@@ -385,16 +411,20 @@ export function exportFieldWeldReportToExcel(
     { wch: 25 }, // Name
     { wch: 12 }, // Total Welds
     { wch: 15 }, // Weld Complete
-    { wch: 12 }, // Accepted
-    { wch: 15 }, // NDE Pass Rate
   ];
+
+  if (!isWelderDimension) {
+    columnWidths.push({ wch: 12 }); // Remaining
+  }
+  columnWidths.push({ wch: 12 }); // Accepted
+  columnWidths.push({ wch: 15 }); // NDE Pass Rate
 
   if (includeRepairRate) {
     columnWidths.push({ wch: 12 }); // Repair Rate
   }
   columnWidths.push({ wch: 13 }); // % Complete
 
-  if (reportData.dimension === 'welder') {
+  if (isWelderDimension) {
     columnWidths.push({ wch: 15 }); // First Pass Rate
     columnWidths.push({ wch: 18 }); // Avg Days to Accept
   }

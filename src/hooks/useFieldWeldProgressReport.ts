@@ -49,6 +49,7 @@ function calculateFieldWeldGrandTotal(
       pctTotal: 0,
       fitupCount: 0,
       weldCompleteCount: 0,
+      remainingCount: 0,
     };
   }
 
@@ -64,6 +65,7 @@ function calculateFieldWeldGrandTotal(
   const repairCount = rows.reduce((sum, row) => sum + row.repairCount, 0);
   const fitupCount = rows.reduce((sum, row) => sum + row.fitupCount, 0);
   const weldCompleteCount = rows.reduce((sum, row) => sum + row.weldCompleteCount, 0);
+  const remainingCount = totalWelds - weldCompleteCount;
 
   // Calculate weighted averages for percentages (weight by totalWelds)
   const weightedAvgPercentage = (
@@ -114,6 +116,7 @@ function calculateFieldWeldGrandTotal(
     pctTotal: Math.round(weightedAvgPercentage('pctTotal')),
     fitupCount,
     weldCompleteCount,
+    remainingCount,
   };
 
   // Add welder-specific metrics if dimension is 'welder'
@@ -164,6 +167,7 @@ function transformAreaRow(row: AreaProgressRow): FieldWeldProgressRow {
     pctTotal: row.pct_total || 0,
     fitupCount: row.fitup_count || 0,
     weldCompleteCount: row.weld_complete_count || 0,
+    remainingCount: (row.total_welds || 0) - (row.weld_complete_count || 0),
   };
 }
 
@@ -194,6 +198,7 @@ function transformSystemRow(row: SystemProgressRow): FieldWeldProgressRow {
     pctTotal: row.pct_total || 0,
     fitupCount: row.fitup_count || 0,
     weldCompleteCount: row.weld_complete_count || 0,
+    remainingCount: (row.total_welds || 0) - (row.weld_complete_count || 0),
   };
 }
 
@@ -224,6 +229,7 @@ function transformTestPackageRow(row: TestPackageProgressRow): FieldWeldProgress
     pctTotal: row.pct_total || 0,
     fitupCount: row.fitup_count || 0,
     weldCompleteCount: row.weld_complete_count || 0,
+    remainingCount: (row.total_welds || 0) - (row.weld_complete_count || 0),
   };
 }
 
@@ -256,6 +262,7 @@ function transformWelderRow(row: WelderProgressRow): FieldWeldProgressRow {
     // NOTE: Welder view doesn't have count columns yet (will be added separately)
     fitupCount: 0,
     weldCompleteCount: 0,
+    remainingCount: (row.total_welds || 0),
     firstPassAcceptanceCount: row.first_pass_acceptance_count || 0,
     firstPassAcceptanceRate: row.first_pass_acceptance_rate,
   };

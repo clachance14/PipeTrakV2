@@ -275,6 +275,7 @@ export interface FieldWeldProgressRow {
   // NEW: Milestone counts (added alongside percentages)
   fitupCount: number;
   weldCompleteCount: number;
+  remainingCount: number;
 
   // Welder-specific metrics (only for welder dimension)
   firstPassAcceptanceCount?: number;
@@ -313,6 +314,7 @@ export interface FieldWeldGrandTotalRow {
   // NEW: Milestone counts (added alongside percentages)
   fitupCount: number;
   weldCompleteCount: number;
+  remainingCount: number;
   // Welder-specific (only shown for welder dimension)
   firstPassAcceptanceCount?: number;
   firstPassAcceptanceRate?: number | null;
@@ -361,6 +363,7 @@ export const FIELD_WELD_REPORT_COLUMNS: FieldWeldReportColumn[] = [
   { key: 'name', label: 'Name', align: 'left', format: 'text' },
   { key: 'totalWelds', label: 'Total Welds', align: 'right', format: 'number' },
   { key: 'weldCompleteCount', label: 'Weld Complete', align: 'right', format: 'number', hideOnMobile: true },
+  { key: 'remainingCount', label: 'Remaining', align: 'right', format: 'number', hideOnMobile: true },
   { key: 'acceptedCount', label: 'Accepted', align: 'right', format: 'number' },
   { key: 'ndePassRate', label: 'NDE Pass Rate', align: 'right', format: 'percentage', hideOnMobile: true },
   { key: 'repairRate', label: 'Repair Rate', align: 'right', format: 'percentage', hideOnMobile: true },
