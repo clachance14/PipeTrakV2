@@ -393,7 +393,14 @@ export function WeldLogPage() {
             projectId={projectId}
             open={isWelderDialogOpen}
             onOpenChange={setIsWelderDialogOpen}
-            mode={selectedWeld.welder_id ? 'edit' : 'assign'}
+            mode={(() => {
+              if (!selectedWeld.welder_id) return 'assign'
+              const weldComplete = selectedWeld.component?.current_milestones?.['Weld Complete']
+              if (weldComplete !== 100 && weldComplete !== true && weldComplete !== 1) {
+                return 'assign'
+              }
+              return 'edit'
+            })()}
             currentWelderId={selectedWeld.welder_id}
             currentDateWelded={selectedWeld.date_welded}
             currentNdeResult={selectedWeld.nde_result}
@@ -404,6 +411,7 @@ export function WeldLogPage() {
           <NDEResultDialog
             fieldWeldId={selectedWeld.id}
             componentId={selectedWeld.component.id}
+            weldIdentity={selectedWeld.identityDisplay}
             welderName={selectedWeld.welder?.name}
             dateWelded={selectedWeld.date_welded || undefined}
             open={isNDEDialogOpen}

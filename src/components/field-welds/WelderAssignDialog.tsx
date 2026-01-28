@@ -117,9 +117,9 @@ export function WelderAssignDialog({
     }
   }, [open, isEditMode, resolvedWelderId, resolvedDateWelded])
 
-  const sortedWelders = welders?.sort((a, b) =>
-    a.stencil.localeCompare(b.stencil)
-  )
+  const sortedWelders = welders
+    ? [...welders].sort((a, b) => a.stencil.localeCompare(b.stencil))
+    : undefined
 
   // Check if clear is blocked due to NDE results
   const hasNdeResults = !!resolvedNdeResult
@@ -218,6 +218,16 @@ export function WelderAssignDialog({
               {isLoadingFieldWeld && (
                 <div className="text-sm text-slate-600 py-2">
                   Loading field weld data...
+                </div>
+              )}
+
+              {/* Weld Context Display */}
+              {resolvedWeldIdentity && resolvedWeldIdentity !== 'Unknown Weld' && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <h4 className="text-sm font-medium text-slate-900 mb-1">Weld Context</h4>
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium">Weld ID:</span> {resolvedWeldIdentity}
+                  </p>
                 </div>
               )}
 
