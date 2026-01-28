@@ -372,7 +372,14 @@ export function FieldWeldRow({
             projectId={projectId}
             open={isAssignWelderOpen}
             onOpenChange={setIsAssignWelderOpen}
-            mode={hasWelderAssigned ? 'edit' : 'assign'}
+            mode={(() => {
+              if (!hasWelderAssigned) return 'assign'
+              const weldComplete = component.current_milestones['Weld Complete']
+              if (weldComplete !== 100 && weldComplete !== true && weldComplete !== 1) {
+                return 'assign'
+              }
+              return 'edit'
+            })()}
             currentWelderId={fieldWeld.welder_id}
             currentDateWelded={fieldWeld.date_welded}
             currentNdeResult={fieldWeld.nde_result}
@@ -382,6 +389,7 @@ export function FieldWeldRow({
           <NDEResultDialog
             fieldWeldId={fieldWeld.id}
             componentId={component.id}
+            weldIdentity={component.identityDisplay}
             welderName={fieldWeld.welder?.name || undefined}
             dateWelded={fieldWeld.date_welded || undefined}
             open={isRecordNDEOpen}

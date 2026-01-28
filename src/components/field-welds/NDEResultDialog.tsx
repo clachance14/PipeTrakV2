@@ -33,6 +33,8 @@ export interface NDESuccessPayload {
 interface NDEResultDialogProps {
   fieldWeldId: string
   componentId: string
+  /** Human-readable weld identity (e.g., "PW-55401 2OF3") */
+  weldIdentity?: string
   welderName?: string
   dateWelded?: string
   open: boolean
@@ -53,7 +55,8 @@ type NDEResult = 'PASS' | 'FAIL' | 'PENDING'
 
 export function NDEResultDialog({
   fieldWeldId,
-  componentId,
+  componentId: _componentId,
+  weldIdentity,
   welderName,
   dateWelded,
   open,
@@ -174,7 +177,7 @@ export function NDEResultDialog({
               <h4 className="text-sm font-medium text-slate-900 mb-2">Weld Context</h4>
               <div className="space-y-1 text-sm text-slate-600">
                 <p>
-                  <span className="font-medium">Component ID:</span> {componentId}
+                  <span className="font-medium">Weld ID:</span> {weldIdentity || 'N/A'}
                 </p>
                 {welderName && (
                   <p>

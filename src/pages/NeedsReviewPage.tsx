@@ -301,6 +301,7 @@ export function NeedsReviewPage() {
           <NDEResultDialog
             fieldWeldId={selectedWeldPayload.weld_id}
             componentId={selectedWeldPayload.component_id}
+            weldIdentity={selectedWeldPayload.weld_number}
             welderName={selectedWeldPayload.welder_name || undefined}
             dateWelded={selectedWeldPayload.date_welded}
             open={isNDEDialogOpen}

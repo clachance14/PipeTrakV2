@@ -51,14 +51,16 @@ export function transformToTableProps(
 ): TableProps {
   // Base columns (common to all dimensions)
   // Note: fitupCount removed per user request
+  // Note: remainingCount only shown for non-welder dimensions
   const baseColumns: TableColumnDefinition[] = [
-    { key: 'name', label: getDimensionLabel(dimension), width: '28%', align: 'left', format: 'text' },
-    { key: 'totalWelds', label: 'Total Welds', width: '12%', align: 'right', format: 'number' },
-    { key: 'weldCompleteCount', label: 'Weld Complete', width: '14%', align: 'right', format: 'number' },
-    { key: 'acceptedCount', label: 'Accepted', width: '12%', align: 'right', format: 'number' },
-    { key: 'ndePassRate', label: 'NDE Pass Rate', width: '14%', align: 'right', format: 'percentage' },
-    ...(includeRepairRate ? [{ key: 'repairRate', label: 'Repair Rate', width: '10%', align: 'right' as const, format: 'percentage' as const }] : []),
-    { key: 'pctTotal', label: '% Complete', width: '10%', align: 'right', format: 'percentage' },
+    { key: 'name', label: getDimensionLabel(dimension), width: '26%', align: 'left', format: 'text' },
+    { key: 'totalWelds', label: 'Total Welds', width: '11%', align: 'right', format: 'number' },
+    { key: 'weldCompleteCount', label: 'Weld Complete', width: '12%', align: 'right', format: 'number' },
+    ...(dimension !== 'welder' ? [{ key: 'remainingCount', label: 'Remaining', width: '11%', align: 'right' as const, format: 'number' as const }] : []),
+    { key: 'acceptedCount', label: 'Accepted', width: '11%', align: 'right', format: 'number' },
+    { key: 'ndePassRate', label: 'NDE Pass Rate', width: '12%', align: 'right', format: 'percentage' },
+    ...(includeRepairRate ? [{ key: 'repairRate', label: 'Repair Rate', width: '9%', align: 'right' as const, format: 'percentage' as const }] : []),
+    { key: 'pctTotal', label: '% Complete', width: '8%', align: 'right', format: 'percentage' },
   ];
 
   // Add welder-specific columns if dimension is 'welder'
@@ -99,6 +101,7 @@ export function transformToTableProps(
       name: row.name,
       totalWelds: row.totalWelds,
       weldCompleteCount: row.weldCompleteCount ?? null,
+      ...(dimension !== 'welder' && { remainingCount: row.remainingCount ?? null }),
       acceptedCount: row.acceptedCount ?? null,
       ndePassRate: row.ndePassRate ?? null,
       ...(includeRepairRate && { repairRate: row.repairRate ?? null }),
@@ -112,6 +115,7 @@ export function transformToTableProps(
       name: reportData.grandTotal.name || 'Grand Total',
       totalWelds: reportData.grandTotal.totalWelds,
       weldCompleteCount: reportData.grandTotal.weldCompleteCount ?? null,
+      ...(dimension !== 'welder' && { remainingCount: reportData.grandTotal.remainingCount ?? null }),
       acceptedCount: reportData.grandTotal.acceptedCount ?? null,
       ndePassRate: reportData.grandTotal.ndePassRate ?? null,
       ...(includeRepairRate && { repairRate: reportData.grandTotal.repairRate ?? null }),

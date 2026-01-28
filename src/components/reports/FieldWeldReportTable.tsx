@@ -105,8 +105,11 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
 
   // Build column list based on dimension
   // Filter out repair rate column if all rows have 0% repair rate
+  // Filter out remainingCount column for welder dimension (welder shows performance metrics instead)
   const baseColumns = isWelderDimension
-    ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS, ...XRAY_TIER_COLUMNS]
+    ? [...FIELD_WELD_REPORT_COLUMNS, ...WELDER_PERFORMANCE_COLUMNS, ...XRAY_TIER_COLUMNS].filter(
+        col => col.key !== 'remainingCount'
+      )
     : FIELD_WELD_REPORT_COLUMNS;
   const columns = showRepairRate
     ? baseColumns

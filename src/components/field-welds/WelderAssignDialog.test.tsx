@@ -94,8 +94,8 @@ describe('WelderAssignDialog', () => {
     )
 
     // The info panel text is split across elements, so check for parts
-    expect(screen.getByText(/"Weld Made"/)).toBeInTheDocument()
-    expect(screen.getByText(/70%/)).toBeInTheDocument()
+    expect(screen.getByText(/"Weld Complete"/)).toBeInTheDocument()
+    expect(screen.getByText(/update component progress/)).toBeInTheDocument()
   })
 
   it('submits assignment with welder and date', async () => {
