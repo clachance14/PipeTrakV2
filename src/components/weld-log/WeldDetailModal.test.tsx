@@ -4,8 +4,8 @@
  *
  * Conditional Button Logic:
  * - If weld not made (no welder_id): Show "Update Weld" button
- * - If weld made but no NDE result: Show "Record NDE" button
- * - If NDE recorded: Show NO action buttons
+ * - If welder assigned: Show "Edit Weld" button (covers NDE recording and editing)
+ * - If no welder and not active: Show NO action buttons
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -139,12 +139,12 @@ const mockWeldMissingFields: EnrichedFieldWeld = {
 
 describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
   let mockOnUpdateWeld: ReturnType<typeof vi.fn>
-  let mockOnRecordNDE: ReturnType<typeof vi.fn>
+  let mockOnEditWeld: ReturnType<typeof vi.fn>
   let mockOnOpenChange: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     mockOnUpdateWeld = vi.fn()
-    mockOnRecordNDE = vi.fn()
+    mockOnEditWeld = vi.fn()
     mockOnOpenChange = vi.fn()
   })
 
@@ -156,51 +156,44 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
     expect(screen.getByRole('button', { name: /update weld/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /record nde/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit weld/i })).not.toBeInTheDocument()
   })
 
-  // T002: Shows "Record NDE" button when weld made but no NDE
-  it('T002: shows "Record NDE" button when weld made but no NDE', () => {
+  // T002: Shows "Edit Weld" button when welder assigned (regardless of NDE state)
+  it('T002: shows "Edit Weld" button when welder assigned and no NDE', () => {
     render(
       <WeldDetailModal
         weld={mockWeldMadeNoNDE}
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
-    expect(screen.getByRole('button', { name: /record nde/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit weld/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /update weld/i })).not.toBeInTheDocument()
   })
 
-  // T003: Shows NO action buttons when NDE recorded
-  it('T003: shows no action buttons when NDE recorded', () => {
+  // T003: Shows "Edit Weld" button when NDE recorded (for editing)
+  it('T003: shows "Edit Weld" button when NDE recorded', () => {
     render(
       <WeldDetailModal
         weld={mockWeldNDERecorded}
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
+    expect(screen.getByRole('button', { name: /edit weld/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /update weld/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /record nde/i })).not.toBeInTheDocument()
-
-    // Only the "Close" button should be present (from DialogContent)
-    const buttons = screen.getAllByRole('button')
-    const hasActionButton = buttons.some(btn =>
-      btn.textContent?.match(/update weld|record nde/i)
-    )
-    expect(hasActionButton).toBe(false)
   })
 
   // T004: Calls onUpdateWeld when button clicked
@@ -211,29 +204,29 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
     fireEvent.click(screen.getByRole('button', { name: /update weld/i }))
     expect(mockOnUpdateWeld).toHaveBeenCalledTimes(1)
-    expect(mockOnRecordNDE).not.toHaveBeenCalled()
+    expect(mockOnEditWeld).not.toHaveBeenCalled()
   })
 
-  // T005: Calls onRecordNDE when button clicked
-  it('T005: calls onRecordNDE when "Record NDE" button clicked', () => {
+  // T005: Calls onEditWeld when button clicked
+  it('T005: calls onEditWeld when "Edit Weld" button clicked', () => {
     render(
       <WeldDetailModal
         weld={mockWeldMadeNoNDE}
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /record nde/i }))
-    expect(mockOnRecordNDE).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: /edit weld/i }))
+    expect(mockOnEditWeld).toHaveBeenCalledTimes(1)
     expect(mockOnUpdateWeld).not.toHaveBeenCalled()
   })
 
@@ -245,7 +238,7 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -262,7 +255,7 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -282,7 +275,7 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -300,7 +293,7 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -315,7 +308,7 @@ describe('WeldDetailModal - Conditional Action Buttons (T001-T009)', () => {
 // Additional tests for comprehensive coverage
 describe('WeldDetailModal - Data Display', () => {
   const mockOnUpdateWeld = vi.fn()
-  const mockOnRecordNDE = vi.fn()
+  const mockOnEditWeld = vi.fn()
   const mockOnOpenChange = vi.fn()
 
   it('displays weld identification information', () => {
@@ -325,7 +318,7 @@ describe('WeldDetailModal - Data Display', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -340,7 +333,7 @@ describe('WeldDetailModal - Data Display', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -357,7 +350,7 @@ describe('WeldDetailModal - Data Display', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -372,7 +365,7 @@ describe('WeldDetailModal - Data Display', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -383,7 +376,7 @@ describe('WeldDetailModal - Data Display', () => {
 
 describe('WeldDetailModal - Accessibility', () => {
   const mockOnUpdateWeld = vi.fn()
-  const mockOnRecordNDE = vi.fn()
+  const mockOnEditWeld = vi.fn()
   const mockOnOpenChange = vi.fn()
 
   it('action buttons meet touch target requirements (≥44px)', () => {
@@ -393,7 +386,7 @@ describe('WeldDetailModal - Accessibility', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 
@@ -410,7 +403,7 @@ describe('WeldDetailModal - Accessibility', () => {
         open={true}
         onOpenChange={mockOnOpenChange}
         onUpdateWeld={mockOnUpdateWeld}
-        onRecordNDE={mockOnRecordNDE}
+        onEditWeld={mockOnEditWeld}
       />
     )
 

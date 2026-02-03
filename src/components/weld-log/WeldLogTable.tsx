@@ -26,20 +26,19 @@ import { sortFieldWelds, type SortColumn } from '@/lib/weld-log-sorting'
 interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
   onAssignWelder?: (weldId: string) => void
-  onEditWelder?: (weldId: string) => void
-  onRecordNDE?: (weldId: string) => void
+  onEditWeld?: (weldId: string) => void
   userRole?: string
   isMobile?: boolean
   onRowClick?: (weld: EnrichedFieldWeld) => void
 }
 
-export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
+export function WeldLogTable({ welds, onAssignWelder, onEditWeld, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
   const { sortColumn, sortDirection, toggleSort } = useWeldLogPreferencesStore()
   const isMobileDetected = useMobileDetection()
   const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
 
   const canAssignWelder = userRole && ['owner', 'admin', 'project_manager', 'foreman'].includes(userRole)
-  const canRecordNDE = userRole && ['owner', 'admin', 'qc_inspector'].includes(userRole)
+  const canEditWeld = userRole && ['owner', 'admin', 'project_manager', 'foreman', 'qc_inspector'].includes(userRole)
 
   const handleSort = (column: SortColumn) => {
     toggleSort(column)
@@ -106,8 +105,7 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE,
         <tbody className="divide-y divide-slate-100">
           {sortedWelds.map((weld) => {
             const showAssignWelder = canAssignWelder && weld.status === 'active' && !weld.welder_id
-            const showEditWelder = canAssignWelder && weld.status === 'active' && weld.welder_id !== null
-            const showRecordNDE = canRecordNDE && weld.status === 'active' && weld.welder_id
+            const showEditWeld = canEditWeld && weld.welder_id !== null
 
             return (
               <tr
@@ -241,21 +239,11 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE,
                           Update Weld
                         </Button>
                       )}
-                      {showRecordNDE && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onRecordNDE?.(weld.id)}
-                          className="h-7 text-xs"
-                        >
-                          Record NDE
-                        </Button>
-                      )}
-                      {showEditWelder && (
+                      {showEditWeld && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => onEditWelder?.(weld.id)}
+                              onClick={() => onEditWeld?.(weld.id)}
                               className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-700"
                               aria-label="Edit weld"
                             >
@@ -265,8 +253,8 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWelder, onRecordNDE,
                           <TooltipContent>Edit Weld</TooltipContent>
                         </Tooltip>
                       )}
-                      {weld.status !== 'active' && (
-                        <span className="text-xs text-slate-400">No actions</span>
+                      {!showAssignWelder && !showEditWeld && (
+                        <span className="text-xs text-slate-400">-</span>
                       )}
                     </div>
                   </td>

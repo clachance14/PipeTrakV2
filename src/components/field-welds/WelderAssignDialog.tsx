@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useWelders } from '@/hooks/useWelders'
 import { useAssignWelder } from '@/hooks/useAssignWelder'
 import { useUpdateWelderAssignment } from '@/hooks/useUpdateWelderAssignment'
@@ -86,14 +86,22 @@ export function WelderAssignDialog({
   const [dateWelded, setDateWelded] = useState<string>(getTodayLocal())
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
+  // Track previous open state to detect open transitions
+  // Initialize to false so first render with open=true triggers initialization
+  const prevOpenRef = useRef(false)
+
   const { data: welders, isLoading: isLoadingWelders } = useWelders({ projectId })
   const assignWelderMutation = useAssignWelder()
   const updateWelderMutation = useUpdateWelderAssignment()
   const clearWelderMutation = useClearWelderAssignment()
 
-  // Reset/initialize form when dialog opens or when fieldWeld data loads
+  // Initialize form only when dialog transitions from closed → open
+  // This ensures props are stable before initializing state
   useEffect(() => {
-    if (open) {
+    const justOpened = open && !prevOpenRef.current
+    prevOpenRef.current = open
+
+    if (justOpened) {
       if (isEditMode && resolvedWelderId) {
         // Pre-fill with existing values in edit mode
         // Don't default to today's date if null - user must explicitly choose
@@ -109,9 +117,9 @@ export function WelderAssignDialog({
     }
   }, [open, isEditMode, resolvedWelderId, resolvedDateWelded])
 
-  const sortedWelders = welders?.sort((a, b) =>
-    a.stencil.localeCompare(b.stencil)
-  )
+  const sortedWelders = welders
+    ? [...welders].sort((a, b) => a.stencil.localeCompare(b.stencil))
+    : undefined
 
   // Check if clear is blocked due to NDE results
   const hasNdeResults = !!resolvedNdeResult
@@ -210,6 +218,16 @@ export function WelderAssignDialog({
               {isLoadingFieldWeld && (
                 <div className="text-sm text-slate-600 py-2">
                   Loading field weld data...
+                </div>
+              )}
+
+              {/* Weld Context Display */}
+              {resolvedWeldIdentity && resolvedWeldIdentity !== 'Unknown Weld' && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <h4 className="text-sm font-medium text-slate-900 mb-1">Weld Context</h4>
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium">Weld ID:</span> {resolvedWeldIdentity}
+                  </p>
                 </div>
               )}
 

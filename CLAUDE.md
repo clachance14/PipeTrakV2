@@ -27,6 +27,33 @@ Industrial pipe tracking system for brownfield construction. React 18 + TypeScri
 
 ---
 
+## Behavioral Guidelines
+
+### Push Back When Warranted
+If a simpler approach exists, say so. If something seems overcomplicated or unnecessary, raise it. Don't silently pick one interpretation when multiple exist - present options.
+
+### Surgical Changes: Orphan Cleanup
+When editing existing code:
+- Remove imports/variables/functions that YOUR changes made unused
+- Don't remove pre-existing dead code unless asked
+- If you notice unrelated dead code, mention it - don't delete it
+
+**The test:** Every changed line should trace directly to the user's request.
+
+### Verification Loop Pattern
+For multi-step tasks, state a brief plan with verification:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Transform vague tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+
+---
+
 ## Critical Warnings
 
 ### Service Role Key Security

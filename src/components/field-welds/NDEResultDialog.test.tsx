@@ -8,6 +8,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NDEResultDialog } from './NDEResultDialog'
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id', email: 'test@example.com' },
+    loading: false,
+  }),
+}))
+
 vi.mock('@/hooks/useRecordNDE', () => ({
   useRecordNDE: () => ({
     mutateAsync: vi.fn().mockResolvedValue({}),
@@ -18,15 +25,17 @@ describe('NDEResultDialog', () => {
   const defaultProps = {
     fieldWeldId: 'weld-1',
     componentId: 'comp-1',
+    weldIdentity: 'PW-55401 2OF3',
     welderName: 'John Smith (K-07)',
     dateWelded: '2024-01-15',
     open: true,
     onOpenChange: vi.fn(),
   }
 
-  it('displays context section with welder and date', () => {
+  it('displays context section with weld ID, welder and date', () => {
     render(<NDEResultDialog {...defaultProps} />)
 
+    expect(screen.getByText('PW-55401 2OF3')).toBeInTheDocument()
     expect(screen.getByText(/John Smith/)).toBeInTheDocument()
     expect(screen.getByText(/2024-01-15/)).toBeInTheDocument()
   })

@@ -20,8 +20,8 @@ import { useWeldLogPreferencesStore } from '@/stores/useWeldLogPreferencesStore'
 import { sortFieldWelds } from '@/lib/weld-log-sorting'
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog'
 import { exportWeldLogToExcel } from '@/lib/exportWeldLog'
-import { NDEResultDialog } from '@/components/field-welds/NDEResultDialog'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
+import { EditWeldDialog } from '@/components/field-welds/EditWeldDialog'
 import { CreateRepairWeldDialog } from '@/components/field-welds/CreateRepairWeldDialog'
 import { WeldDetailModal } from '@/components/weld-log/WeldDetailModal'
 import { UpdateWeldDialog } from '@/components/field-welds/UpdateWeldDialog'
@@ -73,7 +73,7 @@ export function WeldLogPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false)
   const [isWelderDialogOpen, setIsWelderDialogOpen] = useState(false)
-  const [isNDEDialogOpen, setIsNDEDialogOpen] = useState(false)
+  const [isEditWeldDialogOpen, setIsEditWeldDialogOpen] = useState(false)
   const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false)
   const [isCreateUnplannedDialogOpen, setIsCreateUnplannedDialogOpen] = useState(false)
 
@@ -148,18 +148,18 @@ export function WeldLogPage() {
     setIsWelderDialogOpen(true)
   }
 
-  const handleEditWelder = (weldId: string) => {
+  const handleEditWeld = (weldId: string) => {
     const weld = filteredWelds.find((w) => w.id === weldId)
     if (weld) {
       setSelectedWeld(weld)
-      setIsWelderDialogOpen(true)
+      setIsDetailModalOpen(false)
+      setIsEditWeldDialogOpen(true)
     }
   }
 
-  const handleRecordNDE = () => {
-    // Close detail modal, then open NDE dialog
+  const handleEditWeldFromModal = () => {
     setIsDetailModalOpen(false)
-    setIsNDEDialogOpen(true)
+    setIsEditWeldDialogOpen(true)
   }
 
   // Export handlers
@@ -354,14 +354,7 @@ export function WeldLogPage() {
                 setIsUpdateDialogOpen(true)
               }
             }}
-            onEditWelder={handleEditWelder}
-            onRecordNDE={(weldId) => {
-              const weld = filteredWelds.find((w) => w.id === weldId)
-              if (weld) {
-                setSelectedWeld(weld)
-                setIsNDEDialogOpen(true)
-              }
-            }}
+            onEditWeld={handleEditWeld}
           />
         </div>
       </div>
@@ -375,8 +368,7 @@ export function WeldLogPage() {
             open={isDetailModalOpen}
             onOpenChange={setIsDetailModalOpen}
             onUpdateWeld={handleUpdateWeld}
-            onEditWelder={handleTriggerWelderDialog}
-            onRecordNDE={handleRecordNDE}
+            onEditWeld={handleEditWeldFromModal}
           />
 
           {/* Update Weld Dialog (Feature 022) */}
@@ -393,22 +385,27 @@ export function WeldLogPage() {
             projectId={projectId}
             open={isWelderDialogOpen}
             onOpenChange={setIsWelderDialogOpen}
-            mode={selectedWeld.welder_id ? 'edit' : 'assign'}
+            mode={(() => {
+              if (!selectedWeld.welder_id) return 'assign'
+              const weldComplete = selectedWeld.component?.current_milestones?.['Weld Complete']
+              if (weldComplete !== 100 && weldComplete !== true && weldComplete !== 1) {
+                return 'assign'
+              }
+              return 'edit'
+            })()}
             currentWelderId={selectedWeld.welder_id}
             currentDateWelded={selectedWeld.date_welded}
             currentNdeResult={selectedWeld.nde_result}
             weldIdentity={selectedWeld.identityDisplay}
           />
 
-          {/* NDE Result Dialog (reused from Feature 015) */}
-          <NDEResultDialog
-            fieldWeldId={selectedWeld.id}
-            componentId={selectedWeld.component.id}
-            welderName={selectedWeld.welder?.name}
-            dateWelded={selectedWeld.date_welded || undefined}
-            open={isNDEDialogOpen}
-            onOpenChange={setIsNDEDialogOpen}
-            onFailure={() => setIsRepairDialogOpen(true)}
+          {/* Edit Weld Dialog (unified welder + NDE editing) */}
+          <EditWeldDialog
+            weld={selectedWeld}
+            projectId={projectId}
+            open={isEditWeldDialogOpen}
+            onOpenChange={setIsEditWeldDialogOpen}
+            onRepairWeldNeeded={() => setIsRepairDialogOpen(true)}
           />
 
           {/* Repair Weld Dialog (existing functionality) */}

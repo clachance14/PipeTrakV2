@@ -469,7 +469,11 @@ export type Database = {
           field_weld_id: string
           id: string
           metadata: Json | null
+          nde_result: string | null
+          nde_type: string | null
           previous_date_welded: string | null
+          previous_nde_result: string | null
+          previous_nde_type: string | null
           previous_welder_id: string | null
           user_id: string
           welder_id: string | null
@@ -481,7 +485,11 @@ export type Database = {
           field_weld_id: string
           id?: string
           metadata?: Json | null
+          nde_result?: string | null
+          nde_type?: string | null
           previous_date_welded?: string | null
+          previous_nde_result?: string | null
+          previous_nde_type?: string | null
           previous_welder_id?: string | null
           user_id: string
           welder_id?: string | null
@@ -493,7 +501,11 @@ export type Database = {
           field_weld_id?: string
           id?: string
           metadata?: Json | null
+          nde_result?: string | null
+          nde_type?: string | null
           previous_date_welded?: string | null
+          previous_nde_result?: string | null
+          previous_nde_type?: string | null
           previous_welder_id?: string | null
           user_id?: string
           welder_id?: string | null
@@ -2325,6 +2337,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: boolean
       }
+      clear_nde_result: {
+        Args: { p_field_weld_id: string; p_metadata?: Json; p_user_id: string }
+        Returns: Json
+      }
       clear_weld_assignment: {
         Args: { p_field_weld_id: string; p_metadata?: Json; p_user_id: string }
         Returns: Json
@@ -2542,6 +2558,17 @@ export type Database = {
         Args: { target_component_type: string; target_project_id: string }
         Returns: number
       }
+      record_nde_result: {
+        Args: {
+          p_field_weld_id: string
+          p_nde_date: string
+          p_nde_notes?: string
+          p_nde_result: string
+          p_nde_type: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       refresh_materialized_views: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
@@ -2552,6 +2579,17 @@ export type Database = {
           p_milestone_name: string
           p_new_value: number
           p_user_id: string
+        }
+        Returns: Json
+      }
+      update_nde_result: {
+        Args: {
+          p_field_weld_id: string
+          p_nde_date: string
+          p_nde_notes?: string
+          p_nde_result: string
+          p_nde_type: string
+          p_user_id?: string
         }
         Returns: Json
       }
