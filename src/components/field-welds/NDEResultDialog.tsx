@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRecordNDE } from '@/hooks/useRecordNDE'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,7 @@ export function NDEResultDialog({
   const [ndeNotes, setNdeNotes] = useState<string>('')
   const [showConfirmation, setShowConfirmation] = useState(false)
 
+  const { user } = useAuth()
   const recordNDEMutation = useRecordNDE()
 
   // Reset form when dialog opens
@@ -122,6 +124,7 @@ export function NDEResultDialog({
         nde_result: ndeResult as 'PASS' | 'FAIL' | 'PENDING',
         nde_date: ndeDate,
         nde_notes: ndeNotes.trim() || undefined,
+        user_id: user!.id,
       })
 
       if (ndeResult === 'PASS') {

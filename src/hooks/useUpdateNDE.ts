@@ -1,13 +1,13 @@
 /**
- * useRecordNDE Hook (Feature 014 - Field Weld QC)
- * Mutation hook for recording NDE results via RPC with audit logging
+ * useUpdateNDE Hook
+ * Mutation hook for updating an existing NDE result via RPC with audit logging
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
-interface RecordNDEPayload {
+interface UpdateNDEPayload {
   field_weld_id: string
   nde_type: 'RT' | 'UT' | 'PT' | 'MT' | 'VT'
   nde_result: 'PASS' | 'FAIL' | 'PENDING'
@@ -17,15 +17,16 @@ interface RecordNDEPayload {
 }
 
 /**
- * Mutation hook: Record NDE result via RPC with audit logging
- * Server-side handles milestones, status changes, and audit events
+ * Mutation hook: Update existing NDE result via RPC
+ * Blocks changing FAIL result if repair weld exists
+ * Server-side handles milestone transitions and audit events
  */
-export function useRecordNDE() {
+export function useUpdateNDE() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: RecordNDEPayload) => {
-      const { error } = await supabase.rpc('record_nde_result', {
+    mutationFn: async (payload: UpdateNDEPayload) => {
+      const { error } = await supabase.rpc('update_nde_result', {
         p_field_weld_id: payload.field_weld_id,
         p_nde_type: payload.nde_type,
         p_nde_result: payload.nde_result,
@@ -35,13 +36,12 @@ export function useRecordNDE() {
       })
 
       if (error) {
-        throw new Error(`Failed to record NDE: ${error.message}`)
+        throw new Error(error.message)
       }
 
       return payload
     },
     onSuccess: (_data, payload) => {
-      // Invalidate caches
       queryClient.invalidateQueries({ queryKey: ['field-weld'] })
       queryClient.invalidateQueries({ queryKey: ['field-welds'] })
       queryClient.invalidateQueries({ queryKey: ['components'] })
@@ -49,15 +49,15 @@ export function useRecordNDE() {
       queryClient.invalidateQueries({ queryKey: ['package-readiness'] })
 
       if (payload.nde_result === 'PASS') {
-        toast.success('NDE passed - Weld accepted')
+        toast.success('NDE updated - Weld accepted')
       } else if (payload.nde_result === 'FAIL') {
-        toast.warning('NDE failed - Weld rejected. Create repair weld?')
+        toast.warning('NDE updated - Weld rejected')
       } else {
-        toast.info('NDE result recorded')
+        toast.success('NDE result updated')
       }
     },
     onError: (error: Error) => {
-      toast.error(`Failed to record NDE: ${error.message}`)
+      toast.error(`Failed to update NDE: ${error.message}`)
     },
   })
 }

@@ -8,6 +8,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NDEResultDialog } from './NDEResultDialog'
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id', email: 'test@example.com' },
+    loading: false,
+  }),
+}))
+
 vi.mock('@/hooks/useRecordNDE', () => ({
   useRecordNDE: () => ({
     mutateAsync: vi.fn().mockResolvedValue({}),

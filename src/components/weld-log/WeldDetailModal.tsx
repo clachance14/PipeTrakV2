@@ -19,11 +19,10 @@ interface WeldDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdateWeld: () => void
-  onEditWelder?: () => void
-  onRecordNDE: () => void
+  onEditWeld?: () => void
 }
 
-export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEditWelder, onRecordNDE }: WeldDetailModalProps) {
+export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEditWeld }: WeldDetailModalProps) {
   // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-'
@@ -189,8 +188,7 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEdit
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
               {/* Conditional Button Logic:
                   - If weld not made (no welder_id): Show "Update Weld" button
-                  - If weld made but no NDE result: Show "Record NDE" button
-                  - If NDE recorded: Show NO action buttons
+                  - If welder assigned: Show "Edit Weld" button (covers both NDE recording and editing)
               */}
               {!weld.welder_id && (
                 <button
@@ -202,23 +200,13 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEdit
                 </button>
               )}
 
-              {weld.welder_id && onEditWelder && (
+              {weld.welder_id && onEditWeld && (
                 <button
-                  onClick={onEditWelder}
+                  onClick={onEditWeld}
                   className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   aria-label="Edit weld details"
                 >
                   Edit Weld
-                </button>
-              )}
-
-              {weld.welder_id && !weld.nde_result && (
-                <button
-                  onClick={onRecordNDE}
-                  className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  aria-label="Record NDE result"
-                >
-                  Record NDE
                 </button>
               )}
             </div>
