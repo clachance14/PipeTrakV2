@@ -65,7 +65,7 @@ function calculateFieldWeldGrandTotal(
   const repairCount = rows.reduce((sum, row) => sum + row.repairCount, 0);
   const fitupCount = rows.reduce((sum, row) => sum + row.fitupCount, 0);
   const weldCompleteCount = rows.reduce((sum, row) => sum + row.weldCompleteCount, 0);
-  const remainingCount = totalWelds - weldCompleteCount;
+  const remainingCount = Math.max(0, totalWelds - weldCompleteCount);
 
   // Calculate weighted averages for percentages (weight by totalWelds)
   const weightedAvgPercentage = (
@@ -167,7 +167,7 @@ function transformAreaRow(row: AreaProgressRow): FieldWeldProgressRow {
     pctTotal: row.pct_total || 0,
     fitupCount: row.fitup_count || 0,
     weldCompleteCount: row.weld_complete_count || 0,
-    remainingCount: (row.total_welds || 0) - (row.weld_complete_count || 0),
+    remainingCount: Math.max(0, (row.total_welds || 0) - (row.weld_complete_count || 0)),
   };
 }
 
@@ -198,7 +198,7 @@ function transformSystemRow(row: SystemProgressRow): FieldWeldProgressRow {
     pctTotal: row.pct_total || 0,
     fitupCount: row.fitup_count || 0,
     weldCompleteCount: row.weld_complete_count || 0,
-    remainingCount: (row.total_welds || 0) - (row.weld_complete_count || 0),
+    remainingCount: Math.max(0, (row.total_welds || 0) - (row.weld_complete_count || 0)),
   };
 }
 
@@ -229,7 +229,7 @@ function transformTestPackageRow(row: TestPackageProgressRow): FieldWeldProgress
     pctTotal: row.pct_total || 0,
     fitupCount: row.fitup_count || 0,
     weldCompleteCount: row.weld_complete_count || 0,
-    remainingCount: (row.total_welds || 0) - (row.weld_complete_count || 0),
+    remainingCount: Math.max(0, (row.total_welds || 0) - (row.weld_complete_count || 0)),
   };
 }
 
