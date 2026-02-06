@@ -23,7 +23,7 @@ describe('formatIdentityKey', () => {
         seq: 2
       }
       const result = formatIdentityKey(key, 'fitting')
-      expect(result).toBe('EL90-150 1X2')
+      expect(result).toBe('EL90-150 1/2"')
     })
 
     it('omits size when NOSIZE', () => {
@@ -58,7 +58,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'instrument')
-      expect(result).toBe('ME-55402 1X2')
+      expect(result).toBe('ME-55402 1/2"')
     })
 
     it('formats instrument with NOSIZE', () => {
@@ -81,6 +81,32 @@ describe('formatIdentityKey', () => {
       }
       const result = formatIdentityKey(key, 'instrument')
       expect(result).toBe('PT-100 2"')
+    })
+  })
+
+  describe('Pipe aggregate components', () => {
+    it('formats pipe aggregate with numeric size', () => {
+      const key = { pipe_id: 'DWG-001-8-PIPE-AGG' } as unknown as IdentityKey
+      const result = formatIdentityKey(key, 'pipe')
+      expect(result).toBe('8"')
+    })
+
+    it('formats pipe aggregate with fractional size 3X4 as 3/4"', () => {
+      const key = { pipe_id: 'DWG-001-3X4-PIPE-AGG' } as unknown as IdentityKey
+      const result = formatIdentityKey(key, 'pipe')
+      expect(result).toBe('3/4"')
+    })
+
+    it('formats pipe aggregate with fractional size 1X2 as 1/2"', () => {
+      const key = { pipe_id: 'DWG-001-1X2-PIPE-AGG' } as unknown as IdentityKey
+      const result = formatIdentityKey(key, 'pipe')
+      expect(result).toBe('1/2"')
+    })
+
+    it('formats threaded pipe aggregate with fractional size', () => {
+      const key = { pipe_id: 'DWG-001-3X4-THRD-AGG' } as unknown as IdentityKey
+      const result = formatIdentityKey(key, 'threaded_pipe')
+      expect(result).toBe('3/4"')
     })
   })
 
@@ -154,7 +180,7 @@ describe('formatIdentityKey', () => {
       expect(result).toContain('1"')
     })
 
-    it('does not add inch symbol to fractional sizes', () => {
+    it('converts fractional sizes from NXM to N/M" format', () => {
       const key: IdentityKey = {
         drawing_norm: 'P-001',
         commodity_code: 'VBALU-001',
@@ -162,8 +188,29 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'valve')
-      expect(result).toBe('VBALU-001 1X2')
-      expect(result).not.toContain('"')
+      expect(result).toBe('VBALU-001 1/2"')
+    })
+
+    it('converts 3X4 fractional size to 3/4"', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'VBALU-001',
+        size: '3X4',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'valve')
+      expect(result).toBe('VBALU-001 3/4"')
+    })
+
+    it('keeps reducer sizes as-is (larger X smaller)', () => {
+      const key: IdentityKey = {
+        drawing_norm: 'P-001',
+        commodity_code: 'EL90-150',
+        size: '8X6',
+        seq: 1
+      }
+      const result = formatIdentityKey(key, 'fitting')
+      expect(result).toBe('EL90-150 8X6')
     })
   })
 
@@ -209,7 +256,7 @@ describe('formatIdentityKey', () => {
         seq: 2
       }
       const result = formatIdentityKey(key, 'fitting', 3)
-      expect(result).toBe('EL90-150 1X2 2 of 3')
+      expect(result).toBe('EL90-150 1/2" 2 of 3')
     })
 
     it('handles NOSIZE with totalCount', () => {
@@ -231,7 +278,7 @@ describe('formatIdentityKey', () => {
         seq: 1
       }
       const result = formatIdentityKey(key, 'instrument', 2)
-      expect(result).toBe('ME-55402 1X2')
+      expect(result).toBe('ME-55402 1/2"')
     })
   })
 })

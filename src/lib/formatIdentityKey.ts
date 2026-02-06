@@ -1,6 +1,37 @@
 import type { IdentityKey, ComponentType } from '@/types/drawing-table.types'
 
 /**
+ * Format a normalized size for display.
+ * - Pure numeric sizes get inch symbol: "2" → '2"'
+ * - Fractional sizes (NXM where N < M) convert back to slash notation: "3X4" → '3/4"'
+ * - Reducer sizes (NXM where N >= M) stay as-is: "8X6" → '8X6'
+ *
+ * Background: normalizeSize() converts "/" to "X" for storage safety.
+ * This function reverses that for display when the value is a fraction.
+ */
+function formatSizeForDisplay(size: string): string {
+  // Pure numeric: add inch symbol (e.g., "2" → '2"')
+  if (/^\d+$/.test(size)) {
+    return `${size}"`
+  }
+
+  // Check for NXM pattern
+  const xMatch = size.match(/^(\d+)X(\d+)$/)
+  if (xMatch) {
+    const num = parseInt(xMatch[1], 10)
+    const den = parseInt(xMatch[2], 10)
+    // Fraction: numerator < denominator (e.g., 3X4 → 3/4", 1X2 → 1/2")
+    if (num < den) {
+      return `${xMatch[1]}/${xMatch[2]}"`
+    }
+    // Reducer: numerator >= denominator (e.g., 8X6 stays 8X6)
+  }
+
+  // Default: return as-is
+  return size
+}
+
+/**
  * Extracts the size from an aggregate pipe ID.
  * Pipe ID format: "{drawing}-{size}-{cmdty}-AGG"
  *
@@ -24,8 +55,7 @@ function extractSizeFromAggregatePipeId(pipeId: string): string | null {
   }
 
   const size = withoutAgg.substring(secondLastDashIndex + 1, lastDashIndex)
-  const isNumericSize = /^\d+$/.test(size)
-  return isNumericSize ? `${size}"` : size
+  return formatSizeForDisplay(size)
 }
 
 /**
@@ -74,12 +104,10 @@ export function formatIdentityKey(
   // Check if size should be displayed
   const hasSize = size && size !== 'NOSIZE' && size !== ''
 
-  // Format size with inch symbol for numeric sizes
+  // Format size for display (handles numeric, fractional, and reducer sizes)
   let sizeDisplay = ''
   if (hasSize) {
-    // Add inch symbol (") for numeric sizes only (not fractional like "1X2")
-    const isNumericSize = /^\d+$/.test(size)
-    sizeDisplay = isNumericSize ? `${size}"` : size
+    sizeDisplay = formatSizeForDisplay(size)
   }
 
   // Instruments don't include sequential suffix
