@@ -2446,6 +2446,14 @@ export type Database = {
           welds_with_activity: number
         }[]
       }
+      get_milestone_weight: {
+        Args: {
+          p_component_type: string
+          p_project_id: string
+          p_standard_milestone: string
+        }
+        Returns: number
+      }
       get_most_common_spec_per_drawing: {
         Args: { p_project_id: string }
         Returns: {

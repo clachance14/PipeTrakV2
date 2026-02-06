@@ -4,7 +4,8 @@
  * Weight calculation formulas:
  * - Standard components: diameter^1.5
  * - Reducers (e.g., "2X4"): ((d1 + d2) / 2)^1.5 using average diameter
- * - Threaded pipe with linear feet: diameter^1.5 × linear_feet × 0.1
+ * - Pipe/threaded pipe with linear feet: diameter^1.5 × linear_feet × 0.1
+ * - Aggregate pipe/threaded_pipe: reads size and total_linear_feet from attributes
  * - No parseable size: 0.5 (fixed fallback)
  */
 
@@ -95,6 +96,44 @@ function preprocessSize(size: string): string | null {
 }
 
 /**
+ * Build effective identity key for weight calculation.
+ * Aggregate components (with pipe_id in identity_key) store size and footage
+ * in attributes, not identity_key. This merges them so the rest of the logic works.
+ */
+function buildEffectiveIdentityKey(
+  identityKey: Record<string, unknown>,
+  attributes?: Record<string, unknown>
+): Record<string, unknown> {
+  const isAggregate = 'pipe_id' in identityKey;
+
+  if (!isAggregate || !attributes) {
+    return identityKey;
+  }
+
+  // For aggregates, build key from attributes
+  const effective: Record<string, unknown> = { ...identityKey };
+
+  if ('size' in attributes) {
+    effective.size = attributes.size;
+  }
+
+  // Map total_linear_feet → linear_feet
+  if ('total_linear_feet' in attributes) {
+    effective.linear_feet = attributes.total_linear_feet;
+  }
+
+  return effective;
+}
+
+/**
+ * Check if component type uses linear feet for weight calculation
+ */
+function usesLinearFeet(componentType: string): boolean {
+  const upper = componentType.toUpperCase();
+  return upper.includes('THREADED') || upper === 'PIPE';
+}
+
+/**
  * Get fallback weight based on component type
  * Threaded pipe gets 1.0, all others get 0.5
  */
@@ -104,20 +143,26 @@ function getFallbackWeight(componentType: string): number {
 }
 
 /**
- * Calculate weight for a component based on size and component type
+ * Calculate weight for a component based on size and component type.
+ * For aggregate components (identity_key has pipe_id), pass attributes
+ * to read size and total_linear_feet from the component's attributes column.
  */
 export function calculateWeight(
   identityKey: Record<string, unknown>,
-  componentType: string
+  componentType: string,
+  attributes?: Record<string, unknown>
 ): WeightResult {
+  // Build effective key: merges attributes for aggregate components
+  const effectiveKey = buildEffectiveIdentityKey(identityKey, attributes);
+
   // Extract size field (case-insensitive check for "size" or "SIZE")
   // Use 'in' operator to distinguish between null and undefined
-  const sizeRaw = 'size' in identityKey ? identityKey.size : identityKey.SIZE;
+  const sizeRaw = 'size' in effectiveKey ? effectiveKey.size : effectiveKey.SIZE;
   const normalizedSize = normalizeSizeField(sizeRaw);
   const fallbackWeight = getFallbackWeight(componentType);
 
   // Handle missing size field
-  if (!(('size' in identityKey) || ('SIZE' in identityKey))) {
+  if (!(('size' in effectiveKey) || ('SIZE' in effectiveKey))) {
     return {
       weight: fallbackWeight,
       basis: 'fixed',
@@ -190,13 +235,13 @@ export function calculateWeight(
 
   const diameter = parsed.diameter;
 
-  // Check if this is threaded pipe with linear_feet
-  const isThreadedPipe = componentType.toUpperCase().includes('THREADED');
-  const linearFeetRaw = identityKey.linear_feet ?? identityKey.LINEAR_FEET;
+  // Check if this is pipe or threaded pipe with linear_feet
+  const hasLinearFeetFormula = usesLinearFeet(componentType);
+  const linearFeetRaw = effectiveKey.linear_feet ?? effectiveKey.LINEAR_FEET;
   const linearFeet = parseLinearFeet(linearFeetRaw);
 
-  // Validate linear_feet if present for threaded pipe
-  if (isThreadedPipe && linearFeetRaw !== undefined && linearFeetRaw !== null) {
+  // Validate linear_feet if present for pipe/threaded pipe
+  if (hasLinearFeetFormula && linearFeetRaw !== undefined && linearFeetRaw !== null) {
     // Invalid linear_feet value (null from parsing or negative) - use diameter-based weight since diameter is valid
     if (linearFeet === null || linearFeet < 0) {
       return {

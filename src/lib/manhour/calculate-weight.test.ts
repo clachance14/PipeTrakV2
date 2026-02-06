@@ -416,6 +416,104 @@ describe('calculateWeight', () => {
     });
   });
 
+  describe('aggregate pipe components (with attributes)', () => {
+    it('calculates weight for 2 inch aggregate pipe with 10 linear feet from attributes', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = { size: '2', total_linear_feet: '10' };
+      const result = calculateWeight(identityKey, 'pipe', attributes);
+
+      // 2^1.5 * 10 * 0.1 = 2.83 * 10 * 0.1 = 2.83
+      expect(result.weight).toBeCloseTo(2.83, 2);
+      expect(result.basis).toBe('linear_feet');
+      expect(result.metadata).toEqual({ diameter: 2, linearFeet: 10 });
+    });
+
+    it('calculates weight for 4 inch aggregate pipe with 5 linear feet from attributes', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = { size: '4', total_linear_feet: '5' };
+      const result = calculateWeight(identityKey, 'pipe', attributes);
+
+      // 4^1.5 * 5 * 0.1 = 8.00 * 5 * 0.1 = 4.00
+      expect(result.weight).toBeCloseTo(4.00, 2);
+      expect(result.basis).toBe('linear_feet');
+      expect(result.metadata).toEqual({ diameter: 4, linearFeet: 5 });
+    });
+
+    it('calculates weight for aggregate pipe with size but no linear feet (diameter-only)', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = { size: '2' };
+      const result = calculateWeight(identityKey, 'pipe', attributes);
+
+      // No linear feet - should use diameter^1.5
+      expect(result.weight).toBeCloseTo(2.83, 2);
+      expect(result.basis).toBe('dimension');
+      expect(result.metadata).toEqual({ diameter: 2 });
+    });
+
+    it('returns fallback weight for aggregate pipe with no attributes', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const result = calculateWeight(identityKey, 'pipe');
+
+      expect(result.weight).toBe(0.5);
+      expect(result.basis).toBe('fixed');
+      expect(result.metadata).toEqual({ reason: 'no_size_field' });
+    });
+
+    it('returns fallback weight for aggregate pipe with empty attributes', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = {};
+      const result = calculateWeight(identityKey, 'pipe', attributes);
+
+      expect(result.weight).toBe(0.5);
+      expect(result.basis).toBe('fixed');
+      expect(result.metadata).toEqual({ reason: 'no_size_field' });
+    });
+
+    it('calculates weight for aggregate threaded_pipe with attributes', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = { size: '2', total_linear_feet: '10' };
+      const result = calculateWeight(identityKey, 'threaded_pipe', attributes);
+
+      // 2^1.5 * 10 * 0.1 = 2.83
+      expect(result.weight).toBeCloseTo(2.83, 2);
+      expect(result.basis).toBe('linear_feet');
+      expect(result.metadata).toEqual({ diameter: 2, linearFeet: 10 });
+    });
+
+    it('pipe and threaded_pipe produce identical weights for same diameter + footage', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = { size: '4', total_linear_feet: '20' };
+
+      const pipeResult = calculateWeight(identityKey, 'pipe', attributes);
+      const threadedResult = calculateWeight(identityKey, 'threaded_pipe', attributes);
+
+      expect(pipeResult.weight).toBeCloseTo(threadedResult.weight, 4);
+      expect(pipeResult.basis).toBe('linear_feet');
+      expect(threadedResult.basis).toBe('linear_feet');
+    });
+
+    it('non-aggregate pipe with direct linear_feet in identity_key uses footage formula', () => {
+      const identityKey = { size: '2', linear_feet: '10' };
+      const result = calculateWeight(identityKey, 'pipe');
+
+      // Pipe should also use linear_feet formula (same as threaded_pipe)
+      expect(result.weight).toBeCloseTo(2.83, 2);
+      expect(result.basis).toBe('linear_feet');
+      expect(result.metadata).toEqual({ diameter: 2, linearFeet: 10 });
+    });
+
+    it('aggregate pipe maps total_linear_feet to linear_feet', () => {
+      const identityKey = { pipe_id: 'some-uuid' };
+      const attributes = { size: '1', total_linear_feet: '20' };
+      const result = calculateWeight(identityKey, 'pipe', attributes);
+
+      // 1^1.5 * 20 * 0.1 = 1.00 * 20 * 0.1 = 2.00
+      expect(result.weight).toBeCloseTo(2.00, 2);
+      expect(result.basis).toBe('linear_feet');
+      expect(result.metadata).toEqual({ diameter: 1, linearFeet: 20 });
+    });
+  });
+
   describe('component type variations', () => {
     it('calculates weight regardless of component type case', () => {
       const identityKey = { size: '2' };
