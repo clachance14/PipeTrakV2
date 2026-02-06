@@ -13,7 +13,6 @@ import { ImportPreview } from './ImportPreview';
 import { ImportPreviewErrorBoundary } from './ImportPreviewErrorBoundary';
 import { mapColumns, createColumnLookupMap } from '@/lib/csv/column-mapper';
 import { validateRows, createValidationSummary, getValidRows } from '@/lib/csv/csv-validator';
-import { generateMaterialTakeoffTemplate } from '@/lib/excel/generate-template';
 import { excelToCsv, isExcelFile } from '@/lib/excel/excel-to-csv';
 import { Button } from '@/components/ui/button';
 import type { ImportResult, ImportPreviewState } from '@/types/csv-import.types';
@@ -348,11 +347,13 @@ export function ImportPage({ projectId }: ImportPageProps) {
           <div className="mb-4">
             <Button
               variant="outline"
-              onClick={() => generateMaterialTakeoffTemplate()}
+              asChild
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
-              Download Template
+              <a href="/PipeTrak_Template.xlsx" download="PipeTrak_Template.xlsx">
+                <Download className="h-4 w-4" />
+                Download Template
+              </a>
             </Button>
             <p className="mt-2 text-sm text-muted-foreground">
               Download an Excel template with sample data and instructions. Columns marked with * are required.

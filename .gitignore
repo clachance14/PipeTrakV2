@@ -41,6 +41,7 @@ tsconfig.node.tsbuildinfo
 
 # Test data files (not for version control)
 *.xlsx
+!public/PipeTrak_Template.xlsx
 *.csv
 *cleanup*.sql
 *delete*.sql
