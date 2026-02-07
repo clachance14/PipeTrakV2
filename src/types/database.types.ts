@@ -2562,6 +2562,14 @@ export type Database = {
       normalize_drawing_number: { Args: { raw: string }; Returns: string }
       normalize_milestone_value: { Args: { p_raw: Json }; Returns: number }
       parse_size_diameter: { Args: { p_size: string }; Returns: number }
+      reassign_field_weld_drawing: {
+        Args: {
+          p_field_weld_id: string
+          p_new_drawing_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       recalculate_components_with_template: {
         Args: { target_component_type: string; target_project_id: string }
         Returns: number
@@ -2578,6 +2586,18 @@ export type Database = {
         Returns: Json
       }
       refresh_materialized_views: { Args: never; Returns: undefined }
+      retire_field_weld: {
+        Args: {
+          p_field_weld_id: string
+          p_retire_reason: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      safe_milestone_numeric: {
+        Args: { p_key: string; p_milestones: Json }
+        Returns: number
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_component_milestone: {
@@ -2587,6 +2607,18 @@ export type Database = {
           p_milestone_name: string
           p_new_value: number
           p_user_id: string
+        }
+        Returns: Json
+      }
+      update_field_weld_specs: {
+        Args: {
+          p_base_metal: string
+          p_field_weld_id: string
+          p_schedule: string
+          p_spec: string
+          p_user_id: string
+          p_weld_size: string
+          p_weld_type: string
         }
         Returns: Json
       }
@@ -2823,3 +2855,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.75.0 (currently installed v2.58.5)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
