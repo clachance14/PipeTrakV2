@@ -27,12 +27,13 @@ interface WeldLogTableProps {
   welds: EnrichedFieldWeld[]
   onAssignWelder?: (weldId: string) => void
   onEditWeld?: (weldId: string) => void
+  onUpdateNDE?: (weldId: string) => void
   userRole?: string
   isMobile?: boolean
   onRowClick?: (weld: EnrichedFieldWeld) => void
 }
 
-export function WeldLogTable({ welds, onAssignWelder, onEditWeld, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
+export function WeldLogTable({ welds, onAssignWelder, onEditWeld, onUpdateNDE, userRole, isMobile: isMobileProp, onRowClick }: WeldLogTableProps) {
   const { sortColumn, sortDirection, toggleSort } = useWeldLogPreferencesStore()
   const isMobileDetected = useMobileDetection()
   const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileDetected
@@ -105,7 +106,7 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWeld, userRole, isMo
         <tbody className="divide-y divide-slate-100">
           {sortedWelds.map((weld) => {
             const showAssignWelder = canAssignWelder && weld.status === 'active' && !weld.welder_id
-            const showEditWeld = canEditWeld && weld.welder_id !== null
+            const showEditWeld = !!canEditWeld
 
             return (
               <tr
@@ -198,6 +199,18 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWeld, userRole, isMo
                         {weld.nde_type && `${formatNDEType(weld.nde_type)} `}
                         {weld.nde_result}
                       </span>
+                    ) : canEditWeld && weld.welder_id && onUpdateNDE ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onUpdateNDE(weld.id)
+                        }}
+                      >
+                        Update NDE
+                      </Button>
                     ) : (
                       <span className="text-slate-400">-</span>
                     )}
