@@ -111,6 +111,10 @@ function compareByField(a: Component, b: Component, field: string): number {
         return obj.test_package?.name || ''
       case 'percent_complete':
         return obj.percent_complete ?? 0
+      case 'footage': {
+        const attrs = obj.attributes as Record<string, unknown> | null
+        return (typeof attrs?.total_linear_feet === 'number' ? attrs.total_linear_feet : 0)
+      }
       default:
         return ''
     }

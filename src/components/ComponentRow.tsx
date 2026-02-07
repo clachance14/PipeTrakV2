@@ -209,6 +209,21 @@ export function ComponentRow({
         </div>
       )}
 
+      {/* Footage - hideable */}
+      {visibleColumns.includes('footage') && (
+        <div className="w-24 hidden lg:block">
+          <div className="text-sm truncate">
+            {component.component_type === 'pipe' || component.component_type === 'threaded_pipe'
+              ? (() => {
+                  const attrs = component.attributes as Record<string, unknown> | null;
+                  const feet = typeof attrs?.total_linear_feet === 'number' ? attrs.total_linear_feet : null;
+                  return feet !== null ? `${feet.toLocaleString()} LF` : '—';
+                })()
+              : '—'}
+          </div>
+        </div>
+      )}
+
       {/* Area - hideable */}
       {visibleColumns.includes('area') && (
         <div className="w-24 hidden lg:block">
