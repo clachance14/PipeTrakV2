@@ -26,7 +26,7 @@ export function useRetireFieldWeld() {
       })
 
       if (error) {
-        throw new Error(`Failed to retire field weld: ${error.message}`)
+        throw new Error(error.message)
       }
 
       return { success: true }

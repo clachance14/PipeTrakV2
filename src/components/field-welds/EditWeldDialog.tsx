@@ -199,9 +199,9 @@ export function EditWeldDialog({
     ? [...welders].sort((a, b) => a.stencil.localeCompare(b.stencil))
     : undefined
 
-  // Sorted drawings for dropdown
+  // Sorted drawings for dropdown (natural sort so "SHT 2" comes before "SHT 10")
   const sortedDrawings = drawings
-    ? [...drawings].sort((a, b) => a.drawing_no_norm.localeCompare(b.drawing_no_norm))
+    ? [...drawings].sort((a, b) => a.drawing_no_norm.localeCompare(b.drawing_no_norm, undefined, { numeric: true }))
     : undefined
 
   // Detect what changed
@@ -329,6 +329,10 @@ export function EditWeldDialog({
 
       // 1. Save spec changes if needed
       if (specsChanged) {
+        if (!weldType) {
+          toast.error('Weld type is required to save specification changes')
+          return
+        }
         await updateSpecsMutation.mutateAsync({
           field_weld_id: weld.id,
           weld_type: weldType,

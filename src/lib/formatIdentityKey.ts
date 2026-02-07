@@ -17,7 +17,7 @@ function formatSizeForDisplay(size: string): string {
 
   // Check for NXM pattern
   const xMatch = size.match(/^(\d+)X(\d+)$/)
-  if (xMatch) {
+  if (xMatch?.[1] && xMatch[2]) {
     const num = parseInt(xMatch[1], 10)
     const den = parseInt(xMatch[2], 10)
     // Fraction: numerator < denominator (e.g., 3X4 → 3/4", 1X2 → 1/2")

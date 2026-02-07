@@ -1,12 +1,12 @@
 /**
  * Integration Test: Aggregate Threaded Pipe Import with Duplicate Handling (Feature 027)
  *
- * T023: End-to-end test for User Story 2 - Sum quantities for duplicate identities
+ * T023: End-to-end test for User Story 2 - REPLACE semantics for duplicate identities
  *
  * Tests the complete import flow:
  * 1. Import threaded pipe with QTY=50 → creates aggregate component
- * 2. Re-import same identity with QTY=50 → sums to total_linear_feet=100
- * 3. Line numbers array appends ["1"] → ["1", "2"]
+ * 2. Re-import same identity → REPLACES total_linear_feet (idempotent)
+ * 3. Line numbers replaced with new spreadsheet values
  * 4. Current milestones preserved (absolute LF values unchanged)
  */
 

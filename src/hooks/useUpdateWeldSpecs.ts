@@ -34,7 +34,7 @@ export function useUpdateWeldSpecs() {
       })
 
       if (error) {
-        throw new Error(`Failed to update weld specifications: ${error.message}`)
+        throw new Error(error.message)
       }
 
       return { success: true }
