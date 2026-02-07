@@ -534,8 +534,8 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
   // User Story 2: Sum Quantities for Duplicate Identities
   // ========================================
 
-  describe('T020: Quantity summing (50 + 50 = 100)', () => {
-    it('should sum total_linear_feet when re-importing same pipe_id', () => {
+  describe('T020: REPLACE semantics (re-import replaces, not sums)', () => {
+    it('should REPLACE total_linear_feet when re-importing same pipe_id', () => {
       // Arrange: Existing component with 50 LF
       const existingComponent = {
         id: 'component-123',
@@ -556,131 +556,97 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
         }
       };
 
-      // New import row with same identity and 50 LF
-      const newRow = {
-        drawing: 'P-001',
-        type: 'Threaded_Pipe',
-        qty: 50,
-        cmdtyCode: 'PIPE-SCH40',
-        size: '1"',
-        lineNumber: '205'
+      // New import with same identity — spreadsheet says 75 LF
+      const newImportAttributes = {
+        total_linear_feet: 75,
+        line_numbers: ['205']
       };
 
-      // Act: Update logic (this is what we'll implement)
-      const drawingNorm = newRow.drawing.trim().toUpperCase().replace(/\s+/g, ' ');
-      const sizeNorm = newRow.size.trim().replace(/["'\s]/g, '').replace(/\//g, 'X').toUpperCase();
-      const pipeId = `${drawingNorm}-${sizeNorm}-${newRow.cmdtyCode}-AGG`;
+      // Act: REPLACE semantics — use new value directly
+      const updatedAttributes = {
+        ...existingComponent.attributes,
+        total_linear_feet: newImportAttributes.total_linear_feet,
+        line_numbers: newImportAttributes.line_numbers
+      };
 
-      // Verify identity match
-      expect(pipeId).toBe(existingComponent.identity_key.pipe_id);
-
-      // Update total_linear_feet (sum)
-      const updatedTotalLinearFeet = existingComponent.attributes.total_linear_feet + newRow.qty;
-
-      // Assert: Total should be 100 (50 + 50)
-      expect(updatedTotalLinearFeet).toBe(100);
-      expect(existingComponent.attributes.total_linear_feet).toBe(50); // Original unchanged
-      expect(newRow.qty).toBe(50);
-      expect(updatedTotalLinearFeet).toBe(existingComponent.attributes.total_linear_feet + newRow.qty);
+      // Assert: Total should be 75 (replaced, NOT 50 + 75 = 125)
+      expect(updatedAttributes.total_linear_feet).toBe(75);
+      expect(updatedAttributes.line_numbers).toEqual(['205']);
     });
 
-    it('should handle multiple re-imports (50 + 30 + 20 = 100)', () => {
-      // Arrange: Simulate multiple imports
-      let totalLinearFeet = 50;
+    it('should be idempotent — re-importing same spreadsheet produces same result', () => {
+      // Arrange: Spreadsheet says 100 LF for this pipe_id
+      const spreadsheetValue = 100;
+      const spreadsheetLineNumbers = ['1', '3'];
 
-      // Import 1: +30 LF
-      totalLinearFeet += 30;
-      expect(totalLinearFeet).toBe(80);
+      // First import — sets to 100
+      let currentTotal = spreadsheetValue;
+      let currentLineNumbers = [...spreadsheetLineNumbers];
+      expect(currentTotal).toBe(100);
 
-      // Import 2: +20 LF
-      totalLinearFeet += 20;
-      expect(totalLinearFeet).toBe(100);
+      // Second import (same spreadsheet) — REPLACE with same values
+      currentTotal = spreadsheetValue;
+      currentLineNumbers = [...spreadsheetLineNumbers];
+      expect(currentTotal).toBe(100); // Still 100, not 200
 
-      // Assert: Final total
-      expect(totalLinearFeet).toBe(100);
+      // Third import (same spreadsheet) — still idempotent
+      currentTotal = spreadsheetValue;
+      currentLineNumbers = [...spreadsheetLineNumbers];
+      expect(currentTotal).toBe(100); // Still 100, not 300
+      expect(currentLineNumbers).toEqual(['1', '3']);
     });
 
-    it('should preserve total_linear_feet if re-importing QTY=0 (edge case)', () => {
-      // Arrange: Existing component with 50 LF
-      const existingTotal = 50;
+    it('should update footage when spreadsheet changes', () => {
+      // Arrange: Updated spreadsheet now says 150 LF (was 100 previously)
+      const newSpreadsheetTotal = 150;
 
-      // Import with QTY=0 (should be skipped by validator, but test the logic)
-      const newQty = 0;
+      // Act: REPLACE with new spreadsheet value
+      const updatedTotal = newSpreadsheetTotal;
 
-      // Act: Sum
-      const updatedTotal = existingTotal + newQty;
-
-      // Assert: Total unchanged
-      expect(updatedTotal).toBe(50);
+      // Assert: Reflects new spreadsheet value
+      expect(updatedTotal).toBe(150);
     });
   });
 
-  describe('T021: Line numbers array appending', () => {
-    it('should append new line number to existing array', () => {
-      // Arrange: Existing component with line_numbers: ["101"]
-      const existingLineNumbers = ['101'];
-      const newLineNumber = '205';
+  describe('T021: Line numbers REPLACE on re-import', () => {
+    it('should REPLACE line numbers from new import (not append)', () => {
+      // Arrange: New import provides line_numbers (replaces existing ["101"])
+      const newLineNumbers = ['205', '210'];
 
-      // Act: Append new line number (if not already present)
-      if (!existingLineNumbers.includes(newLineNumber)) {
-        existingLineNumbers.push(newLineNumber);
-      }
+      // Act: REPLACE semantics — use new import's line numbers
+      const updatedLineNumbers = newLineNumbers;
 
-      // Assert: Array contains both line numbers
-      expect(existingLineNumbers).toEqual(['101', '205']);
-      expect(existingLineNumbers).toHaveLength(2);
+      // Assert: Only new line numbers present (old ones replaced)
+      expect(updatedLineNumbers).toEqual(['205', '210']);
+      expect(updatedLineNumbers).toHaveLength(2);
     });
 
-    it('should NOT duplicate line numbers if already present', () => {
-      // Arrange: Existing component with line_numbers: ["101"]
-      const existingLineNumbers = ['101'];
-      const newLineNumber = '101'; // Same line number
+    it('should be idempotent — same import produces same line numbers', () => {
+      // Arrange: Import with line numbers ["1", "3"]
+      const importLineNumbers = ['1', '3'];
 
-      // Act: Append only if not already present
-      if (!existingLineNumbers.includes(newLineNumber)) {
-        existingLineNumbers.push(newLineNumber);
-      }
+      // First import
+      let currentLineNumbers = importLineNumbers;
+      expect(currentLineNumbers).toEqual(['1', '3']);
 
-      // Assert: Array still has only 1 element
-      expect(existingLineNumbers).toEqual(['101']);
-      expect(existingLineNumbers).toHaveLength(1);
-    });
-
-    it('should maintain chronological order of line numbers', () => {
-      // Arrange: Existing component with multiple line numbers
-      const existingLineNumbers = ['101', '205', '312'];
-      const newLineNumber = '450';
-
-      // Act: Append new line number
-      if (!existingLineNumbers.includes(newLineNumber)) {
-        existingLineNumbers.push(newLineNumber);
-      }
-
-      // Assert: New line number appended to end
-      expect(existingLineNumbers).toEqual(['101', '205', '312', '450']);
-      expect(existingLineNumbers[existingLineNumbers.length - 1]).toBe('450');
+      // Second import (same spreadsheet)
+      currentLineNumbers = importLineNumbers;
+      expect(currentLineNumbers).toEqual(['1', '3']); // Same, not ["1", "3", "1", "3"]
     });
 
     it('should handle string line numbers (not numeric)', () => {
       // Arrange: Line numbers are strings (from CSV row indices)
-      const existingLineNumbers = ['1', '5', '10'];
-      const newLineNumber = '15';
-
-      // Act: Append
-      if (!existingLineNumbers.includes(newLineNumber)) {
-        existingLineNumbers.push(newLineNumber);
-      }
+      const newLineNumbers = ['1', '5', '10'];
 
       // Assert: All line numbers are strings
-      expect(existingLineNumbers).toEqual(['1', '5', '10', '15']);
-      existingLineNumbers.forEach(lineNum => {
+      newLineNumbers.forEach(lineNum => {
         expect(typeof lineNum).toBe('string');
       });
     });
   });
 
   describe('T022: Milestone preservation on update', () => {
-    it('should preserve existing current_milestones when updating quantity', () => {
+    it('should preserve existing current_milestones when replacing footage', () => {
       // Arrange: Existing component with milestone progress
       const existingMilestones = {
         Fabricate_LF: 25,  // 50% of original 50 LF
@@ -698,20 +664,22 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
         line_numbers: ['101']
       };
 
-      // New import with +50 LF
-      const newQty = 50;
-      const newLineNumber = '205';
+      // Re-import with spreadsheet value of 100 LF
+      const newImportAttributes = {
+        total_linear_feet: 100,
+        line_numbers: ['101', '205']
+      };
 
-      // Act: Update attributes but preserve milestones
+      // Act: REPLACE attributes but preserve milestones
       const updatedAttributes = {
         ...existingAttributes,
-        total_linear_feet: existingAttributes.total_linear_feet + newQty,
-        line_numbers: [...existingAttributes.line_numbers, newLineNumber]
+        total_linear_feet: newImportAttributes.total_linear_feet,
+        line_numbers: newImportAttributes.line_numbers
       };
 
       const updatedMilestones = existingMilestones; // Preserved (no change)
 
-      // Assert: Attributes updated
+      // Assert: Attributes replaced with new import values
       expect(updatedAttributes.total_linear_feet).toBe(100);
       expect(updatedAttributes.line_numbers).toEqual(['101', '205']);
 
@@ -719,12 +687,6 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
       expect(updatedMilestones).toEqual(existingMilestones);
       expect(updatedMilestones.Fabricate_LF).toBe(25); // Still 25 LF
       expect(updatedMilestones.Install_LF).toBe(10);   // Still 10 LF
-
-      // Assert: Percentage will change automatically (25 LF / 100 LF = 25% instead of 50%)
-      const fabricatePercentBefore = Math.round((25 / 50) * 100);
-      const fabricatePercentAfter = Math.round((25 / 100) * 100);
-      expect(fabricatePercentBefore).toBe(50); // Was 50% of 50 LF
-      expect(fabricatePercentAfter).toBe(25);  // Now 25% of 100 LF
     });
 
     it('should preserve discrete milestones (Punch, Test, Restore)', () => {
@@ -740,10 +702,7 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
         Restore: false
       };
 
-      // New import with +50 LF
-      const newQty = 50;
-
-      // Act: Preserve milestones (no update)
+      // Act: Re-import replaces footage but preserves milestones
       const updatedMilestones = existingMilestones;
 
       // Assert: Discrete milestones unchanged
@@ -765,10 +724,7 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
         Restore: false
       };
 
-      // New import with +100 LF
-      const newQty = 100;
-
-      // Act: Preserve milestones
+      // Act: Re-import replaces footage but preserves milestones
       const updatedMilestones = existingMilestones;
 
       // Assert: All partial milestones still 0

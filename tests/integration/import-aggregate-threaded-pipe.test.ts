@@ -195,7 +195,7 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(updateMilestoneError).toBeNull();
 
     // ========================================
-    // Step 3: Re-import with same identity (duplicate)
+    // Step 3: Re-import with same identity (REPLACE semantics)
     // ========================================
 
     // Query existing component
@@ -210,26 +210,18 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(queryError).toBeNull();
     expect(existingComponent).toBeDefined();
 
-    // Arrange: New import with +50 LF and line number "2"
-    const newQty = 50;
-    const newLineNumber = '2';
+    // Arrange: Re-import with spreadsheet value of 50 LF and line numbers ["1", "2"]
+    const newImportTotal = 50;
+    const newImportLineNumbers = ['1', '2'];
 
-    // Act: Update existing component (sum quantities, append line number)
-    const existingTotal = existingComponent!.attributes.total_linear_feet || 0;
-    const existingLineNumbers = existingComponent!.attributes.line_numbers || [];
-
-    const updatedTotal = existingTotal + newQty;
-    const updatedLineNumbers = existingLineNumbers.includes(newLineNumber)
-      ? existingLineNumbers
-      : [...existingLineNumbers, newLineNumber];
-
+    // Act: REPLACE existing component attributes (spreadsheet is source of truth)
     const { error: updateError } = await supabase
       .from('components')
       .update({
         attributes: {
           ...existingComponent!.attributes,
-          total_linear_feet: updatedTotal,
-          line_numbers: updatedLineNumbers
+          total_linear_feet: newImportTotal,
+          line_numbers: newImportLineNumbers
         }
         // Note: current_milestones is NOT updated (preserved)
       })
@@ -250,19 +242,15 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(verifyError).toBeNull();
     expect(updatedComponent).toBeDefined();
 
-    // Assert: Quantity summed (50 + 50 = 100)
-    expect(updatedComponent!.attributes.total_linear_feet).toBe(100);
+    // Assert: Footage REPLACED (not summed): still 50, not 100
+    expect(updatedComponent!.attributes.total_linear_feet).toBe(50);
 
-    // Assert: Line numbers appended (["1"] + "2" → ["1", "2"])
+    // Assert: Line numbers REPLACED with new import values
     expect(updatedComponent!.attributes.line_numbers).toEqual(['1', '2']);
 
     // Assert: Milestones preserved (absolute LF values unchanged)
     expect(updatedComponent!.current_milestones.Fabricate_LF).toBe(25); // Still 25 LF
     expect(updatedComponent!.current_milestones.Install_LF).toBe(10);   // Still 10 LF
-
-    // Assert: Percentage now different (25 LF / 100 LF = 25% instead of 50%)
-    const fabricatePercent = Math.round((25 / 100) * 100);
-    expect(fabricatePercent).toBe(25); // Was 50% before, now 25%
 
     // ========================================
     // Step 5: Verify no duplicate components created
@@ -280,14 +268,14 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(allComponents!.length).toBe(1); // Only 1 component (no duplicates)
   });
 
-  it('should handle third import correctly (50 + 50 + 30 = 130)', async () => {
+  it('should handle re-import with updated spreadsheet (REPLACE: 100 → 130)', async () => {
     // Skip test if authentication failed
     if (!testProjectId) {
       console.warn('Skipping test - no test project created');
       return;
     }
 
-    // Arrange: Create component with 100 LF (after two imports)
+    // Arrange: Create component with 100 LF (from previous import)
     const pipeId = 'P-001-1-PIPE-SCH40-AGG';
 
     const { data: component, error: createError } = await supabase
@@ -317,27 +305,24 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
 
     expect(createError).toBeNull();
 
-    // Act: Third import with +30 LF
-    const newQty = 30;
-    const newLineNumber = '3';
-
-    const updatedTotal = component!.attributes.total_linear_feet + newQty;
-    const updatedLineNumbers = [...component!.attributes.line_numbers, newLineNumber];
+    // Act: Re-import with updated spreadsheet showing 130 LF across 3 lines
+    const newImportTotal = 130;
+    const newImportLineNumbers = ['1', '2', '3'];
 
     const { error: updateError } = await supabase
       .from('components')
       .update({
         attributes: {
           ...component!.attributes,
-          total_linear_feet: updatedTotal,
-          line_numbers: updatedLineNumbers
+          total_linear_feet: newImportTotal,
+          line_numbers: newImportLineNumbers
         }
       })
       .eq('id', component!.id);
 
     expect(updateError).toBeNull();
 
-    // Assert: Total is 130 (100 + 30)
+    // Assert: Total REPLACED to 130 (not 100 + 130 = 230)
     const { data: updatedComponent } = await supabase
       .from('components')
       .select('*')
@@ -352,14 +337,14 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
     expect(updatedComponent!.current_milestones.Install_LF).toBe(25);
   });
 
-  it('should NOT duplicate line numbers if re-importing same CSV row', async () => {
+  it('should be idempotent — re-importing same spreadsheet produces identical result', async () => {
     // Skip test if authentication failed
     if (!testProjectId) {
       console.warn('Skipping test - no test project created');
       return;
     }
 
-    // Arrange: Create component with line_numbers: ["1"]
+    // Arrange: Create component (first import: 50 LF, line ["1"])
     const pipeId = 'P-001-1-PIPE-SCH40-AGG';
 
     const { data: component, error: createError } = await supabase
@@ -389,35 +374,28 @@ describe('Integration: Aggregate Threaded Pipe Import with Duplicate Handling', 
 
     expect(createError).toBeNull();
 
-    // Act: Re-import with same line number "1" (idempotent)
-    const newQty = 50;
-    const newLineNumber = '1'; // Same line number
-
-    const existingLineNumbers = component!.attributes.line_numbers;
-    const updatedLineNumbers = existingLineNumbers.includes(newLineNumber)
-      ? existingLineNumbers
-      : [...existingLineNumbers, newLineNumber];
-
+    // Act: Re-import same spreadsheet (REPLACE with same values)
     const { error: updateError } = await supabase
       .from('components')
       .update({
         attributes: {
           ...component!.attributes,
-          total_linear_feet: component!.attributes.total_linear_feet + newQty,
-          line_numbers: updatedLineNumbers
+          total_linear_feet: 50,       // Same value (REPLACE, not add)
+          line_numbers: ['1']           // Same value (REPLACE, not append)
         }
       })
       .eq('id', component!.id);
 
     expect(updateError).toBeNull();
 
-    // Assert: Line numbers still ["1"] (no duplicate)
+    // Assert: Values unchanged (idempotent)
     const { data: updatedComponent } = await supabase
       .from('components')
       .select('*')
       .eq('id', component!.id)
       .single();
 
+    expect(updatedComponent!.attributes.total_linear_feet).toBe(50); // NOT 100
     expect(updatedComponent!.attributes.line_numbers).toEqual(['1']);
     expect(updatedComponent!.attributes.line_numbers.length).toBe(1);
   });
