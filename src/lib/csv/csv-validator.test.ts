@@ -787,6 +787,56 @@ describe('csv-validator', () => {
       // Edge Function would sum these: 30 + 40 + 30 = 100 LF
     });
 
+    it('should ALLOW duplicate Pipe identities (same aggregate model as Threaded_Pipe)', () => {
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Pipe', SIZE: '2"', QTY: '75', 'CMDTY CODE': 'PIPE-SCH40' },
+        { DRAWING: 'P-001', TYPE: 'Pipe', SIZE: '2"', QTY: '25', 'CMDTY CODE': 'PIPE-SCH40' } // Duplicate identity
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      // Both rows should be marked VALID (not error)
+      expect(results).toHaveLength(2);
+      expect(results[0]?.status).toBe('valid');
+      expect(results[1]?.status).toBe('valid');
+      expect(results[0]?.data?.type).toBe('Pipe');
+      expect(results[1]?.data?.type).toBe('Pipe');
+    });
+
+    it('should handle mixed Pipe (valid) and Valve (error) duplicates', () => {
+      const rows = [
+        { DRAWING: 'P-001', TYPE: 'Pipe', SIZE: '2"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' },
+        { DRAWING: 'P-001', TYPE: 'Pipe', SIZE: '2"', QTY: '50', 'CMDTY CODE': 'PIPE-SCH40' }, // Allowed
+        { DRAWING: 'P-001', TYPE: 'Valve', SIZE: '2"', QTY: '1', 'CMDTY CODE': 'GATE-150' },
+        { DRAWING: 'P-001', TYPE: 'Valve', SIZE: '2"', QTY: '1', 'CMDTY CODE': 'GATE-150' } // Rejected
+      ];
+
+      const columnLookupMap = new Map([
+        ['DRAWING', 'DRAWING'],
+        ['TYPE', 'TYPE'],
+        ['SIZE', 'SIZE'],
+        ['QTY', 'QTY'],
+        ['CMDTY CODE', 'CMDTY CODE']
+      ]);
+
+      const results = validateRows(rows, columnLookupMap);
+
+      expect(results).toHaveLength(4);
+      expect(results[0]?.status).toBe('valid'); // Pipe #1
+      expect(results[1]?.status).toBe('valid'); // Pipe #2 (duplicate allowed)
+      expect(results[2]?.status).toBe('valid'); // Valve #1
+      expect(results[3]?.status).toBe('error'); // Valve #2 (duplicate rejected)
+      expect(results[3]?.category).toBe('duplicate_identity_key');
+    });
+
     it('should handle case-insensitive Threaded_Pipe duplicate exception', () => {
       // Verify case variations are handled correctly
       const rows = [
