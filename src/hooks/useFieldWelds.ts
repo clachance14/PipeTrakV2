@@ -120,6 +120,7 @@ export function useFieldWelds({ projectId, enabled = true }: UseFieldWeldsOption
           )
         `)
         .eq('project_id', projectId)
+        .eq('components.is_retired', false)
         .order('date_welded', { ascending: false, nullsFirst: false })
 
       if (weldsError) throw weldsError

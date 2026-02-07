@@ -14,6 +14,7 @@ export type ComponentSortField =
   | 'system'            // Sort by system name
   | 'test_package'      // Sort by test package name
   | 'percent_complete'  // Sort by progress percentage
+  | 'footage'           // Sort by total linear feet (pipe/threaded_pipe)
 
 /**
  * Sort direction options (matches drawing-table.types)

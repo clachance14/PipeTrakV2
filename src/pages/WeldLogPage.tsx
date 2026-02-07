@@ -76,6 +76,7 @@ export function WeldLogPage() {
   const [isEditWeldDialogOpen, setIsEditWeldDialogOpen] = useState(false)
   const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false)
   const [isCreateUnplannedDialogOpen, setIsCreateUnplannedDialogOpen] = useState(false)
+  const [editWeldInitialSection, setEditWeldInitialSection] = useState<'specs' | 'nde' | undefined>(undefined)
 
   // Extract unique drawings, welders, packages, and systems for filter dropdowns
   const drawings = useMemo(() => {
@@ -152,14 +153,37 @@ export function WeldLogPage() {
     const weld = filteredWelds.find((w) => w.id === weldId)
     if (weld) {
       setSelectedWeld(weld)
+      setEditWeldInitialSection(undefined)
+      setIsDetailModalOpen(false)
+      setIsEditWeldDialogOpen(true)
+    }
+  }
+
+  const handleUpdateNDE = (weldId: string) => {
+    const weld = filteredWelds.find((w) => w.id === weldId)
+    if (weld) {
+      setSelectedWeld(weld)
+      setEditWeldInitialSection('nde')
       setIsDetailModalOpen(false)
       setIsEditWeldDialogOpen(true)
     }
   }
 
   const handleEditWeldFromModal = () => {
+    setEditWeldInitialSection(undefined)
     setIsDetailModalOpen(false)
     setIsEditWeldDialogOpen(true)
+  }
+
+  const handleUpdateNDEFromModal = () => {
+    setEditWeldInitialSection('nde')
+    setIsDetailModalOpen(false)
+    setIsEditWeldDialogOpen(true)
+  }
+
+  const handleWeldRetired = () => {
+    setSelectedWeld(null)
+    setIsEditWeldDialogOpen(false)
   }
 
   // Export handlers
@@ -355,6 +379,7 @@ export function WeldLogPage() {
               }
             }}
             onEditWeld={handleEditWeld}
+            onUpdateNDE={handleUpdateNDE}
           />
         </div>
       </div>
@@ -369,6 +394,7 @@ export function WeldLogPage() {
             onOpenChange={setIsDetailModalOpen}
             onUpdateWeld={handleUpdateWeld}
             onEditWeld={handleEditWeldFromModal}
+            onUpdateNDE={handleUpdateNDEFromModal}
           />
 
           {/* Update Weld Dialog (Feature 022) */}
@@ -404,8 +430,13 @@ export function WeldLogPage() {
             weld={selectedWeld}
             projectId={projectId}
             open={isEditWeldDialogOpen}
-            onOpenChange={setIsEditWeldDialogOpen}
+            onOpenChange={(open) => {
+              setIsEditWeldDialogOpen(open)
+              if (!open) setEditWeldInitialSection(undefined)
+            }}
             onRepairWeldNeeded={() => setIsRepairDialogOpen(true)}
+            onWeldRetired={handleWeldRetired}
+            initialSection={editWeldInitialSection}
           />
 
           {/* Repair Weld Dialog (existing functionality) */}
@@ -444,3 +475,4 @@ export function WeldLogPage() {
     </Layout>
   )
 }
+

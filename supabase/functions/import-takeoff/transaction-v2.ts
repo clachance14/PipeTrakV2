@@ -442,9 +442,9 @@ export async function processImportV2(
               Erect_LF: 0,
               Connect_LF: 0,
               Support_LF: 0,
-              Punch: false,
-              Test: false,
-              Restore: false
+              Punch: 0,
+              Test: 0,
+              Restore: 0
             }
           };
           threadedPipeAggregates.set(pipeId, newAggregate);
@@ -482,9 +482,9 @@ export async function processImportV2(
               Erect: 0,
               Connect: 0,
               Support: 0,
-              Punch: false,
-              Test: false,
-              Restore: false
+              Punch: 0,
+              Test: 0,
+              Restore: 0
             }
           };
           pipeAggregates.set(pipeId, newAggregate);
@@ -505,48 +505,53 @@ export async function processImportV2(
       }
     });
 
-    // Step 4.5: Process threaded_pipe aggregates using atomic upsert RPC
-    // (Prevents race conditions via SELECT...FOR UPDATE row-level locking)
+    // Step 4.5: Process threaded_pipe aggregates (check exists, update or insert)
+    // Uses REPLACE semantics: spreadsheet is source of truth, re-import overwrites footage
     if (threadedPipeAggregates.size > 0) {
       for (const [pipeId, newAggregate] of threadedPipeAggregates.entries()) {
-        // For each line number in this aggregate, call the atomic upsert RPC
-        // This ensures concurrent imports don't cause lost updates
-        for (const lineNumber of newAggregate.attributes.line_numbers) {
-          const { data: upsertResult, error: upsertError } = await supabase
-            .rpc('upsert_aggregate_threaded_pipe', {
-              p_project_id: payload.projectId,
-              p_drawing_id: newAggregate.drawing_id,
-              p_template_id: newAggregate.progress_template_id,
-              p_identity_key: newAggregate.identity_key,
-              p_attributes: {
-                ...newAggregate.attributes,
-                line_numbers: [] // RPC will manage line_numbers
-              },
-              p_current_milestones: newAggregate.current_milestones,
-              p_area_id: newAggregate.area_id,
-              p_system_id: newAggregate.system_id,
-              p_test_package_id: newAggregate.test_package_id,
-              p_additional_linear_feet: newAggregate.attributes.total_linear_feet / newAggregate.attributes.line_numbers.length,
-              p_new_line_number: lineNumber
-            });
+        // Check if this threaded_pipe aggregate already exists in the database
+        const { data: existingThreaded, error: checkError } = await supabase
+          .from('components')
+          .select('id, attributes')
+          .eq('project_id', payload.projectId)
+          .eq('component_type', 'threaded_pipe')
+          .eq('identity_key->>pipe_id', pipeId)
+          .eq('is_retired', false)
+          .single();
 
-          if (upsertError) {
-            throw new Error(`Failed to upsert threaded_pipe aggregate ${pipeId}: ${upsertError.message}`);
-          }
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw new Error(`Failed to check existing threaded_pipe ${pipeId}: ${checkError.message}`);
+        }
 
-          // Track component creation/update for summary
-          if (upsertResult && upsertResult.length > 0) {
-            const result = upsertResult[0];
-            if (result.was_created) {
-              componentsCreated += 1;
-            } else {
-              componentsUpdated += 1;
-            }
+        if (existingThreaded) {
+          // Update existing threaded_pipe aggregate - REPLACE with spreadsheet values (idempotent)
+          const { error: updateError } = await supabase
+            .from('components')
+            .update({
+              attributes: {
+                ...(existingThreaded.attributes as any),
+                total_linear_feet: newAggregate.attributes.total_linear_feet,
+                line_numbers: newAggregate.attributes.line_numbers
+              }
+            })
+            .eq('id', existingThreaded.id);
+
+          if (updateError) {
+            throw new Error(`Failed to update threaded_pipe aggregate ${pipeId}: ${updateError.message}`);
           }
+          componentsUpdated += 1;
+        } else {
+          // Insert new threaded_pipe aggregate
+          const { error: insertError } = await supabase
+            .from('components')
+            .insert(newAggregate);
+
+          if (insertError) {
+            throw new Error(`Failed to insert threaded_pipe aggregate ${pipeId}: ${insertError.message}`);
+          }
+          componentsCreated += 1;
         }
       }
-
-      // componentsByType already incremented in main loop (line 308)
     }
 
     // Step 4.6: Process pipe aggregates (simpler approach - check exists, update or insert)
@@ -569,18 +574,14 @@ export async function processImportV2(
         }
 
         if (existingPipe) {
-          // Update existing pipe aggregate - add linear feet and line numbers
-          const existingLF = (existingPipe.attributes as any)?.total_linear_feet || 0;
-          const existingLineNumbers = (existingPipe.attributes as any)?.line_numbers || [];
-          const newLineNumbers = [...new Set([...existingLineNumbers, ...newAggregate.attributes.line_numbers])];
-
+          // Update existing pipe aggregate - REPLACE with spreadsheet values (idempotent)
           const { error: updateError } = await supabase
             .from('components')
             .update({
               attributes: {
                 ...(existingPipe.attributes as any),
-                total_linear_feet: existingLF + newAggregate.attributes.total_linear_feet,
-                line_numbers: newLineNumbers
+                total_linear_feet: newAggregate.attributes.total_linear_feet,
+                line_numbers: newAggregate.attributes.line_numbers
               }
             })
             .eq('id', existingPipe.id);

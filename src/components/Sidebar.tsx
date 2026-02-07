@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -39,6 +40,7 @@ interface NavItem {
 
 export function Sidebar() {
   const { isCollapsed, isMobileOpen, isHovering, toggle, setMobileOpen, setHovering } = useSidebarStore();
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const { selectedProjectId } = useProject();
   const { role } = usePermissions();
@@ -86,10 +88,14 @@ export function Sidebar() {
       <div
         onMouseEnter={() => {
           if (isCollapsed) {
-            setHovering(true);
+            hoverTimeoutRef.current = setTimeout(() => setHovering(true), 300);
           }
         }}
         onMouseLeave={() => {
+          if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+          }
           if (isCollapsed) {
             setHovering(false);
           }

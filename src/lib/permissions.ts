@@ -43,6 +43,10 @@ export function canCreateFieldWeld(role: Role): boolean {
   return ['owner', 'admin', 'project_manager', 'foreman', 'qc_inspector'].includes(role);
 }
 
+export function canDeleteFieldWeld(role: Role): boolean {
+  return ['owner', 'admin', 'project_manager', 'foreman', 'qc_inspector'].includes(role);
+}
+
 // Role-based redirect paths for post-login/registration
 export function getRoleRedirectPath(role: Role): string {
   switch (role) {

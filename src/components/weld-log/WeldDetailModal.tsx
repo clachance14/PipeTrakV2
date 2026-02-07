@@ -20,9 +20,10 @@ interface WeldDetailModalProps {
   onOpenChange: (open: boolean) => void
   onUpdateWeld: () => void
   onEditWeld?: () => void
+  onUpdateNDE?: () => void
 }
 
-export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEditWeld }: WeldDetailModalProps) {
+export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEditWeld, onUpdateNDE }: WeldDetailModalProps) {
   // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-'
@@ -200,7 +201,7 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEdit
                 </button>
               )}
 
-              {weld.welder_id && onEditWeld && (
+              {onEditWeld && (
                 <button
                   onClick={onEditWeld}
                   className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -209,6 +210,17 @@ export function WeldDetailModal({ weld, open, onOpenChange, onUpdateWeld, onEdit
                   Edit Weld
                 </button>
               )}
+
+              {onUpdateNDE && weld.welder_id && !weld.nde_result && (
+                <button
+                  onClick={onUpdateNDE}
+                  className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Update NDE result"
+                >
+                  Update NDE
+                </button>
+              )}
+
             </div>
 
             {/* Close Button */}

@@ -73,7 +73,9 @@ describe('useFieldWelds', () => {
 
     const mockSelect = vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
-        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+        }),
       }),
     })
 
@@ -114,7 +116,9 @@ describe('useFieldWelds', () => {
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: orderMock,
+          eq: vi.fn().mockReturnValue({
+            order: orderMock,
+          }),
         }),
       }),
     } as any)
@@ -135,7 +139,9 @@ describe('useFieldWelds', () => {
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
         }),
       }),
     } as any)
@@ -155,7 +161,9 @@ describe('useFieldWelds', () => {
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: null, error: mockError }),
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: null, error: mockError }),
+          }),
         }),
       }),
     } as any)

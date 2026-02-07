@@ -132,8 +132,8 @@ export function validateRows(
     );
 
     // Check for duplicate identity keys
-    // EXCEPTION: Allow duplicates for Threaded_Pipe (will be summed in Edge Function)
-    if (identityKeys.has(identityKey) && validatedType.toLowerCase() !== 'threaded_pipe') {
+    // EXCEPTION: Allow duplicates for aggregate types (pipe, threaded_pipe) — aggregated in Edge Function
+    if (identityKeys.has(identityKey) && !['threaded_pipe', 'pipe'].includes(validatedType.toLowerCase())) {
       results.push({
         rowNumber,
         status: 'error',

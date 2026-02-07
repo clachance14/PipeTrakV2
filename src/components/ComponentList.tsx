@@ -31,6 +31,7 @@ const COLUMNS = [
   { id: 'system', label: 'System', canHide: true },
   { id: 'test_package', label: 'Package', canHide: true },
   { id: 'drawing', label: 'Drawing', canHide: true },
+  { id: 'footage', label: 'Footage', canHide: true },
 ];
 
 interface ComponentListProps {
@@ -255,6 +256,18 @@ export function ComponentList({
         {visibleColumns.includes('milestones') && (
           <div className="flex-1 min-w-0 hidden xl:block">
             Milestones
+          </div>
+        )}
+
+        {/* Footage */}
+        {visibleColumns.includes('footage') && (
+          <div className="w-24 hidden lg:block">
+            <SortableColumnHeader
+              label="Footage"
+              field="footage"
+              sortInfo={getSortInfo('footage')}
+              onSort={onSort}
+            />
           </div>
         )}
 

@@ -65,6 +65,7 @@ const DEFAULT_VISIBLE_COLUMNS = [
   'selection',
   'identity_key',
   'component_type',
+  'footage',
   'percent_complete',
   'milestones',
   'area',

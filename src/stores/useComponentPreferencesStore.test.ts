@@ -212,9 +212,10 @@ describe('useComponentPreferencesStore', () => {
         result.current.showAllColumns()
       })
 
-      expect(result.current.visibleColumns).toHaveLength(10)
+      expect(result.current.visibleColumns).toHaveLength(11)
       expect(result.current.visibleColumns).toContain('selection')
       expect(result.current.visibleColumns).toContain('identity_key')
+      expect(result.current.visibleColumns).toContain('footage')
       expect(result.current.visibleColumns).toContain('actions')
     })
 
@@ -429,7 +430,7 @@ describe('useComponentPreferencesStore', () => {
       expect(result.current.sortRules).toEqual([
         { field: 'identity_key', direction: 'asc' },
       ])
-      expect(result.current.visibleColumns).toHaveLength(10)
+      expect(result.current.visibleColumns).toHaveLength(11)
       expect(result.current.density).toBe('comfortable')
       expect(result.current.savedViews).toHaveLength(3)
       expect(result.current.activeViewId).toBe('default')
