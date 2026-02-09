@@ -20,7 +20,7 @@ export type Permission =
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: ['manage_drawings', 'assign_metadata', 'update_milestones', 'assign_welders', 'manage_team', 'view_reports', 'manage_projects'],
   admin: ['manage_drawings', 'assign_metadata', 'update_milestones', 'assign_welders', 'manage_team', 'view_reports'],
-  project_manager: ['manage_drawings', 'assign_metadata', 'update_milestones', 'view_reports'],
+  project_manager: ['manage_drawings', 'assign_metadata', 'update_milestones', 'assign_welders', 'view_reports'],
   foreman: ['assign_metadata', 'update_milestones', 'assign_welders'],
   qc_inspector: ['update_milestones', 'view_reports'],
   welder: ['update_milestones'],
