@@ -8,7 +8,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FieldWeldReportTable } from './FieldWeldReportTable';
-import type { FieldWeldReportData } from '@/types/reports';
+import type { FieldWeldReportData, FieldWeldDeltaReportData } from '@/types/reports';
 
 // Create a wrapper with QueryClient for tests
 const createTestQueryClient = () =>
@@ -865,6 +865,181 @@ describe('FieldWeldReportTable', () => {
       const headerContainer = areaHeaders[0].closest('div.sticky');
       expect(headerContainer).toBeInTheDocument();
       expect(headerContainer).toHaveClass('sticky', 'top-0');
+    });
+  });
+
+  describe('Inline Delta Columns', () => {
+    const mockDeltaData: FieldWeldDeltaReportData = {
+      dimension: 'area',
+      projectId: 'project-1',
+      generatedAt: new Date('2025-10-28T10:00:00Z'),
+      dateRange: { preset: 'last_30_days' },
+      rows: [
+        {
+          id: 'area-1',
+          name: 'B-64 OSBL',
+          weldsWithActivity: 10,
+          deltaFitupCount: 5,
+          deltaWeldCompleteCount: 3,
+          deltaAcceptedCount: 2,
+          deltaPctTotal: 1.5,
+          deltaNewWelds: 4,
+        },
+        {
+          id: 'area-2',
+          name: 'A-12 Process',
+          weldsWithActivity: 4,
+          deltaFitupCount: 0,
+          deltaWeldCompleteCount: -1,
+          deltaAcceptedCount: 1,
+          deltaPctTotal: -0.3,
+          deltaNewWelds: 1,
+        },
+      ],
+      grandTotal: {
+        name: 'Grand Total',
+        weldsWithActivity: 14,
+        deltaFitupCount: 5,
+        deltaWeldCompleteCount: 2,
+        deltaAcceptedCount: 3,
+        deltaPctTotal: 1.2,
+        deltaNewWelds: 5,
+      },
+    };
+
+    it('does not render inline delta values when deltaData is not provided', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+        />
+      );
+
+      expect(screen.queryByTestId('inline-delta')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mobile-delta-pct')).not.toBeInTheDocument();
+    });
+
+    it('renders inline delta values next to all-time values when deltaData is provided', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // Desktop inline deltas should appear
+      const inlineDeltas = screen.getAllByTestId('inline-delta');
+      expect(inlineDeltas.length).toBeGreaterThan(0);
+    });
+
+    it('renders new welds delta next to total welds', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // B-64 OSBL has deltaNewWelds: 4, shown as "(+4)" next to total welds
+      const inlineDeltas = screen.getAllByTestId('inline-delta');
+      const plusFourSpan = inlineDeltas.find(el => el.textContent === '(+4)');
+      expect(plusFourSpan).toBeDefined();
+      expect(plusFourSpan).toHaveClass('text-green-600');
+    });
+
+    it('renders positive delta with green color and + prefix inline', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // B-64 OSBL deltaWeldCompleteCount: +3 shown inline as "(+3)"
+      const inlineDeltas = screen.getAllByTestId('inline-delta');
+      const plusThreeSpan = inlineDeltas.find(el => el.textContent === '(+3)');
+      expect(plusThreeSpan).toBeDefined();
+      expect(plusThreeSpan).toHaveClass('text-green-600');
+    });
+
+    it('renders negative delta with red color inline', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // A-12 Process deltaWeldCompleteCount: -1 shown inline as "(-1)"
+      const inlineDeltas = screen.getAllByTestId('inline-delta');
+      const minusOneSpan = inlineDeltas.find(el => el.textContent === '(-1)');
+      expect(minusOneSpan).toBeDefined();
+      expect(minusOneSpan).toHaveClass('text-red-600');
+    });
+
+    it('renders delta percentage values with correct formatting inline', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // B-64 OSBL deltaPctTotal: +1.5% shown inline as "(+1.5%)"
+      const inlineDeltas = screen.getAllByTestId('inline-delta');
+      const plusPctSpan = inlineDeltas.find(el => el.textContent === '(+1.5%)');
+      expect(plusPctSpan).toBeDefined();
+      expect(plusPctSpan).toHaveClass('text-green-600');
+
+      // A-12 Process deltaPctTotal: -0.3% shown inline as "(-0.3%)"
+      const minusPctSpan = inlineDeltas.find(el => el.textContent === '(-0.3%)');
+      expect(minusPctSpan).toBeDefined();
+      expect(minusPctSpan).toHaveClass('text-red-600');
+    });
+
+    it('renders delta for grand total row inline', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // Grand total deltaPctTotal: +1.2% shown inline as "(+1.2%)"
+      const inlineDeltas = screen.getAllByTestId('inline-delta');
+      const grandTotalPctSpan = inlineDeltas.find(el => el.textContent === '(+1.2%)');
+      expect(grandTotalPctSpan).toBeDefined();
+    });
+
+    it('renders inline mobile delta percentage', () => {
+      renderWithProvider(
+        <FieldWeldReportTable
+          reportData={mockReportData}
+          projectName={mockProjectName}
+          onExport={mockOnExport}
+          deltaData={mockDeltaData}
+        />
+      );
+
+      // Mobile delta % Complete should be inline
+      const mobileDeltaPcts = screen.getAllByTestId('mobile-delta-pct');
+      expect(mobileDeltaPcts.length).toBeGreaterThan(0);
+      // Rows are sorted by name ascending: A-12 Process comes first (-0.3%), then B-64 OSBL (+1.5%)
+      expect(mobileDeltaPcts[0]).toHaveTextContent('(-0.3%)');
+      expect(mobileDeltaPcts[1]).toHaveTextContent('(+1.5%)');
     });
   });
 });

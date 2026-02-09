@@ -20,9 +20,7 @@ import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
 import { DimensionSelector } from '@/components/reports/DimensionSelector';
 import { ReportPreview } from '@/components/reports/ReportPreview';
 import { FieldWeldReportTable } from '@/components/reports/FieldWeldReportTable';
-import { FieldWeldDeltaReportTable } from '@/components/reports/FieldWeldDeltaReportTable';
 import { DateRangeFilter } from '@/components/reports/DateRangeFilter';
-import { NoActivityFound } from '@/components/reports/NoActivityFound';
 import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3 } from 'lucide-react';
@@ -295,39 +293,10 @@ export function ReportsPage() {
                     </>
                   )}
                 </>
-              ) : isDeltaMode ? (
-                <>
-                  {/* Delta Mode: Field Weld Delta Report */}
-                  {isLoadingFieldWeldDelta && (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="text-center space-y-4">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                        <p className="text-muted-foreground">Loading field weld delta report...</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {fieldWeldDeltaError && (
-                    <div className="border border-destructive rounded-lg p-6 bg-destructive/10">
-                      <p className="text-destructive font-medium">Error loading field weld delta report:</p>
-                      <p className="text-sm text-destructive mt-2">{fieldWeldDeltaError.message}</p>
-                    </div>
-                  )}
-
-                  {!isLoadingFieldWeldDelta && !fieldWeldDeltaError && (
-                    <>
-                      {fieldWeldDeltaData && fieldWeldDeltaData.rows.length > 0 ? (
-                        <FieldWeldDeltaReportTable data={fieldWeldDeltaData} />
-                      ) : (
-                        <NoActivityFound dateRange={dateRange} />
-                      )}
-                    </>
-                  )}
-                </>
               ) : (
                 <>
-                  {/* Standard Field Weld Report (area, system, test_package, overall) */}
-                  {isLoadingFieldWeld && (
+                  {/* Field Weld Report with inline delta columns when date range is active */}
+                  {(isLoadingFieldWeld || (isDeltaMode && isLoadingFieldWeldDelta)) && (
                     <div className="flex items-center justify-center py-12">
                       <div className="text-center space-y-4">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -343,7 +312,14 @@ export function ReportsPage() {
                     </div>
                   )}
 
-                  {fieldWeldReportData && !isLoadingFieldWeld && !fieldWeldError && (
+                  {fieldWeldDeltaError && isDeltaMode && (
+                    <div className="border border-destructive rounded-lg p-6 bg-destructive/10">
+                      <p className="text-destructive font-medium">Error loading delta report:</p>
+                      <p className="text-sm text-destructive mt-2">{fieldWeldDeltaError.message}</p>
+                    </div>
+                  )}
+
+                  {fieldWeldReportData && !isLoadingFieldWeld && !(isDeltaMode && isLoadingFieldWeldDelta) && !fieldWeldError && (
                     <>
                       {fieldWeldReportData.rows.length === 0 ? (
                         <div className="text-center py-12 border rounded-lg">
@@ -358,6 +334,7 @@ export function ReportsPage() {
                           reportData={fieldWeldReportData}
                           projectName={currentProject?.name || 'Unknown Project'}
                           onExport={handleFieldWeldExport}
+                          deltaData={isDeltaMode && fieldWeldDeltaData && fieldWeldDeltaData.rows.length > 0 ? fieldWeldDeltaData : undefined}
                         />
                       )}
                     </>

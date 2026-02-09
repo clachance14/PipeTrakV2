@@ -524,6 +524,7 @@ export interface FieldWeldDeltaRow {
   deltaWeldCompleteCount: number;
   deltaAcceptedCount: number;
   deltaPctTotal: number;
+  deltaNewWelds: number;    // new field_weld components created during the period
 }
 
 // Grand total for field weld delta
@@ -534,6 +535,7 @@ export interface FieldWeldDeltaGrandTotal {
   deltaWeldCompleteCount: number;
   deltaAcceptedCount: number;
   deltaPctTotal: number;
+  deltaNewWelds: number;    // new field_weld components created during the period
 }
 
 // Complete field weld delta report data

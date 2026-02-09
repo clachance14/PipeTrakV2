@@ -415,6 +415,7 @@ const createFieldWeldDeltaRow = (overrides: Partial<FieldWeldDeltaRow>): FieldWe
   deltaWeldCompleteCount: 8,
   deltaAcceptedCount: 3,
   deltaPctTotal: 5.5,
+  deltaNewWelds: 0,
   ...overrides,
 });
 
