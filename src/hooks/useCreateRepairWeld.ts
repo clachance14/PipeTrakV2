@@ -60,7 +60,7 @@ export function useCreateRepairWeld() {
 
       const { data: originalWeld, error: fetchError } = await supabase
         .from('field_welds')
-        .select('project_id, component_id, component:components!inner(progress_template_id, identity_key)')
+        .select('project_id, component_id, component:components!inner(progress_template_id, identity_key, area_id, system_id, test_package_id, manhour_weight)')
         .eq('id', payload.original_field_weld_id)
         .single()
 
@@ -69,7 +69,7 @@ export function useCreateRepairWeld() {
         throw new Error('Failed to fetch original weld')
       }
 
-      // Get the progress_template_id and identity_key from the original component
+      // Get inherited fields from the original component
       const originalComponent = originalWeld.component as any
       const progressTemplateId = originalComponent?.progress_template_id
       const originalIdentityKey = originalComponent?.identity_key
@@ -80,6 +80,9 @@ export function useCreateRepairWeld() {
         component_id: originalWeld.component_id,
         progress_template_id: progressTemplateId,
         original_weld_number: originalWeldNumber,
+        area_id: originalComponent?.area_id,
+        system_id: originalComponent?.system_id,
+        test_package_id: originalComponent?.test_package_id,
       })
 
       if (!progressTemplateId) {
@@ -99,6 +102,10 @@ export function useCreateRepairWeld() {
           weld_number: repairWeldNumber,
           repair_of: payload.original_field_weld_id,
         },
+        area_id: originalComponent?.area_id ?? null,
+        system_id: originalComponent?.system_id ?? null,
+        test_package_id: originalComponent?.test_package_id ?? null,
+        manhour_weight: originalComponent?.manhour_weight ?? 0,
         percent_complete: 0,
         current_milestones: {},
         created_by: user.id,
