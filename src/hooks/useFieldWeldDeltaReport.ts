@@ -29,6 +29,7 @@ function calculateFieldWeldDeltaGrandTotal(
       deltaWeldCompleteCount: 0,
       deltaAcceptedCount: 0,
       deltaPctTotal: 0,
+      deltaNewWelds: 0,
     };
   }
 
@@ -37,6 +38,7 @@ function calculateFieldWeldDeltaGrandTotal(
   const deltaFitupCount = rows.reduce((sum, row) => sum + row.deltaFitupCount, 0);
   const deltaWeldCompleteCount = rows.reduce((sum, row) => sum + row.deltaWeldCompleteCount, 0);
   const deltaAcceptedCount = rows.reduce((sum, row) => sum + row.deltaAcceptedCount, 0);
+  const deltaNewWelds = rows.reduce((sum, row) => sum + row.deltaNewWelds, 0);
 
   // Calculate weighted average for percentage (weight by weldsWithActivity)
   const deltaPctTotal =
@@ -52,6 +54,7 @@ function calculateFieldWeldDeltaGrandTotal(
     deltaWeldCompleteCount,
     deltaAcceptedCount,
     deltaPctTotal,
+    deltaNewWelds,
   };
 }
 
@@ -101,6 +104,7 @@ export function useFieldWeldDeltaReport(
         deltaWeldCompleteCount: row.delta_weld_complete_count || 0,
         deltaAcceptedCount: row.delta_accepted_count || 0,
         deltaPctTotal: row.delta_pct_total || 0,
+        deltaNewWelds: row.delta_new_welds || 0,
       }));
 
       // Filter out rows with no activity

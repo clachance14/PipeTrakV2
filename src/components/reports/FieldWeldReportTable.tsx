@@ -4,12 +4,12 @@
  * Supports column sorting with persistent preferences
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFieldWeldPDFExport } from '@/hooks/useFieldWeldPDFExport';
 import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
-import type { FieldWeldReportData, ExportFormat, FieldWeldReportColumn } from '@/types/reports';
+import type { FieldWeldReportData, FieldWeldDeltaReportData, FieldWeldDeltaRow, FieldWeldDeltaGrandTotal, ExportFormat, FieldWeldReportColumn } from '@/types/reports';
 import {
   FIELD_WELD_DIMENSION_LABELS,
   FIELD_WELD_REPORT_COLUMNS,
@@ -21,13 +21,52 @@ import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { useReportPreferencesStore, type FieldWeldReportSortColumn } from '@/stores/useReportPreferencesStore';
 import { sortFieldWeldReportRows } from '@/lib/report-sorting';
 
+/**
+ * Format delta count with color coding
+ * Positive values = green text with + prefix
+ * Negative values = red text
+ * Zero = neutral muted text
+ */
+function formatDeltaCount(value: number): { text: string; className: string } {
+  if (value > 0) {
+    return { text: `+${value}`, className: 'text-green-600 dark:text-green-400' };
+  } else if (value < 0) {
+    return { text: `${value}`, className: 'text-red-600 dark:text-red-400' };
+  }
+  return { text: '0', className: 'text-muted-foreground' };
+}
+
+/**
+ * Format delta percentage with color coding
+ * Positive values = green text with + prefix
+ * Negative values = red text
+ * Zero = neutral muted text
+ */
+function formatDeltaPercent(value: number): { text: string; className: string } {
+  if (value > 0) {
+    return { text: `+${value.toFixed(1)}%`, className: 'text-green-600 dark:text-green-400' };
+  } else if (value < 0) {
+    return { text: `${value.toFixed(1)}%`, className: 'text-red-600 dark:text-red-400' };
+  }
+  return { text: '0.0%', className: 'text-muted-foreground' };
+}
+
+/** Maps all-time column keys to their corresponding delta field + format */
+const INLINE_DELTA_MAP: Record<string, { deltaField: keyof FieldWeldDeltaRow & keyof FieldWeldDeltaGrandTotal; format: 'count' | 'percent' }> = {
+  totalWelds: { deltaField: 'deltaNewWelds', format: 'count' },
+  weldCompleteCount: { deltaField: 'deltaWeldCompleteCount', format: 'count' },
+  acceptedCount: { deltaField: 'deltaAcceptedCount', format: 'count' },
+  pctTotal: { deltaField: 'deltaPctTotal', format: 'percent' },
+};
+
 interface FieldWeldReportTableProps {
   reportData: FieldWeldReportData;
   projectName: string;
   onExport: (format: ExportFormat) => void;
+  deltaData?: FieldWeldDeltaReportData;
 }
 
-export function FieldWeldReportTable({ reportData, projectName, onExport }: FieldWeldReportTableProps) {
+export function FieldWeldReportTable({ reportData, projectName, onExport, deltaData }: FieldWeldReportTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { generatePDFPreview, isGenerating } = useFieldWeldPDFExport();
   const { data: companyLogo } = useOrganizationLogo();
@@ -102,6 +141,17 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
   // Get sort state from store
   const { fieldWeldReport, toggleFieldWeldSort } = useReportPreferencesStore();
   const { sortColumn, sortDirection } = fieldWeldReport;
+
+  // Build delta lookup map: id → delta row (for O(1) row matching)
+  const deltaByDimensionId = useMemo(() => {
+    if (!deltaData) return null;
+    const map = new Map<string, FieldWeldDeltaRow | FieldWeldDeltaGrandTotal>();
+    for (const row of deltaData.rows) {
+      map.set(row.id, row);
+    }
+    map.set('__grand_total__', deltaData.grandTotal);
+    return map;
+  }, [deltaData]);
 
   // Build column list based on dimension
   // Filter out repair rate column if all rows have 0% repair rate
@@ -309,6 +359,10 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
               if (!row) return null;
               const isGrandTotal = row.name === 'Grand Total';
 
+              // Look up corresponding delta row
+              const deltaKey = isGrandTotal ? '__grand_total__' : ('id' in row ? row.id : '');
+              const deltaRow = deltaByDimensionId?.get(deltaKey);
+
               return (
                 <div
                   key={virtualRow.index}
@@ -343,12 +397,36 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
                     aria-label={`Total ${formatValue(row.pctTotal, 'percentage')} complete`}
                   >
                     {formatValue(row.pctTotal, 'percentage')}
+                    {/* Inline mobile delta % Complete */}
+                    {deltaRow && (() => {
+                      const fmt = formatDeltaPercent(deltaRow.deltaPctTotal);
+                      return (
+                        <span className={`ml-1 text-xs ${fmt.className}`} data-testid="mobile-delta-pct">
+                          ({fmt.text})
+                        </span>
+                      );
+                    })()}
                   </div>
 
-                  {/* Desktop: All columns */}
+                  {/* Desktop: All columns with inline delta values */}
                   {columns.map((col) => {
                     const value = row[col.key as keyof typeof row];
                     const formattedValue = formatValue(value as number | null | undefined, col.format);
+
+                    // Check if this column has an inline delta
+                    const inlineDelta = INLINE_DELTA_MAP[col.key as string];
+                    let deltaSpan: React.ReactNode = null;
+                    if (inlineDelta && deltaRow) {
+                      const deltaValue = deltaRow[inlineDelta.deltaField] as number;
+                      const formatted = inlineDelta.format === 'percent'
+                        ? formatDeltaPercent(deltaValue)
+                        : formatDeltaCount(deltaValue);
+                      deltaSpan = (
+                        <span className={`ml-1 text-xs ${formatted.className}`} data-testid="inline-delta">
+                          ({formatted.text})
+                        </span>
+                      );
+                    }
 
                     return (
                       <div
@@ -358,6 +436,7 @@ export function FieldWeldReportTable({ reportData, projectName, onExport }: Fiel
                         aria-label={`${col.label}: ${formattedValue}`}
                       >
                         {col.key === 'name' ? value : formattedValue}
+                        {deltaSpan}
                       </div>
                     );
                   })}

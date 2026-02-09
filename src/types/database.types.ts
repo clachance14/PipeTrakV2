@@ -2438,6 +2438,7 @@ export type Database = {
         Returns: {
           delta_accepted_count: number
           delta_fitup_count: number
+          delta_new_welds: number
           delta_pct_total: number
           delta_weld_complete_count: number
           dimension_id: string

@@ -118,21 +118,21 @@ export function WeldLogTable({ welds, onAssignWelder, onEditWeld, onUpdateNDE, u
                 <td className={`px-3 py-2 text-sm font-medium text-slate-900 ${isMobile ? 'truncate max-w-0' : 'whitespace-nowrap'}`}>
                   <div className="flex items-center gap-1">
                     <span>{weld.identityDisplay}</span>
-                    {weld.is_unplanned && weld.notes && (
+                    {weld.is_unplanned && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
                             type="button"
                             className="ml-0.5 inline-flex items-center justify-center rounded-full p-0.5 text-blue-500 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            aria-label="Unplanned weld note"
+                            aria-label="Added weld"
                           >
                             <Info className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-xs bg-slate-900 text-white border-slate-700">
+                        <TooltipContent className="max-w-md w-fit bg-slate-900 text-white border-slate-700">
                           <div className="space-y-1">
                             <p className="text-xs font-semibold text-slate-300">Added Weld</p>
-                            <p className="text-sm">{weld.notes}</p>
+                            {weld.notes && <p className="text-sm break-words whitespace-normal">{weld.notes}</p>}
                           </div>
                         </TooltipContent>
                       </Tooltip>
