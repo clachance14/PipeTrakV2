@@ -174,7 +174,7 @@ export function usePackageCompletionReport(
             nde_summary,
           };
         })
-        .sort((a, b) => a.drawing_no_norm.localeCompare(b.drawing_no_norm)); // Sort by drawing number
+        .sort((a, b) => a.drawing_no_norm.localeCompare(b.drawing_no_norm, undefined, { numeric: true })); // Sort by drawing number
 
       // Calculate overall statistics
       const total_components = components.length;

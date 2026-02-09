@@ -89,7 +89,7 @@ export function WeldLogPage() {
         })
       }
     })
-    return Array.from(unique.values()).sort((a, b) => a.drawing_no_norm.localeCompare(b.drawing_no_norm))
+    return Array.from(unique.values()).sort((a, b) => a.drawing_no_norm.localeCompare(b.drawing_no_norm, undefined, { numeric: true }))
   }, [welds])
 
   const welders = useMemo(() => {
