@@ -2497,6 +2497,16 @@ export type Database = {
         Args: { target_project_id: string }
         Returns: Json
       }
+      get_search_index: {
+        Args: { p_project_id: string }
+        Returns: {
+          badge: string
+          category: string
+          id: string
+          label: string
+          sublabel: string
+        }[]
+      }
       get_user_org_role: {
         Args: { org_uuid: string; user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]

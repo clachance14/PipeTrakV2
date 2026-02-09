@@ -13,6 +13,7 @@ import { useNeedsReview } from '@/hooks/useNeedsReview'
 import { DemoModeBanner } from '@/components/demo/DemoModeBanner'
 import { DemoTour } from '@/components/demo/DemoTour'
 import { OrganizationLogoBadge } from '@/components/OrganizationLogoBadge'
+import { GlobalSearch } from '@/components/search/GlobalSearch'
 
 interface LayoutProps {
   children: ReactNode
@@ -155,28 +156,7 @@ export function Layout({ children, fixedHeight = false }: LayoutProps) {
             </div>
 
             {/* Center: Search Bar (hidden on mobile) */}
-            <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Search components, drawings, packages..."
-                  className="w-full rounded-md bg-slate-700 px-4 py-2 pl-10 text-sm text-white placeholder-slate-400 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-            </div>
+            <GlobalSearch />
 
             {/* Right: Notifications and User Menu */}
             <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
