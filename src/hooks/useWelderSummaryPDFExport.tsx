@@ -179,7 +179,7 @@ export function useWelderSummaryPDFExport(): UseWelderSummaryPDFExportReturn {
 
       try {
         link.click();
-      } catch (downloadError) {
+      } catch {
         // Cleanup on error
         URL.revokeObjectURL(url);
         throw new Error(

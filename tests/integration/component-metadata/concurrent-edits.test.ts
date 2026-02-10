@@ -17,7 +17,6 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createElement, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -34,7 +33,7 @@ vi.mock('@/lib/supabase', () => ({
 /**
  * Test wrapper with fresh QueryClient for each test
  */
-const createWrapper = () => {
+const _createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -331,7 +330,7 @@ describe('Concurrent Edit Conflict Detection', () => {
        * 5. onError callback should rollback cache to previous value
        */
 
-      const component = createMockComponent({
+      const _component = createMockComponent({
         version: 5,
         area_id: 'old-area-uuid'
       })
@@ -382,8 +381,8 @@ describe('Concurrent Edit Conflict Detection', () => {
        * not other components in the cache.
        */
 
-      const component1 = createMockComponent({ id: 'comp-1', version: 5 })
-      const component2 = createMockComponent({ id: 'comp-2', version: 3 })
+      const _component1 = createMockComponent({ id: 'comp-1', version: 5 })
+      const _component2 = createMockComponent({ id: 'comp-2', version: 3 })
 
       // Mock conflict for component1
       mockSupabase.select.mockResolvedValueOnce({
@@ -551,7 +550,7 @@ describe('Concurrent Edit Conflict Detection', () => {
        * 5. Save successfully (version 6 → 7)
        */
 
-      const conflictComponent = createMockComponent({ version: 5 })
+      const _conflictComponent = createMockComponent({ version: 5 })
       const refetchedComponent = createMockComponent({ version: 6 })
       const updatedComponent = createMockComponent({ version: 7 })
 
@@ -624,7 +623,7 @@ describe('Concurrent Edit Conflict Detection', () => {
        * - New last_updated_at timestamp
        */
 
-      const beforeSave = createMockComponent({ version: 6, area_id: 'old-area' })
+      const _beforeSave = createMockComponent({ version: 6, area_id: 'old-area' })
       const afterSave = createMockComponent({ version: 7, area_id: 'new-area' })
 
       mockSupabase.select.mockResolvedValueOnce({

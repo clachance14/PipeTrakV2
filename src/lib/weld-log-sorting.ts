@@ -93,20 +93,23 @@ export function sortFieldWelds(
         return multiplier * naturalSort(a.identityDisplay, b.identityDisplay)
       case 'drawing':
         return multiplier * naturalSort(a.drawing.drawing_no_norm, b.drawing.drawing_no_norm)
-      case 'welder':
+      case 'welder': {
         const welderA = a.welder?.stencil || 'zzz'
         const welderB = b.welder?.stencil || 'zzz'
         return multiplier * welderA.localeCompare(welderB)
+      }
       case 'weld_type':
         return multiplier * a.weld_type.localeCompare(b.weld_type)
-      case 'size':
+      case 'size': {
         const sizeA = a.weld_size || 'zzz'
         const sizeB = b.weld_size || 'zzz'
         return multiplier * sizeA.localeCompare(sizeB)
-      case 'nde_result':
+      }
+      case 'nde_result': {
         const ndeA = a.nde_result || 'zzz'
         const ndeB = b.nde_result || 'zzz'
         return multiplier * ndeA.localeCompare(ndeB)
+      }
       case 'progress':
         return multiplier * (a.component.percent_complete - b.component.percent_complete)
       default:

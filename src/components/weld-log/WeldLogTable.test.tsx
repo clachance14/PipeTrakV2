@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { WeldLogTable } from './WeldLogTable'
 import type { EnrichedFieldWeld } from '@/hooks/useFieldWelds'

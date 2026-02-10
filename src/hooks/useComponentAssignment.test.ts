@@ -3,7 +3,7 @@
  * These tests define the API contract for bulk component assignment
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAssignComponents, useClearComponentAssignments } from './useComponentAssignment'
@@ -66,12 +66,12 @@ describe('useAssignComponents contract', () => {
   })
 
   it('requires at least one of area_id, system_id, or test_package_id', () => {
-    const { result } = renderHook(() => useAssignComponents(), {
+    const { result: _result } = renderHook(() => useAssignComponents(), {
       wrapper: createWrapper()
     })
 
     // Valid: only area_id
-    const request1: Parameters<typeof result.current.mutate>[0] = {
+    const request1: Parameters<typeof _result.current.mutate>[0] = {
       component_ids: ['uuid-1'],
       area_id: 'area-uuid',
       system_id: null,
@@ -80,7 +80,7 @@ describe('useAssignComponents contract', () => {
     expect(request1).toBeDefined()
 
     // Valid: only system_id
-    const request2: Parameters<typeof result.current.mutate>[0] = {
+    const request2: Parameters<typeof _result.current.mutate>[0] = {
       component_ids: ['uuid-1'],
       area_id: null,
       system_id: 'system-uuid',

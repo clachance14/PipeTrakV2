@@ -49,12 +49,12 @@ describe('useUpdateMilestone contract', () => {
   })
 
   it('accepts optional metadata object', () => {
-    const { result } = renderHook(() => useUpdateMilestone(), {
+    const { result: _result } = renderHook(() => useUpdateMilestone(), {
       wrapper: createWrapper()
     })
 
     // Weld Made milestone with welder stencil metadata
-    const requestWithMetadata: Parameters<typeof result.current.mutate>[0] = {
+    const requestWithMetadata: Parameters<typeof _result.current.mutate>[0] = {
       component_id: 'component-uuid',
       milestone_name: 'Weld Made',
       value: true,

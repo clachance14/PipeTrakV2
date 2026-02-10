@@ -226,7 +226,7 @@ export function usePackageWorkflowPDFExport(): UsePackageWorkflowPDFExportReturn
 
       try {
         link.click();
-      } catch (downloadError) {
+      } catch {
         // Cleanup on error
         URL.revokeObjectURL(url);
         throw new Error(

@@ -38,7 +38,7 @@ describe('useFieldWeld query contract', () => {
   })
 
   it('supports enabled flag to control query execution', () => {
-    const { result: disabledResult } = renderHook(
+    const { result: _disabledResult } = renderHook(
       () => useFieldWeld({ componentId: 'test-id', enabled: false }),
       { wrapper: createWrapper() }
     )
@@ -48,7 +48,7 @@ describe('useFieldWeld query contract', () => {
   })
 
   it('uses correct cache key: ["field-weld", componentId]', () => {
-    const { result } = renderHook(() => useFieldWeld({ componentId: 'test-component-id' }), {
+    const { result: _result } = renderHook(() => useFieldWeld({ componentId: 'test-component-id' }), {
       wrapper: createWrapper()
     })
 
@@ -57,7 +57,7 @@ describe('useFieldWeld query contract', () => {
   })
 
   it('has 2 minute stale time', () => {
-    const { result } = renderHook(() => useFieldWeld({ componentId: 'test-component-id' }), {
+    const { result: _result } = renderHook(() => useFieldWeld({ componentId: 'test-component-id' }), {
       wrapper: createWrapper()
     })
 
@@ -67,7 +67,7 @@ describe('useFieldWeld query contract', () => {
 
   it('returns field weld with joined welder info', () => {
     // Expected response shape
-    type FieldWeldResponse = {
+    type _FieldWeldResponse = {
       id: string
       component_id: string
       project_id: string

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // T005: POST /api/auth/register contract test
 describe('POST /api/auth/register', () => {
   it('should accept valid registration request', () => {
-    const validRequest = {
+    const _validRequest = {
       email: 'test@example.com',
       password: 'password123',
       full_name: 'Test User',
@@ -17,7 +17,7 @@ describe('POST /api/auth/register', () => {
 
   it('should return 201 with user, organization, and session', () => {
     // Expected response structure
-    const expectedResponse = {
+    const _expectedResponse = {
       user: {
         id: expect.any(String),
         email: expect.any(String),
@@ -39,7 +39,7 @@ describe('POST /api/auth/register', () => {
   })
 
   it('should return 400 for invalid email', () => {
-    const invalidRequest = {
+    const _invalidRequest = {
       email: 'not-an-email',
       password: 'password123',
       full_name: 'Test User',
@@ -58,7 +58,7 @@ describe('POST /api/auth/register', () => {
   })
 
   it('should return 400 for password too short', () => {
-    const invalidRequest = {
+    const _invalidRequest = {
       email: 'test@example.com',
       password: '12345', // Only 5 chars
       full_name: 'Test User',
@@ -71,7 +71,7 @@ describe('POST /api/auth/register', () => {
   })
 
   it('should return 400 for terms not accepted', () => {
-    const invalidRequest = {
+    const _invalidRequest = {
       email: 'test@example.com',
       password: 'password123',
       full_name: 'Test User',
@@ -93,7 +93,7 @@ describe('POST /api/auth/register', () => {
 // T006: POST /api/auth/check-email contract test
 describe('POST /api/auth/check-email', () => {
   it('should accept email in request', () => {
-    const validRequest = {
+    const _validRequest = {
       email: 'test@example.com',
     }
 

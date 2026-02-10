@@ -149,7 +149,7 @@ export function FieldWeldRow({
 
       setIsAssigningWelder(false)
       // No need to manually update milestone - useAssignWelder already does this
-    } catch (error) {
+    } catch {
       // Error already handled by useAssignWelder mutation (toast + rollback)
       setIsAssigningWelder(false)
     }

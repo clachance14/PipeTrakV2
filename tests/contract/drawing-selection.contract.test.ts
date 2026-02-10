@@ -7,10 +7,9 @@
  * These tests MUST FAIL until implementation is complete (TDD approach).
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type {
   SelectionState,
-  SelectionActions,
 } from '@/types/drawing-table.types';
 
 describe('Drawing Selection Contract', () => {

@@ -30,10 +30,10 @@ vi.mock('@/lib/supabase', () => ({
 }))
 
 describe('Component Tracking Workflow Integration', () => {
-  let queryClient: QueryClient
+  let _queryClient: QueryClient
 
   beforeEach(() => {
-    queryClient = new QueryClient({
+    _queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
         mutations: { retry: false }

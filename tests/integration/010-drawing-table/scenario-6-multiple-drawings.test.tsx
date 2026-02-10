@@ -298,7 +298,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useSearchParams: () => {
-      const [searchParams, setSearchParams] = (actual as any).useSearchParams()
+      const [searchParams, _setSearchParams] = (actual as any).useSearchParams()
       return [searchParams, mockSetSearchParams]
     },
   }

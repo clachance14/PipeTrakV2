@@ -89,12 +89,12 @@ describe('User Story 5: Remove Team Members', () => {
     });
 
     // Mock org members query
-    const mockFrom = vi.fn().mockReturnThis();
+    const _mockFrom = vi.fn().mockReturnThis();
     const mockSelect = vi.fn().mockReturnThis();
     const mockEq = vi.fn().mockReturnThis();
     const mockIs = vi.fn().mockReturnThis();
     const mockUpdate = vi.fn().mockReturnThis();
-    const mockSingle = vi.fn();
+    const _mockSingle = vi.fn();
 
     vi.mocked(supabase.from).mockImplementation((table) => {
       if (table === 'users') {

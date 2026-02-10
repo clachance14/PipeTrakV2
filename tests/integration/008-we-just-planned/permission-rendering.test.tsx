@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
@@ -106,7 +106,7 @@ describe('Permission-Based UI Rendering', () => {
         canResolveReviews: true,
         canViewDashboards: true,
         canManageTeam: true,
-        hasPermission: vi.fn((perm) => true),
+        hasPermission: vi.fn((_perm) => true),
         role: 'admin',
       });
 
@@ -234,7 +234,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'qc_inspector',
       });
 
-      const mockWelder = {
+      const _mockWelder = {
         id: 'welder-1',
         name: 'John Doe',
         stencil: 'JD-001',
@@ -279,7 +279,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'foreman',
       });
 
-      const mockWelder = {
+      const _mockWelder = {
         id: 'welder-1',
         name: 'John Doe',
         stencil: 'JD-001',
@@ -291,7 +291,7 @@ describe('Permission-Based UI Rendering', () => {
         verified_by: null,
       };
 
-      const wrapper = createWrapper(foremanUser);
+      const _wrapper = createWrapper(foremanUser);
 
       // Foreman should not be able to open verify dialog
       // Component should not render verify button at all
@@ -316,7 +316,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'viewer',
       });
 
-      const wrapper = createWrapper(viewerUser);
+      const _wrapper = createWrapper(viewerUser);
 
       // Viewer should not see any verify buttons in the UI
       // This is enforced by PermissionGate components
@@ -390,7 +390,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'foreman',
       });
 
-      const wrapper = createWrapper(foremanUser);
+      const _wrapper = createWrapper(foremanUser);
 
       // Foreman should not see resolve buttons in the needs review page
       // This is enforced by PermissionGate components
@@ -414,7 +414,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'viewer',
       });
 
-      const wrapper = createWrapper(viewerUser);
+      const _wrapper = createWrapper(viewerUser);
 
       // Viewer should not see any resolve buttons
       // This is enforced by PermissionGate components
@@ -440,7 +440,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'admin',
       });
 
-      const wrapper = createWrapper(adminUser);
+      const _wrapper = createWrapper(adminUser);
       const { result } = { result: usePermissions() };
 
       // Admin should have all permissions
@@ -470,7 +470,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'viewer',
       });
 
-      const wrapper = createWrapper(viewerUser);
+      const _wrapper = createWrapper(viewerUser);
       const { result } = { result: usePermissions() };
 
       // Viewer should only have view permissions
@@ -504,7 +504,7 @@ describe('Permission-Based UI Rendering', () => {
         role: 'foreman',
       });
 
-      const wrapper = createWrapper(foremanUser);
+      const _wrapper = createWrapper(foremanUser);
       const { result } = { result: usePermissions() };
 
       // Foreman should have limited permissions

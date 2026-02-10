@@ -4,8 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RegistrationForm } from './RegistrationForm'
-import { toast } from 'sonner'
-
 // Mock the hooks and toast
 vi.mock('@/hooks/useRegistration', () => ({
   useRegistration: () => ({

@@ -12,7 +12,6 @@ import { pdf } from '@react-pdf/renderer';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FieldWeldReportPDF } from '@/components/pdf/reports/FieldWeldReportPDF';
-import { exportFieldWeldReport } from '@/lib/exportFieldWeldReport';
 import type { FieldWeldReportData } from '@/types/reports';
 
 describe('Dual PDF Export - Acceptance Test', () => {

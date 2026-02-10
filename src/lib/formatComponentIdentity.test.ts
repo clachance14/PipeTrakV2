@@ -7,7 +7,6 @@ import { describe, it, expect } from 'vitest';
 import {
   formatSizeWithInches,
   aggregateComponentsForDisplay,
-  type AggregatedComponent,
 } from './formatComponentIdentity';
 
 describe('formatSizeWithInches', () => {

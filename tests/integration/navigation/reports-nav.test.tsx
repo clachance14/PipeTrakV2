@@ -4,12 +4,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { Sidebar } from '@/components/Sidebar';
-import App from '@/App';
 import * as SidebarStore from '@/stores/useSidebarStore';
 
 // Mock auth context
@@ -63,10 +62,10 @@ vi.mock('@/components/PermissionGate', () => ({
 }));
 
 describe('Reports Navigation', () => {
-  let queryClient: QueryClient;
+  let _queryClient: QueryClient;
 
   beforeEach(() => {
-    queryClient = new QueryClient({
+    _queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
         mutations: { retry: false },

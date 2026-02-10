@@ -294,7 +294,7 @@ describe('Contract: Offline Queue Management', () => {
       saveQueue(queue)
 
       // When: incrementRetry(id) called
-      const newRetryCount = incrementRetry('update-id')
+      const _newRetryCount = incrementRetry('update-id')
 
       // Then: Update removed from queue.updates
       const updatedQueue = initQueue()

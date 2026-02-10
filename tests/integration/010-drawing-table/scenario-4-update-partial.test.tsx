@@ -272,7 +272,7 @@ describe('Integration Test: Scenario 4 - Update Partial Milestone (Percentage Sl
   ]
 
   // Progress data from materialized view (after update)
-  const mockProgressDataAfter = [
+  const _mockProgressDataAfter = [
     {
       drawing_id: 'drawing-1-uuid',
       project_id: 'test-project-uuid',

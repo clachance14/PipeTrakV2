@@ -21,16 +21,16 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
 // Create real Supabase client for contract tests
-// @ts-ignore - import.meta.env is available in Vite/Vitest
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-// @ts-ignore
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 describe('Database Schema - Sprint 1 Core Tables', () => {
   describe('New Tables Existence', () => {
     it('should have drawings table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('drawings' as any)
         .select('id, project_id, drawing_no_raw, drawing_no_norm, is_retired')
         .limit(1);
@@ -40,7 +40,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have areas table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('areas' as any)
         .select('id, project_id, name')
         .limit(1);
@@ -49,7 +49,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have systems table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('systems' as any)
         .select('id, project_id, name')
         .limit(1);
@@ -58,7 +58,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have test_packages table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('test_packages' as any)
         .select('id, project_id, name, target_date')
         .limit(1);
@@ -67,7 +67,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have progress_templates table', async () => {
-      const { data, error} = await supabase
+      const { data: _data, error} = await supabase
         .from('progress_templates' as any)
         .select('id, component_type, version, workflow_type, milestones_config')
         .limit(1);
@@ -76,7 +76,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have components table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('components' as any)
         .select('id, project_id, component_type, identity_key, current_milestones, percent_complete')
         .limit(1);
@@ -85,7 +85,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have milestone_events table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('milestone_events' as any)
         .select('id, component_id, milestone_name, action, user_id')
         .limit(1);
@@ -94,7 +94,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have welders table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('welders' as any)
         .select('id, project_id, name, stencil, stencil_norm, status')
         .limit(1);
@@ -103,7 +103,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have field_weld_inspections table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('field_weld_inspections' as any)
         .select('id, component_id, weld_id_number, parent_weld_id, repair_sequence, hydro_complete, flagged_for_xray, turned_over_to_client')
         .limit(1);
@@ -112,7 +112,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have needs_review table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('needs_review' as any)
         .select('id, project_id, component_id, type, status, payload')
         .limit(1);
@@ -121,7 +121,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have audit_log table', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('audit_log' as any)
         .select('id, project_id, user_id, action_type, entity_type, entity_id')
         .limit(1);
@@ -173,7 +173,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
 
   describe('Materialized Views', () => {
     it('should have mv_package_readiness materialized view', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('mv_package_readiness' as any)
         .select('package_id, total_components, avg_percent_complete')
         .limit(1);
@@ -183,7 +183,7 @@ describe('Database Schema - Sprint 1 Core Tables', () => {
     });
 
     it('should have mv_drawing_progress materialized view', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('mv_drawing_progress' as any)
         .select('drawing_id, total_components, avg_percent_complete')
         .limit(1);

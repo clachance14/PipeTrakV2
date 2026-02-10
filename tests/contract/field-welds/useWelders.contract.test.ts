@@ -38,7 +38,7 @@ describe('useWelders query contract', () => {
   })
 
   it('uses correct cache key: ["welders", {projectId}]', () => {
-    const { result } = renderHook(() => useWelders({ projectId: 'test-project-id' }), {
+    const { result: _result } = renderHook(() => useWelders({ projectId: 'test-project-id' }), {
       wrapper: createWrapper()
     })
 
@@ -47,7 +47,7 @@ describe('useWelders query contract', () => {
   })
 
   it('has 2 minute stale time', () => {
-    const { result } = renderHook(() => useWelders({ projectId: 'test-project-id' }), {
+    const { result: _result } = renderHook(() => useWelders({ projectId: 'test-project-id' }), {
       wrapper: createWrapper()
     })
 
@@ -57,7 +57,7 @@ describe('useWelders query contract', () => {
 
   it('returns array of welders with stencil, name, status', () => {
     // Expected response shape
-    type WelderResponse = {
+    type _WelderResponse = {
       id: string
       project_id: string
       stencil: string

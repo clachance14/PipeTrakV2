@@ -165,7 +165,7 @@ describe('RLS Policies: project_progress_templates', () => {
     ])
 
     // Get auth tokens for user clients
-    const { data: adminSession } = await serviceClient.auth.admin.generateLink({
+    const { data: _adminSession } = await serviceClient.auth.admin.generateLink({
       type: 'magiclink',
       email: `admin-${Date.now()}@test.com`
     })
@@ -234,7 +234,7 @@ describe('RLS Policies: project_progress_templates', () => {
   })
 
   it('blocks users from viewing templates in other organizations', async () => {
-    const { data, error } = await outsiderClient
+    const { data, error: _error } = await outsiderClient
       .from('project_progress_templates')
       .select('*')
       .eq('project_id', projectId)
@@ -353,7 +353,7 @@ describe('RLS Policies: project_template_changes', () => {
   })
 
   it('blocks users from viewing audit log in other organizations', async () => {
-    const { data, error } = await outsiderClient
+    const { data, error: _error } = await outsiderClient
       .from('project_template_changes')
       .select('*')
       .eq('project_id', projectId)

@@ -14,10 +14,7 @@
  * For CI/CD: Set SKIP_DB_TESTS=true to skip these tests in environments without Supabase.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-
-// Check if we should skip database-dependent tests
-const SKIP_DB_TESTS = process.env.SKIP_DB_TESTS === 'true'
+import { describe, it, expect } from 'vitest'
 
 describe('Database Trigger: calculate_component_percent', () => {
   // These tests validate the trigger logic expectations

@@ -5,12 +5,10 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { supabase } from '@/lib/supabase';
-import type { CreateReportConfigInput } from '@/types/reports';
-
 // Test data
 const TEST_PROJECT_ID = 'test-project-rls';
-const USER_1_ID = 'user-1-rls-test';
-const USER_2_ID = 'user-2-rls-test';
+const _USER_1_ID = 'user-1-rls-test';
+const _USER_2_ID = 'user-2-rls-test';
 
 describe('Report Configs RLS Policies', () => {
   beforeEach(async () => {

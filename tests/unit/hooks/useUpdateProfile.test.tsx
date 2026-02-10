@@ -128,7 +128,7 @@ describe('useUpdateProfile', () => {
     result.current.mutate({ userId: '123', fullName: 'Jane Smith' })
 
     // Check that cache was updated optimistically (before server response)
-    const cachedData = queryClient.getQueryData(['userProfile', '123']) as any
+    const _cachedData = queryClient.getQueryData(['userProfile', '123']) as any
     
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)

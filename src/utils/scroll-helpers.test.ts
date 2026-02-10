@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { isElementVisible, shouldScrollToElement } from './scroll-helpers'
 
 describe('scroll-helpers', () => {

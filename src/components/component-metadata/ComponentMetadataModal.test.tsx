@@ -253,7 +253,7 @@ describe('ComponentMetadataModal', () => {
     it('Save button is enabled when changes are detected', () => {
       // Note: This is tested via extractMetadataChanges utility function
       // Full interaction tests will be in integration tests
-      const { rerender } = renderComponent({})
+      const { rerender: _rerender } = renderComponent({})
 
       // Save button should be disabled when no changes
       const saveButton = screen.getByRole('button', { name: /save/i })

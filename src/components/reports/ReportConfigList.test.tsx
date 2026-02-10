@@ -182,7 +182,6 @@ describe('ReportConfigList', () => {
     });
 
     it('navigates to report view with correct dimension on Generate click', async () => {
-      const user = userEvent.setup();
       render(
         <TestWrapper>
           <ReportConfigList configs={[mockConfigs[0]]} isLoading={false} />

@@ -206,7 +206,7 @@ describe('useUpdateMilestone', () => {
     await act(async () => {
       try {
         await result.current.mutateAsync(payload)
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
     })
@@ -263,7 +263,7 @@ describe('useUpdateMilestone', () => {
     await act(async () => {
       try {
         await result.current.mutateAsync(payload)
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
     })
@@ -291,7 +291,7 @@ describe('useUpdateMilestone', () => {
     await act(async () => {
       try {
         await result.current.mutateAsync(payload)
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
     })
@@ -316,7 +316,7 @@ describe('useUpdateMilestone', () => {
     await act(async () => {
       try {
         await result.current.mutateAsync(payload)
-      } catch (error) {
+      } catch {
         // Expected to throw
       }
     })

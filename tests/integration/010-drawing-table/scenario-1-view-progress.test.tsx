@@ -25,8 +25,6 @@ import { render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { DrawingComponentTablePage } from '@/pages/DrawingComponentTablePage'
-import type { DrawingRow } from '@/types/drawing-table.types'
-
 // Mock @tanstack/react-virtual to work in jsdom
 // The real virtualizer requires accurate DOM measurements which don't work in jsdom
 vi.mock('@tanstack/react-virtual', () => ({

@@ -795,7 +795,7 @@ describe('Integration Test: Edge Cases', () => {
         },
       })
 
-      const queryClientB = new QueryClient({
+      const _queryClientB = new QueryClient({
         defaultOptions: {
           queries: { retry: false, gcTime: 0 },
           mutations: { retry: false },
@@ -803,10 +803,10 @@ describe('Integration Test: Edge Cases', () => {
       })
 
       const userA = userEvent.setup()
-      const userB = userEvent.setup()
+      const _userB = userEvent.setup()
 
       // Render Tab A
-      const { rerender: rerenderA } = render(
+      const { rerender: _rerenderA } = render(
         <QueryClientProvider client={queryClientA}>
           <MemoryRouter initialEntries={['/?expanded=drawing-1-uuid']}>
             <DrawingComponentTablePage />

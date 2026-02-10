@@ -7,7 +7,7 @@
  * - MetadataDiscoveryResult generation
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { analyzeMetadata } from '@/lib/csv/metadata-analyzer';
 import type { ParsedRow } from '@/types/csv-import.types';
 

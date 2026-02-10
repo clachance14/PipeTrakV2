@@ -79,7 +79,7 @@ describe('useCreateRepairWeld mutation contract', () => {
     expect(result.current.data).toBeUndefined() // No data initially
 
     // Expected response shape
-    type RepairWeldResponse = {
+    type _RepairWeldResponse = {
       component: {
         id: string
         project_id: string

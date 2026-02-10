@@ -103,7 +103,7 @@ describe('WelderForm', () => {
     render(<WelderForm projectId="project-1" open={true} onOpenChange={mockOnOpenChange} />)
 
     const stencilInput = screen.getByLabelText(/stencil/i)
-    const nameInput = screen.getByLabelText(/name/i)
+    const _nameInput = screen.getByLabelText(/name/i)
     const submitButton = screen.getByRole('button', { name: /create/i })
 
     // Leave fields empty and submit
@@ -265,7 +265,6 @@ describe('WelderForm', () => {
   })
 
   it('disables submit button while submitting', async () => {
-    const user = userEvent.setup()
     vi.mocked(useWelders).mockReturnValue({
       createWelderMutation: {
         mutateAsync: mockMutateAsync,

@@ -15,7 +15,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
 // Create service role client for testing RLS policies
-// @ts-ignore - import.meta.env is available in Vite/Vitest
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 // Service role key comes from process.env (loaded from .env)
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // T007: POST /api/invitations contract test
 describe('POST /api/invitations', () => {
   it('should accept valid invitation request', () => {
-    const validRequest = {
+    const _validRequest = {
       email: 'invitee@example.com',
       role: 'foreman',
       organization_id: 'some-uuid',
@@ -15,7 +15,7 @@ describe('POST /api/invitations', () => {
 
   it('should return 201 with invitation and email_sent', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       invitation: {
         id: expect.any(String),
         email: expect.any(String),
@@ -61,13 +61,13 @@ describe('POST /api/invitations', () => {
 // T008: POST /api/invitations/accept contract test
 describe('POST /api/invitations/accept', () => {
   it('should accept token and conditional password/name', () => {
-    const newUserRequest = {
+    const _newUserRequest = {
       token: 'some-token',
       password: 'password123',
       full_name: 'New User',
     }
 
-    const existingUserRequest = {
+    const _existingUserRequest = {
       token: 'some-token',
     }
 
@@ -77,7 +77,7 @@ describe('POST /api/invitations/accept', () => {
 
   it('should return 200 with user, organization, role, session', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       user: {
         id: expect.any(String),
         email: expect.any(String),
@@ -128,7 +128,7 @@ describe('POST /api/invitations/accept', () => {
 describe('POST /api/invitations/:id/resend', () => {
   it('should return 200 with success and email_sent', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       success: true,
       email_sent: true,
       invitation_link: expect.any(String),
@@ -158,7 +158,7 @@ describe('POST /api/invitations/:id/resend', () => {
 describe('DELETE /api/invitations/:id', () => {
   it('should return 200 with success', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       success: true,
     }
 
@@ -185,7 +185,7 @@ describe('DELETE /api/invitations/:id', () => {
 // T011: GET /api/invitations contract test
 describe('GET /api/invitations', () => {
   it('should accept query params: status, limit, offset', () => {
-    const queryParams = {
+    const _queryParams = {
       status: 'pending',
       limit: 10,
       offset: 0,
@@ -197,7 +197,7 @@ describe('GET /api/invitations', () => {
 
   it('should return 200 with invitations array and total_count', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       invitations: expect.any(Array),
       total_count: expect.any(Number),
     }
@@ -210,7 +210,7 @@ describe('GET /api/invitations', () => {
 // T012: GET /api/invitations/validate contract test
 describe('GET /api/invitations/validate', () => {
   it('should accept token query param', () => {
-    const queryParams = {
+    const _queryParams = {
       token: 'some-token',
     }
 
@@ -220,7 +220,7 @@ describe('GET /api/invitations/validate', () => {
 
   it('should return 200 with valid: true and invitation details', () => {
     // Expected response for valid token
-    const expectedResponse = {
+    const _expectedResponse = {
       valid: true,
       invitation: {
         organization_name: expect.any(String),
@@ -235,7 +235,7 @@ describe('GET /api/invitations/validate', () => {
 
   it('should return 200 with valid: false and error for invalid token', () => {
     // Expected response for invalid token
-    const expectedResponse = {
+    const _expectedResponse = {
       valid: false,
       error: expect.any(String),
     }

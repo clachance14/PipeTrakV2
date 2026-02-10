@@ -14,7 +14,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CreateUnplannedWeldDialog } from './CreateUnplannedWeldDialog'
 import { supabase } from '@/lib/supabase'
-import { toast } from 'sonner'
 import { useWeldAttributesByDrawing } from '@/hooks/useWeldAttributesByDrawing'
 
 // Mock supabase

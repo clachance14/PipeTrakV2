@@ -4,7 +4,6 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
 
 // This test would require a real Supabase connection
 // For now, we'll create a test skeleton that demonstrates the workflow

@@ -48,7 +48,7 @@ describe('useReportConfigs contract', () => {
 
     // Validate return type structure
     type QueryResult = typeof result.current
-    type DataType = QueryResult['data']
+    type _DataType = QueryResult['data']
 
     // Initially undefined (loading state)
     expect(result.current.data).toBeUndefined()
@@ -101,7 +101,7 @@ describe('useCreateReportConfig contract', () => {
 
     // Validate response type structure
     type MutationResult = typeof result.current
-    type ResponseData = Awaited<ReturnType<MutationResult['mutateAsync']>>
+    type _ResponseData = Awaited<ReturnType<MutationResult['mutateAsync']>>
 
     expect(result.current.data).toBeUndefined() // No data initially
   })
@@ -135,12 +135,12 @@ describe('useUpdateReportConfig contract', () => {
   })
 
   it('allows partial updates (all fields optional except id)', () => {
-    const { result } = renderHook(() => useUpdateReportConfig(), {
+    const { result: _result } = renderHook(() => useUpdateReportConfig(), {
       wrapper: createWrapper()
     })
 
     // Type assertion - validates partial update shape
-    const partialRequest: Parameters<typeof result.current.mutate>[0] = {
+    const partialRequest: Parameters<typeof _result.current.mutate>[0] = {
       id: 'config-uuid',
       name: 'Just updating the name',
     }

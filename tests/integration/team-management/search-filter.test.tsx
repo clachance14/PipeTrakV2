@@ -143,7 +143,7 @@ describe('Team Search and Filter Integration', () => {
   describe('Search Functionality (AC-1)', () => {
     it('should debounce search input with 300ms delay', async () => {
       const user = userEvent.setup();
-      const { container } = renderWithRouter(<TeamManagement />);
+      const { container: _container } = renderWithRouter(<TeamManagement />);
 
       // Switch to members tab
       const membersTab = screen.getByRole('button', { name: /team members/i });
@@ -431,7 +431,7 @@ describe('Team Search and Filter Integration', () => {
   describe('URL Persistence (AC-6)', () => {
     it('should persist search term in URL', async () => {
       const user = userEvent.setup();
-      const { container } = renderWithRouter(<TeamManagement />, {
+      const { container: _container } = renderWithRouter(<TeamManagement />, {
         initialEntries: ['/team?search=alice'],
       });
 
@@ -444,7 +444,7 @@ describe('Team Search and Filter Integration', () => {
     });
 
     it('should persist role filter in URL', async () => {
-      const { container } = renderWithRouter(<TeamManagement />, {
+      const { container: _container } = renderWithRouter(<TeamManagement />, {
         initialEntries: ['/team?role=admin'],
       });
 
@@ -456,7 +456,7 @@ describe('Team Search and Filter Integration', () => {
     });
 
     it('should persist status filter in URL', async () => {
-      const { container } = renderWithRouter(<TeamManagement />, {
+      const { container: _container } = renderWithRouter(<TeamManagement />, {
         initialEntries: ['/team?status=pending'],
       });
 
@@ -467,7 +467,7 @@ describe('Team Search and Filter Integration', () => {
     });
 
     it('should persist sort option in URL', async () => {
-      const { container } = renderWithRouter(<TeamManagement />, {
+      const { container: _container } = renderWithRouter(<TeamManagement />, {
         initialEntries: ['/team?sort=role'],
       });
 
@@ -478,7 +478,7 @@ describe('Team Search and Filter Integration', () => {
     });
 
     it('should persist multiple filters in URL', async () => {
-      const { container } = renderWithRouter(<TeamManagement />, {
+      const { container: _container } = renderWithRouter(<TeamManagement />, {
         initialEntries: ['/team?search=bob&role=admin&status=active&sort=name'],
       });
 
@@ -493,7 +493,7 @@ describe('Team Search and Filter Integration', () => {
 
     it('should update URL when filters change', async () => {
       const user = userEvent.setup();
-      const { container } = renderWithRouter(<TeamManagement />);
+      const { container: _container } = renderWithRouter(<TeamManagement />);
 
       const membersTab = screen.getByRole('button', { name: /team members/i });
       await user.click(membersTab);

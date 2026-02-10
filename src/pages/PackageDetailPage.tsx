@@ -161,7 +161,7 @@ export function PackageDetailPage() {
         postHydroInstall: postHydro,
       });
       refetch();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update post-hydro status');
     }
   };
@@ -177,7 +177,7 @@ export function PackageDetailPage() {
       toast.success(`${postHydro ? 'Marked' : 'Cleared'} ${selectedComponentIds.length} component(s) as post-hydro`);
       setSelectedComponentIds([]);
       refetch();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update post-hydro status');
     }
   };

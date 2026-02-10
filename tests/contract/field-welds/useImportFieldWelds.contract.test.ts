@@ -63,7 +63,7 @@ describe('useImportFieldWelds mutation contract', () => {
     expect(result.current.data).toBeUndefined() // No data initially
 
     // Expected response shape
-    type ImportSummary = {
+    type _ImportSummary = {
       success_count: number
       error_count: number
       errors: Array<{

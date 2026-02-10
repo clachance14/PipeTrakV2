@@ -114,7 +114,7 @@ describe('create_test_package RPC Contract', () => {
     });
 
     it('should reject whitespace-only name', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .rpc('create_test_package', {
           p_project_id: testProjectId,
           p_name: '   ',

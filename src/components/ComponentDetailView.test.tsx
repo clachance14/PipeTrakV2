@@ -448,8 +448,8 @@ vi.mock('@/components/field-welds/WelderAssignDialog', () => ({
 }))
 
 // Mock RollbackConfirmationModal component
-let mockRollbackConfirmCallback: ((data: { reason: string; reasonLabel: string; details?: string }) => void) | null = null
-let mockRollbackCloseCallback: (() => void) | null = null
+let _mockRollbackConfirmCallback: ((data: { reason: string; reasonLabel: string; details?: string }) => void) | null = null
+let _mockRollbackCloseCallback: (() => void) | null = null
 
 vi.mock('@/components/drawing-table/RollbackConfirmationModal', () => ({
   RollbackConfirmationModal: ({ isOpen, onClose, onConfirm, componentName, milestoneName }: {
@@ -460,8 +460,8 @@ vi.mock('@/components/drawing-table/RollbackConfirmationModal', () => ({
     milestoneName: string
   }) => {
     // Store callbacks for test interaction
-    mockRollbackConfirmCallback = onConfirm
-    mockRollbackCloseCallback = onClose
+    _mockRollbackConfirmCallback = onConfirm
+    _mockRollbackCloseCallback = onClose
 
     if (!isOpen) return null
     return (

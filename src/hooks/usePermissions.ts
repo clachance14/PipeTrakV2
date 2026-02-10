@@ -47,7 +47,6 @@ export function usePermissions(): UsePermissionsReturn {
   const { user } = useAuth();
 
   // Get user role from the user object
-  // @ts-ignore - user.role exists after migration
   const userRole: Role | null = user?.role || null;
 
   // If no user or no role, deny all permissions

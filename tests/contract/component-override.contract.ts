@@ -180,7 +180,7 @@ export interface ComponentOverrideContract {
  *             </Select>
  *           </div>
  *
- *           {/* Repeat for System and Test Package */}
+ *           {/ * Repeat for System and Test Package * /}
  *
  *           <div className="flex items-center space-x-2">
  *             <Checkbox

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Unmock supabase for contract tests - we need the real client to validate schema
 vi.unmock('@/lib/supabase');
@@ -7,16 +7,16 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
 // Create real Supabase client for contract tests
-// @ts-ignore - import.meta.env is available in Vite/Vitest
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-// @ts-ignore
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 describe('Migration Schema Contract', () => {
   describe('Table Structure', () => {
     it('user_organizations table should not exist', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('user_organizations' as any)
         .select('*')
         .limit(1);
@@ -27,7 +27,7 @@ describe('Migration Schema Contract', () => {
     });
 
     it('users table should have organization_id column', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('users')
         .select('organization_id')
         .limit(1);
@@ -37,7 +37,7 @@ describe('Migration Schema Contract', () => {
     });
 
     it('users table should have role column', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('users')
         .select('role')
         .limit(1);
@@ -84,7 +84,7 @@ describe('Migration Schema Contract', () => {
 
   describe('Relationships', () => {
     it('users.organization_id should reference organizations table', async () => {
-      const { data: users, error: usersError } = await supabase
+      const { data: users, error: _usersError } = await supabase
         .from('users')
         .select('organization_id')
         .limit(1)
