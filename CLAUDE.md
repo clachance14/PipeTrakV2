@@ -6,22 +6,22 @@ Guidance for Claude Code when working with this repository.
 
 Industrial pipe tracking system for brownfield construction. React 18 + TypeScript SPA backed by Supabase.
 
-**Current Phase**: Feature 027 complete. See [PROJECT-STATUS.md](docs/PROJECT-STATUS.md) for full status and feature history.
+**Current Phase**: Feature 035 in progress. See [PROJECT-STATUS.md](docs/PROJECT-STATUS.md) for full status and feature history.
 
 ---
 
 ## Top 10 Rules Claude Must Always Follow
 
 1. **TypeScript Strict Mode** - No `any` types, handle all edge cases
-2. **TDD First** - Write failing test before implementation code
-3. **RLS on Everything** - All tables have RLS, all data-modifying RPCs use SECURITY DEFINER
+2. **TDD First** - Write failing test (Red), implement minimum to pass (Green), refactor while green
+3. **RLS on Everything** - All tables have RLS, all data-modifying RPCs use SECURITY DEFINER with permission checks
 4. **Never Expose Service Keys** - Service role key never in client code
 5. **Never Modify Old Migrations** - Create new migration, never edit existing
-6. **SECURITY DEFINER RPCs** - All data-modifying functions must be SECURITY DEFINER with permission checks
-7. **TanStack Query Only** - Never bare Supabase calls in components, always use hooks
-8. **Shadcn/Radix Patterns** - Follow existing component patterns, use Radix primitives
-9. **Mobile-First** - ≤1024px breakpoint, ≥44px touch targets, test on mobile
-10. **Virtualize Large Lists** - Use @tanstack/react-virtual or pagination for 50+ items
+6. **TanStack Query Only** - Never bare Supabase calls in components, always use hooks
+7. **Shadcn/Radix Patterns** - Follow existing component patterns, use Radix primitives
+8. **Mobile-First** - ≤1024px breakpoint, ≥44px touch targets, test on mobile
+9. **Virtualize Large Lists** - Use @tanstack/react-virtual or pagination for 50+ items
+10. **Schema Compliance** - Check actual table schema before writing any insert/update code
 
 **Violating these rules = automatic failure.**
 
@@ -45,7 +45,6 @@ For multi-step tasks, state a brief plan with verification:
 ```
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]
-3. [Step] → verify: [check]
 ```
 
 Transform vague tasks into verifiable goals:
@@ -57,41 +56,10 @@ Transform vague tasks into verifiable goals:
 ## Critical Warnings
 
 ### Service Role Key Security
-**NEVER** expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code. Service role bypasses ALL Row Level Security policies. Use only for:
-- Admin scripts and migrations
-- Debugging database issues
-- Validating RLS policies
+**NEVER** expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code. Service role bypasses ALL Row Level Security policies. Use only for admin scripts, migrations, and debugging.
 
-### RLS Enforcement
-All tables must have RLS enabled. All functions that modify data must use SECURITY DEFINER with explicit permission checks. See [docs/security/RLS-RULES.md](docs/security/RLS-RULES.md).
-
-### Migration Push Workaround
-Supabase CLI v2.58.5 hangs on `supabase db push --linked`. Use `./db-push.sh` instead. Bug tracked in GitHub #4302, #4419.
-
-### Supabase Connection Pooler Modes
-
-Supabase provides two connection pooling modes with different characteristics:
-
-**Session Mode (Port 5432)** - **Recommended for migrations** (used by `db-push.sh`):
-- DOES support prepared statements
-- More stable for migration operations based on real-world testing
-- No spurious "prepared statement already exists" errors
-- Smoother experience despite slightly longer connection overhead
-
-**Transaction Mode (Port 6543)**:
-- Does NOT support prepared statements
-- Optimized for short-lived connections (edge functions, quick queries)
-- Can produce benign errors: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
-- Previously used for migrations but session mode proved more reliable in practice
-
-**Why db-push.sh uses session mode (port 5432):**
-- Empirical testing shows smoother, more reliable migrations
-- Eliminates cosmetic errors that can cause confusion
-- Prepared statement support provides better compatibility
-- Slightly longer connection time is acceptable for migration operations
-
-### TDD Mandatory
-Write failing test first (Red). Implement minimum code to pass (Green). Refactor while tests pass. Constitution v1.0.0 enforces this.
+### Migration Push
+Always use `./db-push.sh` to push migrations. Never `supabase db push --linked` (hangs - CLI bug #4302). See [supabase/CLAUDE.md](supabase/CLAUDE.md) for full migration workflow and troubleshooting.
 
 ### Single-Org Architecture
 This project uses single-org model (refactored from multi-tenant in Sprint 1). RLS filters by `user_id` and `project_id`, not `organization_id`.
@@ -104,9 +72,10 @@ This project uses single-org model (refactored from multi-tenant in Sprint 1). R
 npm run dev              # Dev server (http://localhost:5173)
 npm run build            # Production build
 npm test                 # Run tests
-npm test:ui              # Vitest UI
+npm run test:ui          # Vitest UI
 tsc -b                   # Type check
 npm run lint             # Lint
+./db-push.sh             # Push migrations
 ```
 
 ---
@@ -117,31 +86,41 @@ npm run lint             # Lint
 - **Frontend**: React 18, TypeScript 5 (strict), Vite, Tailwind CSS v4
 - **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage)
 - **State**: TanStack Query (server), Zustand (client), React Context (auth)
+- **Forms**: react-hook-form + zod validation
+- **UI**: Shadcn/ui + Radix primitives + Lucide icons
+- **Toasts**: Sonner (`toast.success()`, `toast.error()`)
 - **Testing**: Vitest, Testing Library, jsdom
 
 ### State Management
-- **TanStack Query** (server state)
-- **Zustand** (client state with localStorage persistence)
-  - `useSidebarStore` - Sidebar collapse state
-  - `useWeldLogPreferencesStore` - Weld log sort and filter preferences
-- **React Context** (auth state)
+- **TanStack Query** - server state (all Supabase data fetching)
+- **Zustand** - client state with localStorage persistence:
+  - `useSidebarStore` - Sidebar collapse
+  - `useWeldLogPreferencesStore` - Weld log sort/filter
+  - `useComponentPreferencesStore` - Component table preferences
+  - `usePackagePreferencesStore` - Package table preferences
+  - `useReportPreferencesStore` - Report preferences
+  - `usePackageWorkflowCustomizationStore` - Package workflow settings
+  - `organizationStore` - Organization context
+- **React Context** - auth state (`AuthContext`)
+
+**When to use Zustand**: User preferences, UI state, settings that persist across sessions.
+**When NOT to use Zustand**: Server data (TanStack Query), auth state (AuthContext), form state (component local).
 
 ### Path Aliases
-`@/*` → `./src/*`
-
-Import: `import { something } from '@/lib/utils'`
-
-Configured in: `tsconfig.app.json`, `vite.config.ts`, `vitest.config.ts`
+`@/*` → `./src/*` — Configured in `tsconfig.app.json`, `vite.config.ts`, `vitest.config.ts`
 
 ### Authentication
-- `AuthContext` (src/contexts/AuthContext.tsx) provides `useAuth()` hook
-- `ProtectedRoute` (src/components/ProtectedRoute.tsx) guards authenticated routes
+- `AuthContext` (`src/contexts/AuthContext.tsx`) provides `useAuth()` hook
+- `ProtectedRoute` (`src/components/ProtectedRoute.tsx`) guards authenticated routes
 - Supabase session persists via `supabase.auth.onAuthStateChange()`
 
 ### Routes
-- **Public**: `/` (homepage with demo signup)
-- **Authenticated**: `/dashboard`, `/components`, `/drawings`, `/packages`, `/needs-review`, `/welders`, `/weld-log`, `/reports`, `/imports`, `/team`
-- **Settings** (Admin/PM only): `/projects/:projectId/settings`, `/projects/:projectId/settings/milestones`, `/projects/:projectId/settings/metadata`, `/projects/:projectId/settings/project`
+- **Public**: `/`, `/demo-signup`, `/login`, `/register`, `/check-email`, `/forgot-password`, `/reset-password`, `/legal/terms`, `/legal/privacy`
+- **Onboarding**: `/onboarding/wizard`, `/onboarding/complete-setup`, `/accept-invitation`
+- **Main App**: `/dashboard`, `/projects`, `/projects/new`, `/project-setup`, `/components`, `/drawings`, `/packages`, `/packages/:packageId/components`, `/packages/:packageId/completion-report`, `/needs-review`, `/welders`, `/weld-log`, `/imports`, `/reports`, `/reports/new`, `/reports/view`, `/reports/welder-summary`, `/team`
+- **Settings** (Admin/PM): `/projects/:projectId/settings`, `.../milestones`, `.../metadata`, `.../project`, `.../manhours`
+- **Per-Project**: `/projects/:projectId/components`, `/projects/:projectId/drawing-table`
+- **Debug**: `/debug`
 
 All authenticated routes wrap `<ProtectedRoute>` in App.tsx. Common layout handled by `Layout` component.
 
@@ -159,177 +138,34 @@ Copy `.env.example` to `.env` before running.
 
 ### Setup Commands
 ```bash
-# Install CLI
-npm install -g supabase
-
-# Link to remote project
-supabase link --project-ref <project-ref>
-
-# Push migrations (use workaround)
-./db-push.sh
-
-# Generate TypeScript types
-supabase gen types typescript --linked > src/types/database.types.ts
-
-# Verify schema
-supabase db diff --schema public --linked
+npm install -g supabase                           # Install CLI
+supabase link --project-ref <project-ref>         # Link to remote
+./db-push.sh                                      # Push migrations
+supabase gen types typescript --linked > src/types/database.types.ts  # Gen types
+supabase db diff --schema public --linked          # Verify schema
 ```
 
 **IMPORTANT**: Remote database only. No local Supabase (`supabase start`).
 
-### Database Schema
-- 14+ tables: `organizations`, `users`, `projects`, `components`, `drawings`, `packages`, `welders`, `invitations`, etc.
+### Database
+- 257 migrations applied (as of 2026-02-10)
 - RLS enabled on all tables
-- 100+ migrations applied (as of 2025-11-15)
+- 8 edge functions (see [supabase/CLAUDE.md](supabase/CLAUDE.md) for details)
 - See `supabase/migrations/` for migration files
 
-### Querying Remote Database
-
-**User-context queries** (respects RLS):
-```javascript
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-
-const envContent = readFileSync('.env', 'utf-8')
-let supabaseUrl = ''
-let supabaseAnonKey = ''
-
-envContent.split('\n').forEach(line => {
-  const trimmed = line.trim()
-  if (trimmed.startsWith('VITE_SUPABASE_URL=')) {
-    supabaseUrl = trimmed.substring('VITE_SUPABASE_URL='.length).trim()
-  }
-  if (trimmed.startsWith('VITE_SUPABASE_ANON_KEY=')) {
-    supabaseAnonKey = trimmed.substring('VITE_SUPABASE_ANON_KEY='.length).trim()
-  }
-})
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-const { data, error } = await supabase.from('welders').select('*')
-```
-
-**Admin queries** (bypasses RLS - use sparingly):
-Replace `VITE_SUPABASE_ANON_KEY` with `SUPABASE_SERVICE_ROLE_KEY` and add auth config:
-```javascript
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false, autoRefreshToken: false }
-})
-```
-
-Run from project root: `node script.mjs`
-
-**Alternative**: Use Supabase Dashboard SQL Editor or `psql`.
-
-### CLI Failure Handling (Lessons Learned)
-
-When a CLI command fails, diagnose and fix instead of retrying blindly. Follow this sequence:
-
-**1. Check for Missing Environment Variables**
-
-Most CLI failures come from missing or malformed env vars. Verify:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `SUPABASE_ACCESS_TOKEN`
-- `SUPABASE_SERVICE_ROLE_KEY` (for admin scripts)
-- `.env` is correctly loaded (no extra quotes, no trailing spaces)
-
-**2. Check for CRLF vs LF Line Ending Issues**
-
-If script returns `bad interpreter: No such file or directory`, Windows line endings broke the script.
-
-Fix: `sed -i 's/\r$//' db-push.sh`
-
-**3. Check Supabase CLI Known Bugs**
-
-If `supabase db push` hangs at "Initialising login role," it's a known Supabase CLI bug.
-
-Fix: Always use `./db-push.sh` OR full DB URL: `supabase db push --db-url "postgresql://..."`
-
-**4. Check for Migration Conflicts**
-
-If migrations fail, check:
-- Migration depends on table that doesn't exist
-- Migration applied manually on staging but not committed
-- Migration accidentally reordered
-- **Timestamp collision** - two migrations created within same second
-
-Diagnose:
-- Read the error
-- Check for `duplicate key value violates unique constraint "schema_migrations_pkey"` (timestamp collision)
-- Open the failing migration
-- Compare schema: `supabase db diff --schema public --linked`
-
-Fix timestamp collision:
-```bash
-# Detect duplicates
-ls supabase/migrations/*.sql | xargs -n1 basename | cut -d'_' -f1 | sort | uniq -d
-
-# Rename conflicting file (+1 second)
-mv supabase/migrations/20251120215000_fix.sql supabase/migrations/20251120215001_fix.sql
-```
-
-**5. Check SQL Syntax Errors**
-
-PostgreSQL errors like:
-- `syntax error at or near "("`
-- `function … does not exist`
-- `duplicate key value`
-
-Fix: Quote identifiers correctly, use plpgsql syntax rules
-
-**6. Check RPC / RLS Incompatibilities**
-
-If you see `permission denied for table …` or `row-level security policy … prevented access`:
-- Confirm RLS policies exist
-- Verify SECURITY DEFINER functions include permission checks
-- Ensure user context matches expectations
-
-**7. Check Local Type Generation Issues**
-
-If type generation fails: `supabase gen types typescript --linked`
-
-Verify:
-- Schema compiles
-- No circular references
-- No new JSONB shapes missing type definitions
-
-**8. Check Node Version or Dependency Mismatch**
-
-Failures like "ERR_MODULE_NOT_FOUND" or "Unexpected token" can be tied to Node version.
-
-Ensure:
-- Node version matches project standard
-- Dependencies aren't corrupted (`rm -rf node_modules && npm install`)
-
-**9. Prepared Statement Errors (Rare with Session Mode)**
-
-If you see: `ERROR: prepared statement "lrupsc_1_0" already exists (SQLSTATE 42P05)`
-
-**This should NOT occur** with current `db-push.sh` (uses session mode, port 5432).
-
-If it appears:
-- You may be using transaction pooler (port 6543) directly
-- The error is benign - check if migration actually succeeded
-- Look for "Applied migration..." message after the error
-- Verify in Supabase Dashboard that migration is in `supabase_migrations.schema_migrations` table
-
-Why this can happen with transaction mode:
-- Transaction pooler (port 6543) doesn't support prepared statements
-- Supabase CLI tries to create prepared statements anyway
-- Pooler can't preserve them across connection swaps
-- CLI works around this limitation - migration still succeeds
-
-**Action:** If using `db-push.sh`, you shouldn't see this. If you do, verify migration succeeded and consider whether you're using the correct pooler mode. See "Supabase Connection Pooler Modes" section for details.
+### Migration & CLI Details
+See [supabase/CLAUDE.md](supabase/CLAUDE.md) for:
+- Migration creation checklist
+- Timestamp collision prevention
+- CLI troubleshooting sequence
+- Connection pooler modes
+- Data type change impact analysis
+- Edge function patterns
+- Querying the remote database
 
 ---
 
 ## Testing
-
-### TDD Workflow (MANDATORY)
-1. Write failing test (Red)
-2. Implement minimum code to pass (Green)
-3. Refactor while tests pass
-4. Commit tests + implementation together
 
 ### Coverage Requirements (CI enforced)
 - Overall: ≥70%
@@ -363,241 +199,41 @@ const queryClient = new QueryClient({
 ## Development Rules
 
 ### Schema Compliance (CRITICAL)
-**Before writing any database insert/update code:**
+Before writing any database insert/update code:
 1. Check the actual table schema in migrations
 2. Use type-safe helpers (edge functions) or generated types (client)
 3. Never manually construct insert objects
 4. Validate against working examples
 
-**See:** [docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md](docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md)
+**See**: [docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md](docs/workflows/SCHEMA-COMPLIANCE-WORKFLOW.md)
 
-**Edge function pattern:** Every edge function that inserts data must have a `schema-helpers.ts` file with type-safe builder functions. See `supabase/functions/import-field-welds/schema-helpers.ts` for reference.
-
-**Enforcement:** The `backend-schema-compliance` skill (`.claude/skills/backend-schema-compliance/`) **automatically activates** when working with database code. This skill enforces the schema compliance workflow and prevents the common mistakes that have caused production bugs (Migration 00084 boolean/numeric, Migration 00055 identity keys).
-
-**Migration Validation (NEW):** The skill now includes **PostgreSQL migration validation** (Step 8) that runs BEFORE pushing any `.sql` migration file. Catches errors like "cannot change function return type" before wasted context debugging failed pushes. See `migration-validation-rules.md` for details.
+**Enforcement**: The `backend-schema-compliance` skill automatically activates when working with database code. Includes **PostgreSQL migration validation** (Step 8) that runs BEFORE pushing `.sql` files.
 
 ### TypeScript
-- Strict mode enabled
-- Additional checks: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`
+- Strict mode with `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`
 - Module resolution: "bundler" mode
 
 ### RLS Patterns
 - Enable RLS on all tables
-- Use SECURITY DEFINER for data-modifying functions
-- Add explicit permission checks in SECURITY DEFINER functions
+- Use SECURITY DEFINER for data-modifying functions with explicit permission checks
 - Test RLS policies with multiple user contexts
 - See [docs/security/RLS-RULES.md](docs/security/RLS-RULES.md) and [docs/security/RLS-AUDIT-CHECKLIST.md](docs/security/RLS-AUDIT-CHECKLIST.md)
 
 ### Migration Rules
 - Never modify existing migrations
-- Test migrations on staging before production
-- Use `./db-push.sh` to apply migrations (not `supabase db push --linked`)
-- Generate types after schema changes: `supabase gen types typescript --linked > src/types/database.types.ts`
-- Critical migrations documented in [docs/KNOWLEDGE-BASE.md](docs/KNOWLEDGE-BASE.md)
-- **Wait 2+ seconds between creating migrations** to avoid timestamp collisions
-
-**Timestamp Collision Prevention:**
-
-Supabase CLI generates migration timestamps with 1-second resolution (`YYYYMMDDHHMMSS`).
-Creating multiple migrations within the same second causes duplicate timestamps.
-
-**Error:** `ERROR: duplicate key value violates unique constraint "schema_migrations_pkey"`
-
-**Prevention:**
-
-1. **Wait 2+ seconds between migrations:**
-   ```bash
-   supabase migration new add_feature_a
-   sleep 2  # Ensure different timestamp
-   supabase migration new add_feature_b
-   ```
-
-2. **Check for duplicate timestamps before pushing:**
-   ```bash
-   ls supabase/migrations/*.sql | xargs -n1 basename | cut -d'_' -f1 | sort | uniq -d
-   # If any output, you have duplicates - rename manually
-   ```
-
-3. **Resolution if collision occurs:**
-   ```bash
-   # Rename the conflicting migration file with +1 second
-   mv supabase/migrations/20251120215000_fix.sql \
-      supabase/migrations/20251120215001_fix.sql
-
-   # Push again
-   ./db-push.sh
-   ```
-
-**Modifying Existing Tables** (requires extra care):
-
-Before altering any existing table, you MUST:
-1. Write data migration if changing column types or constraints
-2. Update generated types: `supabase gen types typescript --linked > src/types/database.types.ts`
-3. Check every RPC that references the table (grep for table name)
-4. Check every RLS policy on the table
-5. Update all tests that rely on the modified columns
-6. Write new tests for new constraints or behaviors
-
-**Why**: Schema changes have cascading effects. Missing any step causes runtime errors.
-
-**Data Type Changes** (CRITICAL - requires comprehensive impact analysis):
-
-**LESSON LEARNED (2025-11-24):** Migration 20251122152612 changed milestone values from 1/0 to 100/0 scale. Only updated one RPC function, forgot to update calculate_component_percent, UI rendering, onChange handlers, and materialized view. Result: Production app showed 0% progress and checkboxes didn't save. Required 3 emergency fixes affecting 722 components.
-
-Before changing data types (boolean → numeric, string → enum, etc.), you MUST:
-
-1. ✅ **Document all code paths that read/write this field**
-   ```bash
-   # Find all database code
-   grep -r "field_name" supabase/migrations/
-   grep -r "field_name" supabase/functions/
-
-   # Find all frontend code
-   grep -r "field_name" src/
-   ```
-
-2. ✅ **Update ALL database functions that reference the field**
-   - RPC functions (update_*, create_*, calculate_*)
-   - Trigger functions
-   - Materialized view definitions
-   - Stored procedures
-
-3. ✅ **Update ALL frontend code**
-   - Rendering logic (display checks: `value === 1` → `value === 100`)
-   - onChange handlers (send correct type: `true/false` → `100/0`)
-   - Form validation
-   - Default values
-   - Type definitions (database.types.ts)
-
-4. ✅ **Write data migration script**
-   - Backfill existing data to new format
-   - Test on staging first
-   - Include rollback script
-
-5. ✅ **Update or refresh dependent views**
-   - Materialized views (REFRESH or add auto-refresh trigger)
-   - Regular views
-   - Aggregations
-
-6. ✅ **Add tests for the new data type**
-   - Unit tests for read/write operations
-   - Integration tests for full data flow
-   - E2E tests for user workflows
-
-7. ✅ **Test on staging environment**
-   - Apply migration
-   - Run data backfill
-   - Manually test all affected UI
-   - Check calculated fields update correctly
-
-8. ✅ **Create deployment checklist**
-   - Order of operations (migration → frontend deploy)
-   - Verification steps
-   - Rollback plan
-
-**Example Impact Analysis Template:**
-
-```markdown
-## Data Type Change: [field_name] from [old_type] to [new_type]
-
-### Database Impact:
-- [ ] Functions: update_X, calculate_Y, trigger_Z
-- [ ] Materialized views: mv_X (needs REFRESH)
-- [ ] Triggers: on_X_change
-- [ ] RLS policies: (check if type affects policies)
-
-### Frontend Impact:
-- [ ] Components: ComponentA (line X), ComponentB (line Y)
-- [ ] Hooks: useX (read), useY (write)
-- [ ] Type definitions: database.types.ts
-- [ ] Tests: component.test.tsx, hook.test.ts
-
-### Data Migration:
-- [ ] Backfill script written
-- [ ] Tested on staging
-- [ ] Rollback script ready
-
-### Deployment Plan:
-1. Push migration
-2. Run backfill script
-3. Refresh materialized views
-4. Deploy frontend
-5. Verify on production
-6. Monitor for errors
-```
-
-**Why**: Data type changes have the highest risk of cascading failures. One missed code path can break production. This checklist prevents incomplete migrations.
-
-### Migration Creation Checklist
-
-Follow this checklist when creating any new migration:
-
-1. ✅ **Check for recent migrations** - Avoid timestamp collisions
-   ```bash
-   ls -lt supabase/migrations/ | head -5
-   ```
-
-2. ✅ **Wait 2+ seconds** if another migration was just created
-
-3. ✅ **Create migration**
-   ```bash
-   supabase migration new descriptive_name_here
-   ```
-
-4. ✅ **Verify unique timestamp** - Detect duplicates
-   ```bash
-   ls supabase/migrations/*.sql | xargs -n1 basename | cut -d'_' -f1 | sort | uniq -d
-   # No output = good (no duplicates)
-   ```
-
-5. ✅ **Test migration** (recommended)
-   ```bash
-   ./db-push.sh
-   # Should run cleanly with session mode (no spurious errors)
-   ```
-
-6. ✅ **Generate types** after schema changes
-   ```bash
-   supabase gen types typescript --linked > src/types/database.types.ts
-   ```
-
-7. ✅ **Commit migration + types together**
-   ```bash
-   git add supabase/migrations/<new-file>.sql src/types/database.types.ts
-   git commit -m "migration: <description>"
-   ```
+- Always use `./db-push.sh` (not `supabase db push --linked`)
+- Generate types after schema changes
+- Wait 2+ seconds between creating migrations (timestamp collisions)
+- See [supabase/CLAUDE.md](supabase/CLAUDE.md) for full migration workflow
 
 ### Mobile-First Design
 - ≤1024px breakpoint for mobile layouts
 - ≥44px touch targets (WCAG 2.1 AA)
-- Test on mobile devices before marking complete
 - See [docs/plans/2025-11-06-design-rules.md](docs/plans/2025-11-06-design-rules.md)
 
 ### Accessibility
 - WCAG 2.1 AA compliance mandatory
 - Semantic HTML, ARIA labels, keyboard navigation
-- Test with screen readers
-- See [docs/plans/2025-11-06-design-rules.md](docs/plans/2025-11-06-design-rules.md)
-
-### Persistent Preferences Pattern
-
-Use Zustand with persist middleware for user preferences that should survive page refreshes:
-
-**Example:** `useWeldLogPreferencesStore`
-- Stores sort and filter state
-- localStorage key: `pipetrak:weld-log-preferences`
-- Automatic sync via Zustand persist middleware
-
-**When to use:**
-- User preferences (UI state, filters, sort)
-- Settings that should persist across sessions
-- State that doesn't need server sync
-
-**When NOT to use:**
-- Server data (use TanStack Query)
-- Auth state (use AuthContext)
-- Form state (use local component state)
 
 ---
 
@@ -625,6 +261,22 @@ Constitution v1.0.0 at `.specify/memory/constitution.md` defines type safety, co
 
 ---
 
+## Component Library
+
+Shadcn/ui configured in `components.json`. Radix UI primitives installed: accordion, alert-dialog, checkbox, dialog, dropdown-menu, label, popover, progress, radio-group, scroll-area, select, slider, slot, switch, tabs, toast, tooltip.
+
+Add components: `npx shadcn@latest add <component>` or manually to `src/components/ui/`
+
+---
+
+## PDF Generation
+
+Component-based PDF generation using @react-pdf/renderer. See [src/components/pdf/CLAUDE.md](src/components/pdf/CLAUDE.md) for component library, lazy loading rules, testing patterns, and styling guide.
+
+**Key rules**: Always lazy-load (700KB-1.2MB library), desktop-only export buttons (`hidden lg:flex`).
+
+---
+
 ## Documentation Index
 
 **Essential Reading**:
@@ -634,163 +286,11 @@ Constitution v1.0.0 at `.specify/memory/constitution.md` defines type safety, co
 - [docs/plans/2025-11-06-design-rules.md](docs/plans/2025-11-06-design-rules.md) - Development patterns, recipes, accessibility
 - [docs/security/RLS-RULES.md](docs/security/RLS-RULES.md) - RLS patterns and templates
 - [docs/security/RLS-AUDIT-CHECKLIST.md](docs/security/RLS-AUDIT-CHECKLIST.md) - Quick RLS reference
+- [docs/workflows/DATA-TYPE-CHANGE-CHECKLIST.md](docs/workflows/DATA-TYPE-CHANGE-CHECKLIST.md) - Impact analysis for data type changes
 
-**Feature Documentation**:
-See `specs/` directory for implementation notes:
-- Feature 002: User Registration - `specs/002-user-registration-and/IMPLEMENTATION-NOTES.md`
-- Feature 009: CSV Import - `specs/009-sprint-3-material/IMPLEMENTATION-NOTES.md`
-- Feature 010: Drawing Table - `specs/010-let-s-spec/IMPLEMENTATION_STATUS.md`
-- Feature 011: Metadata Assignment - `specs/011-the-drawing-component/IMPLEMENTATION_STATUS.md`
-- Feature 015: Mobile Milestones - `specs/015-mobile-milestone-updates/IMPLEMENTATION-NOTES.md`
-- Feature 016: Team Management - `specs/016-team-management-ui/IMPLEMENTATION-NOTES.md`
-- Feature 019: Progress Reports - `specs/019-weekly-progress-reports/tasks.md`
-- Feature 029: React PDF Reports - `specs/029-react-pdf-reports/quickstart.md`
-
----
-
-## Component Library
-
-Shadcn/ui configured in `components.json`. Radix UI primitives installed: dialog, dropdown-menu, label, slot, toast.
-
-Add components: `npx shadcn@latest add <component>` or manually to `src/components/ui/`
-
----
-
-## PDF Generation
-
-Component-based PDF generation using @react-pdf/renderer for professional report export.
-
-### PDF Component Library
-
-Located in `src/components/pdf/`:
-
-```
-src/components/pdf/
-├── layout/
-│   ├── BrandedHeader.tsx       # Company logo + report title + metadata
-│   ├── ReportFooter.tsx        # Page numbers + footer text
-│   └── PageLayout.tsx          # Page wrapper with header + content + footer
-├── tables/
-│   ├── TableHeader.tsx         # Table header row with column definitions
-│   ├── TableRow.tsx            # Table body row with formatting by column type
-│   └── Table.tsx               # Complete table (header + rows + grand total)
-├── reports/
-│   └── FieldWeldReportPDF.tsx  # Field weld report document
-├── styles/
-│   └── commonStyles.ts         # Shared PDF styles (colors, typography, layout)
-└── index.ts                    # Barrel exports
-```
-
-### Lazy Loading Pattern
-
-**CRITICAL**: Always use lazy loading to avoid bundle bloat (library is 700KB-1.2MB):
-
-```typescript
-// ✅ Good - Lazy load in hook
-const { generatePDF, isGenerating } = useFieldWeldPDFExport();
-
-// Hook implementation uses dynamic imports:
-const { pdf } = await import('@react-pdf/renderer');
-const { FieldWeldReportPDF } = await import('@/components/pdf/reports/FieldWeldReportPDF');
-
-// ❌ Bad - Top-level import adds to bundle
-import { pdf } from '@react-pdf/renderer'; // DON'T DO THIS
-```
-
-### Desktop-Only Constraint
-
-PDF export buttons must be hidden on mobile (≤1024px):
-
-```typescript
-// ✅ Good
-<div className="hidden lg:flex gap-2">
-  <Button onClick={handleExport}>Export PDF</Button>
-</div>
-
-// ❌ Bad
-<Button onClick={handleExport}>Export PDF</Button>
-```
-
-### Usage Example
-
-```typescript
-import { useFieldWeldPDFExport } from '@/hooks/useFieldWeldPDFExport';
-import { toast } from 'sonner';
-
-function ReportsPage() {
-  const { generatePDF, isGenerating, error } = useFieldWeldPDFExport();
-
-  const handleExport = async () => {
-    if (!reportData) return;
-
-    try {
-      await generatePDF(
-        reportData,
-        'Project Name',
-        'area', // dimension
-        companyLogoBase64 // optional
-      );
-      toast.success('PDF downloaded successfully');
-    } catch (err) {
-      toast.error('Failed to generate PDF');
-    }
-  };
-
-  return (
-    <div className="hidden lg:flex gap-2">
-      <Button onClick={handleExport} disabled={isGenerating}>
-        {isGenerating ? 'Generating...' : 'Export PDF'}
-      </Button>
-    </div>
-  );
-}
-```
-
-### Testing PDF Components
-
-**Unit Tests** (fast - mock @react-pdf/renderer):
-```typescript
-vi.mock('@react-pdf/renderer', () => ({
-  Document: ({ children }: any) => <div data-testid="pdf-document">{children}</div>,
-  Page: ({ children }: any) => <div data-testid="pdf-page">{children}</div>,
-  View: ({ children }: any) => <div data-testid="pdf-view">{children}</div>,
-  Text: ({ children }: any) => <span data-testid="pdf-text">{children}</span>,
-  StyleSheet: { create: (styles: any) => styles }
-}));
-```
-
-**Integration Tests** (slow - real @react-pdf/renderer):
-```typescript
-import { pdf } from '@react-pdf/renderer';
-import { FieldWeldReportPDF } from '@/components/pdf/reports/FieldWeldReportPDF';
-
-const blob = await pdf(<FieldWeldReportPDF {...props} />).toBlob();
-expect(blob.type).toBe('application/pdf');
-expect(blob.size).toBeLessThan(500 * 1024); // <500KB
-```
-
-### PDF Styling Rules
-
-**DO**:
-- Use @react-pdf/renderer StyleSheet API
-- Use flexbox for layouts
-- Reference commonStyles for consistent colors/typography
-- Test with real PDF generation (not just mocks)
-
-**DON'T**:
-- Use Tailwind classes (not supported in PDFs)
-- Use CSS-in-JS libraries (styled-components, emotion)
-- Use Grid layout (use flexbox instead)
-- Import @react-pdf/renderer at module top-level (breaks lazy loading)
-
-### Quickstart Guide
-
-See `specs/029-react-pdf-reports/quickstart.md` for:
-- Creating new report types
-- Custom table columns
-- Multi-page reports
-- Performance optimization
-- Common pitfalls
+**Subdirectory Context**:
+- [supabase/CLAUDE.md](supabase/CLAUDE.md) - Migration workflow, CLI troubleshooting, edge functions
+- [src/components/pdf/CLAUDE.md](src/components/pdf/CLAUDE.md) - PDF component library and patterns
 
 ---
 
@@ -798,16 +298,9 @@ See `specs/029-react-pdf-reports/quickstart.md` for:
 
 **Update CLAUDE.md when**:
 - New feature introduces a global pattern (state management, routing, data flow)
-- New RLS pattern is adopted (new permission model, new SECURITY DEFINER pattern)
-- Supabase CLI behavior changes (bugs, workarounds, new commands)
+- New RLS pattern is adopted
+- Supabase CLI behavior changes (bugs, workarounds)
 - Major feature adds new routes or folder structure
-- Coding style or architecture evolves (new testing pattern, new UI pattern)
+- Coding style or architecture evolves
 
 **Why**: Outdated guidance causes Claude to use old patterns. Keep this file current.
-
-## Active Technologies
-- TypeScript 5 (strict mode), React 18, PostgreSQL 15+ (Supabase) (028-add-unplanned-welds)
-- Supabase PostgreSQL with RLS (028-add-unplanned-welds)
-
-## Recent Changes
-- 028-add-unplanned-welds: Added TypeScript 5 (strict mode), React 18, PostgreSQL 15+ (Supabase)
