@@ -48,6 +48,7 @@ import { useState } from 'react';
 import { generateFieldWeldPDFFilename } from '@/lib/pdfUtils';
 import type {
   FieldWeldReportData,
+  FieldWeldDeltaReportData,
   FieldWeldGroupingDimension,
 } from '@/types/reports';
 import type { UseFieldWeldPDFExportReturn } from '@/types/pdf-components';
@@ -76,7 +77,9 @@ export function useFieldWeldPDFExport(): UseFieldWeldPDFExportReturn {
     data: FieldWeldReportData,
     projectName: string,
     dimension: FieldWeldGroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    deltaData?: FieldWeldDeltaReportData,
+    subtitle?: string
   ): Promise<{ blob: Blob; filename: string }> => {
     // Lazy load @react-pdf/renderer (dynamic import for code splitting)
     const { pdf } = await import('@react-pdf/renderer');
@@ -95,6 +98,8 @@ export function useFieldWeldPDFExport(): UseFieldWeldPDFExportReturn {
         dimension={dimension}
         generatedDate={generatedDate}
         companyLogo={companyLogo ?? undefined}
+        deltaData={deltaData}
+        subtitle={subtitle}
       />
     ).toBlob();
 
@@ -122,7 +127,9 @@ export function useFieldWeldPDFExport(): UseFieldWeldPDFExportReturn {
     data: FieldWeldReportData,
     projectName: string,
     dimension: FieldWeldGroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    deltaData?: FieldWeldDeltaReportData,
+    subtitle?: string
   ): Promise<{ blob: Blob; url: string; filename: string }> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -137,7 +144,9 @@ export function useFieldWeldPDFExport(): UseFieldWeldPDFExportReturn {
         data,
         projectName,
         dimension,
-        companyLogo
+        companyLogo,
+        deltaData,
+        subtitle
       );
 
       // Create object URL for preview (caller is responsible for cleanup)
@@ -167,7 +176,9 @@ export function useFieldWeldPDFExport(): UseFieldWeldPDFExportReturn {
     data: FieldWeldReportData,
     projectName: string,
     dimension: FieldWeldGroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    deltaData?: FieldWeldDeltaReportData,
+    subtitle?: string
   ): Promise<Blob> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -182,7 +193,9 @@ export function useFieldWeldPDFExport(): UseFieldWeldPDFExportReturn {
         data,
         projectName,
         dimension,
-        companyLogo
+        companyLogo,
+        deltaData,
+        subtitle
       );
 
       // Trigger browser download

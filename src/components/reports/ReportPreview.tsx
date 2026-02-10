@@ -19,8 +19,35 @@ import { useComponentProgressPDFExport } from '@/hooks/useComponentProgressPDFEx
 import { useProgressDeltaReport } from '@/hooks/useProgressDeltaReport';
 import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
 import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
+import { sortComponentReportRows, sortManhourReportRows } from '@/lib/report-sorting';
+import { buildPDFSubtitle } from '@/lib/pdfUtils';
 import type { ReportData, ManhourReportData, ReportViewMode } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
+import type { ComponentReportSortColumn, ManhourReportSortColumn } from '@/stores/useReportPreferencesStore';
+
+/** Maps sort column keys to human-readable labels for PDF subtitle */
+const COMPONENT_SORT_LABELS: Record<ComponentReportSortColumn, string> = {
+  name: 'Name',
+  budget: 'Budget',
+  pctReceived: 'Received',
+  pctInstalled: 'Installed',
+  pctPunch: 'Punch',
+  pctTested: 'Tested',
+  pctRestored: 'Restored',
+  pctTotal: '% Complete',
+};
+
+const MANHOUR_SORT_LABELS: Record<ManhourReportSortColumn, string> = {
+  name: 'Name',
+  mhBudget: 'MH Budget',
+  receiveMhEarned: 'Receive',
+  installMhEarned: 'Install',
+  punchMhEarned: 'Punch',
+  testMhEarned: 'Test',
+  restoreMhEarned: 'Restore',
+  totalMhEarned: 'Total Earned',
+  mhPctComplete: '% Complete',
+};
 
 interface ReportPreviewProps {
   data: ReportData;
@@ -36,7 +63,7 @@ export function ReportPreview({
   hasManhourBudget,
 }: ReportPreviewProps) {
   const { generatePDFPreview, generateManhourPDFPreview, isGenerating } = useComponentProgressPDFExport();
-  const { viewMode, setViewMode, dateRange } = useReportPreferencesStore();
+  const { viewMode, setViewMode, dateRange, componentReport, manhourReport } = useReportPreferencesStore();
   const { data: companyLogo } = useOrganizationLogo();
 
   // Determine if delta mode is active (any date filter other than all_time)
@@ -88,21 +115,41 @@ export function ReportPreview({
       let result: { blob: Blob; url: string; filename: string };
 
       if (effectiveViewMode === 'count') {
-        // Count view uses component progress PDF
+        // Count view: pre-sort rows to match current table view
+        const sortedData: ReportData = {
+          ...data,
+          rows: sortComponentReportRows(data.rows, componentReport.sortColumn, componentReport.sortDirection),
+        };
+        const subtitle = buildPDFSubtitle(
+          COMPONENT_SORT_LABELS[componentReport.sortColumn],
+          componentReport.sortDirection,
+          dateRange
+        );
         result = await generatePDFPreview(
-          data,
+          sortedData,
           projectName,
           data.dimension,
-          companyLogo ?? undefined
+          companyLogo ?? undefined,
+          subtitle
         );
       } else if (manhourData) {
-        // Manhour views use manhour progress PDF
+        // Manhour views: pre-sort rows to match current table view
+        const sortedManhourData: ManhourReportData = {
+          ...manhourData,
+          rows: sortManhourReportRows(manhourData.rows, manhourReport.sortColumn, manhourReport.sortDirection),
+        };
+        const subtitle = buildPDFSubtitle(
+          MANHOUR_SORT_LABELS[manhourReport.sortColumn],
+          manhourReport.sortDirection,
+          dateRange
+        );
         result = await generateManhourPDFPreview(
-          manhourData,
+          sortedManhourData,
           projectName,
           manhourData.dimension,
           effectiveViewMode,
-          companyLogo ?? undefined
+          companyLogo ?? undefined,
+          subtitle
         );
       } else {
         throw new Error('Manhour data not available');

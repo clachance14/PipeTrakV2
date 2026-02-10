@@ -16,10 +16,29 @@ import {
   WELDER_PERFORMANCE_COLUMNS,
   XRAY_TIER_COLUMNS,
 } from '@/types/reports';
-import { hasNonZeroRepairRate } from '@/lib/pdfUtils';
+import { hasNonZeroRepairRate, buildPDFSubtitle } from '@/lib/pdfUtils';
 import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { useReportPreferencesStore, type FieldWeldReportSortColumn } from '@/stores/useReportPreferencesStore';
 import { sortFieldWeldReportRows } from '@/lib/report-sorting';
+
+/** Maps sort column keys to human-readable labels for PDF subtitle */
+const FIELD_WELD_SORT_LABELS: Record<FieldWeldReportSortColumn, string> = {
+  name: 'Name',
+  totalWelds: 'Total Welds',
+  weldCompleteCount: 'Weld Complete',
+  acceptedCount: 'Accepted',
+  ndePassRate: 'NDE Pass Rate',
+  repairRate: 'Repair Rate',
+  pctTotal: '% Complete',
+  firstPassRate: 'First Pass Rate',
+  avgDaysToAcceptance: 'Avg Days to Accept',
+  xray5Count: '5% X-Ray Count',
+  xray10Count: '10% X-Ray Count',
+  xray100Count: '100% X-Ray Count',
+  xray5PassRate: '5% Pass Rate',
+  xray10PassRate: '10% Pass Rate',
+  xray100PassRate: '100% Pass Rate',
+};
 
 /**
  * Format delta count with color coding
@@ -91,13 +110,29 @@ export function FieldWeldReportTable({ reportData, projectName, onExport, deltaD
   const showRepairRate = hasNonZeroRepairRate(reportData);
 
   // Enhanced PDF export handler (preview first, then download from dialog)
+  // Pre-sorts data to match current view and passes delta data for inline columns
   const handleEnhancedPDFExport = async () => {
     try {
+      // Pre-sort rows to match current table view
+      const sortedReportData: FieldWeldReportData = {
+        ...reportData,
+        rows: sortFieldWeldReportRows(reportData.rows, sortColumn, sortDirection),
+      };
+
+      // Build subtitle showing current sort + date range
+      const subtitle = buildPDFSubtitle(
+        FIELD_WELD_SORT_LABELS[sortColumn],
+        sortDirection,
+        dateRange
+      );
+
       const { blob, url, filename } = await generatePDFPreview(
-        reportData,
+        sortedReportData,
         projectName,
         reportData.dimension,
-        companyLogo ?? undefined
+        companyLogo ?? undefined,
+        deltaData,
+        subtitle
       );
 
       setPreviewState({
@@ -138,8 +173,8 @@ export function FieldWeldReportTable({ reportData, projectName, onExport, deltaD
     };
   }, [previewState.url]);
 
-  // Get sort state from store
-  const { fieldWeldReport, toggleFieldWeldSort } = useReportPreferencesStore();
+  // Get sort state and date range from store
+  const { fieldWeldReport, toggleFieldWeldSort, dateRange } = useReportPreferencesStore();
   const { sortColumn, sortDirection } = fieldWeldReport;
 
   // Build delta lookup map: id → delta row (for O(1) row matching)

@@ -45,6 +45,7 @@ interface ManhourProgressReportPDFProps {
   viewMode: ReportViewMode;
   generatedDate: string;
   companyLogo?: string;
+  subtitle?: string;
 }
 
 /**
@@ -65,6 +66,7 @@ export function ManhourProgressReportPDF({
   viewMode,
   generatedDate,
   companyLogo,
+  subtitle,
 }: ManhourProgressReportPDFProps) {
   // Use appropriate transformation based on view mode
   const tableProps = viewMode === 'manhour_percent'
@@ -84,6 +86,7 @@ export function ManhourProgressReportPDF({
           <BrandedHeader
             logo={companyLogo}
             title={reportTitle}
+            subtitle={subtitle}
             projectName={projectName}
             dimensionLabel={dimensionLabel}
             generatedDate={generatedDate}
@@ -134,6 +137,7 @@ export function ManhourProgressReportPDF({
           <BrandedHeader
             logo={companyLogo}
             title={reportTitle}
+            subtitle={subtitle}
             projectName={projectName}
             dimensionLabel={dimensionLabel}
             generatedDate={generatedDate}

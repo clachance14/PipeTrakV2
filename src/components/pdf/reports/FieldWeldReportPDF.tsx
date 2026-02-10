@@ -52,10 +52,12 @@ export function FieldWeldReportPDF({
   dimension,
   generatedDate,
   companyLogo,
+  deltaData,
+  subtitle,
 }: FieldWeldReportPDFProps) {
   // Determine if repair rate column should be shown (hide if ALL rows have 0% repair rate)
   const includeRepairRate = hasNonZeroRepairRate(reportData);
-  const tableProps = transformToTableProps(reportData, dimension, includeRepairRate);
+  const tableProps = transformToTableProps(reportData, dimension, includeRepairRate, deltaData);
   const dimensionLabel = getDimensionLabel(dimension);
 
   // Handle empty data
@@ -66,6 +68,7 @@ export function FieldWeldReportPDF({
           <BrandedHeader
             logo={companyLogo}
             title="PipeTrak Field Weld Progress Report"
+            subtitle={subtitle}
             projectName={projectName}
             dimensionLabel={dimensionLabel}
             generatedDate={generatedDate}
@@ -116,6 +119,7 @@ export function FieldWeldReportPDF({
           <BrandedHeader
             logo={companyLogo}
             title="PipeTrak Field Weld Progress Report"
+            subtitle={subtitle}
             projectName={projectName}
             dimensionLabel={dimensionLabel}
             generatedDate={generatedDate}

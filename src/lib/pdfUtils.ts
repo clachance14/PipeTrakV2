@@ -5,12 +5,17 @@
 
 import type {
   FieldWeldReportData,
+  FieldWeldDeltaReportData,
+  FieldWeldDeltaRow,
+  FieldWeldDeltaGrandTotal,
   FieldWeldGroupingDimension,
   ReportData,
   GroupingDimension,
   ManhourReportData,
   ReportViewMode,
+  ReportDateRange,
 } from '@/types/reports';
+import { DATE_RANGE_PRESET_LABELS } from '@/types/reports';
 import type {
   TableProps,
   TableColumnDefinition,
@@ -39,15 +44,66 @@ export function hasNonZeroRepairRate(reportData: FieldWeldReportData): boolean {
 }
 
 /**
+ * Format a delta numeric value as a string with +/- prefix for PDF display
+ * @param value - The delta value
+ * @param isPercent - Whether to format as percentage (with % suffix and 1 decimal)
+ */
+export function formatDeltaForPDF(value: number, isPercent: boolean): string {
+  if (isPercent) {
+    if (value > 0) return `+${value.toFixed(1)}%`;
+    if (value < 0) return `${value.toFixed(1)}%`;
+    return '0.0%';
+  }
+  if (value > 0) return `+${value}`;
+  if (value < 0) return `${value}`;
+  return '0';
+}
+
+/**
+ * Format a base cell value with its inline delta suffix.
+ * Returns a pre-formatted string like "136 (+5)" or "99.0% (+18.1%)".
+ * When passed as a string to formatCellValue in TableRow, it passes through as-is.
+ */
+function formatValueWithInlineDelta(
+  baseValue: number | null,
+  deltaValue: number,
+  baseFormat: 'number' | 'percentage',
+): string {
+  const deltaSuffix = formatDeltaForPDF(deltaValue, baseFormat === 'percentage');
+
+  if (baseValue === null || baseValue === undefined) return `- (${deltaSuffix})`;
+
+  if (baseFormat === 'percentage') {
+    return `${baseValue.toFixed(1)}% (${deltaSuffix})`;
+  }
+  // number format
+  return `${baseValue.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${deltaSuffix})`;
+}
+
+/** Maps base column keys to their corresponding delta field + format */
+const INLINE_DELTA_DEFS: Array<{
+  baseKey: string;
+  deltaField: keyof FieldWeldDeltaRow & keyof FieldWeldDeltaGrandTotal;
+  baseFormat: 'number' | 'percentage';
+}> = [
+  { baseKey: 'totalWelds', deltaField: 'deltaNewWelds', baseFormat: 'number' },
+  { baseKey: 'weldCompleteCount', deltaField: 'deltaWeldCompleteCount', baseFormat: 'number' },
+  { baseKey: 'acceptedCount', deltaField: 'deltaAcceptedCount', baseFormat: 'number' },
+  { baseKey: 'pctTotal', deltaField: 'deltaPctTotal', baseFormat: 'percentage' },
+];
+
+/**
  * Transform field weld report data to table props for PDF rendering
  * @param reportData - Field weld report data
  * @param dimension - Grouping dimension
  * @param includeRepairRate - Whether to include repair rate column (default: true)
+ * @param deltaData - Optional delta data; when present, affected cells show inline deltas like "136 (+5)"
  */
 export function transformToTableProps(
   reportData: FieldWeldReportData,
   dimension: FieldWeldGroupingDimension,
-  includeRepairRate: boolean = true
+  includeRepairRate: boolean = true,
+  deltaData?: FieldWeldDeltaReportData
 ): TableProps {
   // Base columns (common to all dimensions)
   // Note: fitupCount removed per user request
@@ -95,38 +151,84 @@ export function transformToTableProps(
     if (baseColumns[pctTotalIndex]) baseColumns[pctTotalIndex].width = '9%';
   }
 
+  // Build delta lookup map: row id → delta row
+  const deltaByRowId = deltaData
+    ? new Map(deltaData.rows.map(r => [r.id, r]))
+    : null;
+
   return {
     columns: baseColumns,
-    data: reportData.rows.map((row) => ({
-      name: row.name,
-      totalWelds: row.totalWelds,
-      weldCompleteCount: row.weldCompleteCount ?? null,
-      ...(dimension !== 'welder' && { remainingCount: row.remainingCount ?? null }),
-      acceptedCount: row.acceptedCount ?? null,
-      ndePassRate: row.ndePassRate ?? null,
-      ...(includeRepairRate && { repairRate: row.repairRate ?? null }),
-      pctTotal: row.pctTotal ?? null,
-      ...(dimension === 'welder' && {
-        firstPassAcceptanceRate: row.firstPassAcceptanceRate ?? null,
-        avgDaysToAcceptance: row.avgDaysToAcceptance ?? null,
-      }),
-    })),
-    grandTotal: {
-      name: reportData.grandTotal.name || 'Grand Total',
-      totalWelds: reportData.grandTotal.totalWelds,
-      weldCompleteCount: reportData.grandTotal.weldCompleteCount ?? null,
-      ...(dimension !== 'welder' && { remainingCount: reportData.grandTotal.remainingCount ?? null }),
-      acceptedCount: reportData.grandTotal.acceptedCount ?? null,
-      ndePassRate: reportData.grandTotal.ndePassRate ?? null,
-      ...(includeRepairRate && { repairRate: reportData.grandTotal.repairRate ?? null }),
-      pctTotal: reportData.grandTotal.pctTotal ?? null,
-      ...(dimension === 'welder' && {
-        firstPassAcceptanceRate: reportData.grandTotal.firstPassAcceptanceRate ?? null,
-        avgDaysToAcceptance: reportData.grandTotal.avgDaysToAcceptance ?? null,
-      }),
-    },
+    data: reportData.rows.map((row) => {
+      const baseRow: Record<string, string | number | null> = {
+        name: row.name,
+        totalWelds: row.totalWelds,
+        weldCompleteCount: row.weldCompleteCount ?? null,
+        ...(dimension !== 'welder' && { remainingCount: row.remainingCount ?? null }),
+        acceptedCount: row.acceptedCount ?? null,
+        ndePassRate: row.ndePassRate ?? null,
+        ...(includeRepairRate && { repairRate: row.repairRate ?? null }),
+        pctTotal: row.pctTotal ?? null,
+        ...(dimension === 'welder' && {
+          firstPassAcceptanceRate: row.firstPassAcceptanceRate ?? null,
+          avgDaysToAcceptance: row.avgDaysToAcceptance ?? null,
+        }),
+      };
+
+      // Merge inline delta values into base cells as pre-formatted strings
+      if (deltaByRowId) {
+        const deltaRow = deltaByRowId.get(row.id);
+        if (deltaRow) {
+          mergeInlineDeltaValues(baseRow, deltaRow);
+        }
+      }
+
+      return baseRow;
+    }),
+    grandTotal: (() => {
+      const gt: Record<string, string | number | null> = {
+        name: reportData.grandTotal.name || 'Grand Total',
+        totalWelds: reportData.grandTotal.totalWelds,
+        weldCompleteCount: reportData.grandTotal.weldCompleteCount ?? null,
+        ...(dimension !== 'welder' && { remainingCount: reportData.grandTotal.remainingCount ?? null }),
+        acceptedCount: reportData.grandTotal.acceptedCount ?? null,
+        ndePassRate: reportData.grandTotal.ndePassRate ?? null,
+        ...(includeRepairRate && { repairRate: reportData.grandTotal.repairRate ?? null }),
+        pctTotal: reportData.grandTotal.pctTotal ?? null,
+        ...(dimension === 'welder' && {
+          firstPassAcceptanceRate: reportData.grandTotal.firstPassAcceptanceRate ?? null,
+          avgDaysToAcceptance: reportData.grandTotal.avgDaysToAcceptance ?? null,
+        }),
+      };
+
+      // Merge grand total inline delta values
+      if (deltaData) {
+        mergeInlineDeltaValues(gt, deltaData.grandTotal);
+      }
+
+      return gt;
+    })(),
     highlightGrandTotal: true,
   };
+}
+
+/**
+ * Merge inline delta values into a row's base cells as pre-formatted strings.
+ * Converts numeric cell values to strings like "136 (+5)" or "99.0% (+18.1%)".
+ */
+function mergeInlineDeltaValues(
+  row: Record<string, string | number | null>,
+  deltaRow: FieldWeldDeltaRow | FieldWeldDeltaGrandTotal
+): void {
+  for (const def of INLINE_DELTA_DEFS) {
+    const baseValue = row[def.baseKey];
+    if (baseValue !== undefined) {
+      row[def.baseKey] = formatValueWithInlineDelta(
+        typeof baseValue === 'number' ? baseValue : null,
+        deltaRow[def.deltaField] as number,
+        def.baseFormat
+      );
+    }
+  }
 }
 
 /**
@@ -135,6 +237,37 @@ export function transformToTableProps(
  */
 export function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_');
+}
+
+/**
+ * Build a subtitle string showing active sort + filter for PDF header.
+ * Example: "Sorted by: % Complete (desc) | Period: Last 7 Days"
+ *
+ * @param sortLabel - Human-readable sort column name (e.g., "% Complete")
+ * @param sortDirection - 'asc' or 'desc'
+ * @param dateRange - Optional date range filter state
+ */
+export function buildPDFSubtitle(
+  sortLabel: string,
+  sortDirection: 'asc' | 'desc',
+  dateRange?: ReportDateRange
+): string {
+  const parts: string[] = [];
+
+  // Sort info
+  const directionLabel = sortDirection === 'asc' ? 'asc' : 'desc';
+  parts.push(`Sorted by: ${sortLabel} (${directionLabel})`);
+
+  // Date range info (only show if not "all_time")
+  if (dateRange && dateRange.preset !== 'all_time') {
+    if (dateRange.preset === 'custom' && dateRange.startDate && dateRange.endDate) {
+      parts.push(`Period: ${dateRange.startDate} to ${dateRange.endDate}`);
+    } else {
+      parts.push(`Period: ${DATE_RANGE_PRESET_LABELS[dateRange.preset]}`);
+    }
+  }
+
+  return parts.join('  |  ');
 }
 
 /**
