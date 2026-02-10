@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useProgressReport } from './useProgressReport'
 import { createElement, type ReactNode } from 'react'
@@ -78,7 +78,7 @@ describe('useProgressReport contract', () => {
 
     // Validate return type structure
     type QueryResult = typeof result.current
-    type DataType = QueryResult['data']
+    type _DataType = QueryResult['data']
 
     // Initially undefined (loading state)
     expect(result.current.data).toBeUndefined()

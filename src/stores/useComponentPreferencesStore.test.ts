@@ -2,7 +2,6 @@ import { renderHook, act } from '@testing-library/react'
 import {
   useComponentPreferencesStore,
   type SortRule,
-  type SavedView,
 } from './useComponentPreferencesStore'
 
 describe('useComponentPreferencesStore', () => {

@@ -590,8 +590,6 @@ describe('SearchableCombobox', () => {
         expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument()
       })
 
-      const searchInput = screen.getByPlaceholderText('Search...')
-
       // Arrow down should highlight first option
       await user.keyboard('{ArrowDown}')
 

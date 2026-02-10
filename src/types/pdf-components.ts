@@ -8,6 +8,7 @@
 
 import type {
   FieldWeldReportData,
+  FieldWeldDeltaReportData,
   FieldWeldGroupingDimension,
   ReportData,
   ManhourReportData,
@@ -179,6 +180,12 @@ export interface FieldWeldReportPDFProps {
 
   /** Optional company logo (base64 encoded) */
   companyLogo?: string;
+
+  /** Optional delta data for inline +/- columns in PDF */
+  deltaData?: FieldWeldDeltaReportData;
+
+  /** Optional subtitle showing active sort/filter (e.g., "Sorted by: % Complete (desc)") */
+  subtitle?: string;
 }
 
 /**
@@ -200,6 +207,9 @@ export interface ComponentProgressReportPDFProps {
 
   /** Optional company logo (base64 encoded) */
   companyLogo?: string;
+
+  /** Optional subtitle showing active sort/filter (e.g., "Sorted by: % Complete (desc)") */
+  subtitle?: string;
 }
 
 /**
@@ -237,13 +247,16 @@ export interface UseFieldWeldPDFExportReturn {
    * @param projectName - Project name for header
    * @param dimension - Report dimension
    * @param companyLogo - Optional base64 encoded logo
+   * @param deltaData - Optional delta data for inline +/- columns
    * @returns Promise resolving to PDF blob
    */
   generatePDF: (
     data: FieldWeldReportData,
     projectName: string,
     dimension: FieldWeldGroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    deltaData?: FieldWeldDeltaReportData,
+    subtitle?: string
   ) => Promise<Blob>;
 
   /**
@@ -252,13 +265,17 @@ export interface UseFieldWeldPDFExportReturn {
    * @param projectName - Project name for header
    * @param dimension - Report dimension
    * @param companyLogo - Optional base64 encoded logo
+   * @param deltaData - Optional delta data for inline +/- columns
+   * @param subtitle - Optional subtitle showing sort/filter info
    * @returns Promise resolving to { blob, url, filename }
    */
   generatePDFPreview: (
     data: FieldWeldReportData,
     projectName: string,
     dimension: FieldWeldGroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    deltaData?: FieldWeldDeltaReportData,
+    subtitle?: string
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
 
   /** Loading state during PDF generation */
@@ -285,7 +302,8 @@ export interface UseComponentProgressPDFExportReturn {
     data: ReportData,
     projectName: string,
     dimension: GroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ) => Promise<Blob>;
 
   /**
@@ -294,13 +312,15 @@ export interface UseComponentProgressPDFExportReturn {
    * @param projectName - Project name for header
    * @param dimension - Report dimension
    * @param companyLogo - Optional base64 encoded logo
+   * @param subtitle - Optional subtitle showing sort/filter info
    * @returns Promise resolving to { blob, url, filename }
    */
   generatePDFPreview: (
     data: ReportData,
     projectName: string,
     dimension: GroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
 
   /**
@@ -310,6 +330,7 @@ export interface UseComponentProgressPDFExportReturn {
    * @param dimension - Report dimension
    * @param viewMode - View mode: 'manhour' or 'manhour_percent'
    * @param companyLogo - Optional base64 encoded logo
+   * @param subtitle - Optional subtitle showing sort/filter info
    * @returns Promise resolving to { blob, url, filename }
    */
   generateManhourPDFPreview: (
@@ -317,7 +338,8 @@ export interface UseComponentProgressPDFExportReturn {
     projectName: string,
     dimension: GroupingDimension,
     viewMode: ReportViewMode,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
 
   /** Loading state during PDF generation */

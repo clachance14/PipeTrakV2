@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hasPermission, getRolePermissions, ROLE_PERMISSIONS, type Role, type Permission } from '@/lib/permissions';
+import { hasPermission, getRolePermissions, ROLE_PERMISSIONS } from '@/lib/permissions';
 
 describe('Permission System Contract', () => {
   describe('Role Completeness', () => {

@@ -3,7 +3,7 @@
  * Verifies that owners/admins can soft-delete users in their organization
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { supabase } from '@/lib/supabase';
 
 describe('Remove Member RLS Policy', () => {
@@ -28,7 +28,7 @@ describe('Remove Member RLS Policy', () => {
 
   it('should verify policy was created in database', async () => {
     // Query to check if the policy exists
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('users')
       .select('*')
       .limit(1);

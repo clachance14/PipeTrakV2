@@ -150,7 +150,7 @@ describe('Manhour Budget Versioning', () => {
 
   describe('Scenario 2: Creating second budget → version_number = 2, is_active = true, v1.is_active = false', () => {
     it('should create second budget with version 2 and deactivate version 1', async () => {
-      const budgetV1Id = 'budget-v1-uuid';
+      const _budgetV1Id = 'budget-v1-uuid';
       const budgetV2Id = 'budget-v2-uuid';
 
       // Mock RPC response for second budget creation

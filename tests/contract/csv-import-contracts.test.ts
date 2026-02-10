@@ -252,7 +252,7 @@ describe('CSV Import Type Contracts', () => {
         }
       ];
 
-      testCases.forEach(({ drawing, size, cmdtyCode, type, seq, expectedKey }) => {
+      testCases.forEach(({ drawing, size: _size, cmdtyCode, type: _type, seq: _seq, expectedKey }) => {
         // This documents the expected format
         // Actual validation would call generateIdentityKey() function
         expect(expectedKey).toContain(drawing);

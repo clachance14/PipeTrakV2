@@ -40,12 +40,12 @@ describe('useRetireDrawing contract', () => {
   })
 
   it('requires retire_reason with minimum length', () => {
-    const { result } = renderHook(() => useRetireDrawing(), {
+    const { result: _result } = renderHook(() => useRetireDrawing(), {
       wrapper: createWrapper()
     })
 
     // Valid request with reason > 10 chars
-    const validRequest: Parameters<typeof result.current.mutate>[0] = {
+    const validRequest: Parameters<typeof _result.current.mutate>[0] = {
       drawing_id: 'drawing-uuid',
       retire_reason: 'This is a valid reason for retirement'
     }

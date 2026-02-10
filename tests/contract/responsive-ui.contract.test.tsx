@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, act, render, screen } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useMobileDetection } from '@/hooks/useMobileDetection'
 
 describe('Contract: Responsive UI Behavior', () => {
@@ -173,7 +173,7 @@ describe('Contract: Responsive UI Behavior', () => {
       mockModal.style.width = '100vw'
       document.body.appendChild(mockModal)
 
-      const rect = mockModal.getBoundingClientRect()
+      const _rect = mockModal.getBoundingClientRect()
       expect(mockModal.className).toContain('h-screen')
       expect(mockModal.className).toContain('w-screen')
       

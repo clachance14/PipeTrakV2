@@ -1133,7 +1133,7 @@ describe('Component Metadata Editing - User Story 1', () => {
               .from('components')
               .update({ area_id: saveData.area })
               .eq('id', selectedComponentId!)
-          } catch (err) {
+          } catch {
             setError('Save failed')
           }
         }

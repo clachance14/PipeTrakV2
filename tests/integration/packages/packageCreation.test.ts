@@ -23,7 +23,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCreatePackage } from '@/hooks/usePackages';
-import { usePackageAssignments, useComponentsWithAssignmentStatus } from '@/hooks/usePackageAssignments';
+import { useComponentsWithAssignmentStatus } from '@/hooks/usePackageAssignments';
 import type { TestPackageCreateInput } from '@/types/package.types';
 import type {
   DrawingAssignmentCreateInput,
@@ -107,7 +107,7 @@ describe('Package Creation with Drawing Assignment', () => {
         },
       } as any);
 
-      const packageInput: TestPackageCreateInput = {
+      const _packageInput: TestPackageCreateInput = {
         project_id: testProjectId,
         name: 'Test Package 1',
         description: 'Area 100 hydrostatic test',
@@ -115,7 +115,7 @@ describe('Package Creation with Drawing Assignment', () => {
         target_date: '2025-12-01',
       };
 
-      const drawingInput: DrawingAssignmentCreateInput = {
+      const _drawingInput: DrawingAssignmentCreateInput = {
         package_id: packageId,
         drawing_ids: [drawing1, drawing2, drawing3],
       };
@@ -456,8 +456,8 @@ describe('User Story 2: Component Selection Override', () => {
     });
 
     it('should allow clearing one mode to switch to another', async () => {
-      const selectedDrawingIds = ['drawing-1', 'drawing-2'];
-      const selectedComponentIds: string[] = [];
+      const _selectedDrawingIds = ['drawing-1', 'drawing-2'];
+      const _selectedComponentIds: string[] = [];
 
       // User switches from drawing mode to component mode by clearing drawings
       const clearedDrawings: string[] = [];
@@ -480,7 +480,7 @@ describe('User Story 2: Component Selection Override', () => {
         error: null,
       } as any);
 
-      const packageInput: TestPackageCreateInput = {
+      const _packageInput: TestPackageCreateInput = {
         project_id: testProjectId,
         name: 'Empty Test Package',
         description: 'Package with no components yet',

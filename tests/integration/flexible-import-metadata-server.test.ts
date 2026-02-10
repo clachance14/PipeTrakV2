@@ -8,16 +8,15 @@
  * - Component linking via foreign keys
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type {
-  ImportPayload,
   ImportResult,
   MetadataToCreate,
   ParsedRow
 } from '@/types/csv-import.types';
 
 describe('Edge Function Metadata Upsert', () => {
-  const projectId = 'test-project-123';
+  const _projectId = 'test-project-123';
 
   /**
    * Mock Edge Function metadata upsert behavior
@@ -454,7 +453,7 @@ describe('Edge Function Metadata Upsert', () => {
       try {
         transaction.upsertMetadata();
         transaction.createComponents();
-      } catch (error) {
+      } catch {
         transaction.rollback();
       }
 

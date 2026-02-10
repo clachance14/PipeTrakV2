@@ -152,9 +152,9 @@ describe('Demo Signup - Magic Link & Resend Integration', () => {
 
       const RESEND_API_KEY = 're_test_api_key_12345'
       const email = 'test@example.com'
-      const fullName = 'Test User'
-      const magicLinkUrl = 'https://test.supabase.co/auth/v1/verify?token=test_token'
-      const demoExpiresAt = new Date('2025-11-05T00:00:00Z')
+      const _fullName = 'Test User'
+      const _magicLinkUrl = 'https://test.supabase.co/auth/v1/verify?token=test_token'
+      const _demoExpiresAt = new Date('2025-11-05T00:00:00Z')
 
       // Mock email HTML generation (will be implemented in Phase 9)
       const mockEmailHtml = '<html><body>Welcome to PipeTrak Demo!</body></html>'
@@ -448,7 +448,7 @@ describe('Demo Signup - Magic Link & Resend Integration', () => {
 
     it('should cleanup user and organization when magic link generation fails', async () => {
       const mockDeleteUser = vi.fn().mockResolvedValue({ error: null })
-      const mockDelete = vi.fn().mockResolvedValue({ error: null })
+      const _mockDelete = vi.fn().mockResolvedValue({ error: null })
       const mockEq = vi.fn().mockResolvedValue({ error: null })
 
       const mockSupabaseClient = {
@@ -531,7 +531,7 @@ describe('Demo Signup - Magic Link & Resend Integration', () => {
       })
 
       // Mock email template
-      const mockGenerateDemoEmailHtml = vi.fn((fullName: string, magicLinkUrl: string, expiresAt: Date) => {
+      const mockGenerateDemoEmailHtml = vi.fn((fullName: string, magicLinkUrl: string, _expiresAt: Date) => {
         return `<html><body>Welcome ${fullName}! <a href="${magicLinkUrl}">Login</a></body></html>`
       })
 

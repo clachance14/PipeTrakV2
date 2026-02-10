@@ -139,7 +139,7 @@ P-001,BadType,1,V001`;
     const user = userEvent.setup();
 
     // Mock Supabase query to verify no components created
-    const mockSupabase = {
+    const _mockSupabase = {
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateWeight, type WeightResult } from './calculate-weight';
+import { calculateWeight } from './calculate-weight';
 
 describe('calculateWeight', () => {
   describe('standard components with simple diameter', () => {

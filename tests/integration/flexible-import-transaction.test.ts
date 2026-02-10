@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ImportPayload, ImportResult, ParsedRow } from '@/types/csv-import.types';
 
 // Mock Supabase client
-const mockSupabase = {
+const _mockSupabase = {
   from: vi.fn(),
   rpc: vi.fn(),
   auth: {
@@ -18,16 +18,16 @@ const mockSupabase = {
 };
 
 // Mock Edge Function URL
-const EDGE_FUNCTION_URL = 'http://localhost:54321/functions/v1/import-takeoff';
+const _EDGE_FUNCTION_URL = 'http://localhost:54321/functions/v1/import-takeoff';
 
 describe('Edge Function Transaction Safety', () => {
   let validPayload: ImportPayload;
-  let mockAuthToken: string;
+  let _mockAuthToken: string;
 
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
-    mockAuthToken = 'mock-jwt-token';
+    _mockAuthToken = 'mock-jwt-token';
 
     // Create valid test payload
     const validRows: ParsedRow[] = [
@@ -84,7 +84,7 @@ describe('Edge Function Transaction Safety', () => {
       // no drawings or components should be created
 
       // Mock metadata creation to fail
-      const mockMetadataError = new Error('Metadata constraint violation');
+      const _mockMetadataError = new Error('Metadata constraint violation');
 
       // Note: This test documents the EXPECTED behavior.
       // Actual implementation will use PostgreSQL stored procedure for transaction.
@@ -119,7 +119,7 @@ describe('Edge Function Transaction Safety', () => {
       // all metadata and drawings created in the transaction should be rolled back
 
       // Mock component insertion to fail
-      const mockComponentError = new Error('Duplicate identity key');
+      const _mockComponentError = new Error('Duplicate identity key');
 
       // Expected behavior:
       // 1. Edge Function receives valid payload

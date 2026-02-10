@@ -13,10 +13,10 @@ import {
   checkMetadataExistence,
   analyzeMetadata
 } from './metadata-analyzer';
-import type { ParsedRow, MetadataDiscovery, MetadataDiscoveryResult } from '@/types/csv-import.types';
+import type { ParsedRow } from '@/types/csv-import.types';
 
 // Mock Supabase client
-const mockSupabase = {
+const _mockSupabase = {
   from: vi.fn(() => ({
     select: vi.fn(() => ({
       in: vi.fn(() => ({

@@ -47,7 +47,7 @@ describe('useCreateArea contract', () => {
 
     // Validate response type structure
     type MutationResult = typeof result.current
-    type ResponseData = Awaited<ReturnType<MutationResult['mutateAsync']>>
+    type _ResponseData = Awaited<ReturnType<MutationResult['mutateAsync']>>
 
     expect(result.current.data).toBeUndefined() // No data initially
   })

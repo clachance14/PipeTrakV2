@@ -21,9 +21,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
 // Create real Supabase client for integration tests
-// @ts-ignore - import.meta.env is available in Vite/Vitest
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-// @ts-ignore
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 

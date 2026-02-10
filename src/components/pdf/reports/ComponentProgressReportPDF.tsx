@@ -52,6 +52,7 @@ export function ComponentProgressReportPDF({
   dimension,
   generatedDate,
   companyLogo,
+  subtitle,
 }: ComponentProgressReportPDFProps) {
   const tableProps = transformComponentProgressToTableProps(reportData, dimension);
   const dimensionLabel = getComponentProgressDimensionLabel(dimension);
@@ -64,6 +65,7 @@ export function ComponentProgressReportPDF({
           <BrandedHeader
             logo={companyLogo}
             title="PipeTrak Component Progress Report"
+            subtitle={subtitle}
             projectName={projectName}
             dimensionLabel={dimensionLabel}
             generatedDate={generatedDate}
@@ -114,6 +116,7 @@ export function ComponentProgressReportPDF({
           <BrandedHeader
             logo={companyLogo}
             title="PipeTrak Component Progress Report"
+            subtitle={subtitle}
             projectName={projectName}
             dimensionLabel={dimensionLabel}
             generatedDate={generatedDate}

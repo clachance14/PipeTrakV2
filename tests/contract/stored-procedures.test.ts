@@ -22,9 +22,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
 // Create real Supabase client for contract tests
-// @ts-ignore
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-// @ts-ignore
+// @ts-expect-error - import.meta.env is available in Vite/Vitest
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
@@ -32,7 +32,7 @@ describe('Stored Procedures - Sprint 1', () => {
   let testProjectId: string;
   let testComponentId: string;
   let testSpoolTemplateId: string;
-  let testFieldWeldTemplateId: string;
+  let _testFieldWeldTemplateId: string;
 
   beforeAll(async () => {
     // Create test project for stored procedure tests
@@ -61,7 +61,7 @@ describe('Stored Procedures - Sprint 1', () => {
       .single();
 
     testSpoolTemplateId = spoolTemplate?.id;
-    testFieldWeldTemplateId = fieldWeldTemplate?.id;
+    _testFieldWeldTemplateId = fieldWeldTemplate?.id;
 
     // Create test component for calculate_component_percent tests
     const { data: component } = await supabase

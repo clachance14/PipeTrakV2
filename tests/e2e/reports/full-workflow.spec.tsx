@@ -194,7 +194,7 @@ describe('Full Weekly Progress Reports Workflow (E2E)', () => {
     });
 
     // Verify export was called with correct parameters
-    const [reportData, projectName] = mockExportPDF.mock.calls[0];
+    const [reportData, _projectName] = mockExportPDF.mock.calls[0];
     expect(reportData).toBeDefined();
     expect(reportData.rows).toBeInstanceOf(Array);
     expect(reportData.grandTotal).toBeDefined();

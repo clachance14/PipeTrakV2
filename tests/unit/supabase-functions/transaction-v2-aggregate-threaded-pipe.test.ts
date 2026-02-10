@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock Supabase client
-const mockSupabaseClient = {
+const _mockSupabaseClient = {
   from: vi.fn(),
   auth: {
     getUser: vi.fn()
@@ -26,7 +26,7 @@ const mockSupabaseClient = {
 };
 
 // Helper to create mock query builder
-function createMockQueryBuilder(data: any, error: any = null) {
+function _createMockQueryBuilder(data: any, error: any = null) {
   return {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
@@ -297,7 +297,7 @@ describe('Transaction V2 - Aggregate Threaded Pipe Import', () => {
       const components: any[] = [];
 
       inputRows.forEach((row) => {
-        const typeLower = row.type.toLowerCase();
+        const _typeLower = row.type.toLowerCase();
         const drawingNorm = row.drawing.trim().toUpperCase().replace(/\s+/g, ' ');
         const sizeNorm = row.size?.trim().replace(/["'\s]/g, '').replace(/\//g, 'X').toUpperCase() || 'NOSIZE';
         const pipeId = `${drawingNorm}-${sizeNorm}-${row.cmdtyCode}-AGG`;

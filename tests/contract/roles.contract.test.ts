@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // T013: PATCH /api/organizations/:org_id/members/:user_id/role contract test
 describe('PATCH /api/organizations/:org_id/members/:user_id/role', () => {
   it('should accept role in request body', () => {
-    const validRequest = {
+    const _validRequest = {
       role: 'admin',
     }
 
@@ -13,7 +13,7 @@ describe('PATCH /api/organizations/:org_id/members/:user_id/role', () => {
 
   it('should return 200 with success and updated user', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       success: true,
       user: {
         id: expect.any(String),
@@ -53,7 +53,7 @@ describe('PATCH /api/organizations/:org_id/members/:user_id/role', () => {
 describe('DELETE /api/organizations/:org_id/members/:user_id', () => {
   it('should return 200 with success', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       success: true,
     }
 
@@ -77,7 +77,7 @@ describe('DELETE /api/organizations/:org_id/members/:user_id', () => {
 // T015: POST /api/organizations/:org_id/leave contract test
 describe('POST /api/organizations/:org_id/leave', () => {
   it('should accept optional transfer_ownership_to in request', () => {
-    const validRequest = {
+    const _validRequest = {
       transfer_ownership_to: 'some-user-uuid',
     }
 
@@ -87,7 +87,7 @@ describe('POST /api/organizations/:org_id/leave', () => {
 
   it('should return 200 with success and ownership_transferred', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       success: true,
       ownership_transferred: expect.any(Boolean),
     }
@@ -112,7 +112,7 @@ describe('POST /api/organizations/:org_id/leave', () => {
 // T016: GET /api/organizations/:org_id/members contract test
 describe('GET /api/organizations/:org_id/members', () => {
   it('should accept query params: role, search, limit, offset', () => {
-    const queryParams = {
+    const _queryParams = {
       role: 'admin',
       search: 'john',
       limit: 50,
@@ -125,7 +125,7 @@ describe('GET /api/organizations/:org_id/members', () => {
 
   it('should return 200 with members array and total_count', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       members: expect.any(Array),
       total_count: expect.any(Number),
     }
@@ -138,7 +138,7 @@ describe('GET /api/organizations/:org_id/members', () => {
 // T017: POST /api/auth/switch-organization contract test
 describe('POST /api/auth/switch-organization', () => {
   it('should accept organization_id in request', () => {
-    const validRequest = {
+    const _validRequest = {
       organization_id: 'some-uuid',
     }
 
@@ -148,7 +148,7 @@ describe('POST /api/auth/switch-organization', () => {
 
   it('should return 200 with organization and role', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       organization: {
         id: expect.any(String),
         name: expect.any(String),
@@ -176,7 +176,7 @@ describe('POST /api/auth/switch-organization', () => {
 describe('GET /api/auth/organizations', () => {
   it('should return 200 with organizations array', () => {
     // Expected response
-    const expectedResponse = {
+    const _expectedResponse = {
       organizations: expect.arrayContaining([
         expect.objectContaining({
           id: expect.any(String),

@@ -7,17 +7,16 @@
  * These tests MUST FAIL until implementation is complete (TDD approach).
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type {
   DrawingAssignmentPayload,
   BulkDrawingAssignmentPayload,
-  InheritanceSummary,
 } from '@/types/drawing-table.types';
 
 describe('Drawing Assignment Contract', () => {
   describe('Single Drawing Assignment', () => {
     it('should assign area to drawing and inherit to NULL components', async () => {
-      const payload: DrawingAssignmentPayload = {
+      const _payload: DrawingAssignmentPayload = {
         drawing_id: 'test-drawing-uuid',
         area_id: 'area-100-uuid',
         user_id: 'test-user-uuid',
@@ -30,7 +29,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should assign system to drawing and inherit to NULL components', async () => {
-      const payload: DrawingAssignmentPayload = {
+      const _payload: DrawingAssignmentPayload = {
         drawing_id: 'test-drawing-uuid',
         system_id: 'system-hvac-uuid',
         user_id: 'test-user-uuid',
@@ -40,7 +39,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should assign test package to drawing and inherit to NULL components', async () => {
-      const payload: DrawingAssignmentPayload = {
+      const _payload: DrawingAssignmentPayload = {
         drawing_id: 'test-drawing-uuid',
         test_package_id: 'package-uuid',
         user_id: 'test-user-uuid',
@@ -50,7 +49,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should assign all three metadata fields simultaneously', async () => {
-      const payload: DrawingAssignmentPayload = {
+      const _payload: DrawingAssignmentPayload = {
         drawing_id: 'test-drawing-uuid',
         area_id: 'area-100-uuid',
         system_id: 'system-hvac-uuid',
@@ -85,7 +84,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should throw error if drawing not found', async () => {
-      const payload: DrawingAssignmentPayload = {
+      const _payload: DrawingAssignmentPayload = {
         drawing_id: 'non-existent-uuid',
         area_id: 'area-100-uuid',
         user_id: 'test-user-uuid',
@@ -96,7 +95,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should throw error if user lacks permission', async () => {
-      const payload: DrawingAssignmentPayload = {
+      const _payload: DrawingAssignmentPayload = {
         drawing_id: 'test-drawing-uuid',
         area_id: 'area-100-uuid',
         user_id: 'unauthorized-user-uuid',
@@ -109,7 +108,7 @@ describe('Drawing Assignment Contract', () => {
 
   describe('Bulk Drawing Assignment', () => {
     it('should assign metadata to multiple drawings', async () => {
-      const payload: BulkDrawingAssignmentPayload = {
+      const _payload: BulkDrawingAssignmentPayload = {
         drawing_ids: ['drawing-1-uuid', 'drawing-2-uuid', 'drawing-3-uuid'],
         area_id: 'area-100-uuid',
         user_id: 'test-user-uuid',
@@ -120,7 +119,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should support "NO_CHANGE" to preserve existing values', async () => {
-      const payload: BulkDrawingAssignmentPayload = {
+      const _payload: BulkDrawingAssignmentPayload = {
         drawing_ids: ['drawing-1-uuid', 'drawing-2-uuid'],
         area_id: 'NO_CHANGE', // Preserve existing area
         system_id: 'system-hvac-uuid', // Change system
@@ -133,7 +132,7 @@ describe('Drawing Assignment Contract', () => {
 
     it('should enforce 50-drawing limit', async () => {
       const drawing_ids = Array.from({ length: 51 }, (_, i) => `drawing-${i}-uuid`);
-      const payload: BulkDrawingAssignmentPayload = {
+      const _payload: BulkDrawingAssignmentPayload = {
         drawing_ids,
         area_id: 'area-100-uuid',
         user_id: 'test-user-uuid',
@@ -151,7 +150,7 @@ describe('Drawing Assignment Contract', () => {
     });
 
     it('should return array of summaries (one per drawing)', async () => {
-      const payload: BulkDrawingAssignmentPayload = {
+      const _payload: BulkDrawingAssignmentPayload = {
         drawing_ids: ['drawing-1-uuid', 'drawing-2-uuid'],
         area_id: 'area-100-uuid',
         user_id: 'test-user-uuid',

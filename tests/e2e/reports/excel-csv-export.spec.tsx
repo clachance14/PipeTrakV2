@@ -79,7 +79,7 @@ beforeEach(() => {
   vi.spyOn(document.body, 'removeChild').mockImplementation(mockRemoveChild);
 });
 
-const renderReportView = (dimension: 'area' | 'system' | 'test_package' = 'area') => {
+const renderReportView = (_dimension: 'area' | 'system' | 'test_package' = 'area') => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, cacheTime: 0 },

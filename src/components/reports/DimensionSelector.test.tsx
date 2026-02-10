@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DimensionSelector } from './DimensionSelector';
-import type { GroupingDimension, FieldWeldGroupingDimension } from '@/types/reports';
+import type { FieldWeldGroupingDimension } from '@/types/reports';
 
 describe('DimensionSelector - Component Variant', () => {
   it('renders all three dimension options', () => {

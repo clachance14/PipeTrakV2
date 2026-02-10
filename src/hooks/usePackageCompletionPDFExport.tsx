@@ -577,7 +577,7 @@ export function usePackageCompletionPDFExport(): UsePackageCompletionPDFExportRe
 
       try {
         link.click();
-      } catch (downloadError) {
+      } catch {
         URL.revokeObjectURL(url);
         throw new Error(
           'Failed to download PDF. Please check your browser settings and allow downloads for this site.'
@@ -689,7 +689,7 @@ export function usePackageCompletionPDFExport(): UsePackageCompletionPDFExportRe
 
       try {
         link.click();
-      } catch (downloadError) {
+      } catch {
         URL.revokeObjectURL(url);
         throw new Error(
           'Failed to download PDF. Please check your browser settings and allow downloads for this site.'

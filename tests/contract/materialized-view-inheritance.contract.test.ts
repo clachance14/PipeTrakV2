@@ -35,21 +35,21 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 describe('mv_package_readiness Inheritance Contract', () => {
-  let testProjectId: string;
-  let testOrganizationId: string;
+  let _testProjectId: string;
+  let _testOrganizationId: string;
   let testPackageId: string;
-  let testDrawingId: string;
-  let testComponentId: string;
-  const testUserId = '00000000-0000-0000-0000-000000000001'; // Mock user ID
+  let _testDrawingId: string;
+  let _testComponentId: string;
+  const _testUserId = '00000000-0000-0000-0000-000000000001'; // Mock user ID
 
   beforeEach(async () => {
     // Note: In real implementation, we'd create test data via authenticated requests
     // For now, these tests document the expected API contracts
-    testProjectId = 'test-project-' + Date.now();
-    testOrganizationId = 'test-org-' + Date.now();
+    _testProjectId = 'test-project-' + Date.now();
+    _testOrganizationId = 'test-org-' + Date.now();
     testPackageId = 'test-package-' + Date.now();
-    testDrawingId = 'test-drawing-' + Date.now();
-    testComponentId = 'test-component-' + Date.now();
+    _testDrawingId = 'test-drawing-' + Date.now();
+    _testComponentId = 'test-component-' + Date.now();
   });
 
   afterEach(async () => {
@@ -259,7 +259,7 @@ describe('mv_package_readiness Inheritance Contract', () => {
       // - Create Organization B with Project P2 and Package PKG-B
       // - Authenticate as user from Organization A
 
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('mv_package_readiness')
         .select('*');
 

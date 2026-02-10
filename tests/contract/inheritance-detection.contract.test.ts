@@ -115,7 +115,7 @@ describe('Inheritance Detection Contract', () => {
       // Test that function covers all 3 BadgeType values
       const badgeTypes: BadgeType[] = ['inherited', 'assigned', 'none'];
 
-      badgeTypes.forEach(type => {
+      badgeTypes.forEach(_type => {
         // Expected: No type errors, returns string for each
         expect(true).toBe(false); // Placeholder - fails until implemented
       });

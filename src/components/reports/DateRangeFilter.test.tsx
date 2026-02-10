@@ -8,8 +8,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DateRangeFilter } from './DateRangeFilter';
 import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
-import type { DateRangePreset } from '@/types/weldSummary';
-
 // Mock the Zustand store
 vi.mock('@/stores/useReportPreferencesStore', () => ({
   useReportPreferencesStore: vi.fn(),

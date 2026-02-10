@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { explodeQuantity, type CsvRow, type Component } from '@/lib/csv/explode-quantity';
+import { explodeQuantity, type CsvRow } from '@/lib/csv/explode-quantity';
 
 describe('Quantity Explosion Contract', () => {
   const mockDrawingId = '123e4567-e89b-12d3-a456-426614174000';

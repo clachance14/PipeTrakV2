@@ -1,5 +1,5 @@
 // src/hooks/useTeamFilters.test.tsx
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { useTeamFilters } from './useTeamFilters';
@@ -362,7 +362,7 @@ describe('useTeamFilters', () => {
       });
 
       // Immediate value should not update instantly
-      const immediateValue = result.current.searchTerm;
+      const _immediateValue = result.current.searchTerm;
 
       act(() => {
         result.current.setSearch('test');

@@ -9,7 +9,7 @@
  * Covers FR-049 to FR-058
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type {
   UpdateMetadataDescriptionRequest,
   UpdateMetadataDescriptionResponse,
@@ -17,7 +17,7 @@ import type {
 
 // Mock implementation (will be replaced with actual hooks)
 const mockUpdateDescription = async (
-  request: UpdateMetadataDescriptionRequest
+  _request: UpdateMetadataDescriptionRequest
 ): Promise<UpdateMetadataDescriptionResponse> => {
   // This will fail until hooks are implemented
   throw new Error('useUpdateArea/System/TestPackage hooks not yet implemented');

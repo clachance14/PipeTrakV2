@@ -11,7 +11,7 @@
  * Expected: Tests FAIL until RLS policies are properly configured
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
@@ -27,30 +27,30 @@ interface TestUser {
 }
 
 let supabase: SupabaseClient<Database>;
-let orgAUser: TestUser;
-let orgBUser: TestUser;
+let _orgAUser: TestUser;
+let _orgBUser: TestUser;
 let orgAProjectId: string;
 let orgBProjectId: string;
 
 describe('RLS Multi-Tenant Isolation', () => {
   beforeAll(async () => {
     // Initialize Supabase client
-    // @ts-ignore - import.meta.env available in Vitest
+    // @ts-expect-error - import.meta.env available in Vitest
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    // @ts-ignore
+    // @ts-expect-error - import.meta.env available in Vitest
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
     supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
     // Note: This test requires actual test user setup in the database
     // For now, we'll use mock IDs that should exist
-    orgAUser = {
+    _orgAUser = {
       id: 'test-user-org-a',
       email: 'orga@example.com',
       organizationId: 'org-a-id',
       role: 'admin',
     };
 
-    orgBUser = {
+    _orgBUser = {
       id: 'test-user-org-b',
       email: 'orgb@example.com',
       organizationId: 'org-b-id',
@@ -204,7 +204,7 @@ describe('RLS Multi-Tenant Isolation', () => {
 
   describe('Components Table RLS', () => {
     it('should prevent cross-tenant component writes', async () => {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('components')
         .insert({
           project_id: orgBProjectId, // Trying to insert into Org B's project

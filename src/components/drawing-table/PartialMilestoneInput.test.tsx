@@ -27,7 +27,7 @@ describe('PartialMilestoneInput - Event Propagation', () => {
   describe('Enter Key Event Propagation', () => {
     it('should stop event propagation when Enter key is pressed', () => {
       // Render input inside a parent with keyboard handler (simulating ComponentRow)
-      const { container } = render(
+      render(
         <div
           onKeyDown={mockParentKeyDown}
           data-testid="parent-container"

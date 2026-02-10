@@ -456,7 +456,7 @@ describe('useProjectManhours - Earned Value Computation', () => {
         } else if (table === 'components') {
           return {
             select: vi.fn(() => ({
-              eq: vi.fn((field: string, value: any) => {
+              eq: vi.fn((_field: string, _value: any) => {
                 const chain = {
                   eq: vi.fn((field2: string, value2: boolean) => {
                     // Verify is_retired = false is called

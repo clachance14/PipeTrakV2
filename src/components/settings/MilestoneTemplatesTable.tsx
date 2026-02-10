@@ -197,7 +197,7 @@ export function MilestoneTemplatesTable({ projectId, templates, onRefresh }: Mil
       toast.success(`Updated ${successCount} component types`);
       setModifiedTypes(new Set());
       if (onRefresh) onRefresh();
-    } catch (error) {
+    } catch {
       toast.error("Some updates failed. Check console for details.");
     }
   };

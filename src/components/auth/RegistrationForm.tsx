@@ -87,7 +87,7 @@ export function RegistrationForm() {
           }
         )
       })
-    } catch (err) {
+    } catch {
       // Error already handled above
     } finally {
       setSubmitting(false)

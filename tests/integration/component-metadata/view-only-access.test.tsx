@@ -128,7 +128,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -164,7 +164,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -198,7 +198,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -239,7 +239,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -276,7 +276,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -318,7 +318,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -361,7 +361,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockFieldUser = {
         id: 'test-user-field',
         email: 'field@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'viewer'
       }
 
@@ -401,7 +401,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockAdminUser = {
         id: 'test-user-admin',
         email: 'admin@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'admin'
       }
 
@@ -440,7 +440,7 @@ describe('View-Only Access - Field User (User Story 4)', () => {
       const mockManagerUser = {
         id: 'test-user-manager',
         email: 'manager@test.com',
-        // @ts-ignore - role exists after migration
+        // @ts-expect-error - role exists after migration
         role: 'project_manager'
       }
 

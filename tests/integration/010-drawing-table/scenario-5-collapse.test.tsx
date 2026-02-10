@@ -333,7 +333,7 @@ describe('Integration Test: Scenario 5 - Collapse Drawing', () => {
     const scrollSpy = vi.fn()
 
     function TestWrapper({ children }: { children: React.ReactNode }) {
-      const [searchParams] = useSearchParams()
+      const [_searchParams] = useSearchParams()
       return <>{children}</>
     }
 

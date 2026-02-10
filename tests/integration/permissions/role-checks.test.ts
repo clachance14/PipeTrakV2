@@ -24,7 +24,7 @@ import { hasPermission, ROLE_PERMISSIONS } from '@/lib/permissions';
 // Unmock Supabase for integration tests
 vi.unmock('@/lib/supabase');
 
-interface TestUser {
+interface _TestUser {
   id: string;
   email: string;
   organizationId: string;
@@ -40,9 +40,9 @@ const testReviewId = 'test-review-id';
 describe('Permission Enforcement (FR-047)', () => {
   beforeAll(async () => {
     // Initialize Supabase client
-    // @ts-ignore - import.meta.env available in Vitest
+    // @ts-expect-error - import.meta.env available in Vitest
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    // @ts-ignore
+    // @ts-expect-error - import.meta.env available in Vitest
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
     supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
   });
@@ -138,7 +138,7 @@ describe('Permission Enforcement (FR-047)', () => {
 
     it('should block viewer from updating components.current_milestones via RLS', async () => {
       // Simulate viewer trying to update milestones
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('components')
         .update({
           current_milestones: { Receive: true },
@@ -170,7 +170,7 @@ describe('Permission Enforcement (FR-047)', () => {
 
     it('should block foreman from changing welder status via RLS', async () => {
       // Simulate foreman trying to verify welder
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('welders')
         .update({
           status: 'verified',
@@ -202,7 +202,7 @@ describe('Permission Enforcement (FR-047)', () => {
 
     it('should block foreman from resolving needs_review items via RLS', async () => {
       // Simulate foreman trying to resolve review item
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('needs_review')
         .update({
           status: 'resolved',
@@ -279,7 +279,7 @@ describe('Permission Enforcement (FR-047)', () => {
       expect(hasPermission('viewer', 'can_update_milestones')).toBe(false);
 
       // RLS would enforce this at database level (requires actual viewer session)
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('components')
         .update({
           current_milestones: { Receive: true, Erect: true },
@@ -302,7 +302,7 @@ describe('Permission Enforcement (FR-047)', () => {
       expect(hasPermission('qc_inspector', 'can_update_milestones')).toBe(true);
 
       // RLS would allow this update (requires actual qc_inspector session)
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('field_weld_inspections')
         .update({
           flagged_for_xray: true,

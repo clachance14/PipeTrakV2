@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateCsv, type ValidationError, type ValidationResult } from '@/lib/csv/validate-csv';
+import { validateCsv } from '@/lib/csv/validate-csv';
 
 describe('CSV Validation Contract', () => {
   it('validates required columns exist', () => {

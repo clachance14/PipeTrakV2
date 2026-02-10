@@ -78,7 +78,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     data: ReportData,
     projectName: string,
     dimension: GroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ): Promise<{ blob: Blob; filename: string }> => {
     // Lazy load @react-pdf/renderer (dynamic import for code splitting)
     const { pdf } = await import('@react-pdf/renderer');
@@ -97,6 +98,7 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
         dimension={dimension}
         generatedDate={generatedDate}
         companyLogo={companyLogo ?? undefined}
+        subtitle={subtitle}
       />
     ).toBlob();
 
@@ -124,7 +126,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     data: ReportData,
     projectName: string,
     dimension: GroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ): Promise<{ blob: Blob; url: string; filename: string }> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -139,7 +142,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
         data,
         projectName,
         dimension,
-        companyLogo
+        companyLogo,
+        subtitle
       );
 
       // Create object URL for preview (caller is responsible for cleanup)
@@ -169,7 +173,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     data: ReportData,
     projectName: string,
     dimension: GroupingDimension,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ): Promise<Blob> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -184,7 +189,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
         data,
         projectName,
         dimension,
-        companyLogo
+        companyLogo,
+        subtitle
       );
 
       // Trigger browser download
@@ -195,7 +201,7 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
 
       try {
         link.click();
-      } catch (downloadError) {
+      } catch {
         // Cleanup on error
         URL.revokeObjectURL(url);
         throw new Error(
@@ -233,7 +239,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     projectName: string,
     dimension: GroupingDimension,
     viewMode: ReportViewMode,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ): Promise<{ blob: Blob; filename: string }> => {
     // Lazy load @react-pdf/renderer (dynamic import for code splitting)
     const { pdf } = await import('@react-pdf/renderer');
@@ -253,6 +260,7 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
         viewMode={viewMode}
         generatedDate={generatedDate}
         companyLogo={companyLogo ?? undefined}
+        subtitle={subtitle}
       />
     ).toBlob();
 
@@ -283,7 +291,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     projectName: string,
     dimension: GroupingDimension,
     viewMode: ReportViewMode,
-    companyLogo?: string
+    companyLogo?: string,
+    subtitle?: string
   ): Promise<{ blob: Blob; url: string; filename: string }> => {
     // Prevent multiple simultaneous exports
     if (isGenerating) {
@@ -299,7 +308,8 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
         projectName,
         dimension,
         viewMode,
-        companyLogo
+        companyLogo,
+        subtitle
       );
 
       // Create object URL for preview (caller is responsible for cleanup)

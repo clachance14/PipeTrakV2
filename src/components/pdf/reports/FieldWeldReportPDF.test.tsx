@@ -66,7 +66,7 @@ vi.mock('../tables/Table', () => ({
 
 // Mock pdfUtils
 vi.mock('@/lib/pdfUtils', () => ({
-  transformToTableProps: (data: FieldWeldReportData, dimension: string, _includeRepairRate?: boolean) => ({
+  transformToTableProps: (data: FieldWeldReportData, _dimension: string, _includeRepairRate?: boolean) => ({
     columns: [
       { key: 'name', label: 'Name', width: '40%' },
       { key: 'installed', label: 'Installed', width: '10%' },

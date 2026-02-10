@@ -6,7 +6,7 @@
  * Implementation comes after all contracts are written
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Type definitions (implementation will provide these)
 interface ImportRequest {
@@ -28,7 +28,7 @@ interface ImportResult {
 }
 
 // Mock function (will be replaced with real Edge Function call)
-async function importTakeoff(request: ImportRequest): Promise<ImportResult> {
+async function importTakeoff(_request: ImportRequest): Promise<ImportResult> {
   throw new Error('NOT IMPLEMENTED - This test should fail');
 }
 

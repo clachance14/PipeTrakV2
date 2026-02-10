@@ -7,12 +7,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReportData } from '@/types/reports';
 
 // Mock jsPDF and jspdf-autotable
-const mockSave = vi.fn();
-const mockAutoTable = vi.fn();
-const mockText = vi.fn();
-const mockSetFontSize = vi.fn();
-const mockSetFont = vi.fn();
-const mockAddImage = vi.fn();
+const _mockSave = vi.fn();
+const _mockAutoTable = vi.fn();
+const _mockText = vi.fn();
+const _mockSetFontSize = vi.fn();
+const _mockSetFont = vi.fn();
+const _mockAddImage = vi.fn();
 
 vi.mock('jspdf', () => ({
   default: vi.fn().mockImplementation(() => ({

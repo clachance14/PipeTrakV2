@@ -366,7 +366,7 @@ describe('Demo Population Idempotency', () => {
     }
 
     // Test 1: Call population WITHOUT skeleton (should fail gracefully)
-    const { data: noSkeletonData, error: noSkeletonError } = await supabase.functions.invoke(
+    const { data: noSkeletonData, error: _noSkeletonError } = await supabase.functions.invoke(
       'populate-demo-data',
       {
         body: {

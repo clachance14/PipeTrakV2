@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { usePackageWorkflowPDFExport } from '@/hooks/usePackageWorkflowPDFExport';
 import type { PackageWorkflowStage } from '@/types/workflow.types';
 

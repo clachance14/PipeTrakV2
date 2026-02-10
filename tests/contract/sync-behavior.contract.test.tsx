@@ -23,7 +23,6 @@ import {
   syncQueue,
   retryFailedUpdates,
   getSyncStatus,
-  clearQueue,
 } from '@/lib/sync-manager'
 
 // Offline queue functions (needed for sync tests)

@@ -201,7 +201,7 @@ describe('Package Assignment Validation', () => {
 
   describe('Edge Case: Concurrent assignment conflicts', () => {
     it('should handle database constraint violation when component assigned between validation and insert', async () => {
-      const packageId = 'new-package-uuid';
+      const _packageId = 'new-package-uuid';
       const componentId = 'comp-race-condition';
 
       // Component appears unassigned during validation
@@ -273,7 +273,7 @@ describe('Package Assignment Validation', () => {
     it('should enforce component can only be in one package at a time', async () => {
       const componentId = 'comp-unique-uuid';
       const package1Id = 'package-1-uuid';
-      const package2Id = 'package-2-uuid';
+      const _package2Id = 'package-2-uuid';
 
       // Component already assigned to package 1
       const existingComponent: ComponentWithAssignmentStatus = {
