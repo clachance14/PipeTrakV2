@@ -19,8 +19,6 @@ const CATEGORY_LABELS: Record<SearchIndexItem['category'], string> = {
   area: 'Areas',
 }
 
-const MAX_PER_GROUP = 5
-
 export interface SearchResultGroup {
   category: SearchIndexItem['category']
   categoryLabel: string
@@ -53,7 +51,7 @@ export function useGlobalSearch(query: string, projectId: string | null) {
         groups.push({
           category,
           categoryLabel: CATEGORY_LABELS[category],
-          items: categoryItems.slice(0, MAX_PER_GROUP),
+          items: categoryItems,
           totalCount: categoryItems.length,
         })
       }

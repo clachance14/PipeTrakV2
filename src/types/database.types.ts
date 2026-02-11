@@ -2246,16 +2246,27 @@ export type Database = {
         Args: { p_invitation_id: string; p_user_id: string }
         Returns: Json
       }
-      assign_drawing_with_inheritance: {
-        Args: {
-          p_area_id?: string
-          p_drawing_id: string
-          p_system_id?: string
-          p_test_package_id?: string
-          p_user_id?: string
-        }
-        Returns: Json
-      }
+      assign_drawing_with_inheritance:
+        | {
+            Args: {
+              p_area_id?: string
+              p_drawing_id: string
+              p_system_id?: string
+              p_test_package_id?: string
+              p_user_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_area_id?: string
+              p_drawing_id: string
+              p_system_id?: string
+              p_test_package_id?: string
+              p_user_id?: string
+            }
+            Returns: Json
+          }
       assign_drawings_bulk: {
         Args: {
           p_area_id?: string
@@ -2307,7 +2318,7 @@ export type Database = {
               p_category: string
               p_component_type: string
               p_milestones: Json
-              p_project_id?: string
+              p_project_id: string
             }
             Returns: number
           }

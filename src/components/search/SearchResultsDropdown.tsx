@@ -71,11 +71,9 @@ export function SearchResultsDropdown({
               <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   {group.categoryLabel}
-                  {group.totalCount > group.items.length && (
-                    <span className="ml-1 font-normal text-gray-400">
-                      ({group.totalCount})
-                    </span>
-                  )}
+                  <span className="ml-1 font-normal text-gray-400">
+                    ({group.totalCount})
+                  </span>
                 </span>
               </div>
 
@@ -125,6 +123,7 @@ export function SearchResultsDropdown({
                   </div>
                 </button>
               ))}
+
             </div>
           ))}
 
