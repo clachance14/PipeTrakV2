@@ -17,11 +17,15 @@ import { useFieldWeldProgressReport } from '@/hooks/useFieldWeldProgressReport';
 import { useFieldWeldDeltaReport } from '@/hooks/useFieldWeldDeltaReport';
 import { useWelderSummaryReport } from '@/hooks/useWelderSummaryReport';
 import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
+import { useWelderSummaryPDFExport } from '@/hooks/useWelderSummaryPDFExport';
+import { usePDFPreviewState } from '@/hooks/usePDFPreviewState';
+import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
 import { DimensionSelector } from '@/components/reports/DimensionSelector';
 import { ReportPreview } from '@/components/reports/ReportPreview';
 import { FieldWeldReportTable } from '@/components/reports/FieldWeldReportTable';
 import { DateRangeFilter } from '@/components/reports/DateRangeFilter';
 import { WelderSummaryReportTable } from '@/components/reports/WelderSummaryReportTable';
+import { PDFPreviewDialog } from '@/components/reports/PDFPreviewDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -98,6 +102,34 @@ export function ReportsPage() {
     enabled: !!selectedProjectId && fieldWeldDimension === 'welder',
   });
 
+  // Welder summary PDF export
+  const { generatePDFPreview: generateWelderPDFPreview } = useWelderSummaryPDFExport();
+  const { previewState: welderPreviewState, openPreview: openWelderPreview, closePreview: closeWelderPreview } = usePDFPreviewState();
+  const { data: companyLogo } = useOrganizationLogo();
+
+  const handleWelderSummaryExport = async (format: 'pdf' | 'excel' | 'csv') => {
+    if (format === 'pdf') {
+      if (!welderSummaryData || !currentProject) {
+        toast.error('No data available to export');
+        return;
+      }
+
+      try {
+        const { blob, url, filename } = await generateWelderPDFPreview(
+          welderSummaryData,
+          currentProject.name,
+          companyLogo ?? undefined
+        );
+        openWelderPreview(blob, url, filename);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to generate PDF';
+        toast.error(errorMessage);
+      }
+    } else {
+      toast.info(`Export as ${format} - Coming soon!`);
+    }
+  };
+
   // Update URL when tab or dimension changes
   useEffect(() => {
     const params = new URLSearchParams();
@@ -172,6 +204,15 @@ export function ReportsPage() {
 
   return (
     <Layout>
+      {/* Welder Summary PDF Preview Dialog */}
+      <PDFPreviewDialog
+        open={welderPreviewState.open}
+        onClose={closeWelderPreview}
+        previewUrl={welderPreviewState.url}
+        blob={welderPreviewState.blob}
+        filename={welderPreviewState.filename}
+      />
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -288,6 +329,7 @@ export function ReportsPage() {
                         <WelderSummaryReportTable
                           reportData={welderSummaryData}
                           projectName={currentProject?.name || 'Unknown Project'}
+                          onExport={handleWelderSummaryExport}
                         />
                       )}
                     </>

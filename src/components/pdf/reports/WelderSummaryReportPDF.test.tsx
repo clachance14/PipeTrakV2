@@ -350,6 +350,57 @@ describe('WelderSummaryReportPDF', () => {
     expect(textContent.length).toBeGreaterThan(0);
   });
 
+  it('renders rejection rate per tier summary rows', () => {
+    const props: WelderSummaryReportPDFProps = {
+      reportData: baseReportData,
+      projectName: 'Test Project',
+      generatedDate: '2025-01-21',
+    };
+    const { container } = render(<WelderSummaryReportPDF {...props} />);
+    const textElements = container.querySelectorAll('[data-testid="pdf-text"]');
+    const textContent = Array.from(textElements).map(el => el.textContent).join(' ');
+
+    // Should contain "Reject" labels for tier-level rejection rates
+    expect(textContent).toContain('Reject');
+  });
+
+  it('renders NDE completion percentage summary rows', () => {
+    const props: WelderSummaryReportPDFProps = {
+      reportData: baseReportData,
+      projectName: 'Test Project',
+      generatedDate: '2025-01-21',
+    };
+    const { container } = render(<WelderSummaryReportPDF {...props} />);
+    const textElements = container.querySelectorAll('[data-testid="pdf-text"]');
+    const textContent = Array.from(textElements).map(el => el.textContent).join(' ');
+
+    // Should contain NDE Comp % labels
+    expect(textContent).toContain('NDE Comp %');
+  });
+
+  it('renders grand total section with combined metrics', () => {
+    const props: WelderSummaryReportPDFProps = {
+      reportData: baseReportData,
+      projectName: 'Test Project',
+      generatedDate: '2025-01-21',
+    };
+    const { container } = render(<WelderSummaryReportPDF {...props} />);
+    const textElements = container.querySelectorAll('[data-testid="pdf-text"]');
+    const textContent = Array.from(textElements).map(el => el.textContent).join(' ');
+
+    // Grand total section elements
+    expect(textContent).toContain('GRAND TOTAL (BW + SW COMBINED)');
+    expect(textContent).toContain('Welders');
+    expect(textContent).toContain('Total Welds (BW + SW)');
+    expect(textContent).toContain('X-Rays Performed');
+    expect(textContent).toContain('Overall Rejection Rate');
+
+    // Check actual values from mock totals
+    expect(textContent).toContain('675'); // welds_total
+    expect(textContent).toContain('495'); // nde_total
+    expect(textContent).toContain('10.00%'); // reject_rate
+  });
+
   it('includes all welder rows in content', () => {
     const multiWelderData: WelderSummaryReport = {
       rows: [createMockRow(1), createMockRow(2), createMockRow(3), createMockRow(4), createMockRow(5)],
