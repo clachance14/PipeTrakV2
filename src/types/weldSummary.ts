@@ -279,18 +279,18 @@ export function calculateWelderSummaryTotals(
   );
 
   // Calculate BW tier metrics
-  const bw_total_nde = totals.bw_nde_5pct + totals.bw_nde_10pct + totals.bw_nde_100pct;
+  const bw_total_welds = totals.bw_welds_5pct + totals.bw_welds_10pct + totals.bw_welds_100pct;
   const bw_total_reject = totals.bw_reject_5pct + totals.bw_reject_10pct + totals.bw_reject_100pct;
 
   // Calculate SW tier metrics
-  const sw_total_nde = totals.sw_nde_5pct + totals.sw_nde_10pct + totals.sw_nde_100pct;
+  const sw_total_welds = totals.sw_welds_5pct + totals.sw_welds_10pct + totals.sw_welds_100pct;
   const sw_total_reject = totals.sw_reject_5pct + totals.sw_reject_10pct + totals.sw_reject_100pct;
 
   return {
     ...totals,
 
     // Butt Weld (BW) Calculated Metrics
-    bw_reject_rate: bw_total_nde > 0 ? (bw_total_reject / bw_total_nde) * 100 : 0,
+    bw_reject_rate: bw_total_welds > 0 ? (bw_total_reject / bw_total_welds) * 100 : 0,
     bw_nde_comp_5pct:
       totals.bw_welds_5pct > 0 ? (totals.bw_nde_5pct / totals.bw_welds_5pct) * 100 : null,
     bw_nde_comp_10pct:
@@ -299,7 +299,7 @@ export function calculateWelderSummaryTotals(
       totals.bw_welds_100pct > 0 ? (totals.bw_nde_100pct / totals.bw_welds_100pct) * 100 : null,
 
     // Socket Weld (SW) Calculated Metrics
-    sw_reject_rate: sw_total_nde > 0 ? (sw_total_reject / sw_total_nde) * 100 : 0,
+    sw_reject_rate: sw_total_welds > 0 ? (sw_total_reject / sw_total_welds) * 100 : 0,
     sw_nde_comp_5pct:
       totals.sw_welds_5pct > 0 ? (totals.sw_nde_5pct / totals.sw_welds_5pct) * 100 : null,
     sw_nde_comp_10pct:
@@ -308,6 +308,6 @@ export function calculateWelderSummaryTotals(
       totals.sw_welds_100pct > 0 ? (totals.sw_nde_100pct / totals.sw_welds_100pct) * 100 : null,
 
     // Overall Calculated Metrics (BW + SW combined)
-    reject_rate: totals.nde_total > 0 ? (totals.reject_total / totals.nde_total) * 100 : 0,
+    reject_rate: totals.welds_total > 0 ? (totals.reject_total / totals.welds_total) * 100 : 0,
   };
 }
