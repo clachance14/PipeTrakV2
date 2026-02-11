@@ -524,6 +524,12 @@ function GrandTotalSection({ totals, welderCount }: { totals: WelderSummaryTotal
           <Text style={styles.grandTotalLabel}>X-Rays Performed</Text>
         </View>
         <View style={styles.grandTotalMetric}>
+          <Text style={styles.grandTotalValue}>
+            {formatPercent(totals.welds_total > 0 ? (totals.nde_total / totals.welds_total) * 100 : null)}
+          </Text>
+          <Text style={styles.grandTotalLabel}>NDE Comp Rate</Text>
+        </View>
+        <View style={styles.grandTotalMetric}>
           <Text style={styles.grandTotalValue}>{formatPercent(totals.reject_rate)}</Text>
           <Text style={styles.grandTotalLabel}>Overall Rejection Rate</Text>
         </View>

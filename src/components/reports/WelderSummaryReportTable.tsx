@@ -461,7 +461,7 @@ export function WelderSummaryReportTable({
           GRAND TOTAL (BW + SW COMBINED)
         </h2>
         <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
             <div>
               <p className="text-2xl font-bold text-slate-900">{rows.length}</p>
               <p className="text-sm text-slate-600">Welders</p>
@@ -473,6 +473,12 @@ export function WelderSummaryReportTable({
             <div>
               <p className="text-2xl font-bold text-slate-900">{totals.nde_total}</p>
               <p className="text-sm text-slate-600">X-Rays Performed</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900">
+                {formatPercent(totals.welds_total > 0 ? (totals.nde_total / totals.welds_total) * 100 : null)}
+              </p>
+              <p className="text-sm text-slate-600">NDE Comp Rate</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
