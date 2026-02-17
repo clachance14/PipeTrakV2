@@ -87,6 +87,16 @@ export type ManhourDeltaReportSortColumn =
   | 'deltaTotalMhEarned'
   | 'deltaMhPctComplete';
 
+// Manhour Budget Report sortable columns (budget-only columns)
+export type ManhourBudgetReportSortColumn =
+  | 'name'
+  | 'mhBudget'
+  | 'receiveMhBudget'
+  | 'installMhBudget'
+  | 'punchMhBudget'
+  | 'testMhBudget'
+  | 'restoreMhBudget';
+
 interface ReportPreferencesStore {
   // View mode state
   viewMode: ReportViewMode;
@@ -123,12 +133,17 @@ interface ReportPreferencesStore {
     sortColumn: ManhourDeltaReportSortColumn;
     sortDirection: 'asc' | 'desc';
   };
+  manhourBudgetReport: {
+    sortColumn: ManhourBudgetReportSortColumn;
+    sortDirection: 'asc' | 'desc';
+  };
   toggleComponentSort: (column: ComponentReportSortColumn) => void;
   toggleFieldWeldSort: (column: FieldWeldReportSortColumn) => void;
   toggleManhourSort: (column: ManhourReportSortColumn) => void;
   toggleDeltaSort: (column: DeltaReportSortColumn) => void;
   toggleFieldWeldDeltaSort: (column: FieldWeldDeltaReportSortColumn) => void;
   toggleManhourDeltaSort: (column: ManhourDeltaReportSortColumn) => void;
+  toggleManhourBudgetSort: (column: ManhourBudgetReportSortColumn) => void;
 }
 
 /**
@@ -186,6 +201,10 @@ export const useReportPreferencesStore = create<ReportPreferencesStore>()(
         sortDirection: 'asc',
       },
       manhourDeltaReport: {
+        sortColumn: 'name',
+        sortDirection: 'asc',
+      },
+      manhourBudgetReport: {
         sortColumn: 'name',
         sortDirection: 'asc',
       },
@@ -313,6 +332,26 @@ export const useReportPreferencesStore = create<ReportPreferencesStore>()(
           }
         });
       },
+
+      toggleManhourBudgetSort: (column: ManhourBudgetReportSortColumn) => {
+        set((state) => {
+          if (state.manhourBudgetReport.sortColumn === column) {
+            return {
+              manhourBudgetReport: {
+                sortColumn: column,
+                sortDirection: state.manhourBudgetReport.sortDirection === 'asc' ? 'desc' : 'asc',
+              },
+            };
+          } else {
+            return {
+              manhourBudgetReport: {
+                sortColumn: column,
+                sortDirection: 'asc',
+              },
+            };
+          }
+        });
+      },
     }),
     {
       name: 'pipetrak:report-preferences', // localStorage key
@@ -351,6 +390,11 @@ export const useReportPreferencesStore = create<ReportPreferencesStore>()(
           manhourDeltaReport: {
             sortColumn: state?.manhourDeltaReport?.sortColumn ?? 'name',
             sortDirection: state?.manhourDeltaReport?.sortDirection ?? 'asc',
+          },
+          // Ensure manhourBudgetReport has defaults even if localStorage is old
+          manhourBudgetReport: {
+            sortColumn: state?.manhourBudgetReport?.sortColumn ?? 'name',
+            sortDirection: state?.manhourBudgetReport?.sortDirection ?? 'asc',
           },
         };
       },

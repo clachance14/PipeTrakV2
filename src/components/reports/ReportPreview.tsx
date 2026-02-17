@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { ReportTable } from './ReportTable';
 import { ManhourReportTable } from './ManhourReportTable';
 import { ManhourPercentReportTable } from './ManhourPercentReportTable';
+import { ManhourBudgetReportTable } from './ManhourBudgetReportTable';
 import { DeltaReportTable } from './DeltaReportTable';
 import { DateRangeFilter } from './DateRangeFilter';
 import { NoActivityFound } from './NoActivityFound';
@@ -19,11 +20,11 @@ import { useComponentProgressPDFExport } from '@/hooks/useComponentProgressPDFEx
 import { useProgressDeltaReport } from '@/hooks/useProgressDeltaReport';
 import { useReportPreferencesStore } from '@/stores/useReportPreferencesStore';
 import { useOrganizationLogo } from '@/hooks/useOrganizationLogo';
-import { sortComponentReportRows, sortManhourReportRows } from '@/lib/report-sorting';
+import { sortComponentReportRows, sortManhourReportRows, sortManhourBudgetReportRows } from '@/lib/report-sorting';
 import { buildPDFSubtitle } from '@/lib/pdfUtils';
 import type { ReportData, ManhourReportData, ReportViewMode } from '@/types/reports';
 import { DIMENSION_LABELS } from '@/types/reports';
-import type { ComponentReportSortColumn, ManhourReportSortColumn } from '@/stores/useReportPreferencesStore';
+import type { ComponentReportSortColumn, ManhourReportSortColumn, ManhourBudgetReportSortColumn } from '@/stores/useReportPreferencesStore';
 
 /** Maps sort column keys to human-readable labels for PDF subtitle */
 const COMPONENT_SORT_LABELS: Record<ComponentReportSortColumn, string> = {
@@ -49,6 +50,16 @@ const MANHOUR_SORT_LABELS: Record<ManhourReportSortColumn, string> = {
   mhPctComplete: '% Complete',
 };
 
+const BUDGET_SORT_LABELS: Record<ManhourBudgetReportSortColumn, string> = {
+  name: 'Name',
+  mhBudget: 'MH Budget',
+  receiveMhBudget: 'Receive',
+  installMhBudget: 'Install',
+  punchMhBudget: 'Punch',
+  testMhBudget: 'Test',
+  restoreMhBudget: 'Restore',
+};
+
 interface ReportPreviewProps {
   data: ReportData;
   manhourData?: ManhourReportData;
@@ -62,8 +73,8 @@ export function ReportPreview({
   projectName,
   hasManhourBudget,
 }: ReportPreviewProps) {
-  const { generatePDFPreview, generateManhourPDFPreview, isGenerating } = useComponentProgressPDFExport();
-  const { viewMode, setViewMode, dateRange, componentReport, manhourReport } = useReportPreferencesStore();
+  const { generatePDFPreview, generateManhourPDFPreview, generateBudgetPDFPreview, isGenerating } = useComponentProgressPDFExport();
+  const { viewMode, setViewMode, dateRange, componentReport, manhourReport, manhourBudgetReport } = useReportPreferencesStore();
   const { data: companyLogo } = useOrganizationLogo();
 
   // Determine if delta mode is active (any date filter other than all_time)
@@ -100,7 +111,7 @@ export function ReportPreview({
 
   // Effective view mode (fall back to count if manhour data unavailable)
   const effectiveViewMode: ReportViewMode = (() => {
-    if ((viewMode === 'manhour' || viewMode === 'manhour_percent') && manhourData && hasManhourBudget) {
+    if ((viewMode === 'manhour' || viewMode === 'manhour_percent' || viewMode === 'manhour_budget') && manhourData && hasManhourBudget) {
       return viewMode;
     }
     return 'count';
@@ -108,7 +119,7 @@ export function ReportPreview({
 
   /**
    * Enhanced PDF export handler (preview first, then download from dialog)
-   * Supports count, manhour, and manhour_percent views
+   * Supports count, manhour, manhour_percent, and manhour_budget views
    */
   const handleEnhancedPDFExport = async () => {
     try {
@@ -129,6 +140,24 @@ export function ReportPreview({
           sortedData,
           projectName,
           data.dimension,
+          companyLogo ?? undefined,
+          subtitle
+        );
+      } else if (effectiveViewMode === 'manhour_budget' && manhourData) {
+        // Budget view: pre-sort rows to match current table view
+        const sortedBudgetData: ManhourReportData = {
+          ...manhourData,
+          rows: sortManhourBudgetReportRows(manhourData.rows, manhourBudgetReport.sortColumn, manhourBudgetReport.sortDirection),
+        };
+        const subtitle = buildPDFSubtitle(
+          BUDGET_SORT_LABELS[manhourBudgetReport.sortColumn],
+          manhourBudgetReport.sortDirection,
+          dateRange
+        );
+        result = await generateBudgetPDFPreview(
+          sortedBudgetData,
+          projectName,
+          manhourData.dimension,
           companyLogo ?? undefined,
           subtitle
         );
@@ -271,7 +300,9 @@ export function ReportPreview({
             <NoActivityFound dateRange={dateRange} />
           )
         ) : // Standard mode: Show regular report tables
-        effectiveViewMode === 'manhour_percent' && manhourData ? (
+        effectiveViewMode === 'manhour_budget' && manhourData ? (
+          <ManhourBudgetReportTable data={manhourData} />
+        ) : effectiveViewMode === 'manhour_percent' && manhourData ? (
           <ManhourPercentReportTable data={manhourData} />
         ) : effectiveViewMode === 'manhour' && manhourData ? (
           <ManhourReportTable data={manhourData} />
@@ -284,11 +315,13 @@ export function ReportPreview({
           <p>
             {isDeltaMode
               ? 'This report shows progress change (delta) for the selected time period. Positive values indicate progress gained, negative values indicate rollbacks.'
-              : effectiveViewMode === 'manhour_percent'
-                ? 'This report shows completion percentage per milestone, calculated as (earned MH / budget MH) for each milestone.'
-                : effectiveViewMode === 'manhour'
-                  ? 'This report shows manhour earned value calculated from component progress and project-specific milestone weights.'
-                  : 'This report shows progress percentages calculated using earned value methodology. Percentages reflect partial completion where applicable.'}
+              : effectiveViewMode === 'manhour_budget'
+                ? 'This report shows manhour budget distribution per milestone (Receive, Install, Punch, Test, Restore). Use for P6 planning and budget allocation.'
+                : effectiveViewMode === 'manhour_percent'
+                  ? 'This report shows completion percentage per milestone, calculated as (earned MH / budget MH) for each milestone.'
+                  : effectiveViewMode === 'manhour'
+                    ? 'This report shows manhour earned value calculated from component progress and project-specific milestone weights.'
+                    : 'This report shows progress percentages calculated using earned value methodology. Percentages reflect partial completion where applicable.'}
           </p>
         </div>
       </div>

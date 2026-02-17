@@ -18,6 +18,7 @@ import type {
   DeltaReportSortColumn,
   FieldWeldDeltaReportSortColumn,
   ManhourDeltaReportSortColumn,
+  ManhourBudgetReportSortColumn,
 } from '@/stores/useReportPreferencesStore';
 
 /**
@@ -212,6 +213,34 @@ export function sortManhourDeltaReportRows(
   sortColumn: ManhourDeltaReportSortColumn,
   sortDirection: 'asc' | 'desc'
 ): ManhourDeltaRow[] {
+  const multiplier = sortDirection === 'asc' ? 1 : -1;
+
+  return [...rows].sort((a, b) => {
+    if (sortColumn === 'name') {
+      return multiplier * a.name.localeCompare(b.name);
+    }
+
+    // Numeric sorting for all other columns
+    const valueA = a[sortColumn];
+    const valueB = b[sortColumn];
+
+    return multiplier * (valueA - valueB);
+  });
+}
+
+/**
+ * Sort manhour budget report rows by the specified column and direction
+ *
+ * @param rows - Array of manhour progress rows to sort (uses same type as manhour report)
+ * @param sortColumn - Column to sort by (budget columns only)
+ * @param sortDirection - Sort direction ('asc' or 'desc')
+ * @returns Sorted array of rows (original array is not mutated)
+ */
+export function sortManhourBudgetReportRows(
+  rows: ManhourProgressRow[],
+  sortColumn: ManhourBudgetReportSortColumn,
+  sortDirection: 'asc' | 'desc'
+): ManhourProgressRow[] {
   const multiplier = sortDirection === 'asc' ? 1 : -1;
 
   return [...rows].sort((a, b) => {

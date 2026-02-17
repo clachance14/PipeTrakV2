@@ -498,6 +498,52 @@ export function generateManhourProgressPDFFilename(
 ): string {
   const sanitizedProjectName = sanitizeFilename(projectName);
   const formattedDate = formatDateForFilename(date);
-  const viewSuffix = viewMode === 'manhour_percent' ? 'mh_percent' : 'manhour';
+  const viewSuffix = viewMode === 'manhour_percent'
+    ? 'mh_percent'
+    : viewMode === 'manhour_budget'
+      ? 'mh_budget'
+      : 'manhour';
   return `${sanitizedProjectName}_${viewSuffix}_progress_${dimension}_${formattedDate}.pdf`;
+}
+
+/**
+ * Transform manhour report data to table props for "Manhour Budget" view PDF rendering
+ * Shows: Name | MH Budget | Receive | Install | Punch | Test | Restore
+ */
+export function transformManhourBudgetToTableProps(
+  reportData: ManhourReportData,
+  dimension: GroupingDimension
+): TableProps {
+  const columns: TableColumnDefinition[] = [
+    { key: 'name', label: getComponentProgressDimensionLabel(dimension), width: '22%', align: 'left', format: 'text' },
+    { key: 'mhBudget', label: 'MH Budget', width: '13%', align: 'right', format: 'number' },
+    { key: 'receiveMhBudget', label: 'Receive', width: '13%', align: 'right', format: 'decimal' },
+    { key: 'installMhBudget', label: 'Install', width: '13%', align: 'right', format: 'decimal' },
+    { key: 'punchMhBudget', label: 'Punch', width: '13%', align: 'right', format: 'decimal' },
+    { key: 'testMhBudget', label: 'Test', width: '13%', align: 'right', format: 'decimal' },
+    { key: 'restoreMhBudget', label: 'Restore', width: '13%', align: 'right', format: 'decimal' },
+  ];
+
+  return {
+    columns,
+    data: reportData.rows.map((row) => ({
+      name: row.name,
+      mhBudget: row.mhBudget,
+      receiveMhBudget: row.receiveMhBudget,
+      installMhBudget: row.installMhBudget,
+      punchMhBudget: row.punchMhBudget,
+      testMhBudget: row.testMhBudget,
+      restoreMhBudget: row.restoreMhBudget,
+    })),
+    grandTotal: {
+      name: 'Grand Total',
+      mhBudget: reportData.grandTotal.mhBudget,
+      receiveMhBudget: reportData.grandTotal.receiveMhBudget,
+      installMhBudget: reportData.grandTotal.installMhBudget,
+      punchMhBudget: reportData.grandTotal.punchMhBudget,
+      testMhBudget: reportData.grandTotal.testMhBudget,
+      restoreMhBudget: reportData.grandTotal.restoreMhBudget,
+    },
+    highlightGrandTotal: true,
+  };
 }

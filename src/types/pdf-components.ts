@@ -342,6 +342,23 @@ export interface UseComponentProgressPDFExportReturn {
     subtitle?: string
   ) => Promise<{ blob: Blob; url: string; filename: string }>;
 
+  /**
+   * Function to generate PDF preview for Budget view (returns blob and URL without downloading)
+   * @param data - Manhour report data from TanStack Query (uses budget columns only)
+   * @param projectName - Project name for header
+   * @param dimension - Report dimension
+   * @param companyLogo - Optional base64 encoded logo
+   * @param subtitle - Optional subtitle showing sort/filter info
+   * @returns Promise resolving to { blob, url, filename }
+   */
+  generateBudgetPDFPreview: (
+    data: ManhourReportData,
+    projectName: string,
+    dimension: GroupingDimension,
+    companyLogo?: string,
+    subtitle?: string
+  ) => Promise<{ blob: Blob; url: string; filename: string }>;
+
   /** Loading state during PDF generation */
   isGenerating: boolean;
 

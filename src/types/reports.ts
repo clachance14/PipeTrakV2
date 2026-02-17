@@ -15,7 +15,7 @@ export type GroupingDimension = 'area' | 'system' | 'test_package';
 export type ExportFormat = 'pdf' | 'excel' | 'csv';
 
 // Report view mode for toggling between count, manhour, and manhour percent views
-export type ReportViewMode = 'count' | 'manhour' | 'manhour_percent';
+export type ReportViewMode = 'count' | 'manhour' | 'manhour_percent' | 'manhour_budget';
 
 // Progress row data structure (matches view output)
 export interface ProgressRow {

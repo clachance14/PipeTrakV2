@@ -325,10 +325,108 @@ export function useComponentProgressPDFExport(): UseComponentProgressPDFExportRe
     }
   };
 
+  /**
+   * Generate budget PDF blob for preview or download
+   * Internal helper function used by generateBudgetPDFPreview
+   *
+   * @param data - Manhour report data (rows and grand total - uses budget columns only)
+   * @param projectName - Project name for filename and header
+   * @param dimension - Report dimension: 'area' | 'system' | 'test_package'
+   * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @returns Promise resolving to { blob, filename }
+   * @throws Error if generation fails
+   */
+  const generateBudgetPDFBlob = async (
+    data: ManhourReportData,
+    projectName: string,
+    dimension: GroupingDimension,
+    companyLogo?: string,
+    subtitle?: string
+  ): Promise<{ blob: Blob; filename: string }> => {
+    // Lazy load @react-pdf/renderer (dynamic import for code splitting)
+    const { pdf } = await import('@react-pdf/renderer');
+    const { ManhourBudgetReportPDF } = await import(
+      '@/components/pdf/reports/ManhourBudgetReportPDF'
+    );
+
+    // Generate timestamp for filename
+    const generatedDate = new Date().toISOString().split('T')[0] ?? ''; // YYYY-MM-DD
+
+    // Generate PDF blob from React component
+    const blob = await pdf(
+      <ManhourBudgetReportPDF
+        reportData={data}
+        projectName={projectName}
+        dimension={dimension}
+        generatedDate={generatedDate}
+        companyLogo={companyLogo ?? undefined}
+        subtitle={subtitle}
+      />
+    ).toBlob();
+
+    // Generate filename
+    const filename = generateManhourProgressPDFFilename(
+      projectName,
+      dimension,
+      'manhour_budget',
+      new Date()
+    );
+
+    return { blob, filename };
+  };
+
+  /**
+   * Generate budget PDF preview (returns blob and object URL without downloading)
+   *
+   * @param data - Manhour report data (rows and grand total - uses budget columns only)
+   * @param projectName - Project name for filename and header
+   * @param dimension - Report dimension: 'area' | 'system' | 'test_package'
+   * @param companyLogo - Optional base64-encoded company logo (PNG/JPEG, <50KB recommended)
+   * @returns Promise resolving to { blob, url, filename }
+   * @throws Error if generation fails or if another export is in progress
+   */
+  const generateBudgetPDFPreview = async (
+    data: ManhourReportData,
+    projectName: string,
+    dimension: GroupingDimension,
+    companyLogo?: string,
+    subtitle?: string
+  ): Promise<{ blob: Blob; url: string; filename: string }> => {
+    // Prevent multiple simultaneous exports
+    if (isGenerating) {
+      throw new Error('PDF generation already in progress');
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const { blob, filename } = await generateBudgetPDFBlob(
+        data,
+        projectName,
+        dimension,
+        companyLogo,
+        subtitle
+      );
+
+      // Create object URL for preview (caller is responsible for cleanup)
+      const url = URL.createObjectURL(blob);
+
+      return { blob, url, filename };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error during PDF generation');
+      setError(error);
+      throw error;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return {
     generatePDF,
     generatePDFPreview,
     generateManhourPDFPreview,
+    generateBudgetPDFPreview,
     isGenerating,
     error,
   };
