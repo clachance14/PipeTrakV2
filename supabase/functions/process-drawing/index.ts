@@ -1,34 +1,545 @@
 /**
  * Process Drawing Edge Function
  * Accepts a storage file path, extracts title block and BOM via AI,
- * and stores the results in drawing_bom_items.
+ * and stores the results in drawing_bom_items + creates components.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import type { ProcessDrawingRequest, ProcessingResult } from './types.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import type { ProcessDrawingRequest, ProcessingResult, TitleBlockData, BomItem } from './types.ts';
+import { extractTitleBlock } from './title-block-reader.ts';
+import { extractBom } from './bom-extractor.ts';
+import { trackGeminiUsage } from './gemini-client.ts';
+import { mapBomToComponentType, isTrackedItem } from './component-mapper.ts';
+import { buildDrawingBomItem } from './schema-helpers.ts';
+import { normalizeDrawing } from '../_shared/normalize-drawing.ts';
+import {
+  isAggregateType,
+  isNoExplosionType,
+  isExplodedType,
+  generatePipeAggregateId,
+  buildIdentityKey,
+  buildIdentityLookupKey,
+  getDefaultAggregateMilestones,
+  normalizeSize,
+} from '../_shared/component-builder.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ---------------------------------------------------------------------------
+// Helper: Extract drawing number from file path as fallback
+// ---------------------------------------------------------------------------
+
+function extractFilenameAsDrawingNo(filePath: string): string {
+  const parts = filePath.split('/');
+  const filename = parts[parts.length - 1];
+  return filename.replace(/\.pdf$/i, '').replace(/_p\d+$/, '');
+}
+
+// ---------------------------------------------------------------------------
+// Main processing pipeline
+// ---------------------------------------------------------------------------
+
 async function processDrawing(
-  _supabaseUrl: string,
-  _serviceRoleKey: string,
-  _projectId: string,
-  _filePath: string,
-  _userId: string,
+  projectId: string,
+  filePath: string,
+  userId: string,
+  supabaseAdmin: SupabaseClient,
 ): Promise<ProcessingResult> {
-  // Stub implementation — full processing logic will be added in subsequent tasks
-  return {
-    success: true,
+  const result: ProcessingResult = {
+    success: false,
     drawingsProcessed: 0,
     componentsCreated: 0,
     bomItemsStored: 0,
     errors: [],
   };
+
+  // ── Step 1: Fetch PDF from storage ────────────────────────────────────
+
+  const { data: pdfData, error: storageError } = await supabaseAdmin.storage
+    .from('drawing-pdfs')
+    .download(filePath);
+
+  if (storageError || !pdfData) {
+    throw new Error(`Failed to fetch PDF: ${storageError?.message ?? 'No data returned'}`);
+  }
+
+  const buffer = await pdfData.arrayBuffer();
+  const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+  // NOTE: Phase 1 processes one page at a time. The client calls this function
+  // once per drawing/page. Multi-page splitting is a future enhancement.
+
+  // ── Step 2: Extract title block via Gemini ────────────────────────────
+
+  // We need a drawingId for usage tracking, but we create it in Step 3.
+  // Track title block usage after the drawing is created.
+  let titleBlock: TitleBlockData | null = null;
+  let titleBlockUsage: { inputTokens: number; outputTokens: number } | null = null;
+
+  try {
+    const tbResult = await extractTitleBlock(base64Pdf);
+    titleBlock = tbResult.data;
+    titleBlockUsage = { inputTokens: tbResult.inputTokens, outputTokens: tbResult.outputTokens };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    result.errors.push(`Title block extraction failed: ${msg}`);
+    // Continue — try BOM extraction even if title block fails
+  }
+
+  // ── Step 3: Create or update drawing record ───────────────────────────
+
+  const drawingNoRaw = titleBlock?.drawing_number || extractFilenameAsDrawingNo(filePath);
+  const drawingNoNorm = normalizeDrawing(drawingNoRaw);
+  const sheetNumber = titleBlock?.sheet_number || '1';
+
+  // Check if drawing already exists
+  const { data: existingDrawing } = await supabaseAdmin
+    .from('drawings')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('drawing_no_norm', drawingNoNorm)
+    .eq('sheet_number', sheetNumber)
+    .eq('is_retired', false)
+    .maybeSingle();
+
+  let drawingId: string;
+
+  if (existingDrawing) {
+    // Update existing drawing with new metadata
+    drawingId = existingDrawing.id;
+    const { error: updateError } = await supabaseAdmin
+      .from('drawings')
+      .update({
+        file_path: filePath,
+        line_number: titleBlock?.line_number,
+        material: titleBlock?.material,
+        schedule: titleBlock?.schedule,
+        spec: titleBlock?.spec,
+        nde_class: titleBlock?.nde_class,
+        pwht: titleBlock?.pwht ?? false,
+        rev: titleBlock?.revision,
+        hydro: titleBlock?.hydro,
+        insulation: titleBlock?.insulation,
+        processing_status: 'processing',
+        processing_note: null,
+      })
+      .eq('id', drawingId);
+
+    if (updateError) {
+      result.errors.push(`Failed to update drawing: ${updateError.message}`);
+    }
+  } else {
+    // Insert new drawing
+    const { data: newDrawing, error: drawingError } = await supabaseAdmin
+      .from('drawings')
+      .insert({
+        project_id: projectId,
+        drawing_no_raw: drawingNoRaw,
+        drawing_no_norm: drawingNoNorm,
+        sheet_number: sheetNumber,
+        file_path: filePath,
+        title: titleBlock?.line_number ? `Line ${titleBlock.line_number}` : null,
+        rev: titleBlock?.revision,
+        line_number: titleBlock?.line_number,
+        material: titleBlock?.material,
+        schedule: titleBlock?.schedule,
+        spec: titleBlock?.spec,
+        nde_class: titleBlock?.nde_class,
+        pwht: titleBlock?.pwht ?? false,
+        hydro: titleBlock?.hydro,
+        insulation: titleBlock?.insulation,
+        processing_status: 'processing',
+      })
+      .select('id')
+      .single();
+
+    if (drawingError || !newDrawing) {
+      throw new Error(`Failed to create drawing: ${drawingError?.message ?? 'No data returned'}`);
+    }
+    drawingId = newDrawing.id;
+  }
+
+  result.drawingsProcessed++;
+
+  // Now log title block AI usage (we have drawingId)
+  if (titleBlockUsage) {
+    await trackGeminiUsage(
+      { data: titleBlock, ...titleBlockUsage },
+      'title_block',
+      projectId,
+      drawingId,
+      supabaseAdmin,
+    );
+  }
+
+  // ── Step 4: Extract BOM via Gemini ────────────────────────────────────
+
+  let bomItems: BomItem[] = [];
+
+  try {
+    const bomResult = await extractBom(base64Pdf);
+    bomItems = bomResult.data;
+    await trackGeminiUsage(bomResult, 'bom_extraction', projectId, drawingId, supabaseAdmin);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    result.errors.push(`BOM extraction failed: ${msg}`);
+    // Mark drawing as error and return
+    await supabaseAdmin
+      .from('drawings')
+      .update({
+        processing_status: 'error',
+        processing_note: `BOM extraction failed: ${msg}`,
+      })
+      .eq('id', drawingId);
+    return result;
+  }
+
+  // ── Step 5: Store ALL BOM items in drawing_bom_items ──────────────────
+
+  // Delete any existing BOM items for this drawing (re-processing case)
+  await supabaseAdmin.from('drawing_bom_items').delete().eq('drawing_id', drawingId);
+
+  if (bomItems.length > 0) {
+    const bomInserts = bomItems.map((item) =>
+      buildDrawingBomItem({
+        drawingId,
+        projectId,
+        itemType: item.item_type,
+        classification: item.classification,
+        section: item.section,
+        description: item.description,
+        size: item.size,
+        size2: item.size_2,
+        quantity: item.quantity,
+        uom: item.uom,
+        spec: item.spec,
+        materialGrade: item.material_grade,
+        schedule: item.schedule,
+        schedule2: item.schedule_2,
+        rating: item.rating,
+        commodityCode: item.commodity_code,
+        endConnection: item.end_connection,
+        itemNumber: item.item_number,
+        needsReview: item.needs_review,
+        reviewReason: item.review_reason,
+        userId,
+      }),
+    );
+
+    const { error: bomError } = await supabaseAdmin
+      .from('drawing_bom_items')
+      .insert(bomInserts);
+
+    if (bomError) {
+      result.errors.push(`Failed to store BOM items: ${bomError.message}`);
+    } else {
+      result.bomItemsStored = bomInserts.length;
+    }
+  }
+
+  // ── Step 6: Filter tracked field items and create components ──────────
+
+  const trackedItems = bomItems.filter((item) =>
+    isTrackedItem(item.classification, item.section),
+  );
+
+  // Fetch progress templates (latest version per type)
+  const { data: templates } = await supabaseAdmin
+    .from('progress_templates')
+    .select('id, component_type, version')
+    .order('version', { ascending: false });
+
+  const templateMap = new Map<string, string>();
+  for (const t of templates || []) {
+    const key = t.component_type.toLowerCase();
+    if (!templateMap.has(key)) {
+      templateMap.set(key, t.id);
+    }
+  }
+
+  // Fetch existing components for deduplication
+  const trackedTypes = new Set(
+    trackedItems.map((item) => mapBomToComponentType(item.classification)),
+  );
+
+  const existingKeys = new Set<string>();
+  for (const compType of trackedTypes) {
+    const { data: existing } = await supabaseAdmin
+      .from('components')
+      .select('identity_key, component_type')
+      .eq('project_id', projectId)
+      .eq('component_type', compType)
+      .eq('is_retired', false);
+
+    for (const c of existing || []) {
+      existingKeys.add(buildIdentityLookupKey(c.component_type, c.identity_key));
+    }
+  }
+
+  // Track aggregate pipe/threaded_pipe items to merge within this batch
+  const pipeAggregates = new Map<
+    string,
+    {
+      componentType: string;
+      identityKey: { pipe_id: string };
+      templateId: string;
+      attributes: Record<string, unknown>;
+      currentMilestones: Record<string, number>;
+    }
+  >();
+
+  // Discrete (non-aggregate) components to batch insert
+  const componentInserts: Array<Record<string, unknown>> = [];
+
+  // Track which BOM classifications were mapped to components
+  const trackedClassifications = new Set<string>();
+
+  // Count sequence numbers per (componentType, drawingNorm, cmdtyCode, sizeNorm) for exploded types
+  const seqCounters = new Map<string, number>();
+
+  for (const item of trackedItems) {
+    const componentType = mapBomToComponentType(item.classification);
+    const templateId = templateMap.get(componentType);
+
+    if (!templateId) {
+      result.errors.push(
+        `No template found for component type: ${componentType} (from "${item.classification}")`,
+      );
+      continue;
+    }
+
+    // Build a synthetic commodity code from classification + spec + size for identity key
+    // BOM extraction may not always have a commodity code
+    const cmdtyCode =
+      item.commodity_code || item.classification.replace(/\s+/g, '_').toUpperCase();
+    const sizeNorm = normalizeSize(item.size);
+
+    if (isAggregateType(componentType)) {
+      // ── Pipe / Threaded Pipe: aggregate model ──
+      const pipeId = generatePipeAggregateId(drawingNoNorm, item.size, cmdtyCode);
+      const lookupKey = buildIdentityLookupKey(componentType, { pipe_id: pipeId });
+
+      if (pipeAggregates.has(pipeId)) {
+        // Merge linear feet into existing batch aggregate
+        const existing = pipeAggregates.get(pipeId)!;
+        (existing.attributes as Record<string, unknown>).total_linear_feet =
+          ((existing.attributes.total_linear_feet as number) || 0) + item.quantity;
+      } else if (existingKeys.has(lookupKey)) {
+        // Aggregate exists in database — update total_linear_feet
+        const { data: existingComp } = await supabaseAdmin
+          .from('components')
+          .select('id, attributes')
+          .eq('project_id', projectId)
+          .eq('component_type', componentType)
+          .eq('identity_key->>pipe_id', pipeId)
+          .eq('is_retired', false)
+          .single();
+
+        if (existingComp) {
+          const existingAttrs = (existingComp.attributes ?? {}) as Record<string, unknown>;
+          const existingLf = (existingAttrs.total_linear_feet as number) || 0;
+          const { error: updateErr } = await supabaseAdmin
+            .from('components')
+            .update({
+              attributes: {
+                ...existingAttrs,
+                total_linear_feet: existingLf + item.quantity,
+              },
+              last_updated_by: userId,
+            })
+            .eq('id', existingComp.id);
+
+          if (updateErr) {
+            result.errors.push(`Failed to update aggregate ${pipeId}: ${updateErr.message}`);
+          } else {
+            trackedClassifications.add(item.classification);
+          }
+        }
+      } else {
+        // New aggregate — add to batch
+        const defaultMilestones = getDefaultAggregateMilestones(componentType) ?? {};
+        pipeAggregates.set(pipeId, {
+          componentType,
+          identityKey: { pipe_id: pipeId },
+          templateId,
+          attributes: {
+            description: item.description ?? '',
+            size: item.size ?? '',
+            spec: item.spec ?? '',
+            schedule: item.schedule ?? '',
+            material_grade: item.material_grade ?? '',
+            cmdty_code: cmdtyCode,
+            total_linear_feet: item.quantity,
+          },
+          currentMilestones: defaultMilestones,
+        });
+        trackedClassifications.add(item.classification);
+      }
+    } else if (isNoExplosionType(componentType)) {
+      // ── Instrument: no quantity explosion, seq always 1 ──
+      const identityKey = buildIdentityKey(
+        componentType,
+        drawingNoNorm,
+        cmdtyCode,
+        item.size,
+        1,
+      );
+      const lookupKey = buildIdentityLookupKey(
+        componentType,
+        identityKey as Record<string, unknown>,
+      );
+
+      if (!existingKeys.has(lookupKey)) {
+        componentInserts.push({
+          project_id: projectId,
+          component_type: componentType,
+          drawing_id: drawingId,
+          progress_template_id: templateId,
+          identity_key: identityKey,
+          attributes: {
+            description: item.description ?? '',
+            size: item.size ?? '',
+            size_2: item.size_2 ?? '',
+            spec: item.spec ?? '',
+            schedule: item.schedule ?? '',
+            material_grade: item.material_grade ?? '',
+            rating: item.rating ?? '',
+            cmdty_code: cmdtyCode,
+            end_connection: item.end_connection ?? '',
+          },
+          current_milestones: {},
+          created_by: userId,
+        });
+        existingKeys.add(lookupKey);
+        trackedClassifications.add(item.classification);
+      }
+    } else if (isExplodedType(componentType)) {
+      // ── Valve/Flange/Support/Fitting/Tubing/Hose/Misc: quantity explosion ──
+      const seqKey = `${componentType}::${drawingNoNorm}::${cmdtyCode}::${sizeNorm}`;
+
+      for (let i = 0; i < item.quantity; i++) {
+        // Get the next available sequence number for this key
+        const currentSeq = (seqCounters.get(seqKey) ?? 0) + 1;
+        seqCounters.set(seqKey, currentSeq);
+
+        const identityKey = buildIdentityKey(
+          componentType,
+          drawingNoNorm,
+          cmdtyCode,
+          item.size,
+          currentSeq,
+        );
+        const lookupKey = buildIdentityLookupKey(
+          componentType,
+          identityKey as Record<string, unknown>,
+        );
+
+        if (!existingKeys.has(lookupKey)) {
+          componentInserts.push({
+            project_id: projectId,
+            component_type: componentType,
+            drawing_id: drawingId,
+            progress_template_id: templateId,
+            identity_key: identityKey,
+            attributes: {
+              description: item.description ?? '',
+              size: item.size ?? '',
+              size_2: item.size_2 ?? '',
+              spec: item.spec ?? '',
+              schedule: item.schedule ?? '',
+              material_grade: item.material_grade ?? '',
+              rating: item.rating ?? '',
+              cmdty_code: cmdtyCode,
+              end_connection: item.end_connection ?? '',
+            },
+            current_milestones: {},
+            created_by: userId,
+          });
+          existingKeys.add(lookupKey);
+          trackedClassifications.add(item.classification);
+        }
+      }
+    }
+  }
+
+  // ── Step 6b: Insert aggregate pipe components ─────────────────────────
+
+  for (const [, agg] of pipeAggregates) {
+    const { error: insertErr } = await supabaseAdmin.from('components').insert({
+      project_id: projectId,
+      component_type: agg.componentType,
+      drawing_id: drawingId,
+      progress_template_id: agg.templateId,
+      identity_key: agg.identityKey,
+      attributes: agg.attributes,
+      current_milestones: agg.currentMilestones,
+      created_by: userId,
+    });
+
+    if (insertErr) {
+      result.errors.push(
+        `Failed to insert ${agg.componentType} aggregate ${agg.identityKey.pipe_id}: ${insertErr.message}`,
+      );
+    } else {
+      result.componentsCreated++;
+    }
+  }
+
+  // ── Step 6c: Batch insert discrete components ─────────────────────────
+
+  if (componentInserts.length > 0) {
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < componentInserts.length; i += BATCH_SIZE) {
+      const batch = componentInserts.slice(i, i + BATCH_SIZE);
+      const { error: compError } = await supabaseAdmin.from('components').insert(batch);
+
+      if (compError) {
+        result.errors.push(
+          `Failed to create components (batch ${Math.floor(i / BATCH_SIZE) + 1}): ${compError.message}`,
+        );
+      } else {
+        result.componentsCreated += batch.length;
+      }
+    }
+  }
+
+  // ── Step 6d: Mark tracked BOM items ───────────────────────────────────
+
+  if (trackedClassifications.size > 0) {
+    const classArray = Array.from(trackedClassifications);
+    await supabaseAdmin
+      .from('drawing_bom_items')
+      .update({ is_tracked: true })
+      .eq('drawing_id', drawingId)
+      .eq('section', 'field')
+      .in('classification', classArray);
+  }
+
+  // ── Step 7: Update drawing processing status ──────────────────────────
+
+  const finalStatus = result.errors.length > 0 ? 'error' : 'complete';
+  const finalNote = result.errors.length > 0 ? result.errors.join('; ') : null;
+
+  await supabaseAdmin
+    .from('drawings')
+    .update({
+      processing_status: finalStatus,
+      processing_note: finalNote,
+    })
+    .eq('id', drawingId);
+
+  result.success = result.errors.length === 0;
+  return result;
 }
+
+// ---------------------------------------------------------------------------
+// HTTP handler
+// ---------------------------------------------------------------------------
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -66,7 +577,10 @@ serve(async (req) => {
     const supabaseAuth = createClient(supabaseUrl, anonKey);
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
       const errorResult: ProcessingResult = {
@@ -188,7 +702,7 @@ serve(async (req) => {
     // Process the drawing
     let result: ProcessingResult;
     try {
-      result = await processDrawing(supabaseUrl, serviceRoleKey, body.projectId, body.filePath, userId);
+      result = await processDrawing(body.projectId, body.filePath, userId, supabase);
     } catch (processingError) {
       console.error('Drawing processing error:', processingError);
       result = {
