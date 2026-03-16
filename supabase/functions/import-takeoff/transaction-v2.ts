@@ -185,11 +185,12 @@ async function processDrawings(
 
   const drawingNorms = Array.from(drawingsMap.keys());
 
-  // Check for existing drawings
+  // Check for existing drawings (CSV imports always use sheet_number '1')
   const { data: existingDrawings, error: existingError } = await supabase
     .from('drawings')
     .select('id, drawing_no_norm')
     .eq('project_id', projectId)
+    .eq('sheet_number', '1')
     .in('drawing_no_norm', drawingNorms);
 
   if (existingError) {
@@ -206,6 +207,7 @@ async function processDrawings(
     .map(([, rawDrawing]) => ({
       drawing_no_raw: rawDrawing,
       project_id: projectId,
+      sheet_number: '1',
       is_retired: false
     }));
 
@@ -227,6 +229,7 @@ async function processDrawings(
     .from('drawings')
     .select('id, drawing_no_norm')
     .eq('project_id', projectId)
+    .eq('sheet_number', '1')
     .in('drawing_no_norm', drawingNorms);
 
   if (fetchError) {

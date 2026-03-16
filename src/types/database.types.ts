@@ -358,11 +358,23 @@ export type Database = {
           created_at: string
           drawing_no_norm: string
           drawing_no_raw: string
+          file_path: string | null
+          hydro: string | null
           id: string
+          insulation: string | null
           is_retired: boolean
+          line_number: string | null
+          material: string | null
+          nde_class: string | null
+          processing_note: string | null
+          processing_status: string | null
           project_id: string
+          pwht: boolean | null
           retire_reason: string | null
           rev: string | null
+          schedule: string | null
+          sheet_number: string | null
+          spec: string | null
           system_id: string | null
           test_package_id: string | null
           title: string | null
@@ -372,11 +384,23 @@ export type Database = {
           created_at?: string
           drawing_no_norm: string
           drawing_no_raw: string
+          file_path?: string | null
+          hydro?: string | null
           id?: string
+          insulation?: string | null
           is_retired?: boolean
+          line_number?: string | null
+          material?: string | null
+          nde_class?: string | null
+          processing_note?: string | null
+          processing_status?: string | null
           project_id: string
+          pwht?: boolean | null
           retire_reason?: string | null
           rev?: string | null
+          schedule?: string | null
+          sheet_number?: string | null
+          spec?: string | null
           system_id?: string | null
           test_package_id?: string | null
           title?: string | null
@@ -386,11 +410,23 @@ export type Database = {
           created_at?: string
           drawing_no_norm?: string
           drawing_no_raw?: string
+          file_path?: string | null
+          hydro?: string | null
           id?: string
+          insulation?: string | null
           is_retired?: boolean
+          line_number?: string | null
+          material?: string | null
+          nde_class?: string | null
+          processing_note?: string | null
+          processing_status?: string | null
           project_id?: string
+          pwht?: boolean | null
           retire_reason?: string | null
           rev?: string | null
+          schedule?: string | null
+          sheet_number?: string | null
+          spec?: string | null
           system_id?: string | null
           test_package_id?: string | null
           title?: string | null
