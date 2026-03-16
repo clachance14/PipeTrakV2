@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "papaparse": "https://esm.sh/papaparse@5.4.1"
+  }
+}
