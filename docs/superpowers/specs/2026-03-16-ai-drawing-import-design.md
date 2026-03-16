@@ -60,7 +60,7 @@ User uploads PDF(s) on Imports page
 - Orchestrates per-page extraction pipeline
 - Calls Gemini API (title block + BOM, two separate calls)
 - Maps BOM items to PipeTrak component types
-- Reuses existing component creation logic from `import-takeoff`
+- Reuses existing component creation logic from `import-takeoff` (see Code Reuse Strategy below)
 
 **New Client Components**:
 - `DrawingUploadTab` — PDF upload zone on Imports page
@@ -97,7 +97,11 @@ ALTER TABLE drawings ADD COLUMN processing_status TEXT
 ALTER TABLE drawings ADD COLUMN processing_note TEXT;
 ```
 
-The unique constraint changes from `(project_id, drawing_no_norm)` to `(project_id, drawing_no_norm, sheet_number)` to support multi-sheet drawings.
+**Unique constraint migration**: The existing partial unique index `idx_drawings_project_norm ON drawings(project_id, drawing_no_norm) WHERE NOT is_retired` must be dropped and recreated as `(project_id, drawing_no_norm, sheet_number) WHERE NOT is_retired`. Downstream impact:
+- `import-takeoff/transaction-v2.ts` queries drawings by `(project_id, drawing_no_norm)` — must add `sheet_number` to upsert logic
+- `detect_similar_drawings()` RPC — verify still works with new constraint
+- `assign_drawing_with_inheritance()` — verify drawing lookup still works
+- Any other queries that rely on `drawing_no_norm` uniqueness per project
 
 ### New `drawing_bom_items` table
 
@@ -132,11 +136,28 @@ CREATE TABLE drawing_bom_items (
   review_reason TEXT,
   is_tracked BOOLEAN DEFAULT false,     -- True if also created as a component
 
+  -- Audit
+  created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS: same project-based policies as components
 ALTER TABLE drawing_bom_items ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies (project-based, matching components pattern)
+CREATE POLICY "Users can view BOM items for their projects" ON drawing_bom_items
+  FOR SELECT USING (
+    project_id IN (SELECT project_id FROM project_members WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Users can insert BOM items for their projects" ON drawing_bom_items
+  FOR INSERT WITH CHECK (
+    project_id IN (SELECT project_id FROM project_members WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Users can update BOM items for their projects" ON drawing_bom_items
+  FOR UPDATE USING (
+    project_id IN (SELECT project_id FROM project_members WHERE user_id = auth.uid())
+  );
 ```
 
 ### New `ai_usage_log` table
@@ -155,12 +176,22 @@ CREATE TABLE ai_usage_log (
 );
 
 ALTER TABLE ai_usage_log ENABLE ROW LEVEL SECURITY;
+
+-- RLS: admin/PM read-only (users should not see AI cost data)
+CREATE POLICY "Admins can view AI usage logs" ON ai_usage_log
+  FOR SELECT USING (
+    project_id IN (
+      SELECT project_id FROM project_members
+      WHERE user_id = auth.uid() AND role IN ('admin', 'pm')
+    )
+  );
+-- INSERT is done via service role in edge function (bypasses RLS)
 ```
 
 ### New Storage Bucket
 
 `drawing-pdfs` bucket with RLS enabled.
-Path structure: `{org_id}/{project_id}/{filename}.pdf`
+Path structure: `{project_id}/{filename}.pdf` (single-org architecture — no org_id prefix needed)
 
 ### Prerequisite Migration: Threaded Pipe Template
 
@@ -177,6 +208,14 @@ Update threaded_pipe progress template to drop the Install milestone (7 mileston
 | 7 | Restore | Discrete | 5% |
 
 Weights to be finalized. Insert as new version (v2) of threaded_pipe template.
+
+**Migration impact analysis**: Changing the threaded_pipe template affects:
+- `import-takeoff/transaction-v2.ts` — initializes `current_milestones` with `Install_LF` key; must be updated
+- `calculate_component_percent()` / `calculate_earned_milestone_value()` — reads milestone names from templates, should adapt automatically via `get_component_template()`
+- `mv_template_milestone_weights` materialized view — must be refreshed after template insert
+- Manhour views (`vw_manhour_progress_by_*`) — consume the materialized view, should pick up changes after refresh
+- Existing threaded_pipe components in production — if any exist with `Install_LF` in `current_milestones`, they need a data migration to remove the key and redistribute the value
+- The template is versioned (v2 inserted, v1 kept), so new components get v2 while existing ones keep v1 until explicitly migrated
 
 ## AI Extraction Pipeline
 
@@ -222,10 +261,28 @@ Weights to be finalized. Insert as new version (v2) of threaded_pipe template.
 - Log AI usage to `ai_usage_log`
 - Triggers Realtime push to client
 
+**Authorization** (Step 0):
+- Edge function validates the calling user's JWT
+- Verifies user belongs to the project's organization (same check as `import-takeoff`)
+- Returns 403 if unauthorized
+- Uses `createClient(supabaseUrl, serviceRoleKey)` for data operations (bypasses RLS for batch inserts)
+
+**Drawing Normalization**:
+- `drawing_no_raw` = raw value from Gemini title block extraction
+- `drawing_no_norm` = normalized via the same `normalizeDrawing()` function used by `import-takeoff` (UPPERCASE, trimmed, separators collapsed, leading zeros removed)
+- Must be extracted into a shared utility module (see Code Reuse Strategy)
+
 **Error Handling**:
 - If title block fails → still attempt BOM extraction (partial success OK)
 - If BOM fails → drawing created with metadata but no components, status = 'error'
 - AI usage logged regardless of outcome
+- Partial failures within component creation: components created before the error remain in the database (same behavior as existing `import-takeoff`). No transaction rollback — the drawing is marked with `processing_status = 'error'` and `processing_note` describes what failed. User can re-process or manually fix.
+
+**Re-processing**: If a drawing is re-processed (user re-uploads the same PDF or triggers re-extraction):
+- Existing `drawing_bom_items` for that drawing are deleted and recreated
+- Existing `components` linked to that drawing are NOT deleted (they may have milestone progress)
+- New components are deduplicated by identity key (same as existing import logic — skip if exists)
+- This is consistent with the existing `import-takeoff` idempotent behavior
 
 ### Component Type Mapping
 
@@ -268,9 +325,9 @@ Add a "Drawing Upload" tab alongside the existing "Spreadsheet Import" tab on th
 ### Processing Flow
 
 1. User drops PDF file(s) → client validates (PDF type, size limit)
-2. Client splits multi-page PDFs into individual pages (using pdf.js)
+2. Client uploads the full PDF to Storage; the edge function handles page-by-page processing internally (no client-side PDF splitting — avoids needing pdf-lib and memory issues with large files)
 3. For each page:
-   - Upload to Supabase Storage (`drawing-pdfs/{org_id}/{project_id}/{filename}_p{N}.pdf`)
+   - Upload to Supabase Storage (`drawing-pdfs/{project_id}/{filename}_p{N}.pdf`)
    - Create `drawings` record with `processing_status = 'queued'`
 4. Client calls `process-drawing` Edge Function for each queued drawing
 5. Client subscribes to Realtime changes on `drawings.processing_status`
@@ -413,6 +470,46 @@ All new tables (`drawing_bom_items`, `ai_usage_log`) follow existing RLS pattern
 - `DrawingComponentSidebar` milestone interactions
 - `DrawingProcessingProgress` real-time updates
 - `DrawingUploadTab` file validation and upload flow
+
+## Code Reuse Strategy
+
+The `import-takeoff` edge function contains logic that `process-drawing` needs:
+- `normalizeDrawing()` — drawing number normalization
+- Quantity splitting logic (seq assignment for qty-exploded components)
+- Pipe/threaded pipe aggregate creation (pipe_id generation, linear feet summing)
+- Identity key construction per component type
+- Progress template assignment
+- Deduplication by identity key
+
+**Approach**: Extract shared utilities into `supabase/functions/_shared/` modules:
+- `_shared/normalize-drawing.ts` — drawing normalization
+- `_shared/component-builder.ts` — identity key construction, qty splitting, aggregate creation
+- `_shared/schema-helpers.ts` — type-safe builder functions for `drawing_bom_items` inserts
+
+Both `import-takeoff` and `process-drawing` import from `_shared/`. The `import-takeoff` function is refactored to use these shared modules (no behavior change, just extraction). This avoids code duplication and ensures both import paths produce identical component structures.
+
+**Note**: The `process-drawing` edge function must include its own `schema-helpers.ts` for type-safe `drawing_bom_items` and `ai_usage_log` inserts, per the established edge function pattern.
+
+## TanStack Query Hooks
+
+New hooks (CLAUDE.md Rule 6 — never bare Supabase calls in components):
+- `useDrawingBomItems(drawingId)` — fetch BOM items for sidebar
+- `useDrawingProcessingStatus(projectId)` — subscribe to Realtime processing status changes
+- `useProcessDrawing()` — mutation to trigger edge function
+- `useDrawingFile(filePath)` — get signed URL for PDF from Storage
+- `useUpdateDrawingMilestone()` — mutation for sidebar milestone updates (wraps existing `useUpdateMilestone`)
+
+## Virtualization
+
+Per CLAUDE.md Rule 9, the `DrawingComponentSidebar` and `BomReferenceSection` must use `@tanstack/react-virtual` if a drawing has 50+ items. Typical ISO drawings have 10-30 field components and 20-50 shop items, so virtualization may not always be needed but should be implemented as a safeguard.
+
+## Post-Implementation Updates
+
+After implementation, update CLAUDE.md with:
+- New route: `/projects/:projectId/drawings/:drawingId/viewer`
+- New edge function: `process-drawing`
+- New storage bucket: `drawing-pdfs`
+- New Zustand store if needed (drawing viewer state)
 
 ## Out of Scope
 
