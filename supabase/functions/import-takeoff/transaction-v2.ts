@@ -5,31 +5,15 @@
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import type { ImportPayload, ImportResult, ParsedRow, MetadataCreated } from './types.ts';
-
-/**
- * Normalize drawing number (MUST match database function normalize_drawing_number)
- */
-function normalizeDrawing(raw: string): string {
-  return raw
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, ' ');
-}
-
-/**
- * Normalize size for identity key
- */
-function normalizeSize(raw: string | undefined): string {
-  if (!raw || raw.trim() === '') {
-    return 'NOSIZE';
-  }
-
-  return raw
-    .trim()
-    .replace(/["'\s]/g, '')
-    .replace(/\//g, 'X')
-    .toUpperCase();
-}
+import { normalizeDrawing } from '../_shared/normalize-drawing.ts';
+import {
+  isAggregateType,
+  isNoExplosionType,
+  generatePipeAggregateId,
+  buildIdentityKey,
+  buildIdentityLookupKey,
+  getDefaultAggregateMilestones,
+} from '../_shared/component-builder.ts';
 
 /**
  * Upsert metadata (areas, systems, test packages)
@@ -251,17 +235,6 @@ async function processDrawings(
 }
 
 /**
- * Build lookup key for deduplication: type::identity_key_json
- */
-function buildIdentityLookupKey(componentType: string, identityKey: Record<string, unknown>): string {
-  const sortedKey = Object.keys(identityKey).sort().reduce((acc, key) => {
-    acc[key] = identityKey[key];
-    return acc;
-  }, {} as Record<string, unknown>);
-  return `${componentType}::${JSON.stringify(sortedKey)}`;
-}
-
-/**
  * Query existing component identity keys in bulk
  * Returns Set of lookup keys (component_type::identity_key_json)
  */
@@ -391,38 +364,32 @@ export async function processImportV2(
         }
       };
 
-      // Generate type-specific identity keys
-      if (typeLower === 'spool') {
+      // Generate type-specific identity keys and handle quantity
+      if (typeLower === 'spool' || typeLower === 'field_weld') {
+        // Unique ID types: use commodity code as identifier
         components.push({
           ...baseComponent,
-          identity_key: { spool_id: row.cmdtyCode }
+          identity_key: buildIdentityKey(typeLower, normalized, row.cmdtyCode, row.size, 1)
         });
-      } else if (typeLower === 'field_weld') {
+      } else if (isNoExplosionType(typeLower)) {
+        // No explosion types (instrument): always seq 1
         components.push({
           ...baseComponent,
-          identity_key: { weld_number: row.cmdtyCode }
+          identity_key: buildIdentityKey(typeLower, normalized, row.cmdtyCode, row.size, 1)
         });
-      } else if (typeLower === 'instrument') {
-        // Instrument: no quantity explosion (always seq: 1)
-        components.push({
-          ...baseComponent,
-          identity_key: {
-            drawing_norm: normalized,
-            commodity_code: row.cmdtyCode,
-            size: normalizeSize(row.size),
-            seq: 1
-          }
-        });
-      } else if (typeLower === 'threaded_pipe') {
-        // Threaded pipe: aggregate model (one component per drawing+size+commodity)
-        const sizeNorm = normalizeSize(row.size);
-        const pipeId = `${normalized}-${sizeNorm}-${row.cmdtyCode}-AGG`;
+      } else if (isAggregateType(typeLower)) {
+        // Aggregate types (pipe, threaded_pipe): one component per drawing+size+commodity
+        const pipeId = generatePipeAggregateId(normalized, row.size, row.cmdtyCode);
         const lineNumber = String(index + 1); // CSV row number (1-indexed)
+        const defaultMilestones = getDefaultAggregateMilestones(typeLower);
+
+        // Pick the correct aggregates map
+        const aggregatesMap = typeLower === 'threaded_pipe' ? threadedPipeAggregates : pipeAggregates;
 
         // Check if we've already seen this pipe_id in this import batch
-        if (threadedPipeAggregates.has(pipeId)) {
+        if (aggregatesMap.has(pipeId)) {
           // Update existing aggregate in this batch
-          const existing = threadedPipeAggregates.get(pipeId);
+          const existing = aggregatesMap.get(pipeId);
           existing.attributes.total_linear_feet += row.qty;
           if (!existing.attributes.line_numbers.includes(lineNumber)) {
             existing.attributes.line_numbers.push(lineNumber);
@@ -431,77 +398,22 @@ export async function processImportV2(
           // Add to batch (will check database for existing component later)
           const newAggregate = {
             ...baseComponent,
-            identity_key: {
-              pipe_id: pipeId
-            },
+            identity_key: { pipe_id: pipeId },
             attributes: {
               ...baseComponent.attributes,
               total_linear_feet: row.qty,
               line_numbers: [lineNumber]
             },
-            current_milestones: {
-              Fabricate_LF: 0,
-              Erect_LF: 0,
-              Connect_LF: 0,
-              Support_LF: 0,
-              Punch: 0,
-              Test: 0,
-              Restore: 0
-            }
+            current_milestones: defaultMilestones || {}
           };
-          threadedPipeAggregates.set(pipeId, newAggregate);
-        }
-      } else if (typeLower === 'pipe') {
-        // Pipe: aggregate model (one component per drawing+size+commodity)
-        // QTY represents linear feet, not individual components
-        const sizeNorm = normalizeSize(row.size);
-        const pipeId = `${normalized}-${sizeNorm}-${row.cmdtyCode}-AGG`;
-        const lineNumber = String(index + 1); // CSV row number (1-indexed)
-
-        // Check if we've already seen this pipe_id in this import batch
-        if (pipeAggregates.has(pipeId)) {
-          // Update existing aggregate in this batch
-          const existing = pipeAggregates.get(pipeId);
-          existing.attributes.total_linear_feet += row.qty;
-          if (!existing.attributes.line_numbers.includes(lineNumber)) {
-            existing.attributes.line_numbers.push(lineNumber);
-          }
-        } else {
-          // Add to batch (will check database for existing component later)
-          const newAggregate = {
-            ...baseComponent,
-            identity_key: {
-              pipe_id: pipeId
-            },
-            attributes: {
-              ...baseComponent.attributes,
-              total_linear_feet: row.qty,
-              line_numbers: [lineNumber]
-            },
-            // Initialize milestones for v2 pipe template (hybrid: partial 0-100 + discrete 0/1)
-            current_milestones: {
-              Receive: 0,
-              Erect: 0,
-              Connect: 0,
-              Support: 0,
-              Punch: 0,
-              Test: 0,
-              Restore: 0
-            }
-          };
-          pipeAggregates.set(pipeId, newAggregate);
+          aggregatesMap.set(pipeId, newAggregate);
         }
       } else {
         // All other types: quantity explosion
         for (let i = 1; i <= row.qty; i++) {
           components.push({
             ...baseComponent,
-            identity_key: {
-              drawing_norm: normalized,
-              commodity_code: row.cmdtyCode,
-              size: normalizeSize(row.size),
-              seq: i
-            }
+            identity_key: buildIdentityKey(typeLower, normalized, row.cmdtyCode, row.size, i)
           });
         }
       }
