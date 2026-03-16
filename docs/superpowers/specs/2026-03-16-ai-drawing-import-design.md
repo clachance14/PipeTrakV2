@@ -190,8 +190,14 @@ CREATE POLICY "Admins can view AI usage logs" ON ai_usage_log
 
 ### New Storage Bucket
 
-`drawing-pdfs` bucket with RLS enabled.
-Path structure: `{project_id}/{filename}.pdf` (single-org architecture — no org_id prefix needed)
+`drawing-pdfs` bucket with RLS enabled (configured via Supabase dashboard, not SQL migrations).
+Path structure: `{project_id}/{original_filename}.pdf` for the uploaded file, plus `{project_id}/{original_filename}_p{N}.pdf` for extracted individual pages (created by the edge function).
+
+**Bucket RLS** (configured in Supabase dashboard):
+- **Upload (INSERT)**: Authenticated users whose `project_id` folder matches a project they belong to
+- **Read (SELECT)**: Same — authenticated users with project membership
+- **Delete**: Admin/PM roles only
+- Policy enforced by folder path matching against `project_members` table
 
 ### Prerequisite Migration: Threaded Pipe Template
 
@@ -270,7 +276,7 @@ Weights to be finalized. Insert as new version (v2) of threaded_pipe template.
 **Drawing Normalization**:
 - `drawing_no_raw` = raw value from Gemini title block extraction
 - `drawing_no_norm` = normalized via the same `normalizeDrawing()` function used by `import-takeoff` (UPPERCASE, trimmed, separators collapsed, leading zeros removed)
-- Must be extracted into a shared utility module (see Code Reuse Strategy)
+- **Prerequisite**: `normalizeDrawing()` MUST be extracted from `import-takeoff` to `_shared/normalize-drawing.ts` BEFORE implementing `process-drawing`
 
 **Error Handling**:
 - If title block fails → still attempt BOM extraction (partial success OK)
@@ -325,11 +331,14 @@ Add a "Drawing Upload" tab alongside the existing "Spreadsheet Import" tab on th
 ### Processing Flow
 
 1. User drops PDF file(s) → client validates (PDF type, size limit)
-2. Client uploads the full PDF to Storage; the edge function handles page-by-page processing internally (no client-side PDF splitting — avoids needing pdf-lib and memory issues with large files)
-3. For each page:
-   - Upload to Supabase Storage (`drawing-pdfs/{project_id}/{filename}_p{N}.pdf`)
-   - Create `drawings` record with `processing_status = 'queued'`
-4. Client calls `process-drawing` Edge Function for each queued drawing
+2. Client uploads the **full multi-page PDF** to Supabase Storage (`drawing-pdfs/{project_id}/{filename}.pdf`)
+3. Client calls `process-drawing` Edge Function with `{ projectId, filePath }`
+4. Edge function internally:
+   - Detects page count from the PDF
+   - Processes each page sequentially (title block + BOM extraction per page)
+   - Creates a `drawings` record per page with `processing_status` updates
+   - Stores per-page references as `{filename}_p{N}` in the drawing's `file_path` field
+5. No client-side PDF splitting — avoids pdf-lib dependency and memory issues with large files
 5. Client subscribes to Realtime changes on `drawings.processing_status`
 6. Progress UI shows per-drawing status:
    - Queued → Processing (Extracting title block... / Extracting BOM...) → Complete (N components)
@@ -338,11 +347,12 @@ Add a "Drawing Upload" tab alongside the existing "Spreadsheet Import" tab on th
 8. On complete: "View in Drawing Table" button + "Upload More" button
 9. Warning callouts for drawings that need review
 
-### Concurrency
+### Concurrency & Duplicate Prevention
 
 - Upload concurrency: 3 files at a time (prevent rate limits)
 - Processing concurrency: 2 Edge Function calls at a time (Gemini rate limits: 300 RPM)
 - Supabase Realtime handles progress updates without polling
+- **Client-side duplicate prevention**: Upload button disabled while any drawing is in 'queued' or 'processing' state. Warn user if re-uploading a file with the same name in the same project. Each uploaded file shows clear progress with filename.
 
 ## Drawing Viewer
 
