@@ -438,7 +438,6 @@ export async function processImportV2(
             },
             current_milestones: {
               Fabricate_LF: 0,
-              Install_LF: 0,
               Erect_LF: 0,
               Connect_LF: 0,
               Support_LF: 0,
