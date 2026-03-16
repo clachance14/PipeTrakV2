@@ -39,6 +39,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_log: {
+        Row: {
+          created_at: string | null
+          drawing_id: string | null
+          id: string
+          input_tokens: number | null
+          model: string
+          operation: string
+          output_tokens: number | null
+          project_id: string
+          total_cost: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          drawing_id?: string | null
+          id?: string
+          input_tokens?: number | null
+          model: string
+          operation: string
+          output_tokens?: number | null
+          project_id: string
+          total_cost?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          drawing_id?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          operation?: string
+          output_tokens?: number | null
+          project_id?: string
+          total_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_log_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "drawings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_usage_log_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "mv_drawing_progress"
+            referencedColumns: ["drawing_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_usage_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
       areas: {
         Row: {
           created_at: string
@@ -351,6 +416,116 @@ export type Database = {
           utm_source?: string | null
         }
         Relationships: []
+      }
+      drawing_bom_items: {
+        Row: {
+          classification: string
+          commodity_code: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          drawing_id: string
+          end_connection: string | null
+          id: string
+          is_tracked: boolean | null
+          item_number: number | null
+          item_type: string
+          material_grade: string | null
+          needs_review: boolean | null
+          project_id: string
+          quantity: number
+          rating: string | null
+          review_reason: string | null
+          schedule: string | null
+          schedule_2: string | null
+          section: string
+          size: string | null
+          size_2: string | null
+          spec: string | null
+          uom: string | null
+        }
+        Insert: {
+          classification: string
+          commodity_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          drawing_id: string
+          end_connection?: string | null
+          id?: string
+          is_tracked?: boolean | null
+          item_number?: number | null
+          item_type: string
+          material_grade?: string | null
+          needs_review?: boolean | null
+          project_id: string
+          quantity?: number
+          rating?: string | null
+          review_reason?: string | null
+          schedule?: string | null
+          schedule_2?: string | null
+          section: string
+          size?: string | null
+          size_2?: string | null
+          spec?: string | null
+          uom?: string | null
+        }
+        Update: {
+          classification?: string
+          commodity_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          drawing_id?: string
+          end_connection?: string | null
+          id?: string
+          is_tracked?: boolean | null
+          item_number?: number | null
+          item_type?: string
+          material_grade?: string | null
+          needs_review?: boolean | null
+          project_id?: string
+          quantity?: number
+          rating?: string | null
+          review_reason?: string | null
+          schedule?: string | null
+          schedule_2?: string | null
+          section?: string
+          size?: string | null
+          size_2?: string | null
+          spec?: string | null
+          uom?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drawing_bom_items_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "drawings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawing_bom_items_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "mv_drawing_progress"
+            referencedColumns: ["drawing_id"]
+          },
+          {
+            foreignKeyName: "drawing_bom_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawing_bom_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
       drawings: {
         Row: {
