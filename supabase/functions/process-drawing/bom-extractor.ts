@@ -38,6 +38,21 @@ Extract EVERY row from the BOM table(s) on this ISO drawing.
   Other: "gasket", "bolt set", "nipple", "cap", "plug", "rupture disc", "spacer", "strainer"
 </classification_rules>
 
+<threaded_pipe_rules>
+IMPORTANT: Threaded piping systems use threaded connections (FTE, NPT, NPTF, THD) instead of welded connections.
+Key indicators of a threaded pipe drawing:
+- Pipe: A53 Type F, ERW, galvanized pipe with threaded ends
+- Fittings: B16.11 class 3000/6000, FTE (Forged Threaded End), screwed fittings
+- Valves: NPTF, NPT, or threaded end connections
+
+When you see these indicators:
+1. Classify pipe as "threaded pipe" (not "pipe")
+2. ALL materials on a threaded pipe drawing are field-installed (section="field"), NOT shop
+   - There is no shop fabrication for threaded piping — everything is assembled on-site
+   - The only exception: if the drawing explicitly labels a separate "SHOP MATERIALS" section
+3. Supports (u-bolts, guides, shoes) remain section="field" as usual
+</threaded_pipe_rules>
+
 <size_rules>
 - size/size_2: NPS as decimal. Sub-1": "0.5" (1/2"), "0.75" (3/4"), "0.375" (3/8"). Whole: "2", "16", "1.5" (1-1/2").
 - Reducing items: "16" x 10" TEE, RED" → size="16", size_2="10". "24" x 20" REDUCER" → size="24", size_2="20".
@@ -61,7 +76,20 @@ For STUD BOLTS and BOLT SETS:
 {"item_number": 4, "item_type": "support", "classification": "pipe shoe", "section": "field", "description": "PIPE SHOE 4\\" STD", "size": "4", "size_2": null, "quantity": 2, "uom": "EA", "spec": "PS-101", "material_grade": null, "schedule": null, "schedule_2": null, "rating": null, "commodity_code": "G4G-1412-05AA-001-2-2", "end_connection": null, "needs_review": false, "review_reason": null}
 </examples>
 
-If no BOM items are found, return { "items": [] }.`;
+<spool_extraction_rules>
+In addition to the BOM table, scan the DRAWING BODY (the isometric pipe routing diagram)
+for SPOOL callout labels. Spools are fabricated pipe assemblies identified by labels such as
+"SPOOL-1", "SPOOL 1", "SP-1", "S-1", or similar naming on the pipe runs.
+
+Rules:
+- Extract EVERY unique spool label visible on the drawing body
+- Return the raw label text exactly as shown (e.g., "SPOOL-1", "SP-3")
+- Do NOT extract spool labels from the BOM table — only from the drawing body
+- If no spool callouts are found (common for threaded piping drawings), return an empty array
+- Spool labels may appear with leader lines, bubbles, or as inline text along pipe runs
+</spool_extraction_rules>
+
+If no BOM items are found, return { "items": [], "spools": [] }.`;
 
 // ── JSON Schema for structured output ──────────────────────────────────
 
@@ -180,8 +208,16 @@ const BOM_SCHEMA = {
       description: 'All BOM line items extracted from the drawing',
       items: BOM_ITEM_SCHEMA,
     },
+    spools: {
+      type: 'ARRAY',
+      description: 'Spool callout labels found on the drawing body (e.g., "SPOOL-1", "SP-2"). Empty array if no spools found.',
+      items: {
+        type: 'STRING',
+        description: 'Raw spool label text as shown on the drawing',
+      },
+    },
   },
-  required: ['items'],
+  required: ['items', 'spools'],
 };
 
 // ── Size normalization ─────────────────────────────────────────────────
@@ -270,10 +306,9 @@ export async function extractBom(base64Pdf: string): Promise<{
   inputTokens: number;
   outputTokens: number;
 }> {
-  const MAX_EMPTY_RETRIES = 2;
-  let result = await callGemini(base64Pdf, BOM_PROMPT, BOM_SCHEMA);
+  const result = await callGemini(base64Pdf, BOM_PROMPT, BOM_SCHEMA);
 
-  let rawParsed = result.data as { items?: Record<string, unknown>[] } | Record<string, unknown>[];
+  const rawParsed = result.data as { items?: Record<string, unknown>[] } | Record<string, unknown>[];
   let items: Record<string, unknown>[] = [];
 
   // Gemini sometimes returns a bare array instead of { items: [...] }
@@ -284,24 +319,6 @@ export async function extractBom(base64Pdf: string): Promise<{
     );
   } else if (rawParsed && typeof rawParsed === 'object' && 'items' in rawParsed) {
     items = Array.isArray(rawParsed.items) ? rawParsed.items : [];
-  }
-
-  // Retry up to 2 extra times if Gemini returns empty — intermittent with vision tasks
-  for (let attempt = 0; attempt < MAX_EMPTY_RETRIES && items.length === 0; attempt++) {
-    console.warn(
-      `[bom-extractor] Gemini returned 0 items (attempt ${attempt + 1}/${MAX_EMPTY_RETRIES}), retrying…`,
-    );
-    result = await callGemini(base64Pdf, BOM_PROMPT, BOM_SCHEMA);
-    rawParsed = result.data as { items?: Record<string, unknown>[] } | Record<string, unknown>[];
-
-    if (Array.isArray(rawParsed)) {
-      items = rawParsed.filter(
-        (item): item is Record<string, unknown> =>
-          item !== null && typeof item === 'object' && !Array.isArray(item),
-      );
-    } else if (rawParsed && typeof rawParsed === 'object' && 'items' in rawParsed) {
-      items = Array.isArray(rawParsed.items) ? rawParsed.items : [];
-    }
   }
 
   if (items.length === 0) {
