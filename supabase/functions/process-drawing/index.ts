@@ -205,10 +205,12 @@ async function processDrawing(
   // ── Step 4: Extract BOM via Gemini ────────────────────────────────────
 
   let bomItems: BomItem[] = [];
+  let spoolLabels: string[] = [];
 
   try {
     const bomResult = await extractBom(base64Pdf);
     bomItems = bomResult.data;
+    spoolLabels = bomResult.spools;
     await trackGeminiUsage(bomResult, 'bom_extraction', projectId, drawingId, supabaseAdmin);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -308,6 +310,20 @@ async function processDrawing(
 
     for (const c of existing || []) {
       existingKeys.add(buildIdentityLookupKey(c.component_type, c.identity_key));
+    }
+  }
+
+  // Also load existing spool identity keys for dedup
+  {
+    const { data: existingSpools } = await supabaseAdmin
+      .from('components')
+      .select('identity_key')
+      .eq('project_id', projectId)
+      .eq('component_type', 'spool')
+      .eq('is_retired', false);
+
+    for (const c of existingSpools || []) {
+      existingKeys.add(buildIdentityLookupKey('spool', c.identity_key as Record<string, unknown>));
     }
   }
 
@@ -553,13 +569,49 @@ async function processDrawing(
       .in('classification', classArray);
   }
 
-  // ── Step 7: Refresh materialized view so drawing table sees new components ─
+  // ── Step 7: Create spool components from extracted callouts ────────────
 
-  if (result.componentsCreated > 0) {
+  const spoolTemplateId = templateMap.get('spool');
+
+  if (spoolLabels.length > 0 && spoolTemplateId) {
+    for (const label of spoolLabels) {
+      const spoolId = `${drawingNoNorm}-${label}`;
+      const identityKey = { spool_id: spoolId };
+      const lookupKey = buildIdentityLookupKey('spool', identityKey);
+
+      if (existingKeys.has(lookupKey)) {
+        continue; // Already exists (cross-sheet dedup or re-processing)
+      }
+
+      const { error: spoolError } = await supabaseAdmin.from('components').insert({
+        project_id: projectId,
+        component_type: 'spool',
+        drawing_id: drawingId,
+        progress_template_id: spoolTemplateId,
+        identity_key: identityKey,
+        attributes: { description: label, drawing_no: drawingNoNorm },
+        current_milestones: {},
+        created_by: userId,
+      });
+
+      if (spoolError) {
+        result.errors.push(`Failed to create spool ${spoolId}: ${spoolError.message}`);
+      } else {
+        result.spoolsCreated++;
+        existingKeys.add(lookupKey); // Prevent duplicates within same page
+      }
+    }
+  } else if (spoolLabels.length > 0 && !spoolTemplateId) {
+    result.errors.push('No progress template found for component type: spool');
+  }
+
+  // ── Step 8: Refresh materialized view so drawing table sees new components ─
+
+  if (result.componentsCreated > 0 || result.spoolsCreated > 0) {
     await supabaseAdmin.rpc('refresh_materialized_views');
   }
 
-  // ── Step 8: Update drawing processing status ──────────────────────────
+  // ── Step 9: Update drawing processing status ──────────────────────────
 
   const finalStatus = result.errors.length > 0 ? 'error' : 'complete';
   const finalNote = result.errors.length > 0 ? result.errors.join('; ') : null;
