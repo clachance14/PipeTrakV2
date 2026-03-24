@@ -303,6 +303,7 @@ function normalizeMaterialGrade(raw: string | null): string | null {
  */
 export async function extractBom(base64Pdf: string): Promise<{
   data: BomItem[];
+  spools: string[];
   inputTokens: number;
   outputTokens: number;
 }> {
@@ -352,8 +353,22 @@ export async function extractBom(base64Pdf: string): Promise<{
     } satisfies BomItem;
   });
 
+  // Parse spool callout labels from the drawing body
+  const rawSpools = (!Array.isArray(rawParsed) && rawParsed && typeof rawParsed === 'object' && 'spools' in rawParsed)
+    ? (rawParsed as { spools?: unknown }).spools
+    : undefined;
+
+  const spools: string[] = Array.isArray(rawSpools)
+    ? rawSpools
+        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        .map((s) => s.trim().toUpperCase())
+        // Deduplicate within the page (Gemini may return "Spool-1" and "SPOOL-1")
+        .filter((s, i, arr) => arr.indexOf(s) === i)
+    : [];
+
   return {
     data,
+    spools,
     inputTokens: result.inputTokens,
     outputTokens: result.outputTokens,
   };
