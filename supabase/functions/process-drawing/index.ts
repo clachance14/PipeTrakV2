@@ -7,11 +7,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { PDFDocument } from 'pdf-lib';
 import type { ProcessDrawingRequest, ProcessingResult, TitleBlockData, BomItem } from './types.ts';
 import { extractTitleBlock } from './title-block-reader.ts';
 import { extractBom } from './bom-extractor.ts';
 import { trackGeminiUsage } from './gemini-client.ts';
-import { mapBomToComponentType, isTrackedItem } from './component-mapper.ts';
+import { mapBomToComponentType, isTrackedItem, applyThreadedPipeOverrides } from './component-mapper.ts';
 import { buildDrawingBomItem } from './schema-helpers.ts';
 import { normalizeDrawing } from '../_shared/normalize-drawing.ts';
 import {
@@ -49,12 +50,14 @@ async function processDrawing(
   filePath: string,
   userId: string,
   supabaseAdmin: SupabaseClient,
+  pageNumber?: number,
 ): Promise<ProcessingResult> {
   const result: ProcessingResult = {
     success: false,
     drawingsProcessed: 0,
     componentsCreated: 0,
     bomItemsStored: 0,
+    spoolsCreated: 0,
     errors: [],
   };
 
@@ -68,11 +71,32 @@ async function processDrawing(
     throw new Error(`Failed to fetch PDF: ${storageError?.message ?? 'No data returned'}`);
   }
 
-  const buffer = await pdfData.arrayBuffer();
-  const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  const fullBuffer = await pdfData.arrayBuffer();
 
-  // NOTE: Phase 1 processes one page at a time. The client calls this function
-  // once per drawing/page. Multi-page splitting is a future enhancement.
+  // If pageNumber is specified, extract just that page into a single-page PDF
+  let pdfBytes: Uint8Array;
+  if (pageNumber && pageNumber >= 1) {
+    const srcDoc = await PDFDocument.load(fullBuffer);
+    const pageIndex = pageNumber - 1; // 0-based
+    if (pageIndex >= srcDoc.getPageCount()) {
+      throw new Error(`Page ${pageNumber} does not exist (PDF has ${srcDoc.getPageCount()} pages)`);
+    }
+    const singlePageDoc = await PDFDocument.create();
+    const [copiedPage] = await singlePageDoc.copyPages(srcDoc, [pageIndex]);
+    singlePageDoc.addPage(copiedPage);
+    pdfBytes = await singlePageDoc.save();
+  } else {
+    pdfBytes = new Uint8Array(fullBuffer);
+  }
+
+  // Convert to base64 in chunks to avoid stack overflow on large PDFs
+  const CHUNK_SIZE = 8192;
+  let binaryStr = '';
+  for (let i = 0; i < pdfBytes.length; i += CHUNK_SIZE) {
+    const chunk = pdfBytes.subarray(i, i + CHUNK_SIZE);
+    binaryStr += String.fromCharCode(...chunk);
+  }
+  const base64Pdf = btoa(binaryStr);
 
   // ── Step 2: Extract title block via Gemini ────────────────────────────
 
@@ -95,7 +119,8 @@ async function processDrawing(
 
   const drawingNoRaw = titleBlock?.drawing_number || extractFilenameAsDrawingNo(filePath);
   const drawingNoNorm = normalizeDrawing(drawingNoRaw);
-  const sheetNumber = titleBlock?.sheet_number || '1';
+  // Sheet number comes from the drawing title block metadata
+  const sheetNumber = titleBlock?.sheet_number ?? '1';
 
   // Check if drawing already exists
   const { data: existingDrawing } = await supabaseAdmin
@@ -198,6 +223,11 @@ async function processDrawing(
       .eq('id', drawingId);
     return result;
   }
+
+  // ── Step 4b: Apply threaded pipe overrides ──────────────────────────
+  // Detect threaded pipe drawings (FTE/NPT/NPTF connections, A53 Type F pipe)
+  // and reclassify pipe→threaded_pipe, shop→field for pipe/valves/fittings
+  bomItems = applyThreadedPipeOverrides(bomItems);
 
   // ── Step 5: Store ALL BOM items in drawing_bom_items ──────────────────
 
@@ -375,6 +405,7 @@ async function processDrawing(
             material_grade: item.material_grade ?? '',
             cmdty_code: cmdtyCode,
             total_linear_feet: item.quantity,
+            item_number: item.item_number,
           },
           currentMilestones: defaultMilestones,
         });
@@ -411,6 +442,7 @@ async function processDrawing(
             rating: item.rating ?? '',
             cmdty_code: cmdtyCode,
             end_connection: item.end_connection ?? '',
+            item_number: item.item_number,
           },
           current_milestones: {},
           created_by: userId,
@@ -456,6 +488,7 @@ async function processDrawing(
               rating: item.rating ?? '',
               cmdty_code: cmdtyCode,
               end_connection: item.end_connection ?? '',
+              item_number: item.item_number,
             },
             current_milestones: {},
             created_by: userId,
@@ -520,7 +553,13 @@ async function processDrawing(
       .in('classification', classArray);
   }
 
-  // ── Step 7: Update drawing processing status ──────────────────────────
+  // ── Step 7: Refresh materialized view so drawing table sees new components ─
+
+  if (result.componentsCreated > 0) {
+    await supabaseAdmin.rpc('refresh_materialized_views');
+  }
+
+  // ── Step 8: Update drawing processing status ──────────────────────────
 
   const finalStatus = result.errors.length > 0 ? 'error' : 'complete';
   const finalNote = result.errors.length > 0 ? result.errors.join('; ') : null;
@@ -556,6 +595,7 @@ serve(async (req) => {
         drawingsProcessed: 0,
         componentsCreated: 0,
         bomItemsStored: 0,
+        spoolsCreated: 0,
         errors: ['Missing authorization header'],
       };
 
@@ -588,6 +628,7 @@ serve(async (req) => {
         drawingsProcessed: 0,
         componentsCreated: 0,
         bomItemsStored: 0,
+        spoolsCreated: 0,
         errors: ['Invalid or expired authentication token'],
       };
 
@@ -610,6 +651,7 @@ serve(async (req) => {
           drawingsProcessed: 0,
           componentsCreated: 0,
           bomItemsStored: 0,
+          spoolsCreated: 0,
           errors: ['Missing required field: projectId'],
         };
 
@@ -625,6 +667,7 @@ serve(async (req) => {
           drawingsProcessed: 0,
           componentsCreated: 0,
           bomItemsStored: 0,
+          spoolsCreated: 0,
           errors: ['Missing required field: filePath'],
         };
 
@@ -634,13 +677,19 @@ serve(async (req) => {
         );
       }
 
-      body = { projectId: raw.projectId, filePath: raw.filePath };
+      body = {
+        projectId: raw.projectId,
+        filePath: raw.filePath,
+        pageNumber: typeof raw.pageNumber === 'number' ? raw.pageNumber : undefined,
+        totalPages: typeof raw.totalPages === 'number' ? raw.totalPages : undefined,
+      };
     } catch (parseError) {
       const errorResult: ProcessingResult = {
         success: false,
         drawingsProcessed: 0,
         componentsCreated: 0,
         bomItemsStored: 0,
+        spoolsCreated: 0,
         errors: [
           `Invalid JSON payload: ${parseError instanceof Error ? parseError.message : 'Failed to parse JSON'}`,
         ],
@@ -668,6 +717,7 @@ serve(async (req) => {
         drawingsProcessed: 0,
         componentsCreated: 0,
         bomItemsStored: 0,
+        spoolsCreated: 0,
         errors: ['Project not found or access denied'],
       };
 
@@ -690,6 +740,7 @@ serve(async (req) => {
         drawingsProcessed: 0,
         componentsCreated: 0,
         bomItemsStored: 0,
+        spoolsCreated: 0,
         errors: ['Unauthorized: You do not have access to this project'],
       };
 
@@ -702,7 +753,7 @@ serve(async (req) => {
     // Process the drawing
     let result: ProcessingResult;
     try {
-      result = await processDrawing(body.projectId, body.filePath, userId, supabase);
+      result = await processDrawing(body.projectId, body.filePath, userId, supabase, body.pageNumber);
     } catch (processingError) {
       console.error('Drawing processing error:', processingError);
       result = {
@@ -710,6 +761,7 @@ serve(async (req) => {
         drawingsProcessed: 0,
         componentsCreated: 0,
         bomItemsStored: 0,
+        spoolsCreated: 0,
         errors: [
           `Processing failed: ${processingError instanceof Error ? processingError.message : String(processingError)}`,
         ],
@@ -729,6 +781,7 @@ serve(async (req) => {
       drawingsProcessed: 0,
       componentsCreated: 0,
       bomItemsStored: 0,
+      spoolsCreated: 0,
       errors: [error instanceof Error ? error.message : 'Unknown error'],
     };
 

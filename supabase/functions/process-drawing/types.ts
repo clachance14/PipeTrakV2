@@ -1,6 +1,10 @@
 export interface ProcessDrawingRequest {
   projectId: string;
   filePath: string;
+  /** 1-based page number for multi-page PDFs. Omit or null for single-page. */
+  pageNumber?: number;
+  /** Total pages in the PDF (informational, for progress tracking). */
+  totalPages?: number;
 }
 
 export interface TitleBlockData {
@@ -43,5 +47,6 @@ export interface ProcessingResult {
   drawingsProcessed: number;
   componentsCreated: number;
   bomItemsStored: number;
+  spoolsCreated: number;
   errors: string[];
 }
