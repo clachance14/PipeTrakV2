@@ -11,6 +11,7 @@
 
 import { normalizeDrawing } from './normalize-drawing';
 import { normalizeSize } from './normalize-size';
+import { normalizeSpec } from './normalize-spec';
 import { generateIdentityKey } from './generate-identity-key';
 import {
   DEFAULT_VALIDATION_RULES,
@@ -160,7 +161,7 @@ export function validateRows(
       qty,
       cmdtyCode,
       size: sizeNorm,
-      spec: spec || undefined,
+      spec: normalizeSpec(spec ?? null) || undefined,
       description: description || undefined,
       comments: comments || undefined,
       area: area || undefined,

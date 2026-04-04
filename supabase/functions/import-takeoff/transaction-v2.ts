@@ -6,6 +6,7 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import type { ImportPayload, ImportResult, ParsedRow, MetadataCreated } from './types.ts';
 import { normalizeDrawing } from '../_shared/normalize-drawing.ts';
+import { normalizeSpec } from '../_shared/normalize-spec.ts';
 import {
   isAggregateType,
   isNoExplosionType,
@@ -354,7 +355,7 @@ export async function processImportV2(
         test_package_id: testPackageId,
         current_milestones: {}, // Initialize empty milestones (DB default but explicit for clarity)
         attributes: {
-          spec: row.spec || '',
+          spec: normalizeSpec(row.spec ?? null) || '',
           description: row.description || '',
           size: row.size || '',
           cmdty_code: row.cmdtyCode,

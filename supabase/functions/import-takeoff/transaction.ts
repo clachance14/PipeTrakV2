@@ -5,6 +5,7 @@
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import type { ImportPayload, ImportResult, ParsedRow, MetadataCreated } from './types.ts';
+import { normalizeSpec } from '../_shared/normalize-spec.ts';
 
 /**
  * Normalize drawing number (MUST match database function normalize_drawing_number)
@@ -318,7 +319,7 @@ export async function processImportV2(
         system_id: systemId,
         test_package_id: testPackageId,
         attributes: {
-          spec: row.spec || '',
+          spec: normalizeSpec(row.spec ?? null) || '',
           description: row.description || '',
           size: row.size || '',
           cmdty_code: row.cmdtyCode,
