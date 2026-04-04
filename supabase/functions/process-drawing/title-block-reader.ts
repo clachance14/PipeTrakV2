@@ -5,6 +5,7 @@
 
 import { callGemini } from './gemini-client.ts';
 import type { TitleBlockData } from './types.ts';
+import { normalizeTitleBlock } from './title-block-normalizer.ts';
 
 // ── Prompt ─────────────────────────────────────────────────────────────
 
@@ -128,14 +129,7 @@ export async function extractTitleBlock(base64Pdf: string): Promise<{
   const raw = result.data as Record<string, unknown>;
 
   // Coerce to typed TitleBlockData with fallback defaults
-  let spec = raw.spec != null ? String(raw.spec) : null;
-
-  // Strip trailing project numbers from spec (e.g. "HC-05 12345678" → "HC-05")
-  if (spec) {
-    spec = spec.replace(/[\s-]+\d{6,}$/, '').trim() || spec;
-  }
-
-  const data: TitleBlockData = {
+  const coerced: TitleBlockData = {
     ...EMPTY_TITLE_BLOCK,
     drawing_number: raw.drawing_number != null ? String(raw.drawing_number) : null,
     sheet_number: raw.sheet_number != null ? String(raw.sheet_number) : null,
@@ -143,13 +137,16 @@ export async function extractTitleBlock(base64Pdf: string): Promise<{
     material: raw.material != null ? String(raw.material) : null,
     // Coerce to string — Gemini may return numbers for schedule
     schedule: raw.schedule != null ? String(raw.schedule) : null,
-    spec,
+    spec: raw.spec != null ? String(raw.spec) : null,
     nde_class: raw.nde_class != null ? String(raw.nde_class) : null,
     pwht: raw.pwht === true,
     revision: raw.revision != null ? String(raw.revision) : null,
     hydro: raw.hydro != null ? String(raw.hydro) : null,
     insulation: raw.insulation != null ? String(raw.insulation) : null,
   };
+
+  // Normalize: strip no-data values + first-token spec extraction
+  const data = normalizeTitleBlock(coerced);
 
   return {
     data,
