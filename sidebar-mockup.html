@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sidebar Navigation Mockup — PipeTrak V2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f5f7;
+    display: flex;
+    gap: 40px;
+    padding: 40px;
+    flex-wrap: wrap;
+  }
+
+  /* Design tokens (matching shadcn/ui defaults) */
+  :root {
+    --background: #ffffff;
+    --foreground: #0a0a0a;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a;
+    --primary: #2563eb;
+    --primary-10: rgba(37, 99, 235, 0.1);
+    --border: #e4e4e7;
+    --destructive: #ef4444;
+  }
+
+  .mockup-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mockup-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Sidebar shell */
+  .sidebar {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .sidebar.expanded { width: 256px; }
+  .sidebar.collapsed { width: 64px; }
+
+  /* Toggle button */
+  .toggle-btn {
+    position: absolute;
+    right: -14px;
+    top: 20px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  .toggle-circle {
+    width: 24px;
+    height: 24px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .toggle-btn:hover .toggle-circle {
+    background: var(--muted);
+  }
+  /* 44px hit area visualizer */
+  .toggle-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px dashed rgba(37, 99, 235, 0.3);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .hit-area-label {
+    position: absolute;
+    right: -14px;
+    top: 68px;
+    font-size: 9px;
+    color: var(--primary);
+    white-space: nowrap;
+    opacity: 0.7;
+  }
+
+  /* Nav items */
+  .nav-group { margin-bottom: 16px; }
+  .nav-group:last-child { margin-bottom: 0; }
+
+  .group-header {
+    padding: 0 12px;
+    margin-bottom: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+    line-height: 20px;
+  }
+
+  .group-divider {
+    margin: 4px 8px 8px;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .nav-link:hover { background: var(--muted); }
+  .nav-link.active {
+    background: var(--primary-10);
+    color: var(--primary);
+  }
+  .nav-link.active .nav-icon { color: var(--primary); }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    font-size: 16px;
+  }
+  .nav-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* Collapsed: center icons */
+  .collapsed .nav-link {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    background: var(--destructive);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9999px;
+  }
+
+  /* Collapsed badge dot */
+  .badge-dot {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--destructive);
+    border-radius: 50%;
+    border: 2px solid var(--background);
+  }
+
+  /* Permission indicator */
+  .perm-tag {
+    font-size: 9px;
+    color: var(--muted-foreground);
+    background: var(--muted);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: auto;
+  }
+
+  /* SVG icons (simple representations) */
+  .icon-svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Annotation */
+  .annotation {
+    font-size: 11px;
+    color: #666;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: 18px;
+    color: var(--foreground);
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  .states-row {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+</style>
+</head>
+<body>
+
+<div>
+  <h2>Sidebar Navigation Redesign — Grouped with Section Headers</h2>
+  <div class="states-row">
+
+    <!-- EXPANDED STATE -->
+    <div class="mockup-container">
+      <div class="mockup-label">Expanded (256px)</div>
+      <div class="sidebar expanded">
+        <div class="toggle-btn">
+          <div class="toggle-circle">◀</div>
+        </div>
+        <div class="hit-area-label">↑ 44px hit area</div>
+
+        <!-- Dashboard — standalone -->
+        <div class="nav-group">
+          <a class="nav-link active" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </span>
+            <span class="nav-label">Dashboard</span>
+          </a>
+        </div>
+
+        <!-- PROJECT group -->
+        <div class="nav-group">
+          <div class="group-header">Project</div>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </span>
+            <span class="nav-label">Components</span>
+          </a>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
+            <span class="nav-label">Drawings</span>
+          </a>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </span>
+            <span class="nav-label">Test Packages</span>
+          </a>
+        </div>
+
+        <!-- QC group -->
+        <div class="nav-group">
+          <div class="group-header">QC</div>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </span>
+            <span class="nav-label">Welders</span>
+          </a>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </span>
+            <span class="nav-label">Weld Log</span>
+          </a>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </span>
+            <span class="nav-label">Needs Review</span>
+            <span class="badge">3</span>
+          </a>
+        </div>
+
+        <!-- TOOLS group -->
+        <div class="nav-group">
+          <div class="group-header">Tools</div>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </span>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            </span>
+            <span class="nav-label">Imports</span>
+          </a>
+        </div>
+
+        <!-- ADMIN group -->
+        <div class="nav-group">
+          <div class="group-header">Admin</div>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span class="nav-label">Team</span>
+            <span class="perm-tag">can_manage_team</span>
+          </a>
+          <a class="nav-link" href="#">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </span>
+            <span class="nav-label">Settings</span>
+            <span class="perm-tag">owner/admin/PM</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>Design tokens in use:</strong><br>
+        Active: <code>bg-primary/10</code> + <code>text-primary</code><br>
+        Inactive: <code>text-foreground</code> / hover: <code>bg-muted</code><br>
+        Headers: <code>text-muted-foreground</code> (10px, uppercase, 0.08em tracking)<br>
+        Badge: <code>bg-destructive</code><br>
+        Borders: <code>border-border</code>
+      </div>
+    </div>
+
+    <!-- COLLAPSED STATE -->
+    <div class="mockup-container">
+      <div class="mockup-label">Collapsed (64px)</div>
+      <div class="sidebar collapsed">
+        <div class="toggle-btn">
+          <div class="toggle-circle">▶</div>
+        </div>
+        <div class="hit-area-label">↑ 44px hit area</div>
+
+        <!-- Dashboard -->
+        <div class="nav-group">
+          <a class="nav-link active" href="#" title="Dashboard">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </span>
+          </a>
+        </div>
+
+        <!-- PROJECT divider -->
+        <div class="nav-group">
+          <hr class="group-divider">
+          <a class="nav-link" href="#" title="Components">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </span>
+          </a>
+          <a class="nav-link" href="#" title="Drawings">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
+          </a>
+          <a class="nav-link" href="#" title="Test Packages">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </span>
+          </a>
+        </div>
+
+        <!-- QC divider -->
+        <div class="nav-group">
+          <hr class="group-divider">
+          <a class="nav-link" href="#" title="Welders">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </span>
+          </a>
+          <a class="nav-link" href="#" title="Weld Log">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </span>
+          </a>
+          <a class="nav-link" href="#" title="Needs Review" style="position:relative">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </span>
+            <span class="badge-dot"></span>
+          </a>
+        </div>
+
+        <!-- TOOLS divider -->
+        <div class="nav-group">
+          <hr class="group-divider">
+          <a class="nav-link" href="#" title="Reports">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </span>
+          </a>
+          <a class="nav-link" href="#" title="Imports">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            </span>
+          </a>
+        </div>
+
+        <!-- ADMIN divider -->
+        <div class="nav-group">
+          <hr class="group-divider">
+          <a class="nav-link" href="#" title="Team">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+          </a>
+          <a class="nav-link" href="#" title="Settings">
+            <span class="nav-icon">
+              <svg class="icon-svg" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>Collapsed behavior:</strong><br>
+        • Section headers → thin dividers (<code>border-border</code>)<br>
+        • Icon-only, centered, with <code>title</code> tooltip<br>
+        • Needs Review badge → 8px red dot (top-right of icon)<br>
+        • On hover (300ms delay): expands to show labels + headers
+      </div>
+    </div>
+
+    <!-- MOBILE STATE -->
+    <div class="mockup-container">
+      <div class="mockup-label">Mobile Overlay (256px)</div>
+      <div style="display: flex; gap: 0;">
+        <div class="sidebar expanded" style="border-radius: 0 12px 12px 0; z-index: 2;">
+          <!-- Same as expanded — identical content -->
+          <div class="nav-group">
+            <a class="nav-link active" href="#">
+              <span class="nav-icon">
+                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </span>
+              <span class="nav-label">Dashboard</span>
+            </a>
+          </div>
+          <div class="nav-group">
+            <div class="group-header">Project</div>
+            <a class="nav-link" href="#"><span class="nav-icon">📦</span><span class="nav-label">Components</span></a>
+            <a class="nav-link" href="#"><span class="nav-icon">📄</span><span class="nav-label">Drawings</span></a>
+            <a class="nav-link" href="#"><span class="nav-icon">📦</span><span class="nav-label">Test Packages</span></a>
+          </div>
+          <div class="nav-group">
+            <div class="group-header">QC</div>
+            <a class="nav-link" href="#"><span class="nav-icon">🔧</span><span class="nav-label">Welders</span></a>
+            <a class="nav-link" href="#"><span class="nav-icon">✅</span><span class="nav-label">Weld Log</span></a>
+            <a class="nav-link" href="#"><span class="nav-icon">⚠️</span><span class="nav-label">Needs Review</span><span class="badge">3</span></a>
+          </div>
+          <div class="nav-group">
+            <div class="group-header">Tools</div>
+            <a class="nav-link" href="#"><span class="nav-icon">📊</span><span class="nav-label">Reports</span></a>
+            <a class="nav-link" href="#"><span class="nav-icon">☁️</span><span class="nav-label">Imports</span></a>
+          </div>
+          <div class="nav-group">
+            <div class="group-header">Admin</div>
+            <a class="nav-link" href="#"><span class="nav-icon">👥</span><span class="nav-label">Team</span></a>
+            <a class="nav-link" href="#"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+          </div>
+        </div>
+        <div style="width: 100px; background: rgba(0,0,0,0.3); border-radius: 0 12px 12px 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; writing-mode: vertical-lr;">
+          backdrop overlay →
+        </div>
+      </div>
+      <div class="annotation">
+        <strong>Mobile:</strong> Same layout as expanded desktop.<br>
+        Slides in from left with backdrop overlay.<br>
+        Closes on any nav click or backdrop tap.<br>
+        No toggle button shown on mobile.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
