@@ -5,6 +5,7 @@
 
 import { callGemini } from './gemini-client.ts';
 import type { BomItem } from './types.ts';
+import { normalizeSpec } from '../_shared/normalize-spec.ts';
 
 // ── Prompt ─────────────────────────────────────────────────────────────
 
@@ -76,20 +77,7 @@ For STUD BOLTS and BOLT SETS:
 {"item_number": 4, "item_type": "support", "classification": "pipe shoe", "section": "field", "description": "PIPE SHOE 4\\" STD", "size": "4", "size_2": null, "quantity": 2, "uom": "EA", "spec": "PS-101", "material_grade": null, "schedule": null, "schedule_2": null, "rating": null, "commodity_code": "G4G-1412-05AA-001-2-2", "end_connection": null, "needs_review": false, "review_reason": null}
 </examples>
 
-<spool_extraction_rules>
-In addition to the BOM table, scan the DRAWING BODY (the isometric pipe routing diagram)
-for SPOOL callout labels. Spools are fabricated pipe assemblies identified by labels such as
-"SPOOL-1", "SPOOL 1", "SP-1", "S-1", or similar naming on the pipe runs.
-
-Rules:
-- Extract EVERY unique spool label visible on the drawing body
-- Return the raw label text exactly as shown (e.g., "SPOOL-1", "SP-3")
-- Do NOT extract spool labels from the BOM table — only from the drawing body
-- If no spool callouts are found (common for threaded piping drawings), return an empty array
-- Spool labels may appear with leader lines, bubbles, or as inline text along pipe runs
-</spool_extraction_rules>
-
-If no BOM items are found, return { "items": [], "spools": [] }.`;
+If no BOM items are found, return { "items": [] }.`;
 
 // ── JSON Schema for structured output ──────────────────────────────────
 
@@ -208,16 +196,8 @@ const BOM_SCHEMA = {
       description: 'All BOM line items extracted from the drawing',
       items: BOM_ITEM_SCHEMA,
     },
-    spools: {
-      type: 'ARRAY',
-      description: 'Spool callout labels found on the drawing body (e.g., "SPOOL-1", "SP-2"). Empty array if no spools found.',
-      items: {
-        type: 'STRING',
-        description: 'Raw spool label text as shown on the drawing',
-      },
-    },
   },
-  required: ['items', 'spools'],
+  required: ['items'],
 };
 
 // ── Size normalization ─────────────────────────────────────────────────
@@ -303,7 +283,6 @@ function normalizeMaterialGrade(raw: string | null): string | null {
  */
 export async function extractBom(base64Pdf: string): Promise<{
   data: BomItem[];
-  spools: string[];
   inputTokens: number;
   outputTokens: number;
 }> {
@@ -340,7 +319,7 @@ export async function extractBom(base64Pdf: string): Promise<{
         return Number.isFinite(q) && q > 0 ? q : 1;
       })(),
       uom: item.uom != null ? String(item.uom).toUpperCase() : null,
-      spec: item.spec != null ? String(item.spec) : null,
+      spec: normalizeSpec(item.spec != null ? String(item.spec) : null),
       material_grade: normalizeMaterialGrade(item.material_grade != null ? String(item.material_grade) : null),
       schedule: item.schedule != null ? String(item.schedule) : null,
       schedule_2: item.schedule_2 != null ? String(item.schedule_2) : null,
@@ -353,22 +332,8 @@ export async function extractBom(base64Pdf: string): Promise<{
     } satisfies BomItem;
   });
 
-  // Parse spool callout labels from the drawing body
-  const rawSpools = (!Array.isArray(rawParsed) && rawParsed && typeof rawParsed === 'object' && 'spools' in rawParsed)
-    ? (rawParsed as { spools?: unknown }).spools
-    : undefined;
-
-  const spools: string[] = Array.isArray(rawSpools)
-    ? rawSpools
-        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-        .map((s) => s.trim().toUpperCase())
-        // Deduplicate within the page (Gemini may return "Spool-1" and "SPOOL-1")
-        .filter((s, i, arr) => arr.indexOf(s) === i)
-    : [];
-
   return {
     data,
-    spools,
     inputTokens: result.inputTokens,
     outputTokens: result.outputTokens,
   };
