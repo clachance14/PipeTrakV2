@@ -53,6 +53,10 @@ Ported from the battle-tested TakeOffTrak implementation (`src/lib/ai-pipeline/t
 
 ```typescript
 // Generic — applied to ALL nullable string fields
+// Matches: n/a, na, none, nil, single dash, double+ dashes, dots
+// NOTE: a single "-" IS treated as no-data. Some drawings use "-" to mean
+// "standard/default" for fields like schedule, but those should be null
+// (the template default applies).
 const GENERIC_NO_VALUE = /^(n\/?a|none|nil|--?|-{2,}|\.+)$/i;
 
 // Insulation-specific — bare "N", "No", zero thickness
@@ -63,19 +67,19 @@ const HYDRO_NO_VALUE = /^(n|no)$/i;
 ```
 
 **Field mapping:**
-| Field | Patterns Applied |
-|---|---|
-| `drawing_number` | Generic |
-| `sheet_number` | Generic |
-| `line_number` | Generic |
-| `material` | Generic |
-| `schedule` | Generic |
-| `spec` | Generic + `normalizeSpec()` |
-| `nde_class` | Generic |
-| `revision` | Generic |
-| `insulation` | Generic + Insulation-specific |
-| `hydro` | Generic + Hydro-specific |
-| `pwht` | Not affected (boolean) |
+| Field | Patterns Applied | Safety Note |
+|---|---|---|
+| `drawing_number` | Generic | Safe: pipeline falls back to filename-based extraction (`extractFilenameAsDrawingNo()` in `index.ts` line 121) if null |
+| `sheet_number` | Generic | |
+| `line_number` | Generic | |
+| `material` | Generic | |
+| `schedule` | Generic | |
+| `spec` | Generic + `normalizeSpec()` | |
+| `nde_class` | Generic | |
+| `revision` | Generic | |
+| `insulation` | Generic + Insulation-specific | |
+| `hydro` | Generic + Hydro-specific | |
+| `pwht` | Not affected (boolean) | |
 
 **File:** `supabase/functions/process-drawing/title-block-normalizer.ts`
 
@@ -93,7 +97,11 @@ New flow:
 Gemini → coerce types → normalizeTitleBlock() → return TitleBlockData
 ```
 
-`normalizeTitleBlock()` replaces the existing project-number stripping logic (line 134-136 of `title-block-reader.ts`), since first-token extraction via `normalizeSpec()` is a superset — it strips both project numbers and contract codes.
+`normalizeTitleBlock()` replaces the existing project-number stripping logic (lines 131-135 of `title-block-reader.ts`). The existing regex `spec.replace(/[\s-]+\d{6,}$/, '')` handles both whitespace-separated AND hyphen-separated trailing digits (e.g., `"HC-05-12345678"`). The new `normalizeSpec()` first-token approach only splits on whitespace, so it would NOT catch hyphen-separated contract codes. However, hyphen-separated contract codes have not been observed in real data — contract codes always appear after a space. The existing regex is removed since `normalizeSpec()` handles the observed cases, but if hyphen-separated codes surface in the future, the regex can be re-added inside `normalizeTitleBlock()`.
+
+### 1a. AI Pipeline — Drawing Record Insert/Update (`index.ts`)
+
+The normalized `TitleBlockData` from step 1 flows directly into the `drawings` table at both the insert path (line 164-185) and update path (line 141-157). Fields affected: `spec`, `line_number`, `material`, `schedule`, `nde_class`, `revision`, `hydro`, `insulation`. Because `normalizeTitleBlock()` runs in `title-block-reader.ts` before the data reaches `index.ts`, all drawing record writes automatically receive clean values — no additional normalization calls needed in `index.ts`.
 
 ### 2. AI Pipeline — BOM Extractor (`bom-extractor.ts`)
 
@@ -109,13 +117,19 @@ spec: normalizeSpec(item.spec != null ? String(item.spec) : null),
 
 BOM items only get spec normalization, not the full title block no-data cleanup (BOM items have their own validation rules).
 
-### 3. CSV Import — Takeoff Validator (`import-takeoff/validator.ts`)
+Normalizing at the BOM extraction boundary ensures all downstream consumers receive clean spec values: both the `drawing_bom_items` insert (Step 5 in `index.ts`) and component creation (Step 6, lines ~432/468/514 where `item.spec` flows into component attributes). No additional normalization calls needed in `index.ts`.
 
-Add `normalizeSpec()` call during validation, following the existing pattern of `normalizeDrawing()` and `normalizeSize()`. Applied when the CSV has a SPEC column.
+### 3. CSV Import — Takeoff Pipeline
 
-### 4. Client-Side CSV Preview (`src/lib/csv/normalize-spec.ts`)
+Add `normalizeSpec()` at these specific locations:
 
-Mirror of the edge function `normalizeSpec()` for showing normalized spec values in the CSV import preview UI before submission.
+- **Client-side preview**: `src/lib/csv/csv-validator.ts` line 163 — change `spec: spec || undefined` to `spec: normalizeSpec(spec) || undefined`
+- **Server-side insert**: `supabase/functions/import-takeoff/transaction.ts` line 321 — change `spec: row.spec || ''` to `spec: normalizeSpec(row.spec) || ''`
+- **Server-side v2 insert**: `supabase/functions/import-takeoff/transaction-v2.ts` line 357 — change `spec: row.spec || ''` to `spec: normalizeSpec(row.spec) || ''`
+
+### 4. Client-Side Spec Normalizer (`src/lib/csv/normalize-spec.ts`)
+
+Mirror of the edge function `normalizeSpec()` for the client-side CSV pipeline. Used by `csv-validator.ts` for preview normalization before submission.
 
 ## Pipeline Diagram
 
@@ -170,11 +184,16 @@ Unit tests for both normalizers, colocated with source:
 
 **`title-block-normalizer.test.ts`:**
 - Generic no-value patterns (N/A, none, nil, dashes, dots)
+- Single dash "-" treated as no-data
 - Insulation-specific patterns (N, No, zero thickness)
 - Hydro-specific patterns (N, No)
 - Preservation of real values (H, C, P for insulation; Required for hydro)
 - Spec field gets both no-value + first-token normalization
 - Boolean pwht field unaffected
+
+**Integration verification:**
+- Process a test drawing through the full pipeline (`extractTitleBlock` → `normalizeTitleBlock` → drawing insert) and verify clean values reach the `drawings` table
+- Process a BOM with dirty spec values and verify normalized specs on both `drawing_bom_items` and `components`
 
 ## Design Decisions
 
@@ -182,7 +201,7 @@ Unit tests for both normalizers, colocated with source:
 
 2. **Two copies of normalizeSpec** — Deno edge functions can't import from `src/lib/`, and Vite client can't import from `supabase/functions/`. This matches the existing `normalize-drawing.ts` pattern.
 
-3. **normalizeSpec replaces project-number stripping** — The existing `spec.replace(/[\s-]+\d{6,}$/, '')` in `title-block-reader.ts` is a subset of first-token extraction. No need for both.
+3. **normalizeSpec replaces project-number stripping** — The existing `spec.replace(/[\s-]+\d{6,}$/, '')` in `title-block-reader.ts` handles both whitespace and hyphen-separated trailing digits. First-token extraction only handles whitespace separation, so it does NOT catch `"HC-05-12345678"`. However, hyphen-separated contract codes have not been observed in real data. If they surface, the regex can be re-added inside `normalizeTitleBlock()`.
 
 4. **No-data normalizer is AI-pipeline only** — CSV imports have explicit column mapping and validation; users don't type "N/A" in spec fields. The no-data problem is Gemini-specific.
 
