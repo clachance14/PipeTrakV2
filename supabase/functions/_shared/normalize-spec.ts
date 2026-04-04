@@ -14,5 +14,6 @@ export function normalizeSpec(raw: string | null): string | null {
   if (raw == null) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  return trimmed.split(/\s+/)[0].toUpperCase();
+  const firstToken = trimmed.split(/\s+/)[0];
+  return firstToken ? firstToken.toUpperCase() : null;
 }
