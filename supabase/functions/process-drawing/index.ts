@@ -11,8 +11,11 @@ import { PDFDocument } from 'pdf-lib';
 import type { ProcessDrawingRequest, ProcessingResult, TitleBlockData, BomItem } from './types.ts';
 import { extractTitleBlock } from './title-block-reader.ts';
 import { extractBom } from './bom-extractor.ts';
+import { extractSpools } from './spool-extractor.ts';
 import { trackGeminiUsage } from './gemini-client.ts';
 import { mapBomToComponentType, isTrackedItem, applyThreadedPipeOverrides } from './component-mapper.ts';
+import { classifyBomItems } from './bom-classifier.ts';
+import { reconcileBomItems } from './bom-reconciler.ts';
 import { buildDrawingBomItem } from './schema-helpers.ts';
 import { normalizeDrawing } from '../_shared/normalize-drawing.ts';
 import {
@@ -98,21 +101,41 @@ async function processDrawing(
   }
   const base64Pdf = btoa(binaryStr);
 
-  // ── Step 2: Extract title block via Gemini ────────────────────────────
+  // ── Step 2: Extract title block and BOM in parallel ────────────────────
 
-  // We need a drawingId for usage tracking, but we create it in Step 3.
-  // Track title block usage after the drawing is created.
   let titleBlock: TitleBlockData | null = null;
   let titleBlockUsage: { inputTokens: number; outputTokens: number } | null = null;
+  let bomItems: BomItem[] = [];
+  let bomUsage: { inputTokens: number; outputTokens: number } | null = null;
+  let spoolLabels: string[] = [];
 
-  try {
-    const tbResult = await extractTitleBlock(base64Pdf);
-    titleBlock = tbResult.data;
-    titleBlockUsage = { inputTokens: tbResult.inputTokens, outputTokens: tbResult.outputTokens };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    result.errors.push(`Title block extraction failed: ${msg}`);
-    // Continue — try BOM extraction even if title block fails
+  const [titleBlockResult, bomResult] = await Promise.allSettled([
+    extractTitleBlock(base64Pdf),
+    extractBom(base64Pdf),
+  ]);
+
+  if (titleBlockResult.status === 'fulfilled') {
+    titleBlock = titleBlockResult.value.data;
+    titleBlockUsage = {
+      inputTokens: titleBlockResult.value.inputTokens,
+      outputTokens: titleBlockResult.value.outputTokens,
+    };
+  } else {
+    result.errors.push(
+      `Title block extraction failed: ${titleBlockResult.reason instanceof Error ? titleBlockResult.reason.message : String(titleBlockResult.reason)}`,
+    );
+  }
+
+  if (bomResult.status === 'fulfilled') {
+    bomItems = bomResult.value.data;
+    bomUsage = {
+      inputTokens: bomResult.value.inputTokens,
+      outputTokens: bomResult.value.outputTokens,
+    };
+  } else {
+    result.errors.push(
+      `BOM extraction failed: ${bomResult.reason instanceof Error ? bomResult.reason.message : String(bomResult.reason)}`,
+    );
   }
 
   // ── Step 3: Create or update drawing record ───────────────────────────
@@ -141,6 +164,7 @@ async function processDrawing(
       .from('drawings')
       .update({
         file_path: filePath,
+        source_page: pageNumber ?? null,
         line_number: titleBlock?.line_number,
         material: titleBlock?.material,
         schedule: titleBlock?.schedule,
@@ -168,6 +192,7 @@ async function processDrawing(
         drawing_no_norm: drawingNoNorm,
         sheet_number: sheetNumber,
         file_path: filePath,
+        source_page: pageNumber ?? null,
         title: titleBlock?.line_number ? `Line ${titleBlock.line_number}` : null,
         rev: titleBlock?.revision,
         line_number: titleBlock?.line_number,
@@ -202,28 +227,60 @@ async function processDrawing(
     );
   }
 
-  // ── Step 4: Extract BOM via Gemini ────────────────────────────────────
-
-  let bomItems: BomItem[] = [];
-  let spoolLabels: string[] = [];
-
-  try {
-    const bomResult = await extractBom(base64Pdf);
-    bomItems = bomResult.data;
-    spoolLabels = bomResult.spools;
-    await trackGeminiUsage(bomResult, 'bom_extraction', projectId, drawingId, supabaseAdmin);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    result.errors.push(`BOM extraction failed: ${msg}`);
-    // Mark drawing as error and return
+  // Check BOM failure after drawing creation (need drawingId for error status)
+  if (bomResult.status === 'rejected') {
     await supabaseAdmin
       .from('drawings')
       .update({
         processing_status: 'error',
-        processing_note: `BOM extraction failed: ${msg}`,
+        processing_note: `BOM extraction failed: ${bomResult.reason instanceof Error ? bomResult.reason.message : String(bomResult.reason)}`,
       })
       .eq('id', drawingId);
     return result;
+  }
+
+  // Track BOM usage (after drawingId exists)
+  if (bomUsage) {
+    await trackGeminiUsage(
+      { data: bomItems, ...bomUsage },
+      'bom_extraction',
+      projectId,
+      drawingId,
+      supabaseAdmin,
+    );
+  }
+
+  // ── Step 3b: Text-only classification pass ────────────────────────────
+  if (bomItems.length > 0) {
+    try {
+      const classResult = await classifyBomItems(bomItems, titleBlock);
+      bomItems = reconcileBomItems(bomItems, classResult.data);
+      await trackGeminiUsage(
+        { data: classResult.data, inputTokens: classResult.inputTokens, outputTokens: classResult.outputTokens },
+        'bom_classification',
+        projectId,
+        drawingId,
+        supabaseAdmin,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`BOM classification pass failed: ${msg}`);
+      // Non-fatal — continue with primary extraction results
+    }
+  }
+
+  // ── Step 4a: Extract spool callouts via dedicated Gemini call ────────
+  // Separate from BOM extraction for reliability — Gemini ignores spool
+  // rules when they're appended to the long BOM prompt.
+
+  try {
+    const spoolResult = await extractSpools(base64Pdf);
+    spoolLabels = spoolResult.data;
+    await trackGeminiUsage(spoolResult, 'spool_extraction', projectId, drawingId, supabaseAdmin);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    result.errors.push(`Spool extraction failed: ${msg}`);
+    // Non-fatal — continue with BOM processing
   }
 
   // ── Step 4b: Apply threaded pipe overrides ──────────────────────────
@@ -277,7 +334,7 @@ async function processDrawing(
   // ── Step 6: Filter tracked field items and create components ──────────
 
   const trackedItems = bomItems.filter((item) =>
-    isTrackedItem(item.classification, item.section),
+    isTrackedItem(item.classification, item.section, item.description),
   );
 
   // Fetch progress templates (latest version per type)
@@ -313,18 +370,17 @@ async function processDrawing(
     }
   }
 
-  // Also load existing spool identity keys for dedup
-  {
-    const { data: existingSpools } = await supabaseAdmin
-      .from('components')
-      .select('identity_key')
-      .eq('project_id', projectId)
-      .eq('component_type', 'spool')
-      .eq('is_retired', false);
+  // Load existing spool identity keys for cross-sheet and re-processing dedup.
+  // Loads all project spools (not scoped by drawing) since spool IDs are project-unique.
+  const { data: existingSpoolComps } = await supabaseAdmin
+    .from('components')
+    .select('identity_key')
+    .eq('project_id', projectId)
+    .eq('component_type', 'spool')
+    .eq('is_retired', false);
 
-    for (const c of existingSpools || []) {
-      existingKeys.add(buildIdentityLookupKey('spool', c.identity_key as Record<string, unknown>));
-    }
+  for (const c of existingSpoolComps || []) {
+    existingKeys.add(buildIdentityLookupKey('spool', c.identity_key as Record<string, unknown>));
   }
 
   // Track aggregate pipe/threaded_pipe items to merge within this batch
@@ -516,10 +572,10 @@ async function processDrawing(
     }
   }
 
-  // ── Step 6b: Insert aggregate pipe components ─────────────────────────
+  // ── Step 6b: Batch insert aggregate pipe components ──────────────────
 
-  for (const [, agg] of pipeAggregates) {
-    const { error: insertErr } = await supabaseAdmin.from('components').insert({
+  if (pipeAggregates.size > 0) {
+    const aggInserts = Array.from(pipeAggregates.values()).map((agg) => ({
       project_id: projectId,
       component_type: agg.componentType,
       drawing_id: drawingId,
@@ -528,14 +584,14 @@ async function processDrawing(
       attributes: agg.attributes,
       current_milestones: agg.currentMilestones,
       created_by: userId,
-    });
+    }));
 
-    if (insertErr) {
-      result.errors.push(
-        `Failed to insert ${agg.componentType} aggregate ${agg.identityKey.pipe_id}: ${insertErr.message}`,
-      );
+    const { error: aggError } = await supabaseAdmin.from('components').insert(aggInserts);
+
+    if (aggError) {
+      result.errors.push(`Failed to insert aggregate components: ${aggError.message}`);
     } else {
-      result.componentsCreated++;
+      result.componentsCreated += aggInserts.length;
     }
   }
 
@@ -574,8 +630,31 @@ async function processDrawing(
   const spoolTemplateId = templateMap.get('spool');
 
   if (spoolLabels.length > 0 && spoolTemplateId) {
+    // Use base drawing number (strip sheet designation like "2OF2") for spool IDs,
+    // since spools are identified at the drawing level, not the sheet level.
+    const baseDwg = drawingNoNorm.replace(/\s+\d+OF\d+$/i, '').trim();
+    const baseDwgSpaced = baseDwg.replace(/_/g, ' ');
+    // Gemini may render underscores as dashes in the drawing number
+    const baseDwgDashed = baseDwg.replace(/_/g, '-');
+
+    const spoolInserts: Array<Record<string, unknown>> = [];
+
     for (const label of spoolLabels) {
-      const spoolId = `${drawingNoNorm}-${label}`;
+      // Gemini often includes the drawing number in the spool label (e.g., "A-89246 SPOOL8").
+      // Strip it to avoid redundant prefix: "A-89246-A-89246 SPOOL8" → "A-89246-SPOOL8".
+      let cleanLabel = label;
+      if (cleanLabel.startsWith(`${baseDwgSpaced} `)) {
+        cleanLabel = cleanLabel.slice(baseDwgSpaced.length).trim();
+      } else if (cleanLabel.startsWith(`${baseDwg} `) || cleanLabel.startsWith(`${baseDwg}-`)) {
+        cleanLabel = cleanLabel.slice(baseDwg.length).replace(/^[\s-]+/, '').trim();
+      } else if (baseDwgDashed !== baseDwg && cleanLabel.startsWith(`${baseDwgDashed}-`)) {
+        cleanLabel = cleanLabel.slice(baseDwgDashed.length).replace(/^[\s-]+/, '').trim();
+      }
+
+      // If stripping left nothing meaningful, keep the original label
+      if (!cleanLabel) cleanLabel = label;
+
+      const spoolId = `${baseDwg}-${cleanLabel}`;
       const identityKey = { spool_id: spoolId };
       const lookupKey = buildIdentityLookupKey('spool', identityKey);
 
@@ -583,22 +662,26 @@ async function processDrawing(
         continue; // Already exists (cross-sheet dedup or re-processing)
       }
 
-      const { error: spoolError } = await supabaseAdmin.from('components').insert({
+      spoolInserts.push({
         project_id: projectId,
         component_type: 'spool',
         drawing_id: drawingId,
         progress_template_id: spoolTemplateId,
         identity_key: identityKey,
-        attributes: { description: label, drawing_no: drawingNoNorm },
+        attributes: { description: cleanLabel, drawing_no: baseDwg },
         current_milestones: {},
         created_by: userId,
       });
+      existingKeys.add(lookupKey); // Prevent duplicates within same page
+    }
+
+    if (spoolInserts.length > 0) {
+      const { error: spoolError } = await supabaseAdmin.from('components').insert(spoolInserts);
 
       if (spoolError) {
-        result.errors.push(`Failed to create spool ${spoolId}: ${spoolError.message}`);
+        result.errors.push(`Failed to create spool components: ${spoolError.message}`);
       } else {
-        result.spoolsCreated++;
-        existingKeys.add(lookupKey); // Prevent duplicates within same page
+        result.spoolsCreated += spoolInserts.length;
       }
     }
   } else if (spoolLabels.length > 0 && !spoolTemplateId) {
@@ -729,9 +812,27 @@ serve(async (req) => {
         );
       }
 
+      // Validate filePath: must start with projectId prefix and not contain traversal
+      const filePath = String(raw.filePath);
+      if (!filePath.startsWith(`${raw.projectId}/`) || filePath.includes('..')) {
+        const errorResult: ProcessingResult = {
+          success: false,
+          drawingsProcessed: 0,
+          componentsCreated: 0,
+          bomItemsStored: 0,
+          spoolsCreated: 0,
+          errors: ['Invalid filePath: must be within the project storage scope'],
+        };
+
+        return new Response(
+          JSON.stringify(errorResult),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
       body = {
         projectId: raw.projectId,
-        filePath: raw.filePath,
+        filePath,
         pageNumber: typeof raw.pageNumber === 'number' ? raw.pageNumber : undefined,
         totalPages: typeof raw.totalPages === 'number' ? raw.totalPages : undefined,
       };
@@ -779,10 +880,10 @@ serve(async (req) => {
       );
     }
 
-    // Verify user belongs to the project's organization
+    // Verify user belongs to the project's organization and has sufficient role
     const { data: userRecord } = await supabase
       .from('users')
-      .select('organization_id')
+      .select('organization_id, role')
       .eq('id', userId)
       .single();
 
@@ -794,6 +895,24 @@ serve(async (req) => {
         bomItemsStored: 0,
         spoolsCreated: 0,
         errors: ['Unauthorized: You do not have access to this project'],
+      };
+
+      return new Response(
+        JSON.stringify(errorResult),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Only owner, admin, and project_manager can trigger AI drawing processing
+    const allowedRoles = ['owner', 'admin', 'project_manager'];
+    if (!allowedRoles.includes(userRecord.role)) {
+      const errorResult: ProcessingResult = {
+        success: false,
+        drawingsProcessed: 0,
+        componentsCreated: 0,
+        bomItemsStored: 0,
+        spoolsCreated: 0,
+        errors: ['Insufficient permissions: Only admins and project managers can import drawings'],
       };
 
       return new Response(
