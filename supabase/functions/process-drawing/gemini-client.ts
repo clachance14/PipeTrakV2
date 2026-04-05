@@ -29,14 +29,15 @@ export interface GeminiResult {
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 2;
+const FETCH_TIMEOUT_MS = 50_000; // 50s to fit within edge function wall time
 
-/** Gemini 2.0 Flash pricing per 1M tokens (USD) */
+/** Gemini 3.0 Flash Preview pricing per 1M tokens (USD) */
 const GEMINI_FLASH_PRICING = {
-  input_per_million: 0.10,
-  output_per_million: 0.40,
+  input_per_million: 0.50,
+  output_per_million: 3.00,
 };
 
 // ── Rate limit / transient error detection ─────────────────────────────
@@ -101,6 +102,7 @@ export async function callGemini(
     requestBody.generationConfig = {
       responseMimeType: 'application/json',
       responseSchema,
+      maxOutputTokens: 8192, // Prevent truncation on large BOMs
     };
   }
 
@@ -113,11 +115,17 @@ export async function callGemini(
       console.log(`[gemini] START attempt ${attempt + 1}/${MAX_RETRIES}`);
       const t0 = Date.now();
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const responseText = await response.text();
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -130,7 +138,7 @@ export async function callGemini(
         }
 
         if (isTransientHttpError(status, responseText) && !isLastAttempt) {
-          const delay = Math.pow(2, attempt) * 2000 + Math.random() * 1000;
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
           lastError = new Error(`Gemini API HTTP ${status}: ${responseText.substring(0, 200)}`);
           console.warn(
             `[gemini] RETRY attempt ${attempt + 1}/${MAX_RETRIES}, status=${status}, retrying in ${Math.round(delay)}ms`,
@@ -148,9 +156,20 @@ export async function callGemini(
       // Parse the outer API response envelope
       const geminiResponse: GeminiResponse = JSON.parse(responseText);
 
-      const rawText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) {
+      // Concatenate all text parts — Gemini may split long responses across multiple parts
+      const parts = geminiResponse.candidates?.[0]?.content?.parts;
+      if (!parts || parts.length === 0) {
         throw new Error('Gemini returned empty response: no candidates or parts');
+      }
+      const rawText = parts.map((p) => p.text).join('');
+      if (!rawText) {
+        throw new Error('Gemini returned empty text in all parts');
+      }
+
+      // Check if response was truncated (finishReason !== 'STOP')
+      const finishReason = (geminiResponse.candidates?.[0] as Record<string, unknown>)?.finishReason;
+      if (finishReason && finishReason !== 'STOP') {
+        console.warn(`[gemini] Response may be truncated: finishReason=${finishReason}`);
       }
 
       // Parse the structured JSON payload from the model's text output
@@ -158,7 +177,7 @@ export async function callGemini(
       try {
         parsedData = JSON.parse(rawText);
       } catch {
-        throw new Error(`Gemini returned non-JSON text: ${rawText.substring(0, 200)}`);
+        throw new Error(`Gemini returned non-JSON text (${rawText.length} chars, finishReason=${finishReason ?? 'unknown'}): ${rawText.substring(0, 200)}`);
       }
 
       const inputTokens = geminiResponse.usageMetadata?.promptTokenCount ?? 0;
@@ -190,9 +209,9 @@ export async function callGemini(
  * Log AI token usage to the ai_usage_log table.
  * Non-blocking: errors are caught, logged, and never re-thrown.
  *
- * Cost calculation (Gemini 2.0 Flash):
- *   Input:  $0.10 / 1M tokens
- *   Output: $0.40 / 1M tokens
+ * Cost calculation (Gemini 3.0 Flash Preview):
+ *   Input:  $0.50 / 1M tokens
+ *   Output: $3.00 / 1M tokens
  */
 export async function trackGeminiUsage(
   result: GeminiResult,
