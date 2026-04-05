@@ -203,6 +203,131 @@ export async function callGemini(
   throw lastError ?? new Error(`Gemini API call failed after ${MAX_RETRIES} attempts`);
 }
 
+// ── Text-only API call ─────────────────────────────────────────────────
+
+/**
+ * Call Gemini API with text-only input (no image).
+ * Used for classification passes where visual cross-referencing must be prevented.
+ * Same retry logic and timeout as callGemini.
+ */
+export async function callGeminiTextOnly(
+  prompt: string,
+  responseSchema?: object,
+): Promise<GeminiResult> {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY environment variable is not set');
+  }
+
+  const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+  const requestBody: Record<string, unknown> = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  };
+
+  if (responseSchema) {
+    requestBody.generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema,
+      maxOutputTokens: 8192,
+    };
+  }
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const isLastAttempt = attempt === MAX_RETRIES - 1;
+
+    try {
+      console.log(`[gemini-text] START attempt ${attempt + 1}/${MAX_RETRIES}`);
+      const t0 = Date.now();
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseText = await response.text();
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+      if (!response.ok) {
+        const status = response.status;
+
+        if (isRateLimitError(status, responseText)) {
+          console.error(`[gemini-text] RATE LIMIT on attempt ${attempt + 1}`);
+        }
+
+        if (isTransientHttpError(status, responseText) && !isLastAttempt) {
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+          lastError = new Error(`Gemini API HTTP ${status}: ${responseText.substring(0, 200)}`);
+          console.warn(`[gemini-text] RETRY attempt ${attempt + 1}/${MAX_RETRIES}, retrying in ${Math.round(delay)}ms`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        throw new Error(`Gemini API error: HTTP ${status} - ${responseText.substring(0, 500)}`);
+      }
+
+      console.log(`[gemini-text] DONE in ${elapsed}s`);
+
+      const geminiResponse: GeminiResponse = JSON.parse(responseText);
+
+      const parts = geminiResponse.candidates?.[0]?.content?.parts;
+      if (!parts || parts.length === 0) {
+        throw new Error('Gemini returned empty response: no candidates or parts');
+      }
+      const rawText = parts.map((p) => p.text).join('');
+      if (!rawText) {
+        throw new Error('Gemini returned empty text in all parts');
+      }
+
+      const finishReason = (geminiResponse.candidates?.[0] as Record<string, unknown>)?.finishReason;
+      if (finishReason && finishReason !== 'STOP') {
+        console.warn(`[gemini-text] Response may be truncated: finishReason=${finishReason}`);
+      }
+
+      let parsedData: unknown;
+      try {
+        parsedData = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Gemini returned non-JSON text: ${rawText.substring(0, 200)}`);
+      }
+
+      const inputTokens = geminiResponse.usageMetadata?.promptTokenCount ?? 0;
+      const outputTokens = geminiResponse.usageMetadata?.candidatesTokenCount ?? 0;
+
+      return { data: parsedData, inputTokens, outputTokens };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      if (isLastAttempt) {
+        throw lastError;
+      }
+
+      const delay = Math.pow(2, attempt) * 2000 + Math.random() * 1000;
+      console.warn(`[gemini-text] RETRY after error, retrying in ${Math.round(delay)}ms: ${lastError.message.substring(0, 120)}`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError ?? new Error(`Gemini text-only call failed after ${MAX_RETRIES} attempts`);
+}
+
 // ── Usage tracking ─────────────────────────────────────────────────────
 
 /**
