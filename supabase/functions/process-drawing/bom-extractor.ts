@@ -310,6 +310,7 @@ export async function extractBom(base64Pdf: string): Promise<{
     return {
       item_type: item.item_type === 'support' ? 'support' : 'material',
       classification: String(item.classification ?? 'unknown'),
+      classification_confidence: null, // Set by classification pass later
       section: item.section === 'field' ? 'field' : 'shop',
       description: item.description != null ? String(item.description) : null,
       size: normalizeSize(item.size != null ? String(item.size) : null),

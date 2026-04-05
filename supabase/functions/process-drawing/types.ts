@@ -24,6 +24,7 @@ export interface TitleBlockData {
 export interface BomItem {
   item_type: 'material' | 'support';
   classification: string;
+  classification_confidence: 'high' | 'medium' | 'low' | null;
   section: 'shop' | 'field';
   description: string | null;
   size: string | null;
