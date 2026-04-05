@@ -18,7 +18,9 @@ Extract the title block fields from this ISO drawing.
 Rules:
 - Normalize material to: CS, SS-304, SS-316, INCONEL, TI, DUPLEX, CHROME, ALLOY (null if none match)
 - Strip trailing project numbers (6+ digits) from spec
-- sheet_number: just the number, no "of X" totals
+- spec is a SHORT piping class code (e.g. "PU-32", "A1A", "HC-05"). Commodity codes like G4G-xxxx, support tag numbers, and long alphanumeric identifiers are NOT piping specs — return null for spec if only these are present
+- Do NOT include trailing suffixes like "CC" or contract codes after the spec — only the core spec code (e.g. "PU-32 CC" → "PU-32")
+- sheet_number: the DRAWING-SPECIFIC sheet number (e.g. "1" from "SHEET 1 OF 2"), NOT a project-wide page index. If the drawing is a single sheet or no sheet designation exists, return null. Do NOT include "of X" totals.
 
 <examples>
 Example 1 — Carbon steel ISO:
@@ -40,7 +42,7 @@ const TITLE_BLOCK_SCHEMA = {
     },
     sheet_number: {
       type: 'STRING',
-      description: 'Sheet number if multi-sheet — just the number (e.g. "1", "2"). Do NOT include "of X" totals.',
+      description: 'Sheet number for THIS SPECIFIC DRAWING if it is a multi-sheet drawing (e.g. "1", "2"). This is the drawing-specific sheet number, NOT a project-wide page index. Look for labels like "SHEET 1 OF 2" or "SHT 1" in the title block. If the drawing has only one sheet or no sheet designation is shown, return null.',
       nullable: true,
     },
     line_number: {
@@ -62,7 +64,7 @@ const TITLE_BLOCK_SCHEMA = {
     },
     spec: {
       type: 'STRING',
-      description: 'Piping specification or class (e.g. "A1A", "B2B", "HC-05"). Do NOT include project numbers — omit trailing 6+ digit sequences.',
+      description: 'Short piping specification or class code (e.g. "A1A", "B2B", "HC-05", "PU-32"). Do NOT include project numbers, trailing "CC" suffixes, or contract codes. Commodity codes (e.g. G4G-xxxx) and support tag numbers are NOT piping specs — return null.',
       nullable: true,
     },
     nde_class: {
