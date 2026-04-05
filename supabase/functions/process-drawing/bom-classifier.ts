@@ -118,7 +118,8 @@ export function buildClassificationPrompt(
   lines.push('  Olets: "weldolet", "threadolet", "sockolet"');
   lines.push('  Valves: "gate valve", "ball valve", "check valve", "globe valve", "butterfly valve",');
   lines.push('          "plug valve", "control valve", "pressure safety valve"');
-  lines.push('  Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate"');
+  lines.push('  Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate", "control valve", "flow element"');
+  lines.push('  *** Instrument tag patterns: TV-xxxx, FE-xxxx, TI-xxxx, PI-xxxx, FV-xxxx, LV-xxxx, XV-xxxx (when under INSTRUMENTS section) = instruments, NOT valves');
   lines.push('  Supports: "pipe shoe", "guide", "anchor", "spring hanger", "u-bolt", "dummy leg",');
   lines.push('            "trunnion", "pipe clamp"');
   lines.push('  Other: "gasket", "bolt set", "nipple", "cap", "plug", "rupture disc", "spacer", "strainer"');

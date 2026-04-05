@@ -21,11 +21,11 @@ const PATTERNS: Array<{ type: ComponentType; regex: RegExp }> = [
   // Must check THREADED_PIPE before PIPE so "threaded pipe" doesn't match bare /^pipe$/i first
   { type: 'threaded_pipe', regex: /\bthreaded\s*pipe\b/i },
   { type: 'pipe',         regex: /^pipe$/i },
-  { type: 'valve',        regex: /\b(gate|globe|ball|check|butterfly|plug|needle)\s*valve\b/i },
+  { type: 'valve',        regex: /\b(gate|globe|ball|check|butterfly|plug|needle|control|pressure\s*safety)\s*valve\b/i },
   { type: 'flange',       regex: /\bflange\b/i },
   { type: 'support',      regex: /\b(pipe\s*shoe|guide|anchor|spring\s*hanger|support|clamp|u-bolt|dummy\s*leg|trunnion)\b/i },
   { type: 'fitting',      regex: /\b(elbow|tee|reducer|coupling|cap|union|nipple|bushing)\b/i },
-  { type: 'instrument',   regex: /\b(instrument|gauge|transmitter|indicator)\b/i },
+  { type: 'instrument',   regex: /\b(instrument|gauge|transmitter|indicator|thermowell|orifice)\b/i },
   { type: 'tubing',       regex: /\btubing\b/i },
   { type: 'hose',         regex: /\bhose\b/i },
 ];

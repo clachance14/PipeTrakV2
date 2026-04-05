@@ -42,8 +42,10 @@ Extract EVERY row from the BOM table(s) on this ISO drawing.
     - "SW", "SOCKET WELD" → "SW"
     - "THD", "THREADED", "SCREWED" → "THD"
     If the description does not explicitly state connection type, infer: shop valves are typically BW or SW; field valves are typically RFWN.
-  Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate" — always specify type
+  Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate", "control valve", "flow element" — always specify type
+  *** INSTRUMENT SUBSECTION: Many BOMs have an "INSTRUMENTS" subsection header within the field materials. ALL items listed under an "INSTRUMENTS" header are instruments regardless of their tag name. Common instrument tag patterns: TV-xxxx (temperature valve), FE-xxxx (flow element), TI-xxxx (temperature indicator), PI-xxxx (pressure indicator), FV-xxxx (flow valve), LV-xxxx (level valve), XV-xxxx (on/off valve under INSTRUMENTS = instrument, not valve). If an item is under an INSTRUMENTS header, classify it as the appropriate instrument type (e.g. "control valve", "orifice plate", "thermowell", "temperature gauge", "pressure transmitter").
   Supports: "pipe shoe", "guide", "anchor", "spring hanger", "u-bolt", "dummy leg", "trunnion", "pipe clamp" — always specify type
+  *** PIPE SUPPORTS SUBSECTION: Many BOMs have a "PIPE SUPPORTS" subsection header. ALL items listed under this header are supports (item_type="support").
   Bends: "bend" — pipe bend (a smooth curve formed from pipe, NOT a fitting elbow)
   Couplings: "coupling" — threaded or socket weld coupling
   Other: "gasket", "bolt set", "nipple", "cap", "plug", "rupture disc", "spacer", "strainer"
