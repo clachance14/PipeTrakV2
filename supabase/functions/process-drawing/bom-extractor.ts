@@ -65,6 +65,7 @@ Common valve abbreviations found in BOM descriptions — use these to determine 
 - SDV = Shutdown Valve → classification: "ball valve"
 - XV = Control Valve on/off → classification: "ball valve"
 - HV = Hand Valve → classification: "gate valve"
+- EBV = Emergency Block Valve → classification: "ball valve"
 Do NOT classify these as "thermowell" or other instrument types — they are valves.
 </valve_abbreviation_dictionary>
 

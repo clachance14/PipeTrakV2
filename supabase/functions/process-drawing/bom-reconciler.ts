@@ -44,7 +44,9 @@ function classificationCategory(classification: string): BroadCategory {
   if (
     c.includes('valve') ||
     c === 'pressure safety valve' ||
-    c === 'control valve'
+    c === 'control valve' ||
+    c === 'rupture disc' ||
+    c === 'strainer'
   )
     return 'valve';
   if (
@@ -55,7 +57,10 @@ function classificationCategory(classification: string): BroadCategory {
     c === 'u-bolt' ||
     c === 'dummy leg' ||
     c === 'trunnion' ||
-    c === 'pipe clamp'
+    c === 'pipe clamp' ||
+    c === 'trapeze support' ||
+    c === 'bumper' ||
+    c === 'angle support'
   )
     return 'support';
   if (

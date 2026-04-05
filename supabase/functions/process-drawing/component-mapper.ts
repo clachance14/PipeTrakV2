@@ -21,10 +21,10 @@ const PATTERNS: Array<{ type: ComponentType; regex: RegExp }> = [
   // Must check THREADED_PIPE before PIPE so "threaded pipe" doesn't match bare /^pipe$/i first
   { type: 'threaded_pipe', regex: /\bthreaded\s*pipe\b/i },
   { type: 'pipe',         regex: /^pipe$/i },
-  { type: 'valve',        regex: /\b(gate|globe|ball|check|butterfly|plug|needle|control|pressure\s*safety)\s*valve\b/i },
+  { type: 'valve',        regex: /\b(gate|globe|ball|check|butterfly|plug|needle|control|pressure\s*safety)\s*valve\b|\b(rupture\s*disc|strainer)\b/i },
   { type: 'flange',       regex: /\bflange\b/i },
-  { type: 'support',      regex: /\b(pipe\s*shoe|guide|anchor|spring\s*hanger|support|clamp|u-bolt|dummy\s*leg|trunnion)\b/i },
-  { type: 'fitting',      regex: /\b(elbow|tee|reducer|coupling|cap|union|nipple|bushing)\b/i },
+  { type: 'support',      regex: /\b(pipe\s*shoe|guide|anchor|spring\s*hanger|support|clamp|u-bolt|dummy\s*leg|trunnion|trapeze|bumper|angle\s*support)\b/i },
+  { type: 'fitting',      regex: /\b(elbow|tee|reducer|coupling|cap|union|nipple|bushing|plug)\b|olet\b/i },
   { type: 'instrument',   regex: /\b(instrument|gauge|transmitter|indicator|thermowell|orifice)\b/i },
   { type: 'tubing',       regex: /\btubing\b/i },
   { type: 'hose',         regex: /\bhose\b/i },
@@ -106,7 +106,7 @@ export function applyThreadedPipeOverrides(items: BomItem[]): BomItem[] {
 
 // Exclude consumable hardware — but NOT u-bolts (those are pipe supports)
 // GMG/SWG/CWG/RJ are common gasket abbreviations from BOM tables
-const BOLT_GASKET_PATTERN = /\b(stud\s*bolt|bolt\s*set|nut|washer|gasket|gmg|swg|cwg|rj\b)/i;
+const BOLT_GASKET_PATTERN = /\b(stud\s*bolt|bolt\s*set|nut|washer|gasket|gmg|swg|cwg|llr|rj\b)/i;
 const U_BOLT_PATTERN = /\bu-bolt\b/i;
 
 /**

@@ -31,6 +31,29 @@ describe('mapBomToComponentType', () => {
   it('maps "instrument" to instrument', () => expect(mapBomToComponentType('instrument')).toBe('instrument'));
   it('maps "gauge" to instrument', () => expect(mapBomToComponentType('gauge')).toBe('instrument'));
   
+  // Expanded valve patterns
+  it('maps "control valve" to valve', () => expect(mapBomToComponentType('control valve')).toBe('valve'));
+  it('maps "pressure safety valve" to valve', () => expect(mapBomToComponentType('pressure safety valve')).toBe('valve'));
+  it('maps "rupture disc" to valve', () => expect(mapBomToComponentType('rupture disc')).toBe('valve'));
+  it('maps "strainer" to valve', () => expect(mapBomToComponentType('strainer')).toBe('valve'));
+
+  // Expanded support patterns
+  it('maps "trapeze support" to support', () => expect(mapBomToComponentType('trapeze support')).toBe('support'));
+  it('maps "bumper" to support', () => expect(mapBomToComponentType('bumper')).toBe('support'));
+  it('maps "angle support" to support', () => expect(mapBomToComponentType('angle support')).toBe('support'));
+
+  // Expanded fitting patterns
+  it('maps "plug" to fitting', () => expect(mapBomToComponentType('plug')).toBe('fitting'));
+  it('maps "olet" to fitting', () => expect(mapBomToComponentType('olet')).toBe('fitting'));
+  it('maps "weldolet" to fitting', () => expect(mapBomToComponentType('weldolet')).toBe('fitting'));
+
+  // Expanded instrument patterns
+  it('maps "thermowell" to instrument', () => expect(mapBomToComponentType('thermowell')).toBe('instrument'));
+  it('maps "orifice plate" to instrument', () => expect(mapBomToComponentType('orifice plate')).toBe('instrument'));
+
+  // Plug valve still maps to valve (not fitting)
+  it('maps "plug valve" to valve (not fitting)', () => expect(mapBomToComponentType('plug valve')).toBe('valve'));
+
   // Others
   it('maps "tubing" to tubing', () => expect(mapBomToComponentType('tubing')).toBe('tubing'));
   it('maps "hose" to hose', () => expect(mapBomToComponentType('hose')).toBe('hose'));
@@ -46,6 +69,8 @@ describe('isTrackedItem', () => {
   it('returns true for field valve', () => expect(isTrackedItem('gate valve', 'field')).toBe(true));
   it('returns true for field flange', () => expect(isTrackedItem('flange RFWN', 'field')).toBe(true));
   it('returns true for field pipe', () => expect(isTrackedItem('pipe', 'field')).toBe(true));
+  it('returns false for gmg classification', () => expect(isTrackedItem('gmg', 'field')).toBe(false));
+  it('returns false for llr classification', () => expect(isTrackedItem('llr', 'field')).toBe(false));
 });
 
 describe('isTrackedItem — description fallback', () => {

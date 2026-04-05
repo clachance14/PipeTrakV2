@@ -98,6 +98,7 @@ export function buildClassificationPrompt(
   lines.push('- SDV = Shutdown Valve → classification: "ball valve"');
   lines.push('- XV = Control Valve on/off → classification: "ball valve"');
   lines.push('- HV = Hand Valve → classification: "gate valve"');
+  lines.push('- EBV = Emergency Block Valve → classification: "ball valve"');
   lines.push('Do NOT classify these as "thermowell" or other instrument types — they are valves.');
   lines.push('</valve_abbreviation_dictionary>');
   lines.push('');
