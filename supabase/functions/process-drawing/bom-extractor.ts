@@ -13,11 +13,21 @@ const BOM_PROMPT = `You are extracting the Bill of Materials (BOM) from a piping
 ISO drawings typically have two BOM sections: SHOP MATERIALS and OTHER THAN SHOP MATERIALS (Field Materials).
 Extract EVERY row. Return null for fields not present. Do not infer values not shown in the BOM.
 
+CRITICAL: The "description" field must contain the EXACT text from the BOM row. Do NOT rewrite, summarize, interpret, or expand the description. Copy it character-for-character as shown in the BOM table.
+
+<where_to_look>
+The BOM table is typically located on the RIGHT side or BOTTOM of the drawing page. It appears as a structured grid with column headers (ITEM, DESCRIPTION, SIZE, QTY, UOM, etc.) and one row per material or support item. Focus ONLY on this table. Do NOT extract information from the isometric drawing body, notes, or revision blocks.
+</where_to_look>
+
 Extract EVERY row from the BOM table(s) on this ISO drawing.
 
 <classification_rules>
-- item_type: "material" for pipe, fittings, flanges, gaskets, bolts. "support" for pipe supports (shoes, guides, anchors, hangers, clamps, trunnions).
-- section: "shop" for shop materials, "field" for other-than-shop/field materials. This MUST be set for every item.
+- item_type: "material" for pipe, fittings, flanges, gaskets, bolts, valves, instruments, nuts, washers. "support" for pipe supports ONLY (shoes, guides, anchors, hangers, clamps, trunnions, dummy legs).
+  *** CRITICAL — BOLTS/NUTS/WASHERS ARE ALWAYS "material", NEVER "support":
+  - Stud bolts, hex bolts, cap screws, nuts, washers = "material" with classification "bolt set"
+  - This applies even when bolts appear inside a SUPPORTS section
+  - If the description mentions BOLT, NUT, WASHER, STUD, HEX, or UNC thread spec → item_type = "material"
+- section: Determine section from the TABLE HEADER above each item (e.g. "SHOP MATERIALS" or "OTHER THAN SHOP MATERIALS"), NOT from the item's position on the drawing. If you cannot determine the section from table headers, set needs_review=true with review_reason="section_unclear".
 - classification: ALL LOWERCASE, be specific:
   Pipe: "pipe"
   Flanges: "flange wn", "flange sw", "flange lj", "flange so", "blind flange" — always specify type
@@ -33,11 +43,28 @@ Extract EVERY row from the BOM table(s) on this ISO drawing.
     - "THD", "THREADED", "SCREWED" → "THD"
     If the description does not explicitly state connection type, infer: shop valves are typically BW or SW; field valves are typically RFWN.
   Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate" — always specify type
-  Supports: "pipe shoe", "guide", "anchor", "spring hanger", "u-bolt", "dummy leg", "trunnion" — always specify type
+  Supports: "pipe shoe", "guide", "anchor", "spring hanger", "u-bolt", "dummy leg", "trunnion", "pipe clamp" — always specify type
   Bends: "bend" — pipe bend (a smooth curve formed from pipe, NOT a fitting elbow)
   Couplings: "coupling" — threaded or socket weld coupling
   Other: "gasket", "bolt set", "nipple", "cap", "plug", "rupture disc", "spacer", "strainer"
 </classification_rules>
+
+<valve_abbreviation_dictionary>
+Common valve abbreviations found in BOM descriptions — use these to determine the correct classification:
+- ABV = Automatic Block Valve → classification: "ball valve"
+- DBB = Double Block & Bleed → classification: "ball valve"
+- PSV = Pressure Safety Valve → classification: "pressure safety valve"
+- PRV = Pressure Relief Valve → classification: "pressure safety valve"
+- CV = Control Valve → classification: "control valve"
+- BDV = Blowdown Valve → classification: "gate valve"
+- MOV = Motor Operated Valve → classification: "gate valve"
+- SOV = Solenoid Operated Valve → classification: "globe valve"
+- RV = Relief Valve → classification: "pressure safety valve"
+- SDV = Shutdown Valve → classification: "ball valve"
+- XV = Control Valve on/off → classification: "ball valve"
+- HV = Hand Valve → classification: "gate valve"
+Do NOT classify these as "thermowell" or other instrument types — they are valves.
+</valve_abbreviation_dictionary>
 
 <threaded_pipe_rules>
 IMPORTANT: Threaded piping systems use threaded connections (FTE, NPT, NPTF, THD) instead of welded connections.
@@ -68,13 +95,17 @@ For STUD BOLTS and BOLT SETS:
 </bolt_size_rules>
 
 <examples>
-{"item_number": 1, "item_type": "material", "classification": "pipe", "section": "shop", "description": "2\\" PIPE, SCH 40, ASTM A106, GR B, SMLS", "size": "2", "size_2": null, "quantity": 20, "uom": "LF", "spec": null, "material_grade": "CS", "schedule": "40", "schedule_2": null, "rating": null, "commodity_code": null, "end_connection": null, "item_number": 1, "needs_review": false, "review_reason": null}
+{"item_number": 1, "item_type": "material", "classification": "pipe", "section": "shop", "description": "2\\" PIPE, SCH 40, ASTM A106, GR B, SMLS", "size": "2", "size_2": null, "quantity": 20, "uom": "LF", "spec": null, "material_grade": "CS", "schedule": "40", "schedule_2": null, "rating": null, "commodity_code": null, "end_connection": null, "needs_review": false, "review_reason": null}
 
 {"item_number": 2, "item_type": "material", "classification": "reducing tee", "section": "shop", "description": "16\\" x 10\\" TEE, RED, BW, SCH STD x SCH STD, ASTM A-234-GR WPB, SMLS", "size": "16", "size_2": "10", "quantity": 1, "uom": "EA", "spec": null, "material_grade": "CS", "schedule": "STD", "schedule_2": "STD", "rating": null, "commodity_code": null, "end_connection": "BW", "needs_review": false, "review_reason": null}
 
 {"item_number": 3, "item_type": "material", "classification": "flange wn", "section": "shop", "description": "16\\" FLANGE, RFWN, CL 150, SCH STD, ASTM A-105", "size": "16", "size_2": null, "quantity": 3, "uom": "EA", "spec": "A-105", "material_grade": "CS", "schedule": "STD", "schedule_2": null, "rating": "150", "commodity_code": null, "end_connection": "RFWN", "needs_review": false, "review_reason": null}
 
 {"item_number": 4, "item_type": "support", "classification": "pipe shoe", "section": "field", "description": "PIPE SHOE 4\\" STD", "size": "4", "size_2": null, "quantity": 2, "uom": "EA", "spec": "PS-101", "material_grade": null, "schedule": null, "schedule_2": null, "rating": null, "commodity_code": "G4G-1412-05AA-001-2-2", "end_connection": null, "needs_review": false, "review_reason": null}
+
+{"item_number": 5, "item_type": "material", "classification": "gasket", "section": "field", "description": "2\\" SWG GASKET, 150# RF, ASME B16.20", "size": "2", "size_2": null, "quantity": 4, "uom": "EA", "spec": null, "material_grade": null, "schedule": null, "schedule_2": null, "rating": "150", "commodity_code": null, "end_connection": null, "needs_review": false, "review_reason": null}
+
+{"item_number": 6, "item_type": "material", "classification": "ball valve", "section": "field", "description": "2\\" ABV, 600#, RFWN, FULL PORT", "size": "2", "size_2": null, "quantity": 1, "uom": "EA", "spec": null, "material_grade": null, "schedule": null, "schedule_2": null, "rating": "600", "commodity_code": null, "end_connection": "RFWN", "needs_review": false, "review_reason": null}
 </examples>
 
 If no BOM items are found, return { "items": [] }.`;
