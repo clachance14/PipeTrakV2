@@ -47,3 +47,34 @@ describe('isTrackedItem', () => {
   it('returns true for field flange', () => expect(isTrackedItem('flange RFWN', 'field')).toBe(true));
   it('returns true for field pipe', () => expect(isTrackedItem('pipe', 'field')).toBe(true));
 });
+
+describe('isTrackedItem — description fallback', () => {
+  it('returns false when description contains GASKET even if classification is wrong', () => {
+    expect(isTrackedItem('fitting', 'field', '2" SWG GASKET 150# RF')).toBe(false);
+  });
+
+  it('returns false when description contains BOLT even if classification is wrong', () => {
+    expect(isTrackedItem('support', 'field', 'STUD BOLT 5/8 x 3-1/2')).toBe(false);
+  });
+
+  it('returns false when description contains NUT', () => {
+    expect(isTrackedItem('fitting', 'field', 'HEAVY HEX NUT 5/8')).toBe(false);
+  });
+
+  it('returns false when description contains WASHER', () => {
+    expect(isTrackedItem('fitting', 'field', 'FLAT WASHER 5/8')).toBe(false);
+  });
+
+  it('returns true for valve even with description check', () => {
+    expect(isTrackedItem('gate valve', 'field', '2" GATE VALVE 150# RF')).toBe(true);
+  });
+
+  it('still returns true for u-bolt (tracked support)', () => {
+    expect(isTrackedItem('u-bolt', 'field', 'U-BOLT 4" PIPE')).toBe(true);
+  });
+
+  it('works with null description (backward compat)', () => {
+    expect(isTrackedItem('gate valve', 'field')).toBe(true);
+    expect(isTrackedItem('gasket', 'field')).toBe(false);
+  });
+});
