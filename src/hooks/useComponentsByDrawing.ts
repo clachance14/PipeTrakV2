@@ -1,9 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
+import { cleanDescription } from '@/lib/cleanDescription'
 import { calculateDuplicateCounts, createIdentityGroupKey } from '@/lib/calculateDuplicateCounts'
 import { naturalCompare } from '@/lib/natural-sort'
 import type { ComponentRow } from '@/types/drawing-table.types'
+
+// Component types that should use BOM description display (sequence-based types).
+// Pipe aggregates show size-only, spools show spool_id, field welds show weld_number —
+// these MUST keep their existing formatIdentityKey behavior.
+const DESCRIPTION_DISPLAY_TYPES = new Set([
+  'valve', 'flange', 'support', 'fitting', 'instrument',
+  'tubing', 'hose', 'misc_component',
+])
 
 /**
  * Custom hook to lazily load components for a specific drawing
@@ -55,14 +64,26 @@ export function useComponentsByDrawing(
         last_updated_at: component.last_updated_at,
         last_updated_by: component.last_updated_by,
         is_retired: component.is_retired,
+        attributes: component.attributes as ComponentRow['attributes'],
         // Joined template
         template: component.progress_templates as unknown as ComponentRow['template'],
         // Computed fields
-        identityDisplay: formatIdentityKey(
-          component.identity_key as unknown as ComponentRow['identity_key'],
-          component.component_type as ComponentRow['component_type'],
-          counts.get(createIdentityGroupKey(component.identity_key as unknown as ComponentRow['identity_key']))
-        ),
+        identityDisplay: (() => {
+          const type = component.component_type as ComponentRow['component_type']
+          const identityKey = component.identity_key as unknown as ComponentRow['identity_key']
+          const totalCount = counts.get(createIdentityGroupKey(identityKey))
+
+          // Sequence-based types prefer BOM description over commodity code
+          if (DESCRIPTION_DISPLAY_TYPES.has(type)) {
+            const attrs = component.attributes as ComponentRow['attributes']
+            const desc = cleanDescription(attrs?.description as string | null | undefined)
+            if (desc) {
+              return totalCount && totalCount > 1 ? `${desc} ${(identityKey as { seq?: number }).seq ?? ''} of ${totalCount}`.trimEnd() : desc
+            }
+          }
+
+          return formatIdentityKey(identityKey, type, totalCount)
+        })(),
         canUpdate: true, // TODO: Get from permissions hook
       }))
 
