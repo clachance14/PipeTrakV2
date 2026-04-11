@@ -4,6 +4,7 @@
  */
 
 import type { BomItem } from './types.ts';
+import { validateThreadedPipe } from './post-processor.ts';
 
 export type ComponentType =
   | 'valve'
@@ -45,27 +46,21 @@ export function mapBomToComponentType(classification: string): ComponentType {
 
 // ── Threaded pipe detection ─────────────────────────────────────────────
 
-/** Threaded end connection indicators in BOM descriptions */
-const THREADED_CONNECTION_PATTERN = /\b(FTE|NPT|NPTF|THD|THREADED|SCREWED)\b/i;
-
-/** Threaded pipe specs — A53 Type F is specifically for threaded/coupled joints */
-const THREADED_PIPE_SPEC_PATTERN = /\bA53\b.*\bType\s*F\b/i;
-
 /**
  * Detects whether a set of BOM items represents a threaded pipe drawing.
- * Indicators: FTE/NPT/NPTF end connections on fittings/valves, or A53 Type F pipe.
+ * Checks if Gemini already flagged any item as threaded pipe, then delegates
+ * to validateThreadedPipe which scopes detection to pipe item descriptions
+ * and the title block material — NOT valve/fitting descriptions.
  */
-export function isThreadedPipeDrawing(items: BomItem[]): boolean {
-  return items.some((item) => {
-    const desc = item.description ?? '';
-    // Check end connections on fittings/valves
-    if (THREADED_CONNECTION_PATTERN.test(desc)) return true;
-    // Check pipe spec (A53 Type F = threaded pipe)
-    if (THREADED_PIPE_SPEC_PATTERN.test(desc)) return true;
-    // Check if Gemini already classified it as threaded pipe
-    if (/\bthreaded\s*pipe\b/i.test(item.classification)) return true;
-    return false;
-  });
+export function isThreadedPipeDrawing(
+  items: BomItem[],
+  titleBlockMaterial: string | null,
+): boolean {
+  // Check if Gemini already flagged any item as threaded pipe
+  if (items.some((item) => /\bthreaded\s*pipe\b/i.test(item.classification))) {
+    return true;
+  }
+  return validateThreadedPipe(items, titleBlockMaterial);
 }
 
 /**
@@ -75,8 +70,11 @@ export function isThreadedPipeDrawing(items: BomItem[]): boolean {
  * 3. Keeps fittings (elbows, tees, reducers, etc.) as untracked — they're part of
  *    the pipe run footage, not separately tracked components
  */
-export function applyThreadedPipeOverrides(items: BomItem[]): BomItem[] {
-  if (!isThreadedPipeDrawing(items)) return items;
+export function applyThreadedPipeOverrides(
+  items: BomItem[],
+  titleBlockMaterial: string | null,
+): BomItem[] {
+  if (!isThreadedPipeDrawing(items, titleBlockMaterial)) return items;
 
   return items.map((item) => {
     const classification = item.classification === 'pipe' ? 'threaded pipe' : item.classification;

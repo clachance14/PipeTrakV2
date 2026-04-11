@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { mapBomToComponentType, isTrackedItem } from './component-mapper';
+import type { BomItem } from './types';
+import { mapBomToComponentType, isTrackedItem, isThreadedPipeDrawing } from './component-mapper';
+
+const baseBomItem: BomItem = {
+  item_type: 'material',
+  classification: 'pipe',
+  section: 'shop',
+  subsection: 'line_items',
+  description: null,
+  size: null,
+  size_2: null,
+  quantity: 1,
+  uom: null,
+  spec: null,
+  material_grade: null,
+  schedule: null,
+  schedule_2: null,
+  rating: null,
+  commodity_code: null,
+  end_connection: null,
+  item_number: null,
+  needs_review: false,
+  review_reason: null,
+};
 
 describe('mapBomToComponentType', () => {
   // Valves
@@ -101,5 +124,33 @@ describe('isTrackedItem — description fallback', () => {
   it('works with null description (backward compat)', () => {
     expect(isTrackedItem('gate valve', 'field')).toBe(true);
     expect(isTrackedItem('gasket', 'field')).toBe(false);
+  });
+});
+
+describe('isThreadedPipeDrawing (scoped to pipe items)', () => {
+  it('returns true when pipe description contains galvanized', () => {
+    const items: BomItem[] = [
+      { ...baseBomItem, classification: 'pipe', description: '2" GALVANIZED PIPE A53', section: 'shop' },
+    ];
+    expect(isThreadedPipeDrawing(items, null)).toBe(true);
+  });
+
+  it('returns false when only valve has NPTF', () => {
+    const items: BomItem[] = [
+      { ...baseBomItem, classification: 'pipe', description: 'Pipe B36.19M PE A312', section: 'shop' },
+      { ...baseBomItem, classification: 'gate valve', description: 'Gate Vlv PE&NPTF', section: 'shop' },
+    ];
+    expect(isThreadedPipeDrawing(items, null)).toBe(false);
+  });
+
+  it('returns true for A53 Type F pipe', () => {
+    const items: BomItem[] = [
+      { ...baseBomItem, classification: 'pipe', description: 'PIPE A53 Type F ERW GALV', section: 'shop' },
+    ];
+    expect(isThreadedPipeDrawing(items, null)).toBe(true);
+  });
+
+  it('returns true when title block material is galvanized (trim drawing)', () => {
+    expect(isThreadedPipeDrawing([], 'GALV')).toBe(true);
   });
 });

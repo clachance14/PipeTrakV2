@@ -286,7 +286,7 @@ async function processDrawing(
   // ── Step 4b: Apply threaded pipe overrides ──────────────────────────
   // Detect threaded pipe drawings (FTE/NPT/NPTF connections, A53 Type F pipe)
   // and reclassify pipe→threaded_pipe, shop→field for pipe/valves/fittings
-  bomItems = applyThreadedPipeOverrides(bomItems);
+  bomItems = applyThreadedPipeOverrides(bomItems, titleBlock?.material ?? null);
 
   // ── Step 5: Store ALL BOM items in drawing_bom_items ──────────────────
 
@@ -586,7 +586,7 @@ async function processDrawing(
       created_by: userId,
     }));
 
-    const { error: aggError } = await supabaseAdmin.from('components').insert(aggInserts);
+    const { error: aggError } = await supabaseAdmin.from('components').upsert(aggInserts, { ignoreDuplicates: true });
 
     if (aggError) {
       result.errors.push(`Failed to insert aggregate components: ${aggError.message}`);
@@ -601,7 +601,7 @@ async function processDrawing(
     const BATCH_SIZE = 500;
     for (let i = 0; i < componentInserts.length; i += BATCH_SIZE) {
       const batch = componentInserts.slice(i, i + BATCH_SIZE);
-      const { error: compError } = await supabaseAdmin.from('components').insert(batch);
+      const { error: compError } = await supabaseAdmin.from('components').upsert(batch, { ignoreDuplicates: true });
 
       if (compError) {
         result.errors.push(
@@ -676,7 +676,7 @@ async function processDrawing(
     }
 
     if (spoolInserts.length > 0) {
-      const { error: spoolError } = await supabaseAdmin.from('components').insert(spoolInserts);
+      const { error: spoolError } = await supabaseAdmin.from('components').upsert(spoolInserts, { ignoreDuplicates: true });
 
       if (spoolError) {
         result.errors.push(`Failed to create spool components: ${spoolError.message}`);
