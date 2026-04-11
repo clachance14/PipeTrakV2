@@ -19,13 +19,16 @@ export interface TitleBlockData {
   revision: string | null;
   hydro: string | null;
   insulation: string | null;
+  // V2 additions
+  drawing_type: 'iso' | 'trim' | 'other';
+  has_spools: boolean;
 }
 
 export interface BomItem {
   item_type: 'material' | 'support';
   classification: string;
-  classification_confidence: 'high' | 'medium' | 'low' | null;
   section: 'shop' | 'field';
+  subsection: 'line_items' | 'pipe_supports' | 'instruments';
   description: string | null;
   size: string | null;
   size_2: string | null;
@@ -41,6 +44,11 @@ export interface BomItem {
   item_number: number | null;
   needs_review: boolean;
   review_reason: string | null;
+}
+
+export interface BomExtractionResult {
+  items: BomItem[];
+  is_threaded_pipe: boolean;
 }
 
 export interface ProcessingResult {
