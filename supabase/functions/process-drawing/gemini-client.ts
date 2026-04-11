@@ -29,16 +29,26 @@ export interface GeminiResult {
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-3-flash-preview';
+/** Model tiers for the 3-call pipeline.
+ *  NOTE: Verify these model IDs are current at implementation time —
+ *  preview model names include date suffixes that may expire.
+ *  Check https://ai.google.dev/gemini-api/docs/models for latest. */
+export const GEMINI_FLASH = 'gemini-2.5-flash-preview-05-20';
+export const GEMINI_PRO = 'gemini-2.5-pro-preview-05-06';
+
+/** Pricing per model (per 1M tokens) */
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  [GEMINI_FLASH]: { input: 0.15, output: 0.60 },
+  [GEMINI_PRO]: { input: 1.25, output: 10.00 },
+};
+
+function getPricing(model: string): { input: number; output: number } {
+  return MODEL_PRICING[model] ?? { input: 0.50, output: 3.00 };
+}
+
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const MAX_RETRIES = 2;
 const FETCH_TIMEOUT_MS = 50_000; // 50s to fit within edge function wall time
-
-/** Gemini 3.0 Flash Preview pricing per 1M tokens (USD) */
-const GEMINI_FLASH_PRICING = {
-  input_per_million: 0.50,
-  output_per_million: 3.00,
-};
 
 // ── Rate limit / transient error detection ─────────────────────────────
 
@@ -70,13 +80,14 @@ export async function callGemini(
   base64Pdf: string,
   prompt: string,
   responseSchema?: object,
+  model: string = GEMINI_FLASH,
 ): Promise<GeminiResult> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY environment variable is not set');
   }
 
-  const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
 
   // Build request body
   const requestBody: Record<string, unknown> = {
@@ -102,7 +113,7 @@ export async function callGemini(
     requestBody.generationConfig = {
       responseMimeType: 'application/json',
       responseSchema,
-      maxOutputTokens: 8192, // Prevent truncation on large BOMs
+      maxOutputTokens: 32768, // Large BOMs with verbose material descriptions need headroom
     };
   }
 
@@ -213,13 +224,14 @@ export async function callGemini(
 export async function callGeminiTextOnly(
   prompt: string,
   responseSchema?: object,
+  model: string = GEMINI_FLASH,
 ): Promise<GeminiResult> {
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY environment variable is not set');
   }
 
-  const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
 
   const requestBody: Record<string, unknown> = {
     contents: [
@@ -237,7 +249,7 @@ export async function callGeminiTextOnly(
     requestBody.generationConfig = {
       responseMimeType: 'application/json',
       responseSchema,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 32768,
     };
   }
 
@@ -333,10 +345,6 @@ export async function callGeminiTextOnly(
 /**
  * Log AI token usage to the ai_usage_log table.
  * Non-blocking: errors are caught, logged, and never re-thrown.
- *
- * Cost calculation (Gemini 3.0 Flash Preview):
- *   Input:  $0.50 / 1M tokens
- *   Output: $3.00 / 1M tokens
  */
 export async function trackGeminiUsage(
   result: GeminiResult,
@@ -344,16 +352,18 @@ export async function trackGeminiUsage(
   projectId: string,
   drawingId: string,
   supabaseAdmin: SupabaseClient,
+  model: string = GEMINI_FLASH,
 ): Promise<void> {
   try {
-    const inputCost = (result.inputTokens / 1_000_000) * GEMINI_FLASH_PRICING.input_per_million;
-    const outputCost = (result.outputTokens / 1_000_000) * GEMINI_FLASH_PRICING.output_per_million;
+    const pricing = getPricing(model);
+    const inputCost = (result.inputTokens / 1_000_000) * pricing.input;
+    const outputCost = (result.outputTokens / 1_000_000) * pricing.output;
     const totalCost = inputCost + outputCost;
 
     const record = buildAiUsageLog({
       projectId,
       operation,
-      model: GEMINI_MODEL,
+      model,
       drawingId,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
