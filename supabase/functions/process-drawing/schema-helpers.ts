@@ -39,6 +39,7 @@ export interface DrawingBomItemInsert {
   is_tracked?: boolean;
   created_by?: string | null;
   created_at?: string;
+  subsection?: string | null;
 }
 
 /**
@@ -86,6 +87,7 @@ export function buildDrawingBomItem(params: {
   itemNumber?: number | null;
   needsReview?: boolean;
   reviewReason?: string | null;
+  subsection?: string | null;
 }): DrawingBomItemInsert {
   return {
     drawing_id: params.drawingId,
@@ -110,6 +112,7 @@ export function buildDrawingBomItem(params: {
     review_reason: params.reviewReason ?? null,
     is_tracked: false,
     created_by: params.userId,
+    subsection: params.subsection ?? null,
   };
 }
 
