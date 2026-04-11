@@ -45,4 +45,32 @@ describe('normalizeSpec', () => {
   it('uppercases lowercase spec', () => {
     expect(normalizeSpec('hc-05')).toBe('HC-05');
   });
+
+  it('returns null for G4G commodity codes', () => {
+    expect(normalizeSpec('G4G-1410-07')).toBeNull();
+  });
+
+  it('returns null for G4G commodity codes with complex suffix', () => {
+    expect(normalizeSpec('G4G-1412-05AA-001-1-1')).toBeNull();
+  });
+
+  it('returns null for G4G commodity codes with trailing tokens', () => {
+    expect(normalizeSpec('G4G-1410-07 some extra text')).toBeNull();
+  });
+
+  it('returns null for lowercase g4g commodity codes', () => {
+    expect(normalizeSpec('g4g-1410-07')).toBeNull();
+  });
+
+  it('extracts prefix before underscore-separated contract reference', () => {
+    expect(normalizeSpec('PU-02_CC.0083947')).toBe('PU-02');
+  });
+
+  it('extracts prefix before underscore with spaces', () => {
+    expect(normalizeSpec('PU-02_CC 0083947')).toBe('PU-02');
+  });
+
+  it('handles spec with no underscore (unchanged behavior)', () => {
+    expect(normalizeSpec('PU-02 CC0085888')).toBe('PU-02');
+  });
 });
