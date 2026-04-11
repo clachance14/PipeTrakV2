@@ -3,31 +3,40 @@
  * Deno-compatible: uses callGemini() (fetch-based), no Node.js imports
  */
 
-import { callGemini } from './gemini-client.ts';
+import { callGemini, GEMINI_FLASH } from './gemini-client.ts';
 import type { TitleBlockData } from './types.ts';
 import { normalizeTitleBlock } from './title-block-normalizer.ts';
 
 // ── Prompt ─────────────────────────────────────────────────────────────
 
-const TITLE_BLOCK_PROMPT = `You are reading the title block of a piping isometric (ISO) drawing.
-Focus ONLY on the title block area (typically bottom-right corner or bottom strip).
-Return null for any field not found. Do not guess or infer values from the drawing body.
+const TITLE_BLOCK_PROMPT = `You are reading the title block and scanning the overall layout of a piping drawing.
 
-Extract the title block fields from this ISO drawing.
+PART 1 — TITLE BLOCK (bottom-right area of the drawing)
+Focus on the title block area. Extract the following fields. Return null for any field not found.
 
 Rules:
 - Normalize material to: CS, SS-304, SS-316, INCONEL, TI, DUPLEX, CHROME, ALLOY (null if none match)
-- Strip trailing project numbers (6+ digits) from spec
-- spec is a SHORT piping class code (e.g. "PU-32", "A1A", "HC-05"). Commodity codes like G4G-xxxx, support tag numbers, and long alphanumeric identifiers are NOT piping specs — return null for spec if only these are present
-- Do NOT include trailing suffixes like "CC" or contract codes after the spec — only the core spec code (e.g. "PU-32 CC" → "PU-32")
-- sheet_number: the DRAWING-SPECIFIC sheet number (e.g. "1" from "SHEET 1 OF 2"), NOT a project-wide page index. If the drawing is a single sheet or no sheet designation exists, return null. Do NOT include "of X" totals.
+- spec: Extract ONLY the piping class prefix. If the spec contains an underscore or contract reference, take only the part BEFORE the underscore (e.g., "PU-02_CC.0083947" → "PU-02", "PU-32 CC0085888" → "PU-32"). Commodity codes like G4G-xxxx are NOT specs — return null.
+- sheet_number: the DRAWING-SPECIFIC sheet designation (e.g., "1" from "SHEET 1 OF 2"). If single sheet, return null.
+
+PART 2 — DRAWING TYPE (read from the title block description)
+Determine the drawing type from the title/description text in the title block:
+- "PIPING ISOMETRIC" or "ISO" → "iso"
+- "PIPING TRIM" or "TRIM DRAWING" → "trim"
+- Anything else → "other"
+
+PART 3 — SPOOL PRESENCE (scan the pipe routing diagram)
+Look at the pipe routing diagram (the main drawing body, NOT the BOM table). Are there boxed or circled spool labels like "SPOOL-1", "SP-2", "SPOOL-3" visible on the pipe runs? Return true if you see ANY spool labels, false if none.
 
 <examples>
-Example 1 — Carbon steel ISO:
-{"drawing_number": "ISO-2001", "sheet_number": "1", "line_number": "6-CS-2003", "material": "CS", "schedule": "40", "spec": "A1A", "nde_class": "Class 1", "pwht": false, "revision": "A", "hydro": "Required", "insulation": "H"}
+Example 1 — Standard ISO with spools:
+{"drawing_number": "BFW-48D19", "sheet_number": "1", "line_number": "6-CS-2003", "material": "CS", "schedule": "40", "spec": "PU-02", "nde_class": null, "pwht": false, "revision": "0", "hydro": null, "insulation": "H", "drawing_type": "iso", "has_spools": true}
 
-Example 2 — Stainless steel ISO:
-{"drawing_number": "DWG-4500-R2", "sheet_number": null, "line_number": "2-SS-1015", "material": "SS-316", "schedule": "10S", "spec": "HC-05", "nde_class": "Full RT", "pwht": true, "revision": "2", "hydro": null, "insulation": null}
+Example 2 — Trim drawing with spool:
+{"drawing_number": "C-7501-N5.Trim", "sheet_number": null, "line_number": null, "material": "SS-316", "schedule": null, "spec": "PU-02", "nde_class": null, "pwht": false, "revision": "0", "hydro": null, "insulation": null, "drawing_type": "trim", "has_spools": true}
+
+Example 3 — ISO without spools:
+{"drawing_number": "ISO-4500", "sheet_number": null, "line_number": "2-SS-1015", "material": "SS-316", "schedule": "10S", "spec": "HC-05", "nde_class": "Full RT", "pwht": true, "revision": "2", "hydro": null, "insulation": null, "drawing_type": "iso", "has_spools": false}
 </examples>`;
 
 // ── JSON Schema for structured output ──────────────────────────────────
@@ -91,11 +100,14 @@ const TITLE_BLOCK_SCHEMA = {
       description: 'Insulation code or type if listed (e.g. "H", "C", "P", "None")',
       nullable: true,
     },
+    drawing_type: { type: 'STRING', format: 'enum', enum: ['iso', 'trim', 'other'] },
+    has_spools: { type: 'BOOLEAN' },
   },
   required: [
     'drawing_number', 'sheet_number', 'line_number',
     'material', 'schedule', 'spec', 'nde_class', 'pwht',
     'revision', 'hydro', 'insulation',
+    'drawing_type', 'has_spools',
   ],
 };
 
@@ -113,6 +125,8 @@ const EMPTY_TITLE_BLOCK: TitleBlockData = {
   revision: null,
   hydro: null,
   insulation: null,
+  drawing_type: 'other' as const,
+  has_spools: false,
 };
 
 // ── Main export ────────────────────────────────────────────────────────
@@ -126,7 +140,7 @@ export async function extractTitleBlock(base64Pdf: string): Promise<{
   inputTokens: number;
   outputTokens: number;
 }> {
-  const result = await callGemini(base64Pdf, TITLE_BLOCK_PROMPT, TITLE_BLOCK_SCHEMA);
+  const result = await callGemini(base64Pdf, TITLE_BLOCK_PROMPT, TITLE_BLOCK_SCHEMA, GEMINI_FLASH);
 
   const raw = result.data as Record<string, unknown>;
 
@@ -145,6 +159,8 @@ export async function extractTitleBlock(base64Pdf: string): Promise<{
     revision: raw.revision != null ? String(raw.revision) : null,
     hydro: raw.hydro != null ? String(raw.hydro) : null,
     insulation: raw.insulation != null ? String(raw.insulation) : null,
+    drawing_type: (raw.drawing_type === 'iso' || raw.drawing_type === 'trim') ? raw.drawing_type : 'other',
+    has_spools: raw.has_spools === true,
   };
 
   // Normalize: strip no-data values + first-token spec extraction
