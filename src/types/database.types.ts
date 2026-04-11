@@ -442,6 +442,7 @@ export type Database = {
           size: string | null
           size_2: string | null
           spec: string | null
+          subsection: string | null
           uom: string | null
         }
         Insert: {
@@ -468,6 +469,7 @@ export type Database = {
           size?: string | null
           size_2?: string | null
           spec?: string | null
+          subsection?: string | null
           uom?: string | null
         }
         Update: {
@@ -494,6 +496,7 @@ export type Database = {
           size?: string | null
           size_2?: string | null
           spec?: string | null
+          subsection?: string | null
           uom?: string | null
         }
         Relationships: [
@@ -533,7 +536,9 @@ export type Database = {
           created_at: string
           drawing_no_norm: string
           drawing_no_raw: string
+          drawing_type: string | null
           file_path: string | null
+          has_spools: boolean | null
           hydro: string | null
           id: string
           insulation: string | null
@@ -549,6 +554,7 @@ export type Database = {
           rev: string | null
           schedule: string | null
           sheet_number: string | null
+          source_page: number | null
           spec: string | null
           system_id: string | null
           test_package_id: string | null
@@ -559,7 +565,9 @@ export type Database = {
           created_at?: string
           drawing_no_norm: string
           drawing_no_raw: string
+          drawing_type?: string | null
           file_path?: string | null
+          has_spools?: boolean | null
           hydro?: string | null
           id?: string
           insulation?: string | null
@@ -575,6 +583,7 @@ export type Database = {
           rev?: string | null
           schedule?: string | null
           sheet_number?: string | null
+          source_page?: number | null
           spec?: string | null
           system_id?: string | null
           test_package_id?: string | null
@@ -585,7 +594,9 @@ export type Database = {
           created_at?: string
           drawing_no_norm?: string
           drawing_no_raw?: string
+          drawing_type?: string | null
           file_path?: string | null
+          has_spools?: boolean | null
           hydro?: string | null
           id?: string
           insulation?: string | null
@@ -601,6 +612,7 @@ export type Database = {
           rev?: string | null
           schedule?: string | null
           sheet_number?: string | null
+          source_page?: number | null
           spec?: string | null
           system_id?: string | null
           test_package_id?: string | null
@@ -2622,6 +2634,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_project: { Args: { p_project_id: string }; Returns: undefined }
       detect_similar_drawings: {
         Args: {
           p_drawing_no_norm: string
@@ -2833,6 +2846,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      unstick_processing_drawings: { Args: never; Returns: number }
       update_component_milestone: {
         Args: {
           p_component_id: string
