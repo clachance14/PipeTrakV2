@@ -101,40 +101,47 @@ async function processDrawing(
   }
   const base64Pdf = btoa(binaryStr);
 
-  // ── Step 2: Extract title block and BOM in parallel ────────────────────
+  // ── Step 2: Extract title block first, then BOM with context ──────────
+  // Title block runs first (Call 1) so its metadata can be injected into
+  // the BOM prompt (Call 2), improving classification accuracy.
 
   let titleBlock: TitleBlockData | null = null;
   let titleBlockUsage: { inputTokens: number; outputTokens: number } | null = null;
   let bomItems: BomItem[] = [];
+  let isThreadedPipe = false;
   let bomUsage: { inputTokens: number; outputTokens: number } | null = null;
   let spoolLabels: string[] = [];
 
-  const [titleBlockResult, bomResult] = await Promise.allSettled([
-    extractTitleBlock(base64Pdf),
-    extractBom(base64Pdf),
-  ]);
+  // Call 1: Title block extraction
+  const titleBlockResult = await Promise.allSettled([extractTitleBlock(base64Pdf)]);
+  const tbResult = titleBlockResult[0];
 
-  if (titleBlockResult.status === 'fulfilled') {
-    titleBlock = titleBlockResult.value.data;
+  if (tbResult.status === 'fulfilled') {
+    titleBlock = tbResult.value.data;
     titleBlockUsage = {
-      inputTokens: titleBlockResult.value.inputTokens,
-      outputTokens: titleBlockResult.value.outputTokens,
+      inputTokens: tbResult.value.inputTokens,
+      outputTokens: tbResult.value.outputTokens,
     };
   } else {
     result.errors.push(
-      `Title block extraction failed: ${titleBlockResult.reason instanceof Error ? titleBlockResult.reason.message : String(titleBlockResult.reason)}`,
+      `Title block extraction failed: ${tbResult.reason instanceof Error ? tbResult.reason.message : String(tbResult.reason)}`,
     );
   }
 
-  if (bomResult.status === 'fulfilled') {
-    bomItems = bomResult.value.data;
+  // Call 2: BOM extraction with title block context
+  const bomResult = await Promise.allSettled([extractBom(base64Pdf, titleBlock)]);
+  const br = bomResult[0];
+
+  if (br.status === 'fulfilled') {
+    bomItems = br.value.data.items;
+    isThreadedPipe = br.value.data.is_threaded_pipe;
     bomUsage = {
-      inputTokens: bomResult.value.inputTokens,
-      outputTokens: bomResult.value.outputTokens,
+      inputTokens: br.value.inputTokens,
+      outputTokens: br.value.outputTokens,
     };
   } else {
     result.errors.push(
-      `BOM extraction failed: ${bomResult.reason instanceof Error ? bomResult.reason.message : String(bomResult.reason)}`,
+      `BOM extraction failed: ${br.reason instanceof Error ? br.reason.message : String(br.reason)}`,
     );
   }
 
@@ -228,12 +235,12 @@ async function processDrawing(
   }
 
   // Check BOM failure after drawing creation (need drawingId for error status)
-  if (bomResult.status === 'rejected') {
+  if (br.status === 'rejected') {
     await supabaseAdmin
       .from('drawings')
       .update({
         processing_status: 'error',
-        processing_note: `BOM extraction failed: ${bomResult.reason instanceof Error ? bomResult.reason.message : String(bomResult.reason)}`,
+        processing_note: `BOM extraction failed: ${br.reason instanceof Error ? br.reason.message : String(br.reason)}`,
       })
       .eq('id', drawingId);
     return result;
@@ -286,7 +293,7 @@ async function processDrawing(
   // ── Step 4b: Apply threaded pipe overrides ──────────────────────────
   // Detect threaded pipe drawings (FTE/NPT/NPTF connections, A53 Type F pipe)
   // and reclassify pipe→threaded_pipe, shop→field for pipe/valves/fittings
-  bomItems = applyThreadedPipeOverrides(bomItems, titleBlock?.material ?? null);
+  bomItems = applyThreadedPipeOverrides(bomItems, titleBlock?.material ?? null, isThreadedPipe);
 
   // ── Step 5: Store ALL BOM items in drawing_bom_items ──────────────────
 

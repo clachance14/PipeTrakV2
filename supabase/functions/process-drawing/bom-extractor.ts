@@ -3,115 +3,148 @@
  * Deno-compatible: uses callGemini() (fetch-based), no Node.js imports
  */
 
-import { callGemini } from './gemini-client.ts';
-import type { BomItem } from './types.ts';
+import { callGemini, GEMINI_PRO } from './gemini-client.ts';
+import type { BomItem, BomExtractionResult, TitleBlockData } from './types.ts';
 import { normalizeSpec } from '../_shared/normalize-spec.ts';
 
 // ── Prompt ─────────────────────────────────────────────────────────────
 
-const BOM_PROMPT = `You are extracting the Bill of Materials (BOM) from a piping isometric (ISO) drawing.
-ISO drawings typically have two BOM sections: SHOP MATERIALS and OTHER THAN SHOP MATERIALS (Field Materials).
-Extract EVERY row. Return null for fields not present. Do not infer values not shown in the BOM.
+function buildBomPrompt(ctx: TitleBlockData | null): string {
+  const lines: string[] = [];
 
-CRITICAL: The "description" field must contain the EXACT text from the BOM row. Do NOT rewrite, summarize, interpret, or expand the description. Copy it character-for-character as shown in the BOM table.
+  lines.push(
+    'You are extracting the Bill of Materials (BOM) from a piping drawing.',
+    'The BOM table is on the RIGHT side of the drawing, organized into sections with headers.',
+    '',
+  );
 
-<where_to_look>
-The BOM table is typically located on the RIGHT side or BOTTOM of the drawing page. It appears as a structured grid with column headers (ITEM, DESCRIPTION, SIZE, QTY, UOM, etc.) and one row per material or support item. Focus ONLY on this table. Do NOT extract information from the isometric drawing body, notes, or revision blocks.
-</where_to_look>
+  // Inject title block context from Call 1
+  if (ctx) {
+    lines.push('<drawing_context>');
+    lines.push(`Drawing Type: ${ctx.drawing_type ?? 'iso'}`);
+    if (ctx.spec) lines.push(`Piping Spec: ${ctx.spec}`);
+    if (ctx.material) lines.push(`Material: ${ctx.material}`);
+    if (ctx.schedule) lines.push(`Schedule: ${ctx.schedule}`);
+    if (ctx.line_number) lines.push(`Line Number: ${ctx.line_number}`);
+    lines.push('Use this context to inform your extraction but extract values as shown in the BOM.');
+    lines.push('</drawing_context>');
+    lines.push('');
+  }
 
-Extract EVERY row from the BOM table(s) on this ISO drawing.
+  lines.push(
+    '<bom_structure>',
+    'CRITICAL: The BOM has NESTED sections with their own sub-headers:',
+    '',
+    'SHOP MATERIALS',
+    '  Line items (pipe, fittings, flanges, valves)',
+    '  PIPE SUPPORTS sub-header (shop-fabricated supports)',
+    '',
+    'OTHER THAN SHOP MATERIALS (= Field Materials)',
+    '  Line items (gaskets, bolts, field valves)',
+    '  INSTRUMENTS sub-header (all items here are instruments)',
+    '  PIPE SUPPORTS sub-header (field-installed supports)',
+    '',
+    'You MUST identify which sub-header each item falls under and set the subsection field:',
+    '- "line_items" — items under the main section header (not under a sub-header)',
+    '- "pipe_supports" — items under a PIPE SUPPORTS sub-header',
+    '- "instruments" — items under an INSTRUMENTS sub-header',
+    '</bom_structure>',
+    '',
+  );
 
-<classification_rules>
-- item_type: "material" for pipe, fittings, flanges, gaskets, bolts, valves, instruments, nuts, washers. "support" for pipe supports ONLY (shoes, guides, anchors, hangers, clamps, trunnions, dummy legs).
-  *** CRITICAL — BOLTS/NUTS/WASHERS ARE ALWAYS "material", NEVER "support":
-  - Stud bolts, hex bolts, cap screws, nuts, washers = "material" with classification "bolt set"
-  - This applies even when bolts appear inside a SUPPORTS section
-  - If the description mentions BOLT, NUT, WASHER, STUD, HEX, or UNC thread spec → item_type = "material"
-- section: Determine section from the TABLE HEADER above each item (e.g. "SHOP MATERIALS" or "OTHER THAN SHOP MATERIALS"), NOT from the item's position on the drawing. If you cannot determine the section from table headers, set needs_review=true with review_reason="section_unclear".
-- classification: ALL LOWERCASE, be specific:
-  Pipe: "pipe"
-  Flanges: "flange wn", "flange sw", "flange lj", "flange so", "blind flange" — always specify type
-  Elbows: "elbow 90 lr", "elbow 45 lr", "elbow 90 sr" — always include lr/sr
-  Tees: "tee", "reducing tee"
-  Reducers: "reducer conc", "reducer ecc"
-  Olets: "weldolet", "threadolet", "sockolet"
-  Valves: "gate valve", "ball valve", "check valve", "globe valve", "butterfly valve", "plug valve", "control valve", "pressure safety valve" — always specify type
-  *** For ALL valves, ALWAYS populate end_connection. Determine from the BOM description:
-    - "RF", "RFWN", "FLANGED", raised face → "RFWN"
-    - "BW", "BUTT WELD" → "BW"
-    - "SW", "SOCKET WELD" → "SW"
-    - "THD", "THREADED", "SCREWED" → "THD"
-    If the description does not explicitly state connection type, infer: shop valves are typically BW or SW; field valves are typically RFWN.
-  Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate", "control valve", "flow element" — always specify type
-  *** INSTRUMENT SUBSECTION: Many BOMs have an "INSTRUMENTS" subsection header within the field materials. ALL items listed under an "INSTRUMENTS" header are instruments regardless of their tag name. Common instrument tag patterns: TV-xxxx (temperature valve), FE-xxxx (flow element), TI-xxxx (temperature indicator), PI-xxxx (pressure indicator), FV-xxxx (flow valve), LV-xxxx (level valve), XV-xxxx (on/off valve under INSTRUMENTS = instrument, not valve). If an item is under an INSTRUMENTS header, classify it as the appropriate instrument type (e.g. "control valve", "orifice plate", "thermowell", "temperature gauge", "pressure transmitter").
-  Supports: "pipe shoe", "guide", "anchor", "spring hanger", "u-bolt", "dummy leg", "trunnion", "pipe clamp" — always specify type
-  *** PIPE SUPPORTS SUBSECTION: Many BOMs have a "PIPE SUPPORTS" subsection header. ALL items listed under this header are supports (item_type="support").
-  Bends: "bend" — pipe bend (a smooth curve formed from pipe, NOT a fitting elbow)
-  Couplings: "coupling" — threaded or socket weld coupling
-  Other: "gasket", "bolt set", "nipple", "cap", "plug", "rupture disc", "spacer", "strainer"
-</classification_rules>
+  lines.push(
+    '<classification_rules>',
+    '- item_type: "material" for pipe, fittings, flanges, gaskets, bolts, valves, instruments, nuts, washers.',
+    '  "support" for pipe supports ONLY (shoes, guides, anchors, hangers, clamps, trunnions, dummy legs).',
+    '  *** BOLTS/NUTS/WASHERS ARE ALWAYS "material", NEVER "support".',
+    '- section: "shop" for items under SHOP MATERIALS header, "field" for items under OTHER THAN SHOP MATERIALS header.',
+    '- subsection: Set based on the sub-header the item appears under (see <bom_structure> above).',
+    '- classification: ALL LOWERCASE, be specific:',
+    '  Pipe: "pipe"',
+    '  Flanges: "flange wn", "flange sw", "flange lj", "flange so", "blind flange"',
+    '  Elbows: "elbow 90 lr", "elbow 45 lr", "elbow 90 sr"',
+    '  Tees: "tee", "reducing tee"',
+    '  Reducers: "reducer conc", "reducer ecc"',
+    '  Olets: "weldolet", "threadolet", "sockolet"',
+    '  Valves: "gate valve", "ball valve", "check valve", "globe valve", "butterfly valve", "plug valve", "control valve", "pressure safety valve"',
+    '  Instruments: "thermowell", "pressure transmitter", "temperature gauge", "orifice plate", "control valve", "flow element"',
+    '  Supports: "pipe shoe", "guide", "anchor", "spring hanger", "u-bolt", "dummy leg", "trunnion", "pipe clamp"',
+    '  Bends: "bend"',
+    '  Couplings: "coupling"',
+    '  Other: "gasket", "bolt set", "nipple", "cap", "plug", "rupture disc", "spacer", "strainer"',
+    '</classification_rules>',
+    '',
+  );
 
-<valve_abbreviation_dictionary>
-Common valve abbreviations found in BOM descriptions — use these to determine the correct classification:
-- ABV = Automatic Block Valve → classification: "ball valve"
-- DBB = Double Block & Bleed → classification: "ball valve"
-- PSV = Pressure Safety Valve → classification: "pressure safety valve"
-- PRV = Pressure Relief Valve → classification: "pressure safety valve"
-- CV = Control Valve → classification: "control valve"
-- BDV = Blowdown Valve → classification: "gate valve"
-- MOV = Motor Operated Valve → classification: "gate valve"
-- SOV = Solenoid Operated Valve → classification: "globe valve"
-- RV = Relief Valve → classification: "pressure safety valve"
-- SDV = Shutdown Valve → classification: "ball valve"
-- XV = Control Valve on/off → classification: "ball valve"
-- HV = Hand Valve → classification: "gate valve"
-- EBV = Emergency Block Valve → classification: "ball valve"
-Do NOT classify these as "thermowell" or other instrument types — they are valves.
-</valve_abbreviation_dictionary>
+  lines.push(
+    '<valve_abbreviation_dictionary>',
+    'ABV = Automatic Block Valve → "ball valve"',
+    'DBB = Double Block & Bleed → "ball valve"',
+    'PSV/PRV/RV = Pressure Safety/Relief Valve → "pressure safety valve"',
+    'CV = Control Valve → "control valve"',
+    'BDV = Blowdown Valve → "gate valve"',
+    'MOV = Motor Operated Valve → "gate valve"',
+    'SOV = Solenoid Operated Valve → "globe valve"',
+    'SDV = Shutdown Valve → "ball valve"',
+    'XV = Control Valve on/off → "ball valve"',
+    'HV = Hand Valve → "gate valve"',
+    'EBV = Emergency Block Valve → "ball valve"',
+    'Do NOT classify valve abbreviations as instruments.',
+    '</valve_abbreviation_dictionary>',
+    '',
+  );
 
-<threaded_pipe_rules>
-IMPORTANT: Threaded piping systems use threaded connections (FTE, NPT, NPTF, THD) instead of welded connections.
-Key indicators of a threaded pipe drawing:
-- Pipe: A53 Type F, ERW, galvanized pipe with threaded ends
-- Fittings: B16.11 class 3000/6000, FTE (Forged Threaded End), screwed fittings
-- Valves: NPTF, NPT, or threaded end connections
+  lines.push(
+    '<instrument_rules>',
+    'ALL items under an INSTRUMENTS sub-header are instruments (subsection="instruments", item_type="material").',
+    'Common instrument tag patterns: TV-xxxx, FE-xxxx, TI-xxxx, PI-xxxx, FV-xxxx, LV-xxxx, XV-xxxx.',
+    'When under INSTRUMENTS header, classify as the appropriate instrument type.',
+    '</instrument_rules>',
+    '',
+  );
 
-When you see these indicators:
-1. Classify pipe as "threaded pipe" (not "pipe")
-2. ALL materials on a threaded pipe drawing are field-installed (section="field"), NOT shop
-   - There is no shop fabrication for threaded piping — everything is assembled on-site
-   - The only exception: if the drawing explicitly labels a separate "SHOP MATERIALS" section
-3. Supports (u-bolts, guides, shoes) remain section="field" as usual
-</threaded_pipe_rules>
+  lines.push(
+    '<valve_end_connections>',
+    'For ALL valves, populate end_connection from BOM description:',
+    '"RF", "RFWN", "FLANGED" → "RFWN"',
+    '"BW", "BUTT WELD" → "BW"',
+    '"SW", "SOCKET WELD" → "SW"',
+    '"THD", "THREADED" → "THD"',
+    'If not explicit: shop valves typically BW or SW; field valves typically RFWN.',
+    '</valve_end_connections>',
+    '',
+  );
 
-<size_rules>
-- size/size_2: NPS as decimal. Sub-1": "0.5" (1/2"), "0.75" (3/4"), "0.375" (3/8"). Whole: "2", "16", "1.5" (1-1/2").
-- Reducing items: "16" x 10" TEE, RED" → size="16", size_2="10". "24" x 20" REDUCER" → size="24", size_2="20".
-- schedule_2: For "SCH STD x SCH 80" → schedule="STD", schedule_2="80".
-</size_rules>
+  lines.push(
+    '<size_rules>',
+    'NPS as decimal. Sub-1": "0.5" (1/2"), "0.75" (3/4"). Whole: "2", "16", "1.5" (1-1/2").',
+    'Reducing items: size = larger, size_2 = smaller.',
+    'Stud bolts: size = diameter, size_2 = length (both as decimal).',
+    '</size_rules>',
+    '',
+  );
 
-<bolt_size_rules>
-For STUD BOLTS and BOLT SETS:
-- size = stud DIAMETER as decimal (e.g. "5/8X3 1/2" -> size="0.625")
-- size_2 = stud LENGTH as decimal (e.g. "5/8X3 1/2" -> size_2="3.5")
-- Always split into diameter (size) and length (size_2) — never put both in one field
-</bolt_size_rules>
+  lines.push(
+    '<threaded_pipe_detection>',
+    'Set is_threaded_pipe to true if the PIPE item (typically item 1 in shop materials) indicates threaded piping:',
+    '- Description contains: galvanized, A53 Type F, ERW with threaded fittings',
+    '- ALL fittings use FTE (Forged Threaded End) or threaded connections',
+    'Do NOT flag as threaded just because a valve has NPTF in its description.',
+    'If threaded, classify pipe items as "threaded pipe" instead of "pipe".',
+    '</threaded_pipe_detection>',
+    '',
+  );
 
-<examples>
-{"item_number": 1, "item_type": "material", "classification": "pipe", "section": "shop", "description": "2\\" PIPE, SCH 40, ASTM A106, GR B, SMLS", "size": "2", "size_2": null, "quantity": 20, "uom": "LF", "spec": null, "material_grade": "CS", "schedule": "40", "schedule_2": null, "rating": null, "commodity_code": null, "end_connection": null, "needs_review": false, "review_reason": null}
+  lines.push(
+    'CRITICAL: The "description" field must contain the EXACT text from the BOM row.',
+    'Copy it character-for-character. Do NOT rewrite, summarize, or expand.',
+    '',
+    'Extract EVERY row from ALL BOM sections. Return { "items": [...], "is_threaded_pipe": false }.',
+    'If no BOM items found, return { "items": [], "is_threaded_pipe": false }.',
+  );
 
-{"item_number": 2, "item_type": "material", "classification": "reducing tee", "section": "shop", "description": "16\\" x 10\\" TEE, RED, BW, SCH STD x SCH STD, ASTM A-234-GR WPB, SMLS", "size": "16", "size_2": "10", "quantity": 1, "uom": "EA", "spec": null, "material_grade": "CS", "schedule": "STD", "schedule_2": "STD", "rating": null, "commodity_code": null, "end_connection": "BW", "needs_review": false, "review_reason": null}
-
-{"item_number": 3, "item_type": "material", "classification": "flange wn", "section": "shop", "description": "16\\" FLANGE, RFWN, CL 150, SCH STD, ASTM A-105", "size": "16", "size_2": null, "quantity": 3, "uom": "EA", "spec": "A-105", "material_grade": "CS", "schedule": "STD", "schedule_2": null, "rating": "150", "commodity_code": null, "end_connection": "RFWN", "needs_review": false, "review_reason": null}
-
-{"item_number": 4, "item_type": "support", "classification": "pipe shoe", "section": "field", "description": "PIPE SHOE 4\\" STD", "size": "4", "size_2": null, "quantity": 2, "uom": "EA", "spec": "PS-101", "material_grade": null, "schedule": null, "schedule_2": null, "rating": null, "commodity_code": "G4G-1412-05AA-001-2-2", "end_connection": null, "needs_review": false, "review_reason": null}
-
-{"item_number": 5, "item_type": "material", "classification": "gasket", "section": "field", "description": "2\\" SWG GASKET, 150# RF, ASME B16.20", "size": "2", "size_2": null, "quantity": 4, "uom": "EA", "spec": null, "material_grade": null, "schedule": null, "schedule_2": null, "rating": "150", "commodity_code": null, "end_connection": null, "needs_review": false, "review_reason": null}
-
-{"item_number": 6, "item_type": "material", "classification": "ball valve", "section": "field", "description": "2\\" ABV, 600#, RFWN, FULL PORT", "size": "2", "size_2": null, "quantity": 1, "uom": "EA", "spec": null, "material_grade": null, "schedule": null, "schedule_2": null, "rating": "600", "commodity_code": null, "end_connection": "RFWN", "needs_review": false, "review_reason": null}
-</examples>
-
-If no BOM items are found, return { "items": [] }.`;
+  return lines.join('\n');
+}
 
 // ── JSON Schema for structured output ──────────────────────────────────
 
@@ -138,6 +171,12 @@ const BOM_ITEM_SCHEMA = {
       description: 'Which BOM section this item came from: "shop" for shop materials, "field" for other-than-shop/field materials. MUST be set for every item.',
       format: 'enum',
       enum: ['shop', 'field'],
+    },
+    subsection: {
+      type: 'STRING',
+      description: 'Which sub-header the item appears under: "line_items" for main section items, "pipe_supports" for items under PIPE SUPPORTS sub-header, "instruments" for items under INSTRUMENTS sub-header.',
+      format: 'enum',
+      enum: ['line_items', 'pipe_supports', 'instruments'],
     },
     description: {
       type: 'STRING',
@@ -215,23 +254,20 @@ const BOM_ITEM_SCHEMA = {
     },
   },
   required: [
-    'item_number', 'item_type', 'classification', 'section', 'description',
+    'item_number', 'item_type', 'classification', 'section', 'subsection', 'description',
     'size', 'size_2', 'quantity', 'uom', 'spec', 'material_grade',
     'schedule', 'schedule_2', 'rating', 'commodity_code', 'end_connection',
     'needs_review', 'review_reason',
   ],
 };
 
-const BOM_SCHEMA = {
+const BOM_RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    items: {
-      type: 'ARRAY',
-      description: 'All BOM line items extracted from the drawing',
-      items: BOM_ITEM_SCHEMA,
-    },
+    items: { type: 'ARRAY', items: BOM_ITEM_SCHEMA },
+    is_threaded_pipe: { type: 'BOOLEAN' },
   },
-  required: ['items'],
+  required: ['items', 'is_threaded_pipe'],
 };
 
 // ── Size normalization ─────────────────────────────────────────────────
@@ -241,7 +277,7 @@ const BOM_SCHEMA = {
  * Handles fractions ("3/4" → "0.75"), mixed numbers ("1-1/2" → "1.5"),
  * and already-decimal values.
  */
-function normalizeSize(raw: string | null): string | null {
+function normalizeSizeField(raw: string | null): string | null {
   if (raw == null) return null;
   const v = raw.trim();
   if (!v) return null;
@@ -309,66 +345,79 @@ function normalizeMaterialGrade(raw: string | null): string | null {
   return null; // Unknown material — don't pollute with raw ASTM codes
 }
 
+// ── End connection normalization ───────────────────────────────────────
+
+function normalizeEndConnection(raw: string | null): string | null {
+  if (raw == null) return null;
+  return String(raw).toUpperCase() || null;
+}
+
+// ── Item coercion ──────────────────────────────────────────────────────
+
+function coerceBomItem(item: unknown): BomItem {
+  const raw = (item !== null && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+
+  const needsReview = raw.needs_review === true;
+
+  const subsectionRaw = String(raw.subsection ?? 'line_items').toLowerCase();
+  const subsection = (['line_items', 'pipe_supports', 'instruments'] as const).includes(
+    subsectionRaw as BomItem['subsection'],
+  )
+    ? (subsectionRaw as BomItem['subsection'])
+    : 'line_items';
+
+  return {
+    item_type: raw.item_type === 'support' ? 'support' : 'material',
+    classification: String(raw.classification ?? 'unknown'),
+    section: raw.section === 'field' ? 'field' : 'shop',
+    subsection,
+    description: raw.description != null ? String(raw.description) : null,
+    size: normalizeSizeField(raw.size != null ? String(raw.size) : null),
+    size_2: normalizeSizeField(raw.size_2 != null ? String(raw.size_2) : null),
+    quantity: (() => {
+      const q = Number(raw.quantity);
+      return Number.isFinite(q) && q > 0 ? q : 1;
+    })(),
+    uom: raw.uom != null ? String(raw.uom).toUpperCase() : null,
+    spec: normalizeSpec(raw.spec != null ? String(raw.spec) : null),
+    material_grade: normalizeMaterialGrade(raw.material_grade != null ? String(raw.material_grade) : null),
+    schedule: raw.schedule != null ? String(raw.schedule) : null,
+    schedule_2: raw.schedule_2 != null ? String(raw.schedule_2) : null,
+    rating: raw.rating != null ? String(raw.rating) : null,
+    commodity_code: raw.commodity_code != null ? String(raw.commodity_code) : null,
+    end_connection: normalizeEndConnection(raw.end_connection != null ? String(raw.end_connection) : null),
+    item_number: raw.item_number != null ? Number(raw.item_number) || null : null,
+    needs_review: needsReview,
+    review_reason: raw.review_reason != null ? String(raw.review_reason) : null,
+  } satisfies BomItem;
+}
+
 // ── Main export ────────────────────────────────────────────────────────
 
 /**
- * Extract BOM items from a base64-encoded PDF using Gemini Vision.
- * Returns typed BomItem array and token counts for usage tracking.
+ * Extract BOM items from a base64-encoded PDF using Gemini Vision (Pro model).
+ * Accepts title block context from Call 1 to inject drawing-level metadata.
+ * Returns typed BomExtractionResult and token counts for usage tracking.
  */
-export async function extractBom(base64Pdf: string): Promise<{
-  data: BomItem[];
-  inputTokens: number;
-  outputTokens: number;
-}> {
-  const result = await callGemini(base64Pdf, BOM_PROMPT, BOM_SCHEMA);
+export async function extractBom(
+  base64Pdf: string,
+  titleBlockContext: TitleBlockData | null,
+): Promise<{ data: BomExtractionResult; inputTokens: number; outputTokens: number }> {
+  const prompt = buildBomPrompt(titleBlockContext);
+  const result = await callGemini(base64Pdf, prompt, BOM_RESPONSE_SCHEMA, GEMINI_PRO);
 
-  const rawParsed = result.data as { items?: Record<string, unknown>[] } | Record<string, unknown>[];
-  let items: Record<string, unknown>[] = [];
+  const raw = result.data as { items?: unknown[]; is_threaded_pipe?: boolean } | null;
+  const rawItems = Array.isArray(raw?.items) ? raw.items : [];
+  const isThreadedPipe = raw?.is_threaded_pipe === true;
 
-  // Gemini sometimes returns a bare array instead of { items: [...] }
-  if (Array.isArray(rawParsed)) {
-    items = rawParsed.filter(
-      (item): item is Record<string, unknown> =>
-        item !== null && typeof item === 'object' && !Array.isArray(item),
-    );
-  } else if (rawParsed && typeof rawParsed === 'object' && 'items' in rawParsed) {
-    items = Array.isArray(rawParsed.items) ? rawParsed.items : [];
+  if (rawItems.length === 0) {
+    console.warn('[bom-extractor] Gemini returned 0 items after retries.');
   }
 
-  if (items.length === 0) {
-    console.warn(`[bom-extractor] Gemini returned 0 items after retries.`);
-  }
-
-  const data: BomItem[] = items.map((item: Record<string, unknown>) => {
-    const needsReview = item.needs_review === true;
-    return {
-      item_type: item.item_type === 'support' ? 'support' : 'material',
-      classification: String(item.classification ?? 'unknown'),
-      classification_confidence: null, // Set by classification pass later
-      section: item.section === 'field' ? 'field' : 'shop',
-      description: item.description != null ? String(item.description) : null,
-      size: normalizeSize(item.size != null ? String(item.size) : null),
-      size_2: normalizeSize(item.size_2 != null ? String(item.size_2) : null),
-      quantity: (() => {
-        const q = Number(item.quantity);
-        return Number.isFinite(q) && q > 0 ? q : 1;
-      })(),
-      uom: item.uom != null ? String(item.uom).toUpperCase() : null,
-      spec: normalizeSpec(item.spec != null ? String(item.spec) : null),
-      material_grade: normalizeMaterialGrade(item.material_grade != null ? String(item.material_grade) : null),
-      schedule: item.schedule != null ? String(item.schedule) : null,
-      schedule_2: item.schedule_2 != null ? String(item.schedule_2) : null,
-      rating: item.rating != null ? String(item.rating) : null,
-      commodity_code: item.commodity_code != null ? String(item.commodity_code) : null,
-      end_connection: item.end_connection != null ? String(item.end_connection).toUpperCase() : null,
-      item_number: item.item_number != null ? Number(item.item_number) || null : null,
-      needs_review: needsReview,
-      review_reason: item.review_reason != null ? String(item.review_reason) : null,
-    } satisfies BomItem;
-  });
+  const items: BomItem[] = rawItems.map((item) => coerceBomItem(item));
 
   return {
-    data,
+    data: { items, is_threaded_pipe: isThreadedPipe },
     inputTokens: result.inputTokens,
     outputTokens: result.outputTokens,
   };

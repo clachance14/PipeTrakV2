@@ -73,8 +73,9 @@ export function isThreadedPipeDrawing(
 export function applyThreadedPipeOverrides(
   items: BomItem[],
   titleBlockMaterial: string | null,
+  bomFlaggedThreaded = false,
 ): BomItem[] {
-  if (!isThreadedPipeDrawing(items, titleBlockMaterial)) return items;
+  if (!bomFlaggedThreaded && !isThreadedPipeDrawing(items, titleBlockMaterial)) return items;
 
   return items.map((item) => {
     const classification = item.classification === 'pipe' ? 'threaded pipe' : item.classification;
