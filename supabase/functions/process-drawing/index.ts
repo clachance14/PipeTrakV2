@@ -12,10 +12,9 @@ import type { ProcessDrawingRequest, ProcessingResult, TitleBlockData, BomItem }
 import { extractTitleBlock } from './title-block-reader.ts';
 import { extractBom } from './bom-extractor.ts';
 import { extractSpools } from './spool-extractor.ts';
-import { trackGeminiUsage } from './gemini-client.ts';
+import { trackGeminiUsage, GEMINI_FLASH, GEMINI_PRO } from './gemini-client.ts';
 import { mapBomToComponentType, isTrackedItem, applyThreadedPipeOverrides } from './component-mapper.ts';
-import { classifyBomItems } from './bom-classifier.ts';
-import { reconcileBomItems } from './bom-reconciler.ts';
+import { applyInstrumentFieldOverride, resolveSpecConflict } from './post-processor.ts';
 import { buildDrawingBomItem } from './schema-helpers.ts';
 import { normalizeDrawing } from '../_shared/normalize-drawing.ts';
 import {
@@ -181,6 +180,8 @@ async function processDrawing(
         rev: titleBlock?.revision,
         hydro: titleBlock?.hydro,
         insulation: titleBlock?.insulation,
+        drawing_type: titleBlock?.drawing_type ?? null,
+        has_spools: titleBlock?.has_spools ?? null,
         processing_status: 'processing',
         processing_note: null,
       })
@@ -210,6 +211,8 @@ async function processDrawing(
         pwht: titleBlock?.pwht ?? false,
         hydro: titleBlock?.hydro,
         insulation: titleBlock?.insulation,
+        drawing_type: titleBlock?.drawing_type ?? null,
+        has_spools: titleBlock?.has_spools ?? null,
         processing_status: 'processing',
       })
       .select('id')
@@ -231,6 +234,7 @@ async function processDrawing(
       projectId,
       drawingId,
       supabaseAdmin,
+      GEMINI_FLASH,
     );
   }
 
@@ -254,40 +258,42 @@ async function processDrawing(
       projectId,
       drawingId,
       supabaseAdmin,
+      GEMINI_PRO,
     );
   }
 
-  // ── Step 3b: Text-only classification pass ────────────────────────────
-  if (bomItems.length > 0) {
+  // ── Post-processing domain rules ────────────────────────────────────
+  bomItems = applyInstrumentFieldOverride(bomItems);
+
+  // Resolve spec conflicts (title block wins, instrument tags discarded)
+  if (titleBlock?.spec) {
+    bomItems = bomItems.map((item) => ({
+      ...item,
+      spec: resolveSpecConflict(item.spec, titleBlock!.spec),
+    }));
+  }
+
+  // ── Conditional spool extraction (Call 3 — Flash) ──────────────
+  const shouldExtractSpools =
+    titleBlock?.has_spools === true ||
+    bomItems.some((item) => /\bspool\b/i.test(item.description ?? ''));
+
+  if (shouldExtractSpools) {
     try {
-      const classResult = await classifyBomItems(bomItems, titleBlock);
-      bomItems = reconcileBomItems(bomItems, classResult.data);
+      const spoolResult = await extractSpools(base64Pdf);
+      spoolLabels = spoolResult.data;
       await trackGeminiUsage(
-        { data: classResult.data, inputTokens: classResult.inputTokens, outputTokens: classResult.outputTokens },
-        'bom_classification',
+        { data: null, inputTokens: spoolResult.inputTokens, outputTokens: spoolResult.outputTokens },
+        'spool_extraction',
         projectId,
         drawingId,
         supabaseAdmin,
+        GEMINI_FLASH,
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      result.errors.push(`BOM classification pass failed: ${msg}`);
-      // Non-fatal — continue with primary extraction results
+      result.errors.push(`Spool extraction failed: ${msg}`);
     }
-  }
-
-  // ── Step 4a: Extract spool callouts via dedicated Gemini call ────────
-  // Separate from BOM extraction for reliability — Gemini ignores spool
-  // rules when they're appended to the long BOM prompt.
-
-  try {
-    const spoolResult = await extractSpools(base64Pdf);
-    spoolLabels = spoolResult.data;
-    await trackGeminiUsage(spoolResult, 'spool_extraction', projectId, drawingId, supabaseAdmin);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    result.errors.push(`Spool extraction failed: ${msg}`);
-    // Non-fatal — continue with BOM processing
   }
 
   // ── Step 4b: Apply threaded pipe overrides ──────────────────────────
@@ -308,6 +314,7 @@ async function processDrawing(
         itemType: item.item_type,
         classification: item.classification,
         section: item.section,
+        subsection: item.subsection,
         description: item.description,
         size: item.size,
         size2: item.size_2,
