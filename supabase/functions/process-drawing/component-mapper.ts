@@ -26,16 +26,24 @@ const PATTERNS: Array<{ type: ComponentType; regex: RegExp }> = [
   { type: 'flange',       regex: /\bflange\b/i },
   { type: 'support',      regex: /\b(pipe\s*shoe|guide|anchor|spring\s*hanger|support|clamp|u-bolt|dummy\s*leg|trunnion|trapeze|bumper|angle\s*support)\b/i },
   { type: 'fitting',      regex: /\b(elbow|tee|reducer|coupling|cap|union|nipple|bushing|plug)\b|olet\b/i },
-  { type: 'instrument',   regex: /\b(instrument|gauge|transmitter|indicator|thermowell|orifice)\b/i },
+  { type: 'instrument',   regex: /\b(instrument|gauge|transmitter|indicator|thermowell|orifice|flow\s*element)\b/i },
   { type: 'tubing',       regex: /\btubing\b/i },
   { type: 'hose',         regex: /\bhose\b/i },
 ];
 
 /**
  * Maps a BOM classification string to a PipeTrak component type.
+ * If subsection is 'instruments', always returns 'instrument' regardless of classification.
  * Returns 'misc_component' when no pattern matches.
  */
-export function mapBomToComponentType(classification: string): ComponentType {
+export function mapBomToComponentType(
+  classification: string,
+  subsection?: string,
+): ComponentType {
+  // Items under INSTRUMENTS subsection are always instruments,
+  // even if classified as "control valve" (which would otherwise match valve)
+  if (subsection === 'instruments') return 'instrument';
+
   for (const { type, regex } of PATTERNS) {
     if (regex.test(classification)) {
       return type;

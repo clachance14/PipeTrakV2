@@ -367,7 +367,7 @@ async function processDrawing(
 
   // Fetch existing components for deduplication
   const trackedTypes = new Set(
-    trackedItems.map((item) => mapBomToComponentType(item.classification)),
+    trackedItems.map((item) => mapBomToComponentType(item.classification, item.subsection)),
   );
 
   const existingKeys = new Set<string>();
@@ -419,7 +419,7 @@ async function processDrawing(
   const seqCounters = new Map<string, number>();
 
   for (const item of trackedItems) {
-    const componentType = mapBomToComponentType(item.classification);
+    const componentType = mapBomToComponentType(item.classification, item.subsection);
     const templateId = templateMap.get(componentType);
 
     if (!templateId) {
