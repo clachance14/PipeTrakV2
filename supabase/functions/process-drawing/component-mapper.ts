@@ -31,18 +31,30 @@ const PATTERNS: Array<{ type: ComponentType; regex: RegExp }> = [
   { type: 'hose',         regex: /\bhose\b/i },
 ];
 
+/** Instrument tag pattern: 2-3 letter prefix + dash + digits, optional letter suffix.
+ *  Matches: TV-7539, FE-7544, LT-7501A, PI-001, XV-7539, TI-4200 */
+const INSTRUMENT_TAG_PATTERN = /^[A-Z]{2,3}-\d{3,}/i;
+
 /**
  * Maps a BOM classification string to a PipeTrak component type.
- * If subsection is 'instruments', always returns 'instrument' regardless of classification.
+ * Instrument detection priority:
+ *   1. subsection === 'instruments' (BOM has INSTRUMENTS sub-header)
+ *   2. commodityCode matches instrument tag pattern (XX-NNNN)
+ *   3. classification matches instrument regex
  * Returns 'misc_component' when no pattern matches.
  */
 export function mapBomToComponentType(
   classification: string,
   subsection?: string,
+  commodityCode?: string | null,
 ): ComponentType {
   // Items under INSTRUMENTS subsection are always instruments,
   // even if classified as "control valve" (which would otherwise match valve)
   if (subsection === 'instruments') return 'instrument';
+
+  // Items with instrument tag commodity codes (TV-7539, FE-7544, etc.)
+  // are instruments even without an INSTRUMENTS sub-header
+  if (commodityCode && INSTRUMENT_TAG_PATTERN.test(commodityCode)) return 'instrument';
 
   for (const { type, regex } of PATTERNS) {
     if (regex.test(classification)) {
