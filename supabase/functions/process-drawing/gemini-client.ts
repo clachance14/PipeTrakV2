@@ -48,7 +48,7 @@ function getPricing(model: string): { input: number; output: number } {
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const MAX_RETRIES = 2;
-const FETCH_TIMEOUT_MS = 50_000; // 50s to fit within edge function wall time
+const FETCH_TIMEOUT_MS = 120_000; // 120s per call — edge function allows up to 150s
 
 // ── Rate limit / transient error detection ─────────────────────────────
 
