@@ -24,7 +24,7 @@ const PATTERNS: Array<{ type: ComponentType; regex: RegExp }> = [
   { type: 'pipe',         regex: /^pipe$/i },
   { type: 'valve',        regex: /\b(gate|globe|ball|check|butterfly|plug|needle|control|pressure\s*safety)\s*valve\b|\b(rupture\s*disc|strainer)\b/i },
   { type: 'flange',       regex: /\bflange\b/i },
-  { type: 'support',      regex: /\b(pipe\s*shoe|guide|anchor|spring\s*hanger|support|clamp|u-bolt|dummy\s*leg|trunnion|trapeze|bumper|angle\s*support)\b/i },
+  { type: 'support',      regex: /\b(pipe\s*shoe|guide|anchor|hanger|spring\s*hanger|support|clamp|u-bolt|dummy\s*leg|trunnion|trapeze|bumper|angle\s*support|base\s*support)\b/i },
   { type: 'fitting',      regex: /\b(elbow|tee|reducer|coupling|cap|union|nipple|bushing|plug)\b|olet\b/i },
   { type: 'instrument',   regex: /\b(instrument|gauge|transmitter|indicator|thermowell|orifice|flow\s*element)\b/i },
   { type: 'tubing',       regex: /\btubing\b/i },
@@ -34,6 +34,10 @@ const PATTERNS: Array<{ type: ComponentType; regex: RegExp }> = [
 /** Instrument tag pattern: 2-3 letter prefix + dash + digits, optional letter suffix.
  *  Matches: TV-7539, FE-7544, LT-7501A, PI-001, XV-7539, TI-4200 */
 const INSTRUMENT_TAG_PATTERN = /^[A-Z]{2,3}-\d{3,}/i;
+
+/** G4G commodity code pattern — always pipe supports.
+ *  Matches: G4G-1450-07, G4G-1412-05AB-001-2-2, G4G-1430-20, etc. */
+const G4G_SUPPORT_PATTERN = /^G4G-/i;
 
 /**
  * Maps a BOM classification string to a PipeTrak component type.
@@ -55,6 +59,9 @@ export function mapBomToComponentType(
   // Items with instrument tag commodity codes (TV-7539, FE-7544, etc.)
   // are instruments even without an INSTRUMENTS sub-header
   if (commodityCode && INSTRUMENT_TAG_PATTERN.test(commodityCode)) return 'instrument';
+
+  // Items with G4G commodity codes are always pipe supports
+  if (commodityCode && G4G_SUPPORT_PATTERN.test(commodityCode)) return 'support';
 
   for (const { type, regex } of PATTERNS) {
     if (regex.test(classification)) {
