@@ -33,13 +33,13 @@ export interface GeminiResult {
  *  NOTE: Verify these model IDs are current at implementation time —
  *  preview model names include date suffixes that may expire.
  *  Check https://ai.google.dev/gemini-api/docs/models for latest. */
-export const GEMINI_FLASH = 'gemini-2.5-flash-preview-05-20';
-export const GEMINI_PRO = 'gemini-2.5-pro-preview-05-06';
+export const GEMINI_FLASH = 'gemini-3-flash-preview';
+export const GEMINI_PRO = 'gemini-3-pro-preview';
 
 /** Pricing per model (per 1M tokens) */
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  [GEMINI_FLASH]: { input: 0.15, output: 0.60 },
-  [GEMINI_PRO]: { input: 1.25, output: 10.00 },
+  [GEMINI_FLASH]: { input: 0.50, output: 3.00 },
+  [GEMINI_PRO]: { input: 2.50, output: 15.00 },
 };
 
 function getPricing(model: string): { input: number; output: number } {
