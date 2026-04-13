@@ -7,7 +7,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FileText, Upload, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileText, Upload, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { pdfjsLib } from '@/lib/pdf-worker';
@@ -16,6 +16,10 @@ import { Button } from '@/components/ui/button';
 
 /** Max concurrent edge function calls for drawing processing */
 const PROCESSING_CONCURRENCY = 5;
+/** Max automatic retries for failed pages */
+const MAX_PAGE_RETRIES = 2;
+/** Delay (ms) before each retry round to avoid rate limits */
+const RETRY_DELAY_MS = 5000;
 
 interface DrawingUploadTabProps {
   projectId: string;
@@ -24,9 +28,10 @@ interface DrawingUploadTabProps {
 
 interface PageResult {
   page: number;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'retrying';
   componentsCreated: number;
   error?: string;
+  retryCount?: number;
 }
 
 interface UploadedFile {
@@ -61,6 +66,23 @@ export function DrawingUploadTab({ projectId, onProcessingStarted }: DrawingUplo
   // Track per-file page results for concurrent updates
   const pageResultsRef = useRef(new Map<string, PageResult[]>());
 
+  /** Upsert a page result into the ref map and update UI */
+  const upsertPageResult = useCallback(
+    (filePath: string, pageResult: PageResult) => {
+      const current = pageResultsRef.current.get(filePath) ?? [];
+      const idx = current.findIndex((r) => r.page === pageResult.page);
+      if (idx >= 0) {
+        current[idx] = pageResult;
+      } else {
+        current.push(pageResult);
+      }
+      pageResultsRef.current.set(filePath, current);
+      const sorted = [...current].sort((a, b) => a.page - b.page);
+      updateFileStatus(filePath, { pageResults: sorted });
+    },
+    [updateFileStatus],
+  );
+
   /**
    * Process a single page of a drawing. Called concurrently across files/pages.
    * Updates file status progressively as results come in.
@@ -75,35 +97,23 @@ export function DrawingUploadTab({ projectId, onProcessingStarted }: DrawingUplo
           totalPages: totalPages > 1 ? totalPages : undefined,
         });
 
+        const existing = pageResultsRef.current.get(filePath)?.find((r) => r.page === page);
         const pageResult: PageResult = result.success
-          ? { page, status: 'success', componentsCreated: result.componentsCreated }
-          : { page, status: 'error', componentsCreated: 0, error: result.errors[0] || 'Failed' };
+          ? { page, status: 'success', componentsCreated: result.componentsCreated, retryCount: existing?.retryCount }
+          : { page, status: 'error', componentsCreated: 0, error: result.errors[0] || 'Failed', retryCount: existing?.retryCount };
 
-        // Thread-safe accumulation via ref
-        const current = pageResultsRef.current.get(filePath) ?? [];
-        current.push(pageResult);
-        pageResultsRef.current.set(filePath, current);
-
-        // Update UI progressively
-        const sorted = [...current].sort((a, b) => a.page - b.page);
-        updateFileStatus(filePath, { pageResults: sorted });
-
+        upsertPageResult(filePath, pageResult);
         return pageResult;
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Processing failed';
-        const pageResult: PageResult = { page, status: 'error', componentsCreated: 0, error: msg };
+        const existingOnErr = pageResultsRef.current.get(filePath)?.find((r) => r.page === page);
+        const pageResult: PageResult = { page, status: 'error', componentsCreated: 0, error: msg, retryCount: existingOnErr?.retryCount };
 
-        const current = pageResultsRef.current.get(filePath) ?? [];
-        current.push(pageResult);
-        pageResultsRef.current.set(filePath, current);
-
-        const sorted = [...current].sort((a, b) => a.page - b.page);
-        updateFileStatus(filePath, { pageResults: sorted });
-
+        upsertPageResult(filePath, pageResult);
         return pageResult;
       }
     },
-    [projectId, processDrawing, updateFileStatus],
+    [projectId, processDrawing, upsertPageResult],
   );
 
   /**
@@ -233,8 +243,46 @@ export function DrawingUploadTab({ projectId, onProcessingStarted }: DrawingUplo
         await Promise.all(executing);
       }
 
-      // Step 4: Finalize each file with summary toast
+      // Step 4: Automatic retry of failed pages
       const processedFiles = new Set(pageTasks.map((t) => t.filePath));
+      for (const filePath of processedFiles) {
+        let retryRound = 0;
+        while (retryRound < MAX_PAGE_RETRIES) {
+          const results = pageResultsRef.current.get(filePath) ?? [];
+          const failedPages = results.filter((r) => r.status === 'error');
+          if (failedPages.length === 0) break;
+
+          retryRound++;
+          const failedTasks = failedPages
+            .map((fp) => pageTasks.find((t) => t.filePath === filePath && t.page === fp.page))
+            .filter((t): t is NonNullable<typeof t> => t != null);
+
+          if (failedTasks.length === 0) break;
+
+          // Mark failed pages as retrying in the UI
+          const current = pageResultsRef.current.get(filePath) ?? [];
+          for (const ft of failedTasks) {
+            const idx = current.findIndex((r) => r.page === ft.page);
+            if (idx >= 0) {
+              const prev = current[idx]!;
+              current[idx] = { page: prev.page, status: 'retrying', componentsCreated: 0, error: prev.error, retryCount: retryRound };
+            }
+          }
+          pageResultsRef.current.set(filePath, current);
+          const sorted = [...current].sort((a, b) => a.page - b.page);
+          updateFileStatus(filePath, { pageResults: sorted });
+
+          // Wait before retrying to let rate limits reset
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+
+          // Retry failed pages sequentially to minimize rate limit risk
+          for (const task of failedTasks) {
+            await processPage(task.fileName, task.filePath, task.page, task.totalPages);
+          }
+        }
+      }
+
+      // Step 5: Finalize each file with summary toast
       for (const filePath of processedFiles) {
         const task = pageTasks.find((t) => t.filePath === filePath);
         if (task) {
@@ -391,6 +439,8 @@ export function DrawingUploadTab({ projectId, onProcessingStarted }: DrawingUplo
                         <div key={pr.page} className="flex items-center gap-2 text-xs">
                           {pr.status === 'success' ? (
                             <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                          ) : pr.status === 'retrying' ? (
+                            <RotateCcw className="h-3.5 w-3.5 text-amber-500 animate-spin flex-shrink-0" />
                           ) : (
                             <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
                           )}
@@ -398,10 +448,19 @@ export function DrawingUploadTab({ projectId, onProcessingStarted }: DrawingUplo
                           {pr.status === 'success' && (
                             <span className="text-green-600">
                               {pr.componentsCreated} component{pr.componentsCreated !== 1 ? 's' : ''}
+                              {pr.retryCount ? ` (retry ${pr.retryCount})` : ''}
+                            </span>
+                          )}
+                          {pr.status === 'retrying' && (
+                            <span className="text-amber-600">
+                              Retrying (attempt {pr.retryCount ?? 1} of {MAX_PAGE_RETRIES})...
                             </span>
                           )}
                           {pr.status === 'error' && pr.error && (
-                            <span className="text-red-600 truncate">{pr.error}</span>
+                            <span className="text-red-600 truncate">
+                              {pr.error}
+                              {pr.retryCount ? ` (failed ${pr.retryCount} retries)` : ''}
+                            </span>
                           )}
                         </div>
                       ))}
