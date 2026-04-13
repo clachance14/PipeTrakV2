@@ -64,6 +64,13 @@ export function DrawingViewerPage() {
   const activeDrawingId = pageMap.get(currentPage) ?? drawingId ?? '';
   const activeDrawing = drawings?.find((d) => d.id === activeDrawingId) ?? drawing;
 
+  // Keep URL in sync with the active drawing so it's shareable/bookmarkable
+  useEffect(() => {
+    if (activeDrawingId && activeDrawingId !== drawingId && projectId) {
+      navigate(`/projects/${projectId}/drawings/${activeDrawingId}/viewer`, { replace: true });
+    }
+  }, [activeDrawingId, drawingId, projectId, navigate]);
+
   // Set initial page to the drawing's source page (original PDF page number)
   useEffect(() => {
     if (drawing && !initialPageSet) {
@@ -143,8 +150,8 @@ export function DrawingViewerPage() {
               <span className="text-sm font-semibold text-gray-900 truncate">
                 {activeDrawing?.drawing_no_raw ?? 'Loading...'}
               </span>
-              {pageCount > 1 && (
-                <span className="text-xs text-gray-500">Sheet {currentPage}</span>
+              {activeDrawing?.sheet_number && (
+                <span className="text-xs text-gray-500">Sheet {activeDrawing.sheet_number}</span>
               )}
             </div>
           </div>
