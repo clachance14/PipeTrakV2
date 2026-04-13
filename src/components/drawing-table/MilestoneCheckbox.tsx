@@ -60,7 +60,7 @@ export function MilestoneCheckbox({
         aria-label={`${milestone.name} milestone`}
         className={cn(
           disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-          isMobile ? 'h-5 w-5' : compact ? 'h-3 w-3' : ''
+          isMobile ? 'h-5 w-5' : compact ? 'h-3.5 w-3.5' : ''
         )}
       />
       <span
