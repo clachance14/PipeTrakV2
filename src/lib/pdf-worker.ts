@@ -1,0 +1,13 @@
+/**
+ * pdf.js worker configuration
+ * Must be imported before using any pdf.js rendering functions.
+ */
+
+import * as pdfjsLib from 'pdfjs-dist';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
+
+export { pdfjsLib };

@@ -96,7 +96,7 @@ export function ProjectDetailsPage() {
         toast.success('Project deleted permanently')
         navigate('/dashboard')
       },
-      onError: (err) => {
+      onError: (err: unknown) => {
         toast.error(err instanceof Error ? err.message : 'Failed to delete project')
       },
     })

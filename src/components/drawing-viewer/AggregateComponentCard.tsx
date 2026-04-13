@@ -59,7 +59,7 @@ export function AggregateComponentCard({
                 key={milestone.name}
                 label={milestone.name}
                 value={pctValue}
-                onChange={(val) => onMilestoneChange(component.id, milestone.name, val)}
+                onChange={(val: number) => onMilestoneChange(component.id, milestone.name, val)}
                 disabled={!component.canUpdate}
               />
             )
