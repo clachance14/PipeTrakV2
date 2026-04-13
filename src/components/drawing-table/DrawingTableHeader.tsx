@@ -113,12 +113,13 @@ export function DrawingTableHeader({
       )}
 
       {/* Progress */}
-      <div className={isMobile ? 'min-w-[45px] flex-shrink-0 text-right' : 'min-w-[130px]'}>
+      <div className={isMobile ? 'min-w-[45px] flex-shrink-0 text-right' : 'min-w-[80px] text-right'}>
         <SortableColumnHeader
           label={isMobile ? 'Prog' : 'Progress'}
           field="avg_percent_complete"
           sortInfo={getSortInfo('avg_percent_complete')}
           onSort={handleSort}
+          className="justify-end"
         />
       </div>
 

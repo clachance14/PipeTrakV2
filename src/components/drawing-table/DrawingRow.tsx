@@ -56,7 +56,7 @@ export function DrawingRow({
   const navigate = useNavigate()
 
   // Desktop: detailed progress display
-  const progressSummary = `${drawing.completed_components}/${drawing.total_components} • ${Math.round(drawing.avg_percent_complete)}%`
+  const progressSummary = `${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 
   // Mobile: single-line summary "DRAIN-1 · ES-03 · A1 · S1 · TP1 · 100%"
@@ -252,7 +252,7 @@ export function DrawingRow({
           </div>
 
           {/* Progress summary */}
-          <div className="min-w-[130px] text-sm font-semibold text-slate-800 text-right">
+          <div className="min-w-[80px] text-sm font-semibold text-slate-800 text-right">
             {progressSummary}
           </div>
 
