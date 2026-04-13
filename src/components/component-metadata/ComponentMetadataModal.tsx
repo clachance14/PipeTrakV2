@@ -43,6 +43,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { ComponentDetailView } from '@/components/ComponentDetailView'
+import { usePermissions } from '@/hooks/usePermissions'
 
 /**
  * ComponentMetadataModal Props
@@ -126,6 +127,8 @@ export function ComponentMetadataModal({
   onClose,
   onMetadataChange,
 }: ComponentMetadataModalProps) {
+  const { canUpdateMilestones, canEditComponents } = usePermissions()
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
@@ -135,9 +138,10 @@ export function ComponentMetadataModal({
         {componentId && (
           <ComponentDetailView
             componentId={componentId}
-            canUpdateMilestones={true}
-            canEditMetadata={true}
+            canUpdateMilestones={canUpdateMilestones}
+            canEditComponents={canEditComponents}
             onMetadataChange={onMetadataChange}
+            onClose={onClose}
           />
         )}
       </DialogContent>

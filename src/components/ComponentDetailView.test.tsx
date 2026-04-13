@@ -317,12 +317,12 @@ describe('ComponentDetailView - Details Tab', () => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  it('shows metadata editing form when canEditMetadata is true', async () => {
+  it('shows metadata editing form when canEditComponents is true', async () => {
     render(
       <ComponentDetailView
         componentId="comp-1"
         canUpdateMilestones={true}
-        canEditMetadata={true}
+        canEditComponents={true}
       />,
       { wrapper }
     )
@@ -345,12 +345,12 @@ describe('ComponentDetailView - Details Tab', () => {
     })
   })
 
-  it('disables form when canEditMetadata is false', async () => {
+  it('disables form when canEditComponents is false', async () => {
     render(
       <ComponentDetailView
         componentId="comp-1"
         canUpdateMilestones={true}
-        canEditMetadata={false}
+        canEditComponents={false}
       />,
       { wrapper }
     )

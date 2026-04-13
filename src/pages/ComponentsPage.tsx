@@ -352,7 +352,6 @@ export function ComponentsPage({
               <ComponentDetailView
                 componentId={selectedComponentId}
                 canUpdateMilestones={canUpdateMilestones}
-                canEditMetadata={true}
                 defaultTab={isMobile ? 'milestones' : 'overview'}
                 onMetadataChange={() => {
                   // Optionally refetch components list

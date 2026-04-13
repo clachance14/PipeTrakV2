@@ -36,13 +36,19 @@ import { UserPlus } from 'lucide-react';
 import { ComponentManhourSection } from '@/components/component-detail/ComponentManhourSection';
 import { RollbackConfirmationModal } from '@/components/drawing-table/RollbackConfirmationModal';
 import type { RollbackReasonData } from '@/types/drawing-table.types';
+import { ComponentEditTab, type ComponentEditChanges } from '@/components/component-metadata/ComponentEditTab';
+import { DeleteConfirmationDialog } from '@/components/component-metadata/DeleteConfirmationDialog';
+import { useReclassifyComponent } from '@/hooks/useReclassifyComponent';
+import { useUpdateComponentIdentity } from '@/hooks/useUpdateComponentIdentity';
+import { useRetireComponents } from '@/hooks/useRetireComponents';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ComponentDetailViewProps {
   componentId: string;
   canUpdateMilestones?: boolean; // Permission check
-  canEditMetadata?: boolean;      // NEW
+  canEditComponents?: boolean;    // Permission to edit/reclassify/delete components
   onMetadataChange?: () => void;  // NEW
-  defaultTab?: 'overview' | 'details' | 'milestones' | 'history'; // Default tab to show (NEW - mobile support)
+  defaultTab?: 'overview' | 'details' | 'edit' | 'milestones' | 'history'; // Default tab to show (NEW - mobile support)
   onClose?: () => void;            // NEW - Close dialog handler
 }
 
@@ -54,13 +60,14 @@ interface ComponentDetailViewProps {
 export function ComponentDetailView({
   componentId,
   canUpdateMilestones = false,
-  canEditMetadata = false,
+  canEditComponents = false,
   onMetadataChange,
   defaultTab = 'overview',
   onClose,
 }: ComponentDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'milestones' | 'history'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'edit' | 'milestones' | 'history'>(defaultTab);
   const [welderDialogOpen, setWelderDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rollbackPending, setRollbackPending] = useState<{
     milestoneName: string;
     currentValue: number;
@@ -70,10 +77,16 @@ export function ComponentDetailView({
   // Local state for milestone input values (for pipe/threaded_pipe input boxes)
   const [localMilestoneValues, setLocalMilestoneValues] = useState<Record<string, number>>({});
 
+  const { user } = useAuth();
   const { data: componentData, isLoading } = useComponent(componentId);
   const { data: effectiveTemplate } = useEffectiveTemplate(componentId);
   const updateMilestoneMutation = useUpdateMilestone();
   const { data: history = [], isLoading: historyLoading } = useMilestoneHistory(componentId, 50);
+
+  // Edit tab mutation hooks
+  const reclassifyMutation = useReclassifyComponent();
+  const updateIdentityMutation = useUpdateComponentIdentity();
+  const retireMutation = useRetireComponents();
 
   // Cast to proper type early for metadata access
   const component = componentData as any;
@@ -331,6 +344,58 @@ export function ComponentDetailView({
     setRollbackPending(null);
   };
 
+  // Handle edit tab save (reclassify + identity/attribute updates)
+  const handleEditSave = async (changes: ComponentEditChanges) => {
+    if (!component || !user?.id) return;
+
+    try {
+      // Step 1: Reclassify if type changed
+      if (changes.newType) {
+        await reclassifyMutation.mutateAsync({
+          component_id: component.id,
+          new_type: changes.newType,
+          user_id: user.id,
+        });
+      }
+
+      // Step 2: Update identity/attributes if any changes
+      const hasIdentityChanges = Object.keys(changes.identityChanges).length > 0;
+      const hasAttributeChanges = Object.keys(changes.attributeChanges).length > 0;
+      if (hasIdentityChanges || hasAttributeChanges) {
+        await updateIdentityMutation.mutateAsync({
+          component_id: component.id,
+          identity_changes: changes.identityChanges,
+          attribute_changes: changes.attributeChanges,
+          user_id: user.id,
+        });
+      }
+
+      onMetadataChange?.();
+    } catch {
+      // Errors are handled by the individual mutation hooks (toast.error)
+    }
+  };
+
+  // Handle edit tab delete
+  const handleEditDelete = (reason?: string) => {
+    if (!component || !user?.id) return;
+
+    retireMutation.mutate(
+      {
+        component_ids: [component.id],
+        user_id: user.id,
+        reason,
+      },
+      {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          onMetadataChange?.();
+          onClose?.();
+        },
+      }
+    );
+  };
+
   // Format identity based on type
   let identityDisplay: string;
   if (component.component_type === 'field_weld') {
@@ -378,7 +443,11 @@ export function ComponentDetailView({
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="hidden md:block">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
+          {canEditComponents ? (
+            <TabsTrigger value="edit">Edit</TabsTrigger>
+          ) : (
+            <TabsTrigger value="details">Details</TabsTrigger>
+          )}
           <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
@@ -438,6 +507,25 @@ export function ComponentDetailView({
           <ComponentManhourSection component={component} />
         </TabsContent>
 
+        {/* Edit Tab (privileged users only) */}
+        <TabsContent value="edit" className="mt-4 space-y-4">
+          <ComponentEditTab
+            component={{
+              id: component.id,
+              component_type: component.component_type,
+              identity_key: component.identity_key as Record<string, unknown>,
+              attributes: (component.attributes as Record<string, unknown>) ?? null,
+              percent_complete: component.percent_complete ?? 0,
+            }}
+            siblingCount={1}
+            hasProgress={(component.percent_complete ?? 0) > 0}
+            onSave={handleEditSave}
+            onDelete={() => setDeleteDialogOpen(true)}
+            onCancel={() => onClose?.()}
+            isSaving={reclassifyMutation.isPending || updateIdentityMutation.isPending}
+          />
+        </TabsContent>
+
         <TabsContent value="details" className="mt-4 space-y-4">
           <div>
             <h3 className="text-lg font-semibold mb-4">Assign Metadata</h3>
@@ -454,7 +542,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, area_id: val === 'none' ? null : val });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select area" />
@@ -479,7 +567,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, system_id: val === 'none' ? null : val });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select system" />
@@ -504,7 +592,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, test_package_id: val === 'none' ? null : val });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select test package" />
@@ -529,7 +617,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, post_hydro_install: !!checked });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               />
               <label htmlFor="post-hydro-install" className="text-sm font-medium cursor-pointer">
                 Install after hydrotest
@@ -540,7 +628,7 @@ export function ComponentDetailView({
             </div>
 
             {/* Actions */}
-            {canEditMetadata && (
+            {canEditComponents && (
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={handleMetadataSave}
@@ -558,7 +646,7 @@ export function ComponentDetailView({
               </div>
             )}
 
-            {!canEditMetadata && (
+            {!canEditComponents && (
               <p className="text-sm text-muted-foreground pt-4">
                 You don't have permission to edit metadata.
               </p>
@@ -752,7 +840,11 @@ export function ComponentDetailView({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="overview">Overview</SelectItem>
-            <SelectItem value="details">Details</SelectItem>
+            {canEditComponents ? (
+              <SelectItem value="edit">Edit</SelectItem>
+            ) : (
+              <SelectItem value="details">Details</SelectItem>
+            )}
             <SelectItem value="milestones">Milestones</SelectItem>
             <SelectItem value="history">History</SelectItem>
           </SelectContent>
@@ -814,6 +906,23 @@ export function ComponentDetailView({
             <ComponentManhourSection component={component} />
           </div>
         )}
+        {activeTab === 'edit' && (
+          <ComponentEditTab
+            component={{
+              id: component.id,
+              component_type: component.component_type,
+              identity_key: component.identity_key as Record<string, unknown>,
+              attributes: (component.attributes as Record<string, unknown>) ?? null,
+              percent_complete: component.percent_complete ?? 0,
+            }}
+            siblingCount={1}
+            hasProgress={(component.percent_complete ?? 0) > 0}
+            onSave={handleEditSave}
+            onDelete={() => setDeleteDialogOpen(true)}
+            onCancel={() => onClose?.()}
+            isSaving={reclassifyMutation.isPending || updateIdentityMutation.isPending}
+          />
+        )}
         {activeTab === 'details' && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold mb-4">Assign Metadata</h3>
@@ -830,7 +939,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, area_id: val === 'none' ? null : val });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select area" />
@@ -855,7 +964,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, system_id: val === 'none' ? null : val });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select system" />
@@ -880,7 +989,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, test_package_id: val === 'none' ? null : val });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select test package" />
@@ -905,7 +1014,7 @@ export function ComponentDetailView({
                   setMetadataForm({ ...metadataForm, post_hydro_install: !!checked });
                   setIsDirty(true);
                 }}
-                disabled={!canEditMetadata}
+                disabled={!canEditComponents}
               />
               <label htmlFor="post-hydro-install-mobile" className="text-sm font-medium cursor-pointer">
                 Install after hydrotest
@@ -916,7 +1025,7 @@ export function ComponentDetailView({
             </div>
 
             {/* Actions */}
-            {canEditMetadata && (
+            {canEditComponents && (
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={handleMetadataSave}
@@ -934,7 +1043,7 @@ export function ComponentDetailView({
               </div>
             )}
 
-            {!canEditMetadata && (
+            {!canEditComponents && (
               <p className="text-sm text-muted-foreground pt-4">
                 You don't have permission to edit metadata.
               </p>
@@ -1150,6 +1259,15 @@ export function ComponentDetailView({
           onOpenChange={setWelderDialogOpen}
         />
       )}
+
+      {/* Delete Confirmation Dialog (edit tab) */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={(reason) => handleEditDelete(reason)}
+        componentCount={1}
+        componentSummary={identityDisplay}
+      />
     </>
   );
 }
