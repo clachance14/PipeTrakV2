@@ -55,7 +55,7 @@ export function DrawingRow({
 }: DrawingRowProps) {
   const navigate = useNavigate()
 
-  // Desktop: detailed progress display
+  // Desktop: progress percentage
   const progressSummary = `${Math.round(drawing.avg_percent_complete)}%`
   const componentCountText = drawing.total_components === 1 ? '1 item' : `${drawing.total_components} items`
 

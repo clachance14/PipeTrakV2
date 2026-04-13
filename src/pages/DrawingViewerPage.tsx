@@ -66,10 +66,10 @@ export function DrawingViewerPage() {
 
   // Keep URL in sync with the active drawing so it's shareable/bookmarkable
   useEffect(() => {
-    if (activeDrawingId && activeDrawingId !== drawingId && projectId) {
+    if (activeDrawingId && activeDrawingId !== drawingId && projectId && initialPageSet) {
       navigate(`/projects/${projectId}/drawings/${activeDrawingId}/viewer`, { replace: true });
     }
-  }, [activeDrawingId, drawingId, projectId, navigate]);
+  }, [activeDrawingId, drawingId, projectId, navigate, initialPageSet]);
 
   // Set initial page to the drawing's source page (original PDF page number)
   useEffect(() => {
