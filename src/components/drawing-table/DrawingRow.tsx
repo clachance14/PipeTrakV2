@@ -1,4 +1,4 @@
-import { ChevronRight, Pencil } from 'lucide-react'
+import { ChevronRight, FileText, Pencil } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { DrawingRow as DrawingRowType } from '@/types/drawing-table.types'
@@ -121,9 +121,19 @@ export function DrawingRow({
       ) : (
         /* Desktop: Multi-column layout */
         <>
-          {/* Drawing number */}
-          <div className="min-w-[140px] text-base font-semibold text-slate-900 truncate">
-            {drawing.drawing_no_norm}
+          {/* Drawing number + viewer link */}
+          <div className="min-w-[140px] flex items-center gap-1.5 text-base font-semibold text-slate-900 truncate">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/projects/${drawing.project_id}/drawings/${drawing.id}/viewer`)
+              }}
+              className="flex-shrink-0 p-0.5 text-slate-400 hover:text-blue-600 transition-colors"
+              aria-label={`Open PDF viewer for ${drawing.drawing_no_norm}`}
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+            <span className="truncate">{drawing.drawing_no_norm}</span>
           </div>
 
           {/* Spec (most common from components) */}
