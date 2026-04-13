@@ -31,6 +31,24 @@ export type ComponentType =
   | 'threaded_pipe'
   | 'pipe' // Added per migration 00017
 
+export const COMPONENT_TYPE_LABELS: Record<ComponentType, string> = {
+  spool: 'Spool',
+  field_weld: 'Field Weld',
+  support: 'Support',
+  valve: 'Valve',
+  fitting: 'Fitting',
+  flange: 'Flange',
+  instrument: 'Instrument',
+  tubing: 'Tubing',
+  hose: 'Hose',
+  misc_component: 'Misc Component',
+  threaded_pipe: 'Threaded Pipe',
+  pipe: 'Pipe',
+}
+
+export const AGGREGATE_TYPES: ComponentType[] = ['pipe', 'threaded_pipe']
+export const UNIQUE_ID_TYPES: ComponentType[] = ['spool', 'field_weld']
+
 // ============================================================================
 // Identity Key Structure
 // ============================================================================
