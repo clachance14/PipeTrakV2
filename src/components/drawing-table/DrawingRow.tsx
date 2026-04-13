@@ -20,6 +20,10 @@ export interface DrawingRowProps {
   isMobile?: boolean
   /** Whether this is the first row (for demo tour targeting) */
   isFirstRow?: boolean
+  /** Whether the current user can add/edit components */
+  canEditComponents?: boolean
+  /** Called when the "+ Add Component" button is clicked */
+  onAddComponent?: (drawingId: string) => void
 }
 
 /**
@@ -40,6 +44,8 @@ export function DrawingRow({
   onEditMetadata,
   isMobile = false,
   isFirstRow = false,
+  canEditComponents,
+  onAddComponent,
 }: DrawingRowProps) {
   const navigate = useNavigate()
 
@@ -64,6 +70,7 @@ export function DrawingRow({
   }
 
   return (
+    <>
     <div
       data-drawing-id={drawing.id}
       data-tour={isFirstRow ? 'drawing-row' : undefined}
@@ -205,5 +212,16 @@ export function DrawingRow({
         </>
       )}
     </div>
+    {isExpanded && canEditComponents && (
+      <div className="bg-white border-l-[3px] border-blue-600/30 px-5 pb-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); onAddComponent?.(drawing.id); }}
+          className="ml-8 mt-1 mb-2 text-sm text-indigo-400 border border-dashed border-indigo-400/30 rounded-md px-3 py-1.5 hover:bg-indigo-400/10 transition-colors"
+        >
+          + Add Component
+        </button>
+      </div>
+    )}
+    </>
   )
 }
