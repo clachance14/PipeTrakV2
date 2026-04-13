@@ -46,6 +46,12 @@ export interface ComponentRowProps {
   testPackage?: { id: string; name: string } | null
   /** Optional callback when component row is clicked */
   onClick?: (componentId: string) => void
+  /** Whether the user can edit/delete components (shows selection checkbox) */
+  canEditComponents?: boolean
+  /** Whether this component is currently selected for bulk actions */
+  isSelected?: boolean
+  /** Callback when selection state changes */
+  onSelectionChange?: (componentId: string, selected: boolean) => void
 }
 
 /**
@@ -85,6 +91,9 @@ export function ComponentRow({
   system,
   testPackage,
   onClick,
+  canEditComponents,
+  isSelected,
+  onSelectionChange,
 }: ComponentRowProps) {
   const isMobile = useMobileDetection()
   const isOnline = useNetworkStatus()
@@ -404,6 +413,20 @@ export function ComponentRow({
     >
       {/* Spacer for chevron */}
       <div className="w-3 flex-shrink-0" />
+
+      {/* Selection checkbox for bulk actions */}
+      {canEditComponents && (
+        <div
+          className="flex-shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={isSelected ?? false}
+            onCheckedChange={() => onSelectionChange?.(component.id, !(isSelected ?? false))}
+            aria-label={`Select ${component.identityDisplay}`}
+          />
+        </div>
+      )}
 
       {/* Component type and identity display */}
       {componentIsAggregatePipe ? (
