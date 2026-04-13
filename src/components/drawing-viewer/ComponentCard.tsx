@@ -46,7 +46,6 @@ export function ComponentCard({
       </div>
 
       {/* Milestones — horizontal wrap */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
         {milestones.map((milestone) => {
           const currentValue = component.current_milestones[milestone.name]
