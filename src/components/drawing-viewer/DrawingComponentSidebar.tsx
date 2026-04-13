@@ -33,6 +33,8 @@ interface DrawingComponentSidebarProps {
   canEditComponents?: boolean
   /** Called when the "+ Add" button is clicked */
   onAddComponent?: () => void
+  /** Called when a component card is clicked */
+  onComponentClick?: (componentId: string) => void
 }
 
 // ============================================================================
@@ -120,7 +122,7 @@ function sortComponents(
 // Main component
 // ============================================================================
 
-export function DrawingComponentSidebar({ drawingId, canEditComponents, onAddComponent }: DrawingComponentSidebarProps) {
+export function DrawingComponentSidebar({ drawingId, canEditComponents, onAddComponent, onComponentClick }: DrawingComponentSidebarProps) {
   const { user } = useAuth()
   const { data: components, isLoading: componentsLoading } = useComponentsByDrawing(
     drawingId,
@@ -283,6 +285,7 @@ export function DrawingComponentSidebar({ drawingId, canEditComponents, onAddCom
                   componentType={type}
                   components={comps}
                   onMilestoneChange={handleMilestoneChange}
+                  onComponentClick={onComponentClick}
                 />
               ))}
             </div>

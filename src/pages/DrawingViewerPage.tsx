@@ -25,6 +25,7 @@ import { PdfCanvas } from '@/components/drawing-viewer/PdfCanvas';
 import { DrawingComponentSidebar } from '@/components/drawing-viewer/DrawingComponentSidebar';
 import { AddComponentModal } from '@/components/component-metadata/AddComponentModal';
 import type { CreateManualComponentData } from '@/components/component-metadata/AddComponentModal';
+import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal';
 import { Button } from '@/components/ui/button';
 
 export function DrawingViewerPage() {
@@ -36,6 +37,7 @@ export function DrawingViewerPage() {
   const [zoom, setZoom] = useState(1);
   const [initialPageSet, setInitialPageSet] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null);
 
   const { canEditComponents } = usePermissions();
   const { user } = useAuth();
@@ -237,6 +239,7 @@ export function DrawingViewerPage() {
             drawingId={activeDrawingId}
             canEditComponents={canEditComponents}
             onAddComponent={() => setAddModalOpen(true)}
+            onComponentClick={(componentId) => setMetadataModalComponentId(componentId)}
           />
         </div>
       </div>
@@ -247,6 +250,14 @@ export function DrawingViewerPage() {
         onSubmit={handleAddComponent}
         isSubmitting={createMutation.isPending}
       />
+
+      {metadataModalComponentId && (
+        <ComponentMetadataModal
+          componentId={metadataModalComponentId}
+          open={!!metadataModalComponentId}
+          onClose={() => setMetadataModalComponentId(null)}
+        />
+      )}
     </div>
   );
 }
