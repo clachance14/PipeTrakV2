@@ -2604,6 +2604,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_manual_component: {
+        Args: {
+          p_attributes: Json
+          p_component_type: string
+          p_drawing_id: string
+          p_identity: Json
+          p_project_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_test_package: {
         Args: {
           p_description?: string
@@ -2820,6 +2831,10 @@ export type Database = {
         Args: { target_component_type: string; target_project_id: string }
         Returns: number
       }
+      reclassify_component: {
+        Args: { p_component_id: string; p_new_type: string; p_user_id: string }
+        Returns: Json
+      }
       record_nde_result: {
         Args: {
           p_field_weld_id: string
@@ -2832,6 +2847,14 @@ export type Database = {
         Returns: Json
       }
       refresh_materialized_views: { Args: never; Returns: undefined }
+      retire_components: {
+        Args: {
+          p_component_ids: string[]
+          p_reason?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       retire_field_weld: {
         Args: {
           p_field_weld_id: string
@@ -2847,6 +2870,15 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unstick_processing_drawings: { Args: never; Returns: number }
+      update_component_identity: {
+        Args: {
+          p_attribute_changes: Json
+          p_component_id: string
+          p_identity_changes: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
       update_component_milestone: {
         Args: {
           p_component_id: string
