@@ -7,11 +7,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import type { Json } from '@/types/database.types'
 
 interface UpdateComponentIdentityPayload {
   component_id: string
-  identity_changes: Record<string, unknown>
-  attribute_changes: Record<string, unknown>
+  identity_changes: Record<string, Json | undefined>
+  attribute_changes: Record<string, Json | undefined>
   user_id: string
 }
 

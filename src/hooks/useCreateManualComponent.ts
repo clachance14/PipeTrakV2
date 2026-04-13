@@ -8,13 +8,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { ComponentType } from '@/types/drawing-table.types'
+import type { Json } from '@/types/database.types'
 
 interface CreateManualComponentPayload {
   drawing_id: string
   project_id: string
   component_type: ComponentType
-  identity: Record<string, unknown>
-  attributes: Record<string, unknown>
+  identity: Record<string, Json | undefined>
+  attributes: Record<string, Json | undefined>
   user_id: string
 }
 

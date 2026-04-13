@@ -70,7 +70,7 @@ describe('useRetireComponents hook', () => {
       expect(supabase.rpc).toHaveBeenCalledWith('retire_components', {
         p_component_ids: ['comp-uuid-1'],
         p_user_id: 'user-uuid',
-        p_reason: null
+        p_reason: undefined
       })
     })
 

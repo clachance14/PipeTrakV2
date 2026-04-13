@@ -42,6 +42,7 @@ import { useReclassifyComponent } from '@/hooks/useReclassifyComponent';
 import { useUpdateComponentIdentity } from '@/hooks/useUpdateComponentIdentity';
 import { useRetireComponents } from '@/hooks/useRetireComponents';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Json } from '@/types/database.types';
 
 interface ComponentDetailViewProps {
   componentId: string;
@@ -364,8 +365,8 @@ export function ComponentDetailView({
       if (hasIdentityChanges || hasAttributeChanges) {
         await updateIdentityMutation.mutateAsync({
           component_id: component.id,
-          identity_changes: changes.identityChanges,
-          attribute_changes: changes.attributeChanges,
+          identity_changes: changes.identityChanges as Record<string, Json | undefined>,
+          attribute_changes: changes.attributeChanges as Record<string, Json | undefined>,
           user_id: user.id,
         });
       }

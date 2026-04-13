@@ -22,7 +22,7 @@ export function useRetireComponents() {
       const { data, error } = await supabase.rpc('retire_components', {
         p_component_ids: payload.component_ids,
         p_user_id: payload.user_id,
-        p_reason: payload.reason ?? null,
+        p_reason: payload.reason ?? undefined,
       })
       if (error) throw new Error(error.message)
       return data
