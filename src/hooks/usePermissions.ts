@@ -7,6 +7,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission as checkPermission, type Role, type Permission, ROLE_PERMISSIONS } from '@/lib/permissions';
+import { canEditComponents as canEditComponentsFn } from '@/lib/permissions/component-edit-permissions';
 
 export interface UsePermissionsReturn {
   // Boolean flags for each permission (camelCase)
@@ -17,6 +18,7 @@ export interface UsePermissionsReturn {
   canViewDashboards: boolean;
   canManageTeam: boolean;
   canManageProject: boolean;
+  canEditComponents: boolean;
 
   // Function to check arbitrary permission
   hasPermission: (permission: Permission) => boolean;
@@ -59,6 +61,7 @@ export function usePermissions(): UsePermissionsReturn {
       canViewDashboards: false,
       canManageTeam: false,
       canManageProject: false,
+      canEditComponents: false,
       hasPermission: () => false,
       role: null,
     };
@@ -75,6 +78,7 @@ export function usePermissions(): UsePermissionsReturn {
     canViewDashboards: permissions.includes('view_reports'),
     canManageTeam: permissions.includes('manage_team'),
     canManageProject: permissions.includes('manage_projects'),
+    canEditComponents: canEditComponentsFn(userRole),
     hasPermission: (permission: Permission) => checkPermission(userRole, permission),
     role: userRole,
   };
