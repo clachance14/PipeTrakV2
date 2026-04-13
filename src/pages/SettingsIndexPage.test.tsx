@@ -11,6 +11,9 @@ vi.mock('react-router-dom', async () => {
     useParams: () => ({ projectId: 'test-project-id' }),
   }
 })
+vi.mock('@/components/Layout', () => ({
+  Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}))
 
 describe('SettingsIndexPage', () => {
   beforeEach(() => {
@@ -27,7 +30,7 @@ describe('SettingsIndexPage', () => {
     })
   })
 
-  it('renders all three settings cards', () => {
+  it('renders all settings cards', () => {
     render(
       <BrowserRouter>
         <SettingsIndexPage />
@@ -37,6 +40,7 @@ describe('SettingsIndexPage', () => {
     expect(screen.getByText('Rules of Credit')).toBeInTheDocument()
     expect(screen.getByText('Metadata Management')).toBeInTheDocument()
     expect(screen.getByText('Project Details')).toBeInTheDocument()
+    expect(screen.getByText('Manhour Budget')).toBeInTheDocument()
   })
 
   it('renders manage buttons for each card', () => {
@@ -47,7 +51,7 @@ describe('SettingsIndexPage', () => {
     )
 
     const buttons = screen.getAllByRole('link', { name: /manage/i })
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(4)
   })
 
   it('links to correct subsections', () => {
@@ -57,7 +61,7 @@ describe('SettingsIndexPage', () => {
       </BrowserRouter>
     )
 
-    expect(screen.getByRole('link', { name: /milestone templates/i }))
+    expect(screen.getByRole('link', { name: /rules of credit/i }))
       .toHaveAttribute('href', '/projects/test-project-id/settings/milestones')
 
     expect(screen.getByRole('link', { name: /metadata management/i }))

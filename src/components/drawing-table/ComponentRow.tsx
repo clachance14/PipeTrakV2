@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isDemoUser } from '@/components/demo/DemoModeBanner'
 import { cn } from '@/lib/utils'
 import { formatIdentityKey } from '@/lib/formatIdentityKey'
+import { formatComponentType } from '@/lib/component-type-labels'
 import { isAggregatePipe, getMilestonePercentValue, isMilestoneComplete } from '@/lib/aggregatePipe'
 import type { ComponentRow as ComponentRowType, MilestoneConfig, RollbackReasonData } from '@/types/drawing-table.types'
 
@@ -52,27 +53,6 @@ export interface ComponentRowProps {
   isSelected?: boolean
   /** Callback when selection state changes */
   onSelectionChange?: (componentId: string, selected: boolean) => void
-}
-
-/**
- * Format component type to human-readable string
- */
-function formatComponentType(type: string): string {
-  const typeMap: Record<string, string> = {
-    field_weld: 'Field Weld',
-    valve: 'Valve',
-    fitting: 'Fitting',
-    flange: 'Flange',
-    instrument: 'Instrument',
-    support: 'Support',
-    pipe: 'Pipe',
-    spool: 'Spool',
-    tubing: 'Tubing',
-    hose: 'Hose',
-    threaded_pipe: 'Threaded Pipe',
-    misc_component: 'Misc Component',
-  }
-  return typeMap[type] || type
 }
 
 /**

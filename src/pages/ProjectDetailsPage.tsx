@@ -9,6 +9,7 @@
  * - Edit project description (optional, max 500 chars)
  * - Character counters for both fields
  * - Archive project (soft delete with confirmation dialog)
+ * - Delete project (hard delete with type-to-confirm dialog)
  * - Save button disabled when form is pristine or name is empty
  * - Permission-gated (requires can_manage_project)
  */
@@ -17,9 +18,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
 import { SettingsLayout } from '@/components/settings/SettingsLayout'
 import { useUpdateProject } from '@/hooks/useUpdateProject'
 import { useArchiveProject } from '@/hooks/useArchiveProject'
+import { useDeleteProject } from '@/hooks/useDeleteProject'
 import { supabase } from '@/lib/supabase'
 
 export function ProjectDetailsPage() {
@@ -45,6 +48,8 @@ export function ProjectDetailsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
   // Initialize form when project loads
   useEffect(() => {
@@ -56,6 +61,7 @@ export function ProjectDetailsPage() {
 
   const updateProject = useUpdateProject()
   const archiveProject = useArchiveProject()
+  const deleteProject = useDeleteProject()
 
   const isDirty = name !== project?.name || description !== (project?.description || '')
 
@@ -78,6 +84,20 @@ export function ProjectDetailsPage() {
     archiveProject.mutate(projectId, {
       onSuccess: () => {
         navigate('/dashboard')
+      },
+    })
+  }
+
+  const handleDelete = () => {
+    if (!projectId) return
+
+    deleteProject.mutate(projectId, {
+      onSuccess: () => {
+        toast.success('Project deleted permanently')
+        navigate('/dashboard')
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete project')
       },
     })
   }
@@ -150,18 +170,36 @@ export function ProjectDetailsPage() {
           <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
           <div>
             <h2 className="text-lg font-semibold text-red-600 mb-1">Danger Zone</h2>
-            <p className="text-sm text-slate-600">
-              Archive this project to hide it from active project lists. Components and data will be preserved.
-            </p>
           </div>
         </div>
 
-        <button
-          onClick={() => setShowArchiveDialog(true)}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-        >
-          Archive Project
-        </button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3 border-b border-slate-200">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Archive Project</p>
+              <p className="text-sm text-slate-500">Hide from active lists. Data is preserved and can be restored.</p>
+            </div>
+            <button
+              onClick={() => setShowArchiveDialog(true)}
+              className="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+            >
+              Archive
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Delete Project</p>
+              <p className="text-sm text-slate-500">Permanently delete this project and all its data. This cannot be undone.</p>
+            </div>
+            <button
+              onClick={() => { setShowDeleteDialog(true); setDeleteConfirmText(''); }}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Archive Confirmation Dialog */}
@@ -189,6 +227,46 @@ export function ProjectDetailsPage() {
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-slate-300"
               >
                 {archiveProject.isPending ? 'Archiving...' : 'Archive Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-red-600 mb-2">Delete Project Permanently?</h3>
+            <p className="text-slate-600 mb-4">
+              This will permanently delete <strong>{project?.name}</strong> and all its data including drawings, components, BOM items, and progress history. This action cannot be undone.
+            </p>
+            <p className="text-sm text-slate-600 mb-2">
+              Type <strong>DELETE</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 mb-6"
+            />
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleDelete()
+                  setShowDeleteDialog(false)
+                }}
+                disabled={deleteConfirmText !== 'DELETE' || deleteProject.isPending}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                {deleteProject.isPending ? 'Deleting...' : 'Delete Forever'}
               </button>
             </div>
           </div>

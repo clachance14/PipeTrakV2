@@ -1,6 +1,12 @@
-import { ChevronRight, FileText, Pencil } from 'lucide-react'
+import { ChevronRight, Pencil, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { DrawingRow as DrawingRowType } from '@/types/drawing-table.types'
 
 export interface DrawingRowProps {
@@ -121,19 +127,54 @@ export function DrawingRow({
       ) : (
         /* Desktop: Multi-column layout */
         <>
-          {/* Drawing number + viewer link */}
+          {/* Drawing number + PDF icon */}
           <div className="min-w-[140px] flex items-center gap-1.5 text-base font-semibold text-slate-900 truncate">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(`/projects/${drawing.project_id}/drawings/${drawing.id}/viewer`)
-              }}
-              className="flex-shrink-0 p-0.5 text-slate-400 hover:text-blue-600 transition-colors"
-              aria-label={`Open PDF viewer for ${drawing.drawing_no_norm}`}
-            >
-              <FileText className="h-4 w-4" />
-            </button>
+            {drawing.file_path && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/projects/${drawing.project_id}/drawings/${drawing.id}/viewer`)
+                      }}
+                      className="flex-shrink-0 p-0.5 hover:bg-blue-50 rounded transition-colors"
+                      aria-label="View PDF drawing"
+                    >
+                      <FileText className="h-4 w-4 text-blue-500" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    View PDF drawing
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {/* Processing status dot */}
+            {drawing.processing_status === 'queued' && (
+              <span className="flex-shrink-0 h-2 w-2 rounded-full bg-gray-400" title="Queued" />
+            )}
+            {drawing.processing_status === 'processing' && (
+              <span className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-500 animate-pulse" title="Processing" />
+            )}
+            {drawing.processing_status === 'error' && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex-shrink-0 h-2 w-2 rounded-full bg-red-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs max-w-xs">
+                    {drawing.processing_note || 'Processing error'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <span className="truncate">{drawing.drawing_no_norm}</span>
+            {drawing.sheet_number && drawing.file_path && (
+              <span className="flex-shrink-0 text-xs font-normal text-slate-500">
+                Sht {drawing.sheet_number}
+              </span>
+            )}
           </div>
 
           {/* Spec (most common from components) */}

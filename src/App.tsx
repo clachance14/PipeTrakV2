@@ -43,6 +43,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { SettingsIndexPage } from '@/pages/SettingsIndexPage'
 import { ProjectDetailsPage } from '@/pages/ProjectDetailsPage'
 import { OrganizationSettingsPage } from '@/pages/OrganizationSettingsPage'
+import { DrawingViewerPage } from '@/pages/DrawingViewerPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -257,6 +258,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DrawingComponentTablePage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Drawing Viewer (Feature 035 - AI Drawing Import) */}
+            <Route
+              path="/projects/:projectId/drawings/:drawingId/viewer"
+              element={
+                <ProtectedRoute>
+                  <DrawingViewerPage />
                 </ProtectedRoute>
               }
             />

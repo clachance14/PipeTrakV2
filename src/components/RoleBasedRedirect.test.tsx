@@ -13,23 +13,23 @@ vi.mock('react-router-dom', async () => {
 })
 
 describe('RoleBasedRedirect', () => {
-  it('redirects owner to root', () => {
+  it('redirects owner to components', () => {
     render(
       <BrowserRouter>
         <RoleBasedRedirect role="owner" />
       </BrowserRouter>
     )
 
-    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
+    expect(mockNavigate).toHaveBeenCalledWith('/components', { replace: true })
   })
 
-  it('redirects foreman to root', () => {
+  it('redirects foreman to components', () => {
     render(
       <BrowserRouter>
         <RoleBasedRedirect role="foreman" />
       </BrowserRouter>
     )
 
-    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
+    expect(mockNavigate).toHaveBeenCalledWith('/components', { replace: true })
   })
 })

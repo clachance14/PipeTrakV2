@@ -1,5 +1,5 @@
 {
   "imports": {
-    "papaparse": "https://esm.sh/papaparse@5.4.1"
+    "pdf-lib": "https://esm.sh/pdf-lib@1.17.1"
   }
 }

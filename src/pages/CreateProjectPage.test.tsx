@@ -173,7 +173,7 @@ describe('CreateProjectPage successful creation', () => {
       expect.objectContaining({ onSuccess: expect.any(Function) })
     )
     expect(mockSetSelectedProjectId).toHaveBeenCalledWith('new-project-id')
-    expect(mockNavigate).toHaveBeenCalledWith('/')
+    expect(mockNavigate).toHaveBeenCalledWith('/imports')
   })
 })
 

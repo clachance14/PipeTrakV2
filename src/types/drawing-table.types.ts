@@ -138,6 +138,21 @@ export interface DrawingRow {
   /** True if drawing is retired/archived */
   is_retired: boolean
 
+  /** Sheet number for multi-sheet drawings */
+  sheet_number: string | null
+  /** Line number from title block (e.g., "4\"") */
+  line_number: string | null
+
+  // AI drawing import fields
+  /** Storage path for uploaded PDF */
+  file_path: string | null
+  /** Page number in the original multi-page PDF (1-indexed) */
+  source_page: number | null
+  /** Processing status from AI extraction */
+  processing_status: string | null
+  /** Error or status note from processing */
+  processing_note: string | null
+
   // Metadata fields
   /** Area metadata (optional) */
   area: { id: string; name: string } | null

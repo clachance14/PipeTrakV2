@@ -62,7 +62,7 @@ See [docs/workflows/DATA-TYPE-CHANGE-CHECKLIST.md](../docs/workflows/DATA-TYPE-C
 
 **Always use `./db-push.sh`** - never `supabase db push --linked` (hangs due to CLI bug #4302, #4419).
 
-`db-push.sh` uses **session mode (port 5432)** which supports prepared statements and is more reliable than transaction mode (port 6543).
+`db-push.sh` uses **session mode (port 5432)** which supports prepared statements and is more reliable than transaction mode (port 6543). The script uses `npx supabase` (not bare `supabase`) since the CLI may not be globally installed.
 
 If you see `prepared statement "lrupsc_1_0" already exists` - you're accidentally using transaction mode. The error is benign; check if the migration actually applied.
 
@@ -97,27 +97,59 @@ Located in `supabase/functions/`:
 | `cleanup-demos` | Clean up expired demos |
 | `send-invitation` | Team invitation emails |
 | `resend-magic-link` | Auth magic link resend |
+| `process-drawing` | AI-powered ISO drawing extraction |
 
 **Pattern**: Every edge function that inserts data must have a `schema-helpers.ts` with type-safe builder functions. Reference: `import-field-welds/schema-helpers.ts`.
+
+### Storage Buckets
+
+| Bucket | Purpose |
+|---|---|
+| `drawing-pdfs` | ISO drawing PDF files ({project_id}/ structure, private, 50MB limit, PDF only) |
 
 ---
 
 ## Querying Remote Database
 
-**User-context** (respects RLS):
-```javascript
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-const env = readFileSync('.env', 'utf-8')
-// Parse VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from env
-const supabase = createClient(url, anonKey)
+### Setup (CRITICAL - follow exactly)
+
+1. **Write `.ts` files in the project root** (not `/tmp/`) so `node_modules` are accessible
+2. **Use `npx tsx`** to run TypeScript directly — `dotenv` is NOT installed (Vite handles env at dev time)
+3. **Load env vars with grep** — `.env` has Windows CRLF line endings, so `source .env` will fail:
+
+```bash
+export VITE_SUPABASE_URL=$(grep VITE_SUPABASE_URL .env | cut -d= -f2 | tr -d '\r') && \
+export SUPABASE_SERVICE_ROLE_KEY=$(grep SUPABASE_SERVICE_ROLE_KEY .env | cut -d= -f2 | tr -d '\r') && \
+npx tsx query.ts && rm query.ts
 ```
 
-**Admin** (bypasses RLS - use sparingly):
-```javascript
-const supabase = createClient(url, serviceRoleKey, {
-  auth: { persistSession: false, autoRefreshToken: false }
-})
+4. **Don't use Bash heredocs** with template literal strings — the sandbox quote escaping will mangle them. Use the Write tool instead.
+5. **`supabase db execute` does NOT exist** in the CLI — always use the Supabase JS client.
+
+### Script Template
+
+```typescript
+// query.ts — write with Write tool, run with npx tsx
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!  // Admin: bypasses RLS
+);
+
+async function main() {
+  const { data, error } = await supabase.from('table').select('*');
+  if (error) { console.error(error); return; }
+  console.log(data);
+}
+main();
 ```
 
-Run from project root: `node script.mjs`
+For user-context queries (respects RLS), use `VITE_SUPABASE_ANON_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY`.
+
+### View Column Names
+
+Views use dimension-prefixed names, not bare `name`:
+- `vw_manhour_progress_by_area` → `area_name` (not `name`)
+- `vw_manhour_progress_by_system` → `system_name`
+- `vw_manhour_progress_by_test_package` → `test_package_name`

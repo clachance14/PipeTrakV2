@@ -56,7 +56,7 @@ Transform vague tasks into verifiable goals:
 ## Critical Warnings
 
 ### Service Role Key Security
-**NEVER** expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code. Service role bypasses ALL Row Level Security policies. Use only for admin scripts, migrations, and debugging.
+**NEVER** expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code. Service role bypasses ALL Row Level Security policies. Use only for edge functions, admin scripts, migrations, and debugging.
 
 ### Migration Push
 Always use `./db-push.sh` to push migrations. Never `supabase db push --linked` (hangs - CLI bug #4302). See [supabase/CLAUDE.md](supabase/CLAUDE.md) for full migration workflow and troubleshooting.
@@ -120,6 +120,7 @@ npm run lint             # Lint
 - **Main App**: `/dashboard`, `/projects`, `/projects/new`, `/project-setup`, `/components`, `/drawings`, `/packages`, `/packages/:packageId/components`, `/packages/:packageId/completion-report`, `/needs-review`, `/welders`, `/weld-log`, `/imports`, `/reports`, `/reports/new`, `/reports/view`, `/reports/welder-summary`, `/team`
 - **Settings** (Admin/PM): `/projects/:projectId/settings`, `.../milestones`, `.../metadata`, `.../project`, `.../manhours`
 - **Per-Project**: `/projects/:projectId/components`, `/projects/:projectId/drawing-table`
+- **Drawing Viewer**: `/projects/:projectId/drawings/:drawingId/viewer`
 - **Debug**: `/debug`
 
 All authenticated routes wrap `<ProtectedRoute>` in App.tsx. Common layout handled by `Layout` component.
@@ -148,7 +149,7 @@ supabase db diff --schema public --linked          # Verify schema
 **IMPORTANT**: Remote database only. No local Supabase (`supabase start`).
 
 ### Database
-- 257 migrations applied (as of 2026-02-10)
+- 264 migrations applied (as of 2026-02-24)
 - RLS enabled on all tables
 - 8 edge functions (see [supabase/CLAUDE.md](supabase/CLAUDE.md) for details)
 - See `supabase/migrations/` for migration files
@@ -279,6 +280,9 @@ Component-based PDF generation using @react-pdf/renderer. See [src/components/pd
 
 ## Documentation Index
 
+**AI Agent Context**:
+- [_bmad-output/project-context.md](_bmad-output/project-context.md) - Critical rules, patterns, and gotchas for AI agents (LLM-optimized)
+
 **Essential Reading**:
 - [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md) - Feature status, completed work, bug fixes
 - [docs/GLOSSARY.md](docs/GLOSSARY.md) - Domain terminology (brownfield, milestones, component types, roles)
@@ -291,6 +295,14 @@ Component-based PDF generation using @react-pdf/renderer. See [src/components/pd
 **Subdirectory Context**:
 - [supabase/CLAUDE.md](supabase/CLAUDE.md) - Migration workflow, CLI troubleshooting, edge functions
 - [src/components/pdf/CLAUDE.md](src/components/pdf/CLAUDE.md) - PDF component library and patterns
+
+---
+
+## gstack
+
+Use the `/browse` skill from gstack for **all web browsing**. Never use `mcp__claude-in-chrome__*` tools.
+
+**Available skills**: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`
 
 ---
 

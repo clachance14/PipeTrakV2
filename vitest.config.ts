@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
       css: true,
+      exclude: ['**/node_modules/**', '**/dist/**', 'specs/**'],
       env: {
         VITE_SUPABASE_URL: env.VITE_SUPABASE_URL || '',
         VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY || '',

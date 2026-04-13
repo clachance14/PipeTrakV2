@@ -15,7 +15,7 @@ import { useProcessDrawing } from '@/hooks/useProcessDrawing';
 import { Button } from '@/components/ui/button';
 
 /** Max concurrent edge function calls for drawing processing */
-const PROCESSING_CONCURRENCY = 10;
+const PROCESSING_CONCURRENCY = 5;
 
 interface DrawingUploadTabProps {
   projectId: string;

@@ -42,7 +42,7 @@ export function SettingsIndexPage() {
     },
     {
       title: 'Project Details',
-      description: 'Edit project name and description, or archive this project to hide it from active project lists.',
+      description: 'Edit project name and description, archive, or permanently delete this project.',
       icon: FolderCog,
       path: `/projects/${projectId}/settings/project`,
     },

@@ -58,7 +58,7 @@ export function CreateProjectPage() {
       {
         onSuccess: (newProject) => {
           setSelectedProjectId(newProject.id)
-          navigate('/')
+          navigate('/imports')
         },
         onError: (error) => {
           toast.error(`Failed to create project: ${error.message}`)
