@@ -28,10 +28,10 @@ Extend the existing `ComponentMetadataModal` with an "Edit" tab (Admin/PM only) 
 
 Edit access is granted to roles with administrative authority. All other roles are read-only.
 
-- **Edit access** (`owner`, `admin`, `project_manager`): Full access to all edit operations (reclassify, delete, edit identity/attributes, add component)
-- **Read-only** (`foreman`, `qc_inspector`, `welder`, `viewer`): No Edit tab, no checkboxes, no Add button. Sees "Details" tab (existing read-only view).
+- **Edit access** (`owner`, `admin`, `project_manager`, `qc_inspector`): Full access to all edit operations (reclassify, delete, edit identity/attributes, add component)
+- **Read-only** (`foreman`, `welder`, `viewer`): No Edit tab, no checkboxes, no Add button. Sees "Details" tab (existing read-only view).
 
-Permission check in RPCs: `role IN ('owner', 'admin', 'project_manager')`
+Permission check in RPCs: `role IN ('owner', 'admin', 'project_manager', 'qc_inspector')`
 
 ## Design
 
@@ -139,7 +139,7 @@ All delete operations (single and bulk) show a confirmation dialog:
 
 ### New RPCs
 
-All RPCs use SECURITY DEFINER with explicit permission checks (owner/admin/project_manager). All update last_updated_by, last_updated_at, and bump `version` for optimistic locking (matching existing pattern in ComponentMetadataModal).
+All RPCs use SECURITY DEFINER with explicit permission checks (owner/admin/project_manager/qc_inspector). All update last_updated_by, last_updated_at, and bump `version` for optimistic locking (matching existing pattern in ComponentMetadataModal).
 
 Dedup is enforced by the existing unique index: `(project_id, component_type, identity_key) WHERE NOT is_retired`. There is no `identity_lookup_key` column — collision detection relies on this index.
 
@@ -147,7 +147,7 @@ Manhour recalculation: The `percent_complete` trigger fires automatically on mil
 
 #### 1. `reclassify_component(p_component_id UUID, p_new_type TEXT, p_user_id UUID)`
 
-1. Guard: caller is owner, admin, or project_manager
+1. Guard: caller is owner, admin, project_manager, or qc_inspector
 2. Guard: percent_complete = 0 for target component
 3. Find siblings: all components with matching drawing_id + commodity_code + size from identity_key (excluding different seq values)
 4. Guard: percent_complete = 0 for ALL siblings
@@ -160,14 +160,14 @@ Manhour recalculation: The `percent_complete` trigger fires automatically on mil
 
 #### 2. `retire_components(p_component_ids UUID[], p_user_id UUID, p_reason TEXT DEFAULT NULL)`
 
-1. Guard: caller is owner, admin, or project_manager
+1. Guard: caller is owner, admin, project_manager, or qc_inspector
 2. For each component: SET is_retired = true, last_updated_by, last_updated_at
 3. Log reason in audit (if provided)
 4. Return: `{ components_retired }`
 
 #### 3. `update_component_identity(p_component_id UUID, p_identity_changes JSONB, p_attribute_changes JSONB, p_user_id UUID)`
 
-1. Guard: caller is owner, admin, or project_manager
+1. Guard: caller is owner, admin, project_manager, or qc_inspector
 2. Find siblings: all components with matching drawing_id + old commodity_code + old size
 3. Merge p_identity_changes into identity_key JSONB on all siblings
 4. Merge p_attribute_changes into attributes JSONB on all siblings
@@ -176,7 +176,7 @@ Manhour recalculation: The `percent_complete` trigger fires automatically on mil
 
 #### 4. `create_manual_component(p_drawing_id UUID, p_project_id UUID, p_component_type TEXT, p_identity JSONB, p_attributes JSONB, p_user_id UUID)`
 
-1. Guard: caller is owner, admin, or project_manager
+1. Guard: caller is owner, admin, project_manager, or qc_inspector
 2. Build identity_key based on component_type rules (same logic as AI pipeline)
 3. Dedup check: verify no existing component with same identity on this drawing
 4. For exploded types: create N records (seq 1..N) from quantity in p_attributes
