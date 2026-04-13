@@ -8,14 +8,20 @@ import { EmptyDrawingsState } from '@/components/drawing-table/EmptyDrawingsStat
 import { DrawingTableError } from '@/components/drawing-table/DrawingTableError'
 import { DrawingBulkActions } from '@/components/drawing-table/DrawingBulkActions'
 import { DrawingAssignDialog } from '@/components/drawing-table/DrawingAssignDialog'
+import { BulkDeleteBar } from '@/components/drawing-table/BulkDeleteBar'
 import { WelderAssignDialog } from '@/components/field-welds/WelderAssignDialog'
 import { ComponentMetadataModal } from '@/components/component-metadata/ComponentMetadataModal'
+import { AddComponentModal, type CreateManualComponentData } from '@/components/component-metadata/AddComponentModal'
+import { DeleteConfirmationDialog } from '@/components/component-metadata/DeleteConfirmationDialog'
 import { useDrawingsWithProgress } from '@/hooks/useDrawingsWithProgress'
 import { useComponentsByDrawings } from '@/hooks/useComponentsByDrawings'
 import { useExpandedDrawings } from '@/hooks/useExpandedDrawings'
 import { useDrawingFilters } from '@/hooks/useDrawingFilters'
 import { useUpdateMilestone } from '@/hooks/useUpdateMilestone'
 import { useDrawingSelection } from '@/hooks/useDrawingSelection'
+import { usePermissions } from '@/hooks/usePermissions'
+import { useRetireComponents } from '@/hooks/useRetireComponents'
+import { useCreateManualComponent } from '@/hooks/useCreateManualComponent'
 import { useAreas } from '@/hooks/useAreas'
 import { useSystems } from '@/hooks/useSystems'
 import { useTestPackages } from '@/hooks/useTestPackages'
@@ -54,6 +60,16 @@ export function DrawingComponentTablePage() {
 
   // Component metadata editing modal state
   const [metadataModalComponentId, setMetadataModalComponentId] = useState<string | null>(null)
+
+  // Feature 035: Component-level bulk selection and add/delete modal state
+  const [selectedComponentIds, setSelectedComponentIds] = useState<Set<string>>(new Set())
+  const [addModalDrawingId, setAddModalDrawingId] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  // Permissions and mutations for component editing
+  const { canEditComponents } = usePermissions()
+  const retireMutation = useRetireComponents()
+  const createMutation = useCreateManualComponent()
 
   // Validated component click handler
   const handleComponentClick = (componentId: string) => {
@@ -201,6 +217,66 @@ export function DrawingComponentTablePage() {
     setAssignDialogOpen(true)
   }
 
+  // Feature 035: Component selection handler
+  const handleComponentSelectionChange = useCallback((componentId: string, selected: boolean) => {
+    setSelectedComponentIds(prev => {
+      const next = new Set(prev)
+      if (selected) next.add(componentId)
+      else next.delete(componentId)
+      return next
+    })
+  }, [])
+
+  // Feature 035: Add component submit handler
+  const handleAddComponentSubmit = useCallback(async (data: CreateManualComponentData) => {
+    if (!addModalDrawingId || !user?.id || !selectedProjectId) return
+    await createMutation.mutateAsync({
+      drawing_id: addModalDrawingId,
+      project_id: selectedProjectId,
+      component_type: data.component_type,
+      identity: {
+        commodity_code: data.commodity_code,
+        size: data.size,
+        spool_id: data.spool_id,
+        weld_number: data.weld_number,
+      },
+      attributes: {
+        description: data.description,
+        quantity: data.quantity,
+        total_linear_feet: data.total_linear_feet,
+      },
+      user_id: user.id,
+    })
+    setAddModalDrawingId(null)
+  }, [addModalDrawingId, user?.id, selectedProjectId, createMutation])
+
+  // Feature 035: Bulk delete handler
+  const handleBulkDelete = useCallback(async (reason?: string) => {
+    if (!user?.id) return
+    await retireMutation.mutateAsync({
+      component_ids: Array.from(selectedComponentIds),
+      user_id: user.id,
+      reason,
+    })
+    setSelectedComponentIds(new Set())
+    setDeleteDialogOpen(false)
+  }, [user?.id, selectedComponentIds, retireMutation])
+
+  // Feature 035: Build summary of selected components for delete dialog
+  const selectedComponentSummary = useMemo(() => {
+    const selectedIds = Array.from(selectedComponentIds)
+    const names: string[] = []
+    for (const [, components] of componentsMap) {
+      for (const c of components) {
+        if (selectedIds.includes(c.id)) {
+          names.push(c.identityDisplay)
+        }
+      }
+    }
+    if (names.length <= 3) return names.join(', ')
+    return `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`
+  }, [selectedComponentIds, componentsMap])
+
   // Apply filters and sorting
   const displayDrawings = filterAndSortDrawings(drawings || [])
 
@@ -338,6 +414,16 @@ export function DrawingComponentTablePage() {
           </div>
         )}
 
+        {/* Feature 035: Component Bulk Delete Bar */}
+        {selectedComponentIds.size > 0 && (
+          <div className="flex-shrink-0 mb-2 px-2 md:px-4">
+            <BulkDeleteBar
+              selectedCount={selectedComponentIds.size}
+              onDelete={() => setDeleteDialogOpen(true)}
+            />
+          </div>
+        )}
+
         {/* Table - Scrollable fills remaining space */}
         <div className="flex-1 min-h-0 bg-white rounded-lg shadow overflow-hidden mx-2 md:mx-4 mb-4">
           <DrawingTable
@@ -356,6 +442,10 @@ export function DrawingComponentTablePage() {
             onSelectAll={() => selectAll(visibleDrawingIds)}
             onComponentClick={handleComponentClick}
             isMobile={isMobile}
+            canEditComponents={canEditComponents}
+            selectedComponentIds={selectedComponentIds}
+            onComponentSelectionChange={handleComponentSelectionChange}
+            onAddComponent={(drawingId) => setAddModalDrawingId(drawingId)}
           />
         </div>
 
@@ -390,6 +480,25 @@ export function DrawingComponentTablePage() {
             onClose={() => setMetadataModalComponentId(null)}
           />
         )}
+
+        {/* Feature 035: Add Component Modal */}
+        {addModalDrawingId !== null && (
+          <AddComponentModal
+            open={true}
+            onClose={() => setAddModalDrawingId(null)}
+            onSubmit={handleAddComponentSubmit}
+            isSubmitting={createMutation.isPending}
+          />
+        )}
+
+        {/* Feature 035: Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={handleBulkDelete}
+          componentCount={selectedComponentIds.size}
+          componentSummary={selectedComponentSummary}
+        />
       </div>
     </Layout>
   )

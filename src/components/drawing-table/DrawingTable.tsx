@@ -27,6 +27,11 @@ export interface DrawingTableProps {
   isMobile?: boolean
   // Feature 020: Component metadata editing
   onComponentClick?: (componentId: string) => void
+  // Feature 035: Component-level selection & add
+  canEditComponents?: boolean
+  selectedComponentIds?: Set<string>
+  onComponentSelectionChange?: (componentId: string, selected: boolean) => void
+  onAddComponent?: (drawingId: string) => void
 }
 
 export interface DrawingTableHandle {
@@ -61,6 +66,10 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
   onSelectAll,
   isMobile = false,
   onComponentClick,
+  canEditComponents = false,
+  selectedComponentIds = new Set(),
+  onComponentSelectionChange,
+  onAddComponent,
 }, ref) {
   const parentRef = useRef<HTMLDivElement>(null)
   const prevExpandedIdRef = useRef<string | null>(null)
@@ -239,6 +248,8 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
                     onSelect={onToggleSelection}
                     isMobile={isMobile}
                     isFirstRow={row.data.id === drawings[0]?.id}
+                    canEditComponents={canEditComponents}
+                    onAddComponent={onAddComponent}
                   />
                 </div>
               </div>
@@ -270,6 +281,9 @@ export const DrawingTable = forwardRef<DrawingTableHandle, DrawingTableProps>(fu
                 testPackage={row.data.test_package}
                 onMilestoneUpdate={onMilestoneUpdate}
                 onClick={onComponentClick}
+                canEditComponents={canEditComponents}
+                isSelected={selectedComponentIds.has(row.data.id)}
+                onSelectionChange={onComponentSelectionChange}
               />
             </div>
           )
